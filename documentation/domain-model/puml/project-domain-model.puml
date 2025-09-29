@@ -41,9 +41,7 @@ class VesselType {
     length
     draft
     numSTSMax
-    rows
-    bays
-    tiers
+    operationalConstraints
 }
 
 class VesselVisit {
