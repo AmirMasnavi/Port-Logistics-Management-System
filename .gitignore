@@ -1,0 +1,11 @@
+# Ignore C# unnecessary files
+bin/
+obj/
+
+# Ignore VSCode files
+.vscode/
+
+# Ignore IntelliJ IDEA files
+.idea/
+*.iml
+*.iws
