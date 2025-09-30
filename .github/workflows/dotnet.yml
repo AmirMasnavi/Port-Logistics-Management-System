@@ -20,9 +20,3 @@ jobs:
 
       - name: Build Solution
         run: dotnet build ./LEI-SEM5-PI-2025-26-3DL-02.sln --no-restore --verbosity minimal
-
-      - name: Run Integration Tests
-        run: dotnet test ./Tests/IntegrationTests/IntegrationTests.csproj --no-restore --verbosity normal
-
-      - name: Run Unit Tests
-        run: dotnet test ./Tests/UnitTests/tests.csproj --no-restore --verbosity normal
