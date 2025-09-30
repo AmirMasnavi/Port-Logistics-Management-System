@@ -1,0 +1,320 @@
+@startuml Domain Model
+hide circle
+hide methods
+allow_mixing
+
+skinparam classAttributeIconSize 0
+
+skinparam class {
+    LifeLineBorderColor DodgerBlue
+    LifeLineBackgroundColor APPLICATION
+    BackgroundColor LemonChiffon
+    ArrowColor Brown
+    BorderColor SaddleBrown
+}
+
+skinparam packageStyle rectangle
+
+skinparam card {
+    LifeLineBorderColor DodgerBlue
+    LifeLineBackgroundColor APPLICATION
+    BackgroundColor LemonChiffon
+    ArrowColor Brown
+    BorderColor SaddleBrown
+}
+
+title Domain Model - Port Logistics Management
+
+' Aggregates
+
+package "DockAggregate" {
+    entity Dock <<entity>><<root>> {
+
+    }
+
+    card DockId <<Value Object>>
+    card DockName <<Value Object>>
+    card LengthCapacity <<Value Object>>
+    card NumSTSFixedCranes <<Value Object>>
+
+    Dock "1" --> "1" DockId
+    Dock "1" --> "1" DockName
+    Dock "1" --> "1" LengthCapacity
+    Dock "1" --> "1" NumSTSFixedCranes
+}
+
+package "StorageAreaAggregate" {
+    entity StorageArea <<entity>><<root>> {
+
+    }
+
+    card StorageAreaId <<Value Object>>
+    enum StorageAreaType <<enumeration>> {
+        Yard
+        Warehouse
+    }
+    card CapacityTEU <<Value Object>>
+    card CurrentOccupancyTEU <<Value Object>>
+    card DockConstraints <<Value Object>>
+
+    StorageArea "1" --> "1" StorageAreaId
+    StorageArea "1" --> "1" StorageAreaType
+    StorageArea "1" --> "1" CapacityTEU
+    StorageArea "1" --> "1" CurrentOccupancyTEU
+    StorageArea "1" --> "*" DockConstraints
+}
+
+package "VesselTypeAggregate" {
+    entity VesselType <<entity>><<root>> {
+
+    }
+
+    card VesselTypeId <<Value Object>>
+    card VesselTypeName <<Value Object>>
+    card MaxTEU <<Value Object>>
+    card Length <<Value Object>>
+    card Draft <<Value Object>>
+    card NumSTSMax <<Value Object>>
+    card OperationalConstraints <<Value Object>>
+
+    VesselType "1" --> "1" VesselTypeId
+    VesselType "1" --> "1" VesselTypeName
+    VesselType "1" --> "1" MaxTEU
+    VesselType "1" --> "1" Length
+    VesselType "1" --> "1" Draft
+    VesselType "1" --> "1" NumSTSMax
+    VesselType "1" --> "1" OperationalConstraints
+}
+
+package "VesselAggregate" {
+    entity Vessel <<entity>><<root>> {
+
+    }
+
+    card VesselIMO <<Value Object>>
+    card VesselName <<Value Object>>
+    card VesselCapacityTEU <<Value Object>>
+    card Bays <<Value Object>>
+    card Rows <<Value Object>>
+    card Tiers <<Value Object>>
+
+    Vessel "1" --> "1" VesselIMO
+    Vessel "1" --> "1" VesselName
+    Vessel "1" --> "1" VesselCapacityTEU
+    Vessel "1" --> "1" Bays
+    Vessel "1" --> "1" Rows
+    Vessel "1" --> "1" Tiers
+}
+
+
+
+
+
+
+package "LogisticResourceAggregate" {
+    entity LogisticResource <<entity>><<root>> {
+
+    }
+
+    card ResourceId <<Value Object>>
+    card OperationalWindow <<Value Object>>
+    enum ResourceStatus <<enumeration>> {
+        Available
+        Unavailable_Maintenance
+        TemporarilyOutOfService
+    }
+
+    LogisticResource "1" --> "1" ResourceId
+    LogisticResource "1" --> "1" OperationalWindow
+    LogisticResource "1" --> "1" ResourceStatus
+}
+
+package "PhysicalResourceAggregate" {
+    entity PhysicalResource <<entity>><<root>> {
+
+    }
+
+    card ResourceId <<Value Object>>
+    enum PhysicalResourceType <<enumeration>> {
+        STSCrane
+        YardCrane
+        Truck
+        OtherEquipment
+    }
+    card OperationalCapacity <<Value Object>>
+    card SetupTime <<Value Object>>
+    card AssignedAreaId <<Value Object>>
+    card IsActive <<Boolean>>
+
+    PhysicalResource "1" --> "1" ResourceId
+    PhysicalResource "1" --> "1" PhysicalResourceType
+    PhysicalResource "1" --> "1" OperationalCapacity
+    PhysicalResource "1" --> "1" SetupTime
+    PhysicalResource "1" --> "0..1" AssignedAreaId
+    PhysicalResource "1" --> "1" IsActive
+}
+
+package "HumanResourceAggregate" {
+    entity HumanResource <<entity>><<root>> {
+
+    }
+
+    card HumanResourceId <<Value Object>>
+    card HumanResourceName <<Value Object>>
+    card HumanResourceEmail <<Value Object>>
+    card HumanResourcePhone <<Value Object>>
+    card OperationalWindow <<Value Object>>
+    enum HumanResourceStatus <<enumeration>> {
+        Available
+        OnLeave
+        Training
+        TemporarilyReassigned
+    }
+    card IsActive <<Boolean>>
+
+    HumanResource "1" --> "1" HumanResourceId
+    HumanResource "1" --> "1" HumanResourceName
+    HumanResource "1" --> "1" HumanResourceEmail
+    HumanResource "1" --> "1" HumanResourcePhone
+    HumanResource "1" --> "1" OperationalWindow
+    HumanResource "1" --> "1" HumanResourceStatus
+    HumanResource "1" --> "1" IsActive
+}
+
+package "QualificationAggregate" {
+    entity Qualification <<entity>><<root>> {
+
+    }
+
+    card QualificationId <<Value Object>>
+    card QualificationName <<Value Object>>
+    card QualificationDescription <<Value Object>>
+
+    Qualification "1" --> "1" QualificationId
+    Qualification "1" --> "1" QualificationName
+    Qualification "1" --> "1" QualificationDescription
+}
+
+package "OperationalTaskAggregate" {
+    entity OperationalTask <<entity>><<root>> {
+
+    }
+
+    card TaskId <<Value Object>>
+    enum TaskType <<enumeration>> {
+        Unloading
+        Moving
+        Loading
+    }
+    card TaskSequence <<Value Object>>
+    enum TaskStatus <<enumeration>> {
+        Pending
+        InProgress
+        Completed
+        Cancelled
+    }
+    card VesselVisitId <<Value Object>>
+    card DockId <<Value Object>>
+    card StorageAreaId <<Value Object>>
+
+    OperationalTask "1" --> "1" TaskId
+    OperationalTask "1" --> "1" TaskType
+    OperationalTask "1" --> "1" TaskSequence
+    OperationalTask "1" --> "1" TaskStatus
+    OperationalTask "1" --> "1" VesselVisitId
+    OperationalTask "1" --> "0..1" DockId
+    OperationalTask "1" --> "0..1" StorageAreaId
+}
+
+
+package "ShippingAgentOrganizationAggregate" {
+    entity ShippingAgentOrganization <<entity>><<root>> {
+
+    }
+
+    card OrganizationId <<Value Object>>
+    card LegalName <<Value Object>>
+    card AlternativeName <<Value Object>>
+    card Address <<Value Object>>
+    card TaxNumber <<Value Object>>
+    card IsActive <<Boolean>>
+
+    ShippingAgentOrganization "1" --> "1" OrganizationId
+    ShippingAgentOrganization "1" --> "1" LegalName
+    ShippingAgentOrganization "0..1" --> "1" AlternativeName
+    ShippingAgentOrganization "1" --> "1" Address
+    ShippingAgentOrganization "1" --> "1" TaxNumber
+    ShippingAgentOrganization "1" --> "1" IsActive
+}
+
+package "ShippingAgentRepresentativeAggregate" {
+    entity ShippingAgentRepresentative <<entity>><<root>> {
+
+    }
+
+    card RepresentativeId <<Value Object>>
+    card RepresentativeName <<Value Object>>
+    card CitizenId <<Value Object>>
+    card Nationality <<Value Object>>
+    card RepresentativeEmail <<Value Object>>
+    card RepresentativePhone <<Value Object>>
+    card OrganizationId <<Value Object>>
+    card IsActive <<Boolean>>
+
+    ShippingAgentRepresentative "1" --> "1" RepresentativeId
+    ShippingAgentRepresentative "1" --> "1" RepresentativeName
+    ShippingAgentRepresentative "1" --> "1" CitizenId
+    ShippingAgentRepresentative "1" --> "1" Nationality
+    ShippingAgentRepresentative "1" --> "1" RepresentativeEmail
+    ShippingAgentRepresentative "1" --> "1" RepresentativePhone
+    ShippingAgentRepresentative "1" --> "1" OrganizationId
+    ShippingAgentRepresentative "1" --> "1" IsActive
+}
+
+
+
+
+
+
+
+' ==== RELATIONSHIPS BETWEEN AGGREGATES ====
+
+Port "1" -- "*" Dock : contains >
+Port "1" -- "*" StorageArea : contains >
+
+Dock "1" -- "*" PhysicalResource : includes STS cranes >
+
+Vessel "1" -- "1" VesselType : is of type >
+Vessel "1" -- "*" VesselVisit : scheduled for >
+
+VesselVisit "*" -- "1" Dock : assigned to >
+VesselVisit "1" -- "*" CargoManifest : handles >
+
+CargoManifest "1" -- "*" ContainerManifestEntry : lists >
+ContainerManifestEntry "1" -- "1" Container : refers to >
+Container "1" -- "1" CargoType : carries >
+ContainerManifestEntry "1" --> "1" ContainerBay
+ContainerManifestEntry "1" --> "1" ContainerRow
+ContainerManifestEntry "1" --> "1" ContainerTier
+ContainerManifestEntry "1" --> "1" PortPosition
+
+LogisticResource <|-- PhysicalResource
+LogisticResource <|-- HumanResource
+
+PhysicalResource "*" -- "*" Qualification : requires >
+HumanResource "*" -- "*" Qualification : has >
+
+OperationalTask "*" -- "*" LogisticResource : allocates >
+OperationalTask "*" -- "1" VesselVisit : part of >
+
+PortAuthority "1" -- "*" VesselVisit : approves/rejects >
+ShippingAgentOrganization "1" -- "*" Vessel : represents >
+ShippingAgentOrganization "1" -- "*" ShippingAgentRepresentative : employs >
+
+
+
+
+
+VesselVisit "1" --> "0..*" CrewInfo : includes (when necessary) >
+
+@enduml
