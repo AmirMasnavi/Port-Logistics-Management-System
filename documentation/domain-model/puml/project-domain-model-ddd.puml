@@ -4,18 +4,19 @@ title Port Management Domain Model
 ' Aggregate: VesselType
 package "VesselType" {
     class VesselType <<Root>> <<Entity>> #D1E5F4 {
-        + Name: string
-        + Description: string
     }
     class VesselTypeId <<ValueObject>> {}
-    class VesselLayout <<ValueObject>> {
-        + MaxRows: int
-        + MaxBays: int
-        + MaxTiers: int
-    }
+    class VesselTypeName <<ValueObject>> {}
+    class VesselTypeDescription <<ValueObject>> {}
+    class VesselTypeCapacity <<ValueObject>> {}
+    class VesselTypeDimensions <<ValueObject>>{}
 
     VesselType "1" *-- "1" VesselTypeId
-    VesselType "1" *-- "1" VesselLayout
+    VesselType "1" *-- "1" VesselTypeName
+    VesselType "1" *-- "1" VesselTypeDescription
+    VesselType "1" *-- "1" VesselTypeCapacity
+    VesselType "1" *-- "1" VesselTypeDimensions
+
 }
 
 ' Aggregate: Vessel
@@ -37,33 +38,31 @@ package "Vessel" {
 ' Aggregate: Dock
 package "Dock" {
     class Dock <<Root>> <<Entity>> #D1E5F4 {
-        + Name: string
-        + Location: string
     }
     class DockId <<ValueObject>> {}
+    class DockName <<ValueObject>> {}
+    class DockLocation <<ValueObject>> {}
     class PhysicalCharacteristics <<ValueObject>> {
-        + Length: double
-        + Depth: double
-        + MaxDraft: double
+
     }
 
     Dock "1" *-- "1" DockId
+    Dock "1" *-- "1" DockName
+    Dock "1" *-- "1" DockLocation
     Dock "1" *-- "1" PhysicalCharacteristics
 }
 
 ' Aggregate: StorageArea
 package "StorageArea" {
     class StorageArea <<Root>> <<Entity>> #D1E5F4 {
-        + Location: string
     }
     class StorageAreaId <<ValueObject>> {}
+    class StorageAreaLocation <<ValueObject>> {}
     enum StorageAreaType <<ValueObject>> {
         Yard
         Warehouse
     }
     class StorageCapacity <<ValueObject>> {
-        + MaxCapacityTEU: int
-        + CurrentOccupancyTEU: int
     }
     class DockDistance <<ValueObject>> {
         + ToDockId: DockId
@@ -71,6 +70,7 @@ package "StorageArea" {
     }
 
     StorageArea "1" *-- "1" StorageAreaId
+    StorageArea "1" *-- "1" StorageAreaLocation
     StorageArea "1" *-- "1" StorageAreaType
     StorageArea "1" *-- "1" StorageCapacity
     StorageArea "1" *-- "*" DockDistance
@@ -80,40 +80,33 @@ package "StorageArea" {
 package "ShippingAgentOrganization" {
     class ShippingAgentOrganization <<Root>> <<Entity>> #D1E5F4 {}
     class OrganizationId <<ValueObject>> {}
-    class LegalNames <<ValueObject>> {
-        + LegalName: string
-        + AlternativeName: string
-    }
     class Address <<ValueObject>> {}
-    class TaxNumber <<ValueObject>> {}
+
 
     ShippingAgentOrganization "1" *-- "1" OrganizationId
-    ShippingAgentOrganization "1" *-- "1" LegalNames
     ShippingAgentOrganization "1" *-- "1" Address
-    ShippingAgentOrganization "1" *-- "1" TaxNumber
 }
 
 ' Aggregate: Representative
-package "Representative" {
-    class Representative <<Root>> <<Entity>> #D1E5F4 {
-        + CitizenId: string
-        + Name: string
-        + Nationality: string
-    }
+package "ShippingAgentRepresentative" {
+    class ShippingAgentRepresentative <<Root>> <<Entity>> #D1E5F4 {   }
     class RepresentativeId <<ValueObject>> {}
-    class ContactDetails <<ValueObject>> {
-        + Email: string
-        + PhoneNumber: string
-    }
+   class citizenId <<ValueObject>> {}
+   class RepresentativeName <<ValueObject>> {}
+   class RepresentativeEmail <<ValueObject>> {}
+    class RepresentativePhone <<ValueObject>> {}
 
-    Representative "1" *-- "1" RepresentativeId
-    Representative "1" *-- "1" ContactDetails
+    "ShippingAgentRepresentative" "1" *-- "1" RepresentativeId
+    "ShippingAgentRepresentative" "1" *-- "1" citizenId
+    "ShippingAgentRepresentative" "1" *-- "1" RepresentativeName
+    "ShippingAgentRepresentative" "1" *-- "1" RepresentativeEmail
+    "ShippingAgentRepresentative" "1" *-- "1" RepresentativePhone
+
 }
 
 ' Aggregate: StaffMember
 package "StaffMember" {
     class StaffMember <<Root>> <<Entity>> #D1E5F4 {
-        + Name: string
     }
     class MecanographicNumber <<ValueObject>> {}
     enum StaffStatus <<ValueObject>> {
@@ -121,21 +114,24 @@ package "StaffMember" {
         Unavailable
     }
     class OperationalWindow <<ValueObject>> {}
-    ' Re-using ContactDetails from Representative package for brevity
-    ' In a real model, this might be defined in a shared kernel
-    Representative.ContactDetails --|> StaffMember.ContactDetails
+    class StaffName <<ValueObject>> {}
+    class StaffEmail <<ValueObject>> {}
+    class StaffPhone <<ValueObject>> {}
 
     StaffMember "1" *-- "1" MecanographicNumber
     StaffMember "1" *-- "1" StaffStatus
     StaffMember "1" *-- "1" OperationalWindow
-    StaffMember "1" *-- "1" ContactDetails
+    StaffMember "1" *-- "1" StaffName
+    StaffMember "1" *-- "1" StaffEmail
+    StaffMember "1" *-- "1" StaffPhone
+
+
 }
 
 ' Aggregate: PhysicalResource
 package "PhysicalResource" {
     class PhysicalResource <<Root>> <<Entity>> #D1E5F4 {
-        + Description: string
-        + AssignedArea: string
+
     }
     class ResourceCode <<ValueObject>> {}
     enum ResourceStatus <<ValueObject>> {
@@ -146,6 +142,7 @@ package "PhysicalResource" {
     class OperationalCapacity <<ValueObject>> {}
     class SetupTime <<ValueObject>> {}
 
+
     PhysicalResource "1" *-- "1" ResourceCode
     PhysicalResource "1" *-- "1" ResourceStatus
     PhysicalResource "1" *-- "1" OperationalCapacity
@@ -155,18 +152,21 @@ package "PhysicalResource" {
 ' Aggregate: Qualification
 package "Qualification" {
     class Qualification <<Root>> <<Entity>> #D1E5F4 {
-        + Name: string
-        + Description: string
+
     }
     class QualificationCode <<ValueObject>> {}
+    class QualificationName <<ValueObject>> {}
+    class QualificationDescription <<ValueObject>> {}
 
     Qualification "1" *-- "1" QualificationCode
+    Qualification "1" *-- "1" QualificationName
+    Qualification "1" *-- "1" QualificationDescription
 }
 
 ' Aggregate: VesselVisitNotification
 package "VesselVisitNotification" {
     class VesselVisitNotification <<Root>> <<Entity>> #D1E5F4 {
-        + RejectionReason: string
+
     }
     class NotificationId <<ValueObject>> {}
     enum NotificationStatus <<ValueObject>> {
@@ -177,13 +177,13 @@ package "VesselVisitNotification" {
     }
     class CargoManifest <<Entity>> {}
     class Container <<Entity>> {
-        + ContainerId: string
+
     }
     class CrewMember <<Entity>> {
-        + Name: string
-        + CitizenId: string
-        + Nationality: string
+
     }
+    class CrewMemberId <<ValueObject>> {}
+
     class DecisionLogEntry <<Entity>> {
         + Outcome: string
         + OfficerId: string
@@ -205,13 +205,13 @@ package "VesselVisitNotification" {
 Vessel.Vessel "1" --> "1" VesselType.VesselType : "references"
 Dock.Dock "1" --> "*" VesselType.VesselType : "allows"
 StorageArea.StorageArea "1" --> "*" Dock.Dock : "serves"
-Representative.Representative "1" --> "1" ShippingAgentOrganization.ShippingAgentOrganization : "works for"
+ShippingAgentRepresentative.ShippingAgentRepresentative "1" --> "1" ShippingAgentOrganization.ShippingAgentOrganization : "works for"
 
 StaffMember.StaffMember "1" --> "*" Qualification.Qualification : "has"
 PhysicalResource.PhysicalResource "1" --> "*" Qualification.Qualification : "requires"
 
 VesselVisitNotification.VesselVisitNotification "1" --> "1" Vessel.Vessel : "is for"
-VesselVisitNotification.VesselVisitNotification "1" --> "1" Representative.Representative : "submitted by"
+VesselVisitNotification.VesselVisitNotification "1" --> "1" ShippingAgentRepresentative.ShippingAgentRepresentative : "submitted by"
 VesselVisitNotification.VesselVisitNotification "1" --> "0..1" Dock.Dock : "assigned to"
 
 @enduml
