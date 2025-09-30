@@ -1,320 +1,217 @@
-@startuml Domain Model
-hide circle
-hide methods
-allow_mixing
+@startuml
+title Port Management Domain Model
 
-skinparam classAttributeIconSize 0
-
-skinparam class {
-    LifeLineBorderColor DodgerBlue
-    LifeLineBackgroundColor APPLICATION
-    BackgroundColor LemonChiffon
-    ArrowColor Brown
-    BorderColor SaddleBrown
-}
-
-skinparam packageStyle rectangle
-
-skinparam card {
-    LifeLineBorderColor DodgerBlue
-    LifeLineBackgroundColor APPLICATION
-    BackgroundColor LemonChiffon
-    ArrowColor Brown
-    BorderColor SaddleBrown
-}
-
-title Domain Model - Port Logistics Management
-
-' Aggregates
-
-package "DockAggregate" {
-    entity Dock <<entity>><<root>> {
-
+' Aggregate: VesselType
+package "VesselType" {
+    class VesselType <<Root>> <<Entity>> #D1E5F4 {
+        + Name: string
+        + Description: string
+    }
+    class VesselTypeId <<ValueObject>> {}
+    class VesselLayout <<ValueObject>> {
+        + MaxRows: int
+        + MaxBays: int
+        + MaxTiers: int
     }
 
-    card DockId <<Value Object>>
-    card DockName <<Value Object>>
-    card LengthCapacity <<Value Object>>
-    card NumSTSFixedCranes <<Value Object>>
-
-    Dock "1" --> "1" DockId
-    Dock "1" --> "1" DockName
-    Dock "1" --> "1" LengthCapacity
-    Dock "1" --> "1" NumSTSFixedCranes
+    VesselType "1" *-- "1" VesselTypeId
+    VesselType "1" *-- "1" VesselLayout
 }
 
-package "StorageAreaAggregate" {
-    entity StorageArea <<entity>><<root>> {
+' Aggregate: Vessel
+package "Vessel" {
+    class Vessel <<Root>> <<Entity>> #D1E5F4 {
+        
+    }
+    class ImoNumber <<ValueObject>> {}
+    class Name <<ValueObject>> {}
+    class Owner <<ValueObject>> {}
 
+    
+
+    Vessel "1" *-- "1" ImoNumber
+    Vessel "1" *-- "1" Name
+    Vessel "1" *-- "1" Owner
+}
+
+' Aggregate: Dock
+package "Dock" {
+    class Dock <<Root>> <<Entity>> #D1E5F4 {
+        + Name: string
+        + Location: string
+    }
+    class DockId <<ValueObject>> {}
+    class PhysicalCharacteristics <<ValueObject>> {
+        + Length: double
+        + Depth: double
+        + MaxDraft: double
     }
 
-    card StorageAreaId <<Value Object>>
-    enum StorageAreaType <<enumeration>> {
+    Dock "1" *-- "1" DockId
+    Dock "1" *-- "1" PhysicalCharacteristics
+}
+
+' Aggregate: StorageArea
+package "StorageArea" {
+    class StorageArea <<Root>> <<Entity>> #D1E5F4 {
+        + Location: string
+    }
+    class StorageAreaId <<ValueObject>> {}
+    enum StorageAreaType <<ValueObject>> {
         Yard
         Warehouse
     }
-    card CapacityTEU <<Value Object>>
-    card CurrentOccupancyTEU <<Value Object>>
-    card DockConstraints <<Value Object>>
-
-    StorageArea "1" --> "1" StorageAreaId
-    StorageArea "1" --> "1" StorageAreaType
-    StorageArea "1" --> "1" CapacityTEU
-    StorageArea "1" --> "1" CurrentOccupancyTEU
-    StorageArea "1" --> "*" DockConstraints
-}
-
-package "VesselTypeAggregate" {
-    entity VesselType <<entity>><<root>> {
-
+    class StorageCapacity <<ValueObject>> {
+        + MaxCapacityTEU: int
+        + CurrentOccupancyTEU: int
+    }
+    class DockDistance <<ValueObject>> {
+        + ToDockId: DockId
+        + Distance: double
     }
 
-    card VesselTypeId <<Value Object>>
-    card VesselTypeName <<Value Object>>
-    card MaxTEU <<Value Object>>
-    card Length <<Value Object>>
-    card Draft <<Value Object>>
-    card NumSTSMax <<Value Object>>
-    card OperationalConstraints <<Value Object>>
-
-    VesselType "1" --> "1" VesselTypeId
-    VesselType "1" --> "1" VesselTypeName
-    VesselType "1" --> "1" MaxTEU
-    VesselType "1" --> "1" Length
-    VesselType "1" --> "1" Draft
-    VesselType "1" --> "1" NumSTSMax
-    VesselType "1" --> "1" OperationalConstraints
+    StorageArea "1" *-- "1" StorageAreaId
+    StorageArea "1" *-- "1" StorageAreaType
+    StorageArea "1" *-- "1" StorageCapacity
+    StorageArea "1" *-- "*" DockDistance
 }
 
-package "VesselAggregate" {
-    entity Vessel <<entity>><<root>> {
-
+' Aggregate: ShippingAgentOrganization
+package "ShippingAgentOrganization" {
+    class ShippingAgentOrganization <<Root>> <<Entity>> #D1E5F4 {}
+    class OrganizationId <<ValueObject>> {}
+    class LegalNames <<ValueObject>> {
+        + LegalName: string
+        + AlternativeName: string
     }
+    class Address <<ValueObject>> {}
+    class TaxNumber <<ValueObject>> {}
 
-    card VesselIMO <<Value Object>>
-    card VesselName <<Value Object>>
-    card VesselCapacityTEU <<Value Object>>
-    card Bays <<Value Object>>
-    card Rows <<Value Object>>
-    card Tiers <<Value Object>>
-
-    Vessel "1" --> "1" VesselIMO
-    Vessel "1" --> "1" VesselName
-    Vessel "1" --> "1" VesselCapacityTEU
-    Vessel "1" --> "1" Bays
-    Vessel "1" --> "1" Rows
-    Vessel "1" --> "1" Tiers
+    ShippingAgentOrganization "1" *-- "1" OrganizationId
+    ShippingAgentOrganization "1" *-- "1" LegalNames
+    ShippingAgentOrganization "1" *-- "1" Address
+    ShippingAgentOrganization "1" *-- "1" TaxNumber
 }
 
-
-
-
-
-
-package "LogisticResourceAggregate" {
-    entity LogisticResource <<entity>><<root>> {
-
+' Aggregate: Representative
+package "Representative" {
+    class Representative <<Root>> <<Entity>> #D1E5F4 {
+        + CitizenId: string
+        + Name: string
+        + Nationality: string
+    }
+    class RepresentativeId <<ValueObject>> {}
+    class ContactDetails <<ValueObject>> {
+        + Email: string
+        + PhoneNumber: string
     }
 
-    card ResourceId <<Value Object>>
-    card OperationalWindow <<Value Object>>
-    enum ResourceStatus <<enumeration>> {
+    Representative "1" *-- "1" RepresentativeId
+    Representative "1" *-- "1" ContactDetails
+}
+
+' Aggregate: StaffMember
+package "StaffMember" {
+    class StaffMember <<Root>> <<Entity>> #D1E5F4 {
+        + Name: string
+    }
+    class MecanographicNumber <<ValueObject>> {}
+    enum StaffStatus <<ValueObject>> {
         Available
-        Unavailable_Maintenance
-        TemporarilyOutOfService
+        Unavailable
     }
+    class OperationalWindow <<ValueObject>> {}
+    ' Re-using ContactDetails from Representative package for brevity
+    ' In a real model, this might be defined in a shared kernel
+    Representative.ContactDetails --|> StaffMember.ContactDetails
 
-    LogisticResource "1" --> "1" ResourceId
-    LogisticResource "1" --> "1" OperationalWindow
-    LogisticResource "1" --> "1" ResourceStatus
+    StaffMember "1" *-- "1" MecanographicNumber
+    StaffMember "1" *-- "1" StaffStatus
+    StaffMember "1" *-- "1" OperationalWindow
+    StaffMember "1" *-- "1" ContactDetails
 }
 
-package "PhysicalResourceAggregate" {
-    entity PhysicalResource <<entity>><<root>> {
-
+' Aggregate: PhysicalResource
+package "PhysicalResource" {
+    class PhysicalResource <<Root>> <<Entity>> #D1E5F4 {
+        + Description: string
+        + AssignedArea: string
     }
-
-    card ResourceId <<Value Object>>
-    enum PhysicalResourceType <<enumeration>> {
-        STSCrane
-        YardCrane
-        Truck
-        OtherEquipment
+    class ResourceCode <<ValueObject>> {}
+    enum ResourceStatus <<ValueObject>> {
+        Active
+        Inactive
+        UnderMaintenance
     }
-    card OperationalCapacity <<Value Object>>
-    card SetupTime <<Value Object>>
-    card AssignedAreaId <<Value Object>>
-    card IsActive <<Boolean>>
+    class OperationalCapacity <<ValueObject>> {}
+    class SetupTime <<ValueObject>> {}
 
-    PhysicalResource "1" --> "1" ResourceId
-    PhysicalResource "1" --> "1" PhysicalResourceType
-    PhysicalResource "1" --> "1" OperationalCapacity
-    PhysicalResource "1" --> "1" SetupTime
-    PhysicalResource "1" --> "0..1" AssignedAreaId
-    PhysicalResource "1" --> "1" IsActive
+    PhysicalResource "1" *-- "1" ResourceCode
+    PhysicalResource "1" *-- "1" ResourceStatus
+    PhysicalResource "1" *-- "1" OperationalCapacity
+    PhysicalResource "1" *-- "1" SetupTime
 }
 
-package "HumanResourceAggregate" {
-    entity HumanResource <<entity>><<root>> {
-
+' Aggregate: Qualification
+package "Qualification" {
+    class Qualification <<Root>> <<Entity>> #D1E5F4 {
+        + Name: string
+        + Description: string
     }
+    class QualificationCode <<ValueObject>> {}
 
-    card HumanResourceId <<Value Object>>
-    card HumanResourceName <<Value Object>>
-    card HumanResourceEmail <<Value Object>>
-    card HumanResourcePhone <<Value Object>>
-    card OperationalWindow <<Value Object>>
-    enum HumanResourceStatus <<enumeration>> {
-        Available
-        OnLeave
-        Training
-        TemporarilyReassigned
-    }
-    card IsActive <<Boolean>>
-
-    HumanResource "1" --> "1" HumanResourceId
-    HumanResource "1" --> "1" HumanResourceName
-    HumanResource "1" --> "1" HumanResourceEmail
-    HumanResource "1" --> "1" HumanResourcePhone
-    HumanResource "1" --> "1" OperationalWindow
-    HumanResource "1" --> "1" HumanResourceStatus
-    HumanResource "1" --> "1" IsActive
+    Qualification "1" *-- "1" QualificationCode
 }
 
-package "QualificationAggregate" {
-    entity Qualification <<entity>><<root>> {
-
+' Aggregate: VesselVisitNotification
+package "VesselVisitNotification" {
+    class VesselVisitNotification <<Root>> <<Entity>> #D1E5F4 {
+        + RejectionReason: string
     }
-
-    card QualificationId <<Value Object>>
-    card QualificationName <<Value Object>>
-    card QualificationDescription <<Value Object>>
-
-    Qualification "1" --> "1" QualificationId
-    Qualification "1" --> "1" QualificationName
-    Qualification "1" --> "1" QualificationDescription
-}
-
-package "OperationalTaskAggregate" {
-    entity OperationalTask <<entity>><<root>> {
-
-    }
-
-    card TaskId <<Value Object>>
-    enum TaskType <<enumeration>> {
-        Unloading
-        Moving
-        Loading
-    }
-    card TaskSequence <<Value Object>>
-    enum TaskStatus <<enumeration>> {
-        Pending
+    class NotificationId <<ValueObject>> {}
+    enum NotificationStatus <<ValueObject>> {
         InProgress
-        Completed
-        Cancelled
+        Submitted
+        Approved
+        Rejected
     }
-    card VesselVisitId <<Value Object>>
-    card DockId <<Value Object>>
-    card StorageAreaId <<Value Object>>
+    class CargoManifest <<Entity>> {}
+    class Container <<Entity>> {
+        + ContainerId: string
+    }
+    class CrewMember <<Entity>> {
+        + Name: string
+        + CitizenId: string
+        + Nationality: string
+    }
+    class DecisionLogEntry <<Entity>> {
+        + Outcome: string
+        + OfficerId: string
+        + Timestamp: datetime
+    }
 
-    OperationalTask "1" --> "1" TaskId
-    OperationalTask "1" --> "1" TaskType
-    OperationalTask "1" --> "1" TaskSequence
-    OperationalTask "1" --> "1" TaskStatus
-    OperationalTask "1" --> "1" VesselVisitId
-    OperationalTask "1" --> "0..1" DockId
-    OperationalTask "1" --> "0..1" StorageAreaId
+    VesselVisitNotification "1" *-- "1" NotificationId
+    VesselVisitNotification "1" *-- "1" NotificationStatus
+    VesselVisitNotification "1" *-- "1" CargoManifest
+    VesselVisitNotification "1" *-- "*" CrewMember
+    VesselVisitNotification "1" *-- "*" DecisionLogEntry
+    CargoManifest "1" *-- "*" Container
 }
 
 
-package "ShippingAgentOrganizationAggregate" {
-    entity ShippingAgentOrganization <<entity>><<root>> {
+' --- Inter-Aggregate Relationships ---
+' These are references by ID, not direct object composition.
 
-    }
+Vessel.Vessel "1" --> "1" VesselType.VesselType : "references"
+Dock.Dock "1" --> "*" VesselType.VesselType : "allows"
+StorageArea.StorageArea "1" --> "*" Dock.Dock : "serves"
+Representative.Representative "1" --> "1" ShippingAgentOrganization.ShippingAgentOrganization : "works for"
 
-    card OrganizationId <<Value Object>>
-    card LegalName <<Value Object>>
-    card AlternativeName <<Value Object>>
-    card Address <<Value Object>>
-    card TaxNumber <<Value Object>>
-    card IsActive <<Boolean>>
+StaffMember.StaffMember "1" --> "*" Qualification.Qualification : "has"
+PhysicalResource.PhysicalResource "1" --> "*" Qualification.Qualification : "requires"
 
-    ShippingAgentOrganization "1" --> "1" OrganizationId
-    ShippingAgentOrganization "1" --> "1" LegalName
-    ShippingAgentOrganization "0..1" --> "1" AlternativeName
-    ShippingAgentOrganization "1" --> "1" Address
-    ShippingAgentOrganization "1" --> "1" TaxNumber
-    ShippingAgentOrganization "1" --> "1" IsActive
-}
-
-package "ShippingAgentRepresentativeAggregate" {
-    entity ShippingAgentRepresentative <<entity>><<root>> {
-
-    }
-
-    card RepresentativeId <<Value Object>>
-    card RepresentativeName <<Value Object>>
-    card CitizenId <<Value Object>>
-    card Nationality <<Value Object>>
-    card RepresentativeEmail <<Value Object>>
-    card RepresentativePhone <<Value Object>>
-    card OrganizationId <<Value Object>>
-    card IsActive <<Boolean>>
-
-    ShippingAgentRepresentative "1" --> "1" RepresentativeId
-    ShippingAgentRepresentative "1" --> "1" RepresentativeName
-    ShippingAgentRepresentative "1" --> "1" CitizenId
-    ShippingAgentRepresentative "1" --> "1" Nationality
-    ShippingAgentRepresentative "1" --> "1" RepresentativeEmail
-    ShippingAgentRepresentative "1" --> "1" RepresentativePhone
-    ShippingAgentRepresentative "1" --> "1" OrganizationId
-    ShippingAgentRepresentative "1" --> "1" IsActive
-}
-
-
-
-
-
-
-
-' ==== RELATIONSHIPS BETWEEN AGGREGATES ====
-
-Port "1" -- "*" Dock : contains >
-Port "1" -- "*" StorageArea : contains >
-
-Dock "1" -- "*" PhysicalResource : includes STS cranes >
-
-Vessel "1" -- "1" VesselType : is of type >
-Vessel "1" -- "*" VesselVisit : scheduled for >
-
-VesselVisit "*" -- "1" Dock : assigned to >
-VesselVisit "1" -- "*" CargoManifest : handles >
-
-CargoManifest "1" -- "*" ContainerManifestEntry : lists >
-ContainerManifestEntry "1" -- "1" Container : refers to >
-Container "1" -- "1" CargoType : carries >
-ContainerManifestEntry "1" --> "1" ContainerBay
-ContainerManifestEntry "1" --> "1" ContainerRow
-ContainerManifestEntry "1" --> "1" ContainerTier
-ContainerManifestEntry "1" --> "1" PortPosition
-
-LogisticResource <|-- PhysicalResource
-LogisticResource <|-- HumanResource
-
-PhysicalResource "*" -- "*" Qualification : requires >
-HumanResource "*" -- "*" Qualification : has >
-
-OperationalTask "*" -- "*" LogisticResource : allocates >
-OperationalTask "*" -- "1" VesselVisit : part of >
-
-PortAuthority "1" -- "*" VesselVisit : approves/rejects >
-ShippingAgentOrganization "1" -- "*" Vessel : represents >
-ShippingAgentOrganization "1" -- "*" ShippingAgentRepresentative : employs >
-
-
-
-
-
-VesselVisit "1" --> "0..*" CrewInfo : includes (when necessary) >
+VesselVisitNotification.VesselVisitNotification "1" --> "1" Vessel.Vessel : "is for"
+VesselVisitNotification.VesselVisitNotification "1" --> "1" Representative.Representative : "submitted by"
+VesselVisitNotification.VesselVisitNotification "1" --> "0..1" Dock.Dock : "assigned to"
 
 @enduml
