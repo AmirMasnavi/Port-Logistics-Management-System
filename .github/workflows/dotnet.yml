@@ -16,7 +16,6 @@ jobs:
         run: ls -R
 
       - name: Install Dependencies
-        run: dotnet restore ./LEI-SEM5-PI-2025-26-3DL-02-1/LEI-SEM5-PI-2025-26-3DL-02.sln --verbosity minimal
-        
+        run: dotnet restore ./LEI-SEM5-PI-2025-26-3DL-02.sln --verbosity minimal
       - name: Build Solution
-        run: dotnet build ./LEI-SEM5-PI-2025-26-3DL-02-1/LEI-SEM5-PI-2025-26-3DL-02.sln --no-restore --verbosity minimal
+        run: dotnet build ./LEI-SEM5-PI-2025-26-3DL-02.sln --no-restore --verbosity minimal
