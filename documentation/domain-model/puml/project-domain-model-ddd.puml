@@ -42,14 +42,21 @@ package "Dock" {
     class DockId <<ValueObject>> {}
     class DockName <<ValueObject>> {}
     class DockLocation <<ValueObject>> {}
-    class PhysicalCharacteristics <<ValueObject>> {
+    class DockCapacity <<ValueObject>> {
 
     }
+    class PhysicalCharacteristics <<ValueObject>> {
+        - length
+        - depth
+        -maxDraft
+    }
+
 
     Dock "1" *-- "1" DockId
     Dock "1" *-- "1" DockName
     Dock "1" *-- "1" DockLocation
     Dock "1" *-- "1" PhysicalCharacteristics
+    Dock "1" *-- "1" DockCapacity
 }
 
 ' Aggregate: StorageArea
@@ -65,8 +72,7 @@ package "StorageArea" {
     class StorageCapacity <<ValueObject>> {
     }
     class DockDistance <<ValueObject>> {
-        + ToDockId: DockId
-        + Distance: double
+
     }
 
     StorageArea "1" *-- "1" StorageAreaId
@@ -117,6 +123,12 @@ package "StaffMember" {
     class StaffName <<ValueObject>> {}
     class StaffEmail <<ValueObject>> {}
     class StaffPhone <<ValueObject>> {}
+    enum StaffRole <<ValueObject>> {
+        PortAuthorityOfficer
+        LogisticsOperator
+        Admin
+    }
+
 
     StaffMember "1" *-- "1" MecanographicNumber
     StaffMember "1" *-- "1" StaffStatus
@@ -124,6 +136,7 @@ package "StaffMember" {
     StaffMember "1" *-- "1" StaffName
     StaffMember "1" *-- "1" StaffEmail
     StaffMember "1" *-- "1" StaffPhone
+    StaffMember "1" *-- "1" StaffRole
 
 
 }
@@ -179,23 +192,32 @@ package "VesselVisitNotification" {
     class Container <<Entity>> {
 
     }
+    class ContainerCode <<ValueObject>> {}
     class CrewMember <<Entity>> {
 
     }
     class CrewMemberId <<ValueObject>> {}
 
     class DecisionLogEntry <<Entity>> {
-        + Outcome: string
-        + OfficerId: string
-        + Timestamp: datetime
+
     }
 
     VesselVisitNotification "1" *-- "1" NotificationId
     VesselVisitNotification "1" *-- "1" NotificationStatus
     VesselVisitNotification "1" *-- "1" CargoManifest
     VesselVisitNotification "1" *-- "*" CrewMember
+    CrewMember "1" *-- "1" CrewMemberId
+
     VesselVisitNotification "1" *-- "*" DecisionLogEntry
     CargoManifest "1" *-- "*" Container
+    Container "1" *-- "1" ContainerCode
+}
+
+class NotificationManagementService <<Service>>{
+    submitNotification()
+    approveNotification()
+    rejectNotification()
+    updateNotification()
 }
 
 
@@ -203,15 +225,20 @@ package "VesselVisitNotification" {
 ' These are references by ID, not direct object composition.
 
 Vessel.Vessel "1" --> "1" VesselType.VesselType : "references"
-Dock.Dock "1" --> "*" VesselType.VesselType : "allows"
-StorageArea.StorageArea "1" --> "*" Dock.Dock : "serves"
-ShippingAgentRepresentative.ShippingAgentRepresentative "1" --> "1" ShippingAgentOrganization.ShippingAgentOrganization : "works for"
+Dock.Dock "1" ----> "*" VesselType.VesselType : "allows"
+StorageArea.StorageArea "1" ---> "*" Dock.Dock : "serves"
+ShippingAgentRepresentative.ShippingAgentRepresentative "1" ---> "1" ShippingAgentOrganization.ShippingAgentOrganization : "works for"
 
-StaffMember.StaffMember "1" --> "*" Qualification.Qualification : "has"
+StaffMember.StaffMember "1" ---> "*" Qualification.Qualification : "has"
 PhysicalResource.PhysicalResource "1" --> "*" Qualification.Qualification : "requires"
 
 VesselVisitNotification.VesselVisitNotification "1" --> "1" Vessel.Vessel : "is for"
 VesselVisitNotification.VesselVisitNotification "1" --> "1" ShippingAgentRepresentative.ShippingAgentRepresentative : "submitted by"
-VesselVisitNotification.VesselVisitNotification "1" --> "0..1" Dock.Dock : "assigned to"
+VesselVisitNotification.VesselVisitNotification "1" -> "0..1" Dock.Dock : "assigned to"
+DockDistance "1" --> "1" Dock.Dock : "to"
+
+NotificationManagementService "1" ..> "1" VesselVisitNotification.VesselVisitNotification : "manages"
+"StaffMember" "1" ..> "1" NotificationManagementService : "uses"
+NotificationManagementService "1" ..> "1" Dock.Dock : "checks"
 
 @enduml
