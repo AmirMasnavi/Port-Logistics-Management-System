@@ -1,5 +1,7 @@
 @startuml
+!pragma layout smetana
 title Port Management Domain Model
+
 
 ' Aggregate: VesselType
 package "VesselType" {
