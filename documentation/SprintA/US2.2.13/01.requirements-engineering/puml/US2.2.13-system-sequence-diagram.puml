@@ -1,0 +1,30 @@
+@startuml
+' Use template styling (assuming monochrome, etc.)
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+title US2.2.13: Register and manage qualifications - System Sequence Diagram (SSD)
+
+autonumber
+actor "Logistics Operator" as Logistics
+participant ":System" as System
+
+Activate Logistics
+'--- Register Scenario ---
+Logistics -> System : attempts to register a new qualification with details.
+activate System
+System --> Logistics : confirms successful registration of the qualification
+deactivate System
+
+'--- Manage Scenario ---~
+... Logistics selects an existing resource to manage ...
+Logistics -> System : selects a qualification to manage
+activate System
+System --> Logistics : displays the details of the selected qualification
+deactivate System
+Logistics -> System : manages the details of the qualification
+activate System
+System --> Logistics : confirms successful update of the qualification
+deactivate System
+@enduml
