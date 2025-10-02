@@ -1,0 +1,35 @@
+@startuml
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+title SSD - US 2.2.3 (Register/Update Dock)
+
+autonumber
+
+actor "Port Authority Officer" as Officer
+participant ":System" as System
+
+activate Officer
+
+Officer -> System: Request dock registration
+activate System
+System -> Officer: Ask for dock details
+deactivate System
+Officer -> System: Provide dock data (DockID, DockName, DockLocation, DockCapacity, length, depth, maxDraft, vessel types)
+activate System
+System --> Officer: Confirmation of registration / Error message
+deactivate System
+
+Officer -> System: Request dock update
+activate System
+System -> Officer: Ask for updated dock details
+deactivate System
+Officer -> System: Provide updated dock data
+activate System
+System --> Officer: Confirmation of update / Error message
+deactivate System
+
+deactivate Officer
+
+@enduml
