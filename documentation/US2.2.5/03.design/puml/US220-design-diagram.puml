@@ -1,0 +1,104 @@
+@startuml
+' US220: Register Customer Sequence Diagram (Design)
+
+title US220: Register Customer
+
+actor "CRM Collaborator" as Actor
+participant ":RegisterCustomerUI" as UI <<Presentation>>
+participant ":RegisterCustomerController" as Controller <<Application>>
+participant ":CustomerService" as Service <<Application>>
+participant "AuthzRegistry" as AuthzRegistry <<Framework Facade>>
+participant ":AuthorizationService" as AuthService <<Framework Service>>
+participant "PersistenceContext" as PersistenceContext <<Framework Facade>>
+participant ":CustomerRepository" as CustRepo <<Infrastructure Repository>>
+participant "newRepresentative:CustomerRepresentative" as RepEntity <<Domain Entity>>
+participant "newCustomer:Customer" as CustEntity <<Domain Aggregate Root>>
+database "Database" as DB
+
+skinparam sequenceArrowThickness 2
+skinparam roundcorner 10
+skinparam maxmessagesize 180
+skinparam sequenceParticipant underline
+
+Actor -> UI : Starts customer registration
+activate UI
+
+UI -> Controller : create()
+activate Controller
+' Controller gets AuthService and instantiates CustomerService implicitly
+Controller --> UI : instance
+deactivate Controller
+
+' --- Stage 1: Create Representative (in memory) ---
+UI --> Actor : Requests representative data
+Actor -> UI : Provides data (name, email, phone, position)
+UI -> Controller : registerCustomerRepresentative(name, email, phone, pos)
+activate Controller
+
+Controller -> AuthService : ensureAuthenticatedUserHasAnyOf(ADMIN, CRM_COLLABORATOR)
+activate AuthService
+AuthService --> Controller
+deactivate AuthService
+
+' Controller creates the Representative object but DOES NOT save it yet
+create RepEntity
+Controller -> RepEntity : create(name, email, phone, pos)
+Controller --> UI : newRepresentative
+deactivate Controller
+
+' --- Stage 2: Register Customer (and persist both) ---
+UI --> Actor : Requests customer data (address, VAT, name, email)
+Actor -> UI : Provides data
+UI -> Controller : registerCustomer(address, vat, newRepresentative, phone, custName, custEmail)
+note right of UI : Passes 'newRepresentative' object (transient)\nand representative's 'phone'
+activate Controller
+
+Controller -> AuthService : ensureAuthenticatedUserHasAnyOf(ADMIN, CRM_COLLABORATOR)
+activate AuthService
+AuthService --> Controller
+deactivate AuthService
+
+' Controller delegates to the service layer
+Controller -> Service : registerCustomerService(address, vat, newRepresentative, phone, custName, custEmail)
+activate Service
+
+Service -> AuthService : ensureAuthenticatedUserHasAnyOf(CRM_COLLABORATOR, ADMIN)
+activate AuthService
+AuthService --> Service
+deactivate AuthService
+
+Service -> PersistenceContext : repositories()
+activate PersistenceContext
+PersistenceContext -> PersistenceContext : get CustomerRepository instance
+PersistenceContext --> Service : custRepo
+deactivate PersistenceContext
+
+' Service creates the Customer aggregate, associating the Representative
+create CustEntity
+Service -> CustEntity : create(address, vat, newRepresentative, phone, custName, custEmail)
+note right of Service : Associates 'newRepresentative' with 'newCustomer'
+
+' Service saves the Customer aggregate
+Service -> CustRepo : save(newCustomer)
+activate CustRepo
+
+' Repository (JPA) persists Customer and cascades persistence to Representative
+CustRepo -> DB : INSERT INTO CustomerRepresentative (...) VALUES (...) \n INSERT INTO Customer (...) VALUES (...)
+note right of CustRepo : CascadeType.ALL on Customer->Representative\n triggers saving the Representative too.
+activate DB
+DB --> CustRepo : (Success)
+deactivate DB
+
+CustRepo --> Service : savedCustomer
+deactivate CustRepo
+
+Service --> Controller : savedCustomer
+deactivate Service
+
+Controller --> UI : savedCustomer
+deactivate Controller
+
+UI --> Actor : Displays message "Customer registered successfully"
+deactivate UI
+
+@enduml

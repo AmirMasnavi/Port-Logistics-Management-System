@@ -1,0 +1,33 @@
+@startuml
+' Use template styling
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+title US221 - Add a Customer Representative - System Sequence Diagram (SSD)
+
+autonumber
+
+actor "CRM Collaborator" as Collaborator
+participant ":System" as System
+
+activate Collaborator
+
+    Collaborator -> System : Requests to register a new customer representative
+    activate System
+
+        System --> Collaborator : Requests representative data (name, email, position, phone, customer VAT)
+    deactivate System
+
+    Collaborator -> System : Submits customer representative details
+    activate System
+
+        System -> System : Creates representative as a user (Customer App role only)
+        System -> System : Associates representative with specified customer
+        System --> Collaborator : Displays success message "Representative registered successfully"
+
+    deactivate System
+
+deactivate Collaborator
+
+@enduml

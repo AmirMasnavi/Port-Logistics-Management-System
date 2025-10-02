@@ -1,0 +1,88 @@
+@startuml
+' US220: Register Customer - Analysis Domain Model (Based on Provided Model)
+
+title US220: Register Customer - Analysis
+
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+hide circle
+hide methods
+left to right direction
+
+' --- Elements from the "Customer" Package ---
+
+class Customer {
+  ' Implied attributes based on relationships & code:
+  ' - Name (Framework VO)
+  ' - EmailAddress (Framework VO)
+  ' - PhoneNumber
+}
+
+class CustomerRepresentative  {
+ ' Implied attributes based on relationships:
+ ' - Name (Framework VO)
+}
+
+class Address  {
+ ' street, city, postalCode, country
+}
+class Email  {
+ ' address
+}
+
+class PhoneNumber {
+ ' number
+}
+
+class VATNumber {
+ ' number
+}
+
+class Position  {
+ ' position
+}
+
+enum CustomerStatus  {
+  Deleted
+  Infringement
+  Created
+}
+enum CustomerType{
+    VIP
+    REGULAR
+    }
+
+
+
+' --- Relevant Framework Value Objects (Used by Code) ---
+class Name  {
+ - firstName: String
+ - lastName: String
+}
+
+class EmailAddress  {
+ - address: String
+}
+
+
+' --- Relationships (Based on User's Domain Model & Code Logic for Registration) ---
+
+Customer "1" *-- "1" Address : has billing address >
+Customer "1" *-- "1" VATNumber : identified by >
+Customer "1" *-- "1" CustomerStatus : has status >
+Customer "1" *-- "1" CustomerType : has type >
+Customer "1" *-- "1..*" CustomerRepresentative : has representatives >
+Customer "1" *-- "1" PhoneNumber : has contact phone >
+Customer "1" *-- "1" Name : has customer name > e
+Customer "1" *-- "1" EmailAddress : has customer email >
+
+CustomerRepresentative "1" *-- "1" Email : has representative email >
+CustomerRepresentative "1" *-- "1" PhoneNumber : has representative phone >
+CustomerRepresentative "1" *-- "1" Position : holds position >
+CustomerRepresentative "1" *-- "1" Name : has representative name >
+
+
+
+@enduml
