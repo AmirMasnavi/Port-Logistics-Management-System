@@ -1,0 +1,37 @@
+@startuml
+' Use template styling
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+title US2.2.5 : Register Shipping Agent Organization - System Sequence Diagram (SSD)
+
+autonumber
+
+actor "Port Authority Officer" as Actor
+participant ":Port Management System" as System
+
+activate Actor
+
+    Actor -> System : Request to register a new Shipping Agent Organization
+    activate System
+        System --> Actor : Request Representative data\n(name, citizen ID, nationality, email, phone)
+    deactivate System
+
+    Actor -> System : Submit Representative data
+    activate System
+        System --> System : Validate representative data\n(email/phone format)
+        System --> Actor : Request Organization data\n(identifier, legal name, alt. name, address, tax number)
+    deactivate System
+
+    Actor -> System : Submit Organization data
+    activate System
+        System --> System : Validate organization data\n(unique identifier, tax number format)
+        System --> System : Associate representative to organization
+        System --> System : Persist organization + representative
+        System --> Actor : Display success\n"Organization registered successfully"\n(returns organization identifier)
+    deactivate System
+
+deactivate Actor
+
+@enduml
