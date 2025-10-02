@@ -1,4 +1,5 @@
 @startuml
+!pragma layout smetana
 skinparam monochrome true
 skinparam packageStyle rectangle
 skinparam shadowing false

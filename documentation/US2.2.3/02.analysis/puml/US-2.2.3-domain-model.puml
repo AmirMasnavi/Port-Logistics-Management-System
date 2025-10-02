@@ -1,0 +1,64 @@
+@startuml
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+hide circle
+hide methods
+title Domain Model - US 2.2.3: Dock Management
+
+' ==== CORE ENTITIES ====
+
+class Port {
+    name
+    location
+}
+
+class Dock {
+    ID
+    name
+    locationInPort
+    lengthCapacity
+    depth
+    maxDraft
+}
+
+class VesselType {
+    name
+    maxTEU
+    length
+    draft
+    numSTSMax
+    operationalConstraints
+}
+
+' ==== ORGANIZATIONS & USERS ====
+
+class PortAuthorityOfficer {
+    officerID
+    name
+    email
+    phone
+}
+
+class UserAccount {
+    ID
+    username
+}
+
+class Role {
+    name   'Port Authority Officer, Admin, etc.
+}
+
+' ==== RELATIONSHIPS ====
+
+Port "1" -- "*" Dock : has >
+
+Dock "*" -- "*" VesselType : allows >
+
+PortAuthorityOfficer "1" -- "*" Dock : registers/updates >
+
+UserAccount "1" -- "1" PortAuthorityOfficer : linked >
+UserAccount "1" -- "1" Role : assigned >
+
+@enduml

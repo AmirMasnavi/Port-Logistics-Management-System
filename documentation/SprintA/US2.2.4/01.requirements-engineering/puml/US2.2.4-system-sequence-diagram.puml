@@ -1,0 +1,29 @@
+@startuml
+' Use template styling (assuming monochrome, etc.)
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+title US2.2.4: Register and Update Storage Areas - System Sequence Diagram (SSD)
+
+autonumber
+actor "Port Authority Officer" as Authority
+participant ":System" as System
+
+activate Authority
+'--- Register Scenario ---
+Authority -> System : attempts to register a new storage area with details (id, location, type, capacity, dockDistance)
+activate System
+System --> Authority : confirms successful registration of the storage area
+deactivate System
+
+'--- Update Scenario ---
+... Authority selects an existing storage area to update ...
+Authority -> System : requests to update storage area details (id, newLocation, newType, newCapacity, newDockDistance)
+activate System
+    System --> Authority : confirms successful update of the storage area
+deactivate System
+
+deactivate Authority
+
+@enduml

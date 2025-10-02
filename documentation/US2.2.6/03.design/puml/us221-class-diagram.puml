@@ -1,0 +1,52 @@
+@startuml
+skinparam monochrome false
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam linetype polyline
+skinparam linetype ortho
+
+skinparam classAttributeIconSize 0
+
+title US221 - Add a Customer Representative
+
+class Customer {
+    - Address address
+    - VATNumber vatNumber
+    - CustomerRepresentative representative
+    - PhoneNumber phoneNumber
+    - Name name
+    - EmailAddress email
+    - CustomerType type
+    - CustomerStatus status
+}
+
+class CustomerRepresentative {
+    - Name name
+    - EmailAddress email
+    - PhoneNumber phoneNumber
+    - Position position
+    - CustomerRepresentativeStatus status
+    + updateContact()
+    + disable()
+}
+
+class RegisterCustomerRepresentativeController {
+    + registerRepresentative(vatNumber, name, email, phone, position)
+}
+
+class CustomerRepository {
+    + findByVATNumber(vatNumber)
+}
+
+class CustomerRepresentativeRepository {
+    + save(CustomerRepresentative)
+    + findByCustomerAndActive(Customer)
+}
+
+Customer "1" --> "0..1" CustomerRepresentative : representative >
+RegisterCustomerRepresentativeController ..> CustomerRepository
+RegisterCustomerRepresentativeController ..> CustomerRepresentativeRepository
+RegisterCustomerRepresentativeController ..> Customer
+RegisterCustomerRepresentativeController ..> CustomerRepresentative
+
+@enduml
