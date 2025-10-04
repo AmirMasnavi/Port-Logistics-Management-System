@@ -1,0 +1,30 @@
+@startuml
+' Use template styling
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+title US2.2.6 - Create a Shipping Agent Representative - System Sequence Diagram (SSD)
+
+autonumber
+
+actor "Port Authority Officer" as Officer
+participant ":System" as System
+
+activate Officer
+
+  Officer -> System : Requests to register a new shipping agent representative
+  activate System
+    System --> Officer : Requests organization selection and representative data \n(name, citizen ID, nationality, email, phone)
+  deactivate System
+
+  Officer -> System : Submits organization + representative details
+  activate System
+    System -> System : Validates required fields and formats (email/phone)\nEnsures representative is linked to exactly one organization\nChecks duplicates (by citizen ID / email)
+    System -> System : Creates representative record and associates with organization
+    System -> System : Grants role "Shipping Agent Representative" to user account (authorization)
+    System --> Officer : Displays success message "Representative registered successfully"
+  deactivate System
+
+deactivate Officer
+@enduml
