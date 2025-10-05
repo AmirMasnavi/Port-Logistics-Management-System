@@ -1,0 +1,133 @@
+@startuml
+
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam linetype polyline
+
+
+skinparam classAttributeIconSize 0
+
+class US01_UI {
+}
+
+class SimulationController {
+- simulator: Simulation
++ SimulationController()
++ loadItemsFromCSV(path: String)
++ loadMachinesFromCSV(path: String)
+}
+
+class Repositories{
+- Repositories()
++ getInstance(): repositories
++ getAuthenticationRepository(): authenticationRepository
++ getItemsRepository(): itemsRepository
++ getWorkstationRepository(): workstationRepository
+}
+
+class ItemsRepository{
++ getItemList()
+}
+
+class WorkstationRepository{
++ getMachineList()
+}
+
+
+class ApplicationSession{
++ static getInstance()
++ getCurrentSession()
+}
+
+class UserSession{
++ getUserEmail()
+}
+
+
+class Workstation {
+- IDMachine: String
+- operation: String
+- time: int
+- operationPercentage: double
+- available: boolean
++ getIDMachine()
++ getOperation()
++ getTime()
++ getOperationPercentage()
++ getAvailable()
+}
+
+
+class Item {
+- IDItem: String
+- priority: PriorityLevel
+- operations: LinkedList<String>
+- originalOperations: LinkedList<String>
++ getIDItem()
++ getPriority()
++ getOperations()
++ completeOperation()
++ getNextOperation()
+}
+
+class Simulation{
+- currentTime: double
+- eventos: LinkedList<Event>
+- executionTimes: Map<String, Double>
+- averageTimes: Map<String, Map<String, Double>>
+- itemMachineMap: Map<String, Map<String, Double>>
++ criarQueuesOperacoes(Map<String, LinkedList<Item>> artigosMap)
++ processarItens(Map<String, LinkedList<Workstation>> maquinasMap, \nMap<String, LinkedList<Item>> operationQueues)
+}
+
+class Event {
+- maquina: Workstation
+- artigo: Item
+- tempoInicio: double
+- tempoFim: double
++ getMaquina()
++ getItem()
++ getTempoInicio()
++ getTempoFim()
+}
+
+US01_UI ..> SimulationController
+
+SimulationController .> Repositories : repositories
+SimulationController ..> ItemsRepository: itemsRepository
+SimulationController ..> WorkstationRepository: workstationRepository
+SimulationController ..> Workstation : workstation
+SimulationController .> ApplicationSession
+SimulationController ...> UserSession
+SimulationController ---> Simulation: runSimulation
+
+SimulationController ...> Item: Item
+
+Simulation "1" --> "1...*" Workstation: has >
+Simulation "1" --> "1...*"Item: processes >
+Simulation "1" --> "1..*" Event: generates >
+
+Event --> Workstation: uses >
+
+ApplicationSession -> ApplicationSession : instance
+
+Item "1" --> "0...*" Workstation
+
+Repositories --> ItemsRepository
+Repositories --> WorkstationRepository
+Repositories -> Repositories : instance
+Repositories "1" -->  "*" Item
+Repositories "1" --> "*" Workstation
+
+
+ApplicationSession -> ApplicationSession : instance
+ApplicationSession ---> UserSession
+
+
+
+
+
+
+
+
+@enduml
