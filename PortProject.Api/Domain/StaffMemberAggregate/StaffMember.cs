@@ -1,0 +1,127 @@
+using System.ComponentModel.DataAnnotations;
+using PortProject.Api.Domain.Qualification;
+
+namespace PortProject.Api.Domain.StaffMemberAggregate
+{
+    // This is the Aggregate Root
+    public class StaffMember
+    {
+        [Key]
+        [Required]
+        public MecanographicNumber MecanographicNumber { get; private set; }
+
+        [Required]
+        [StringLength(100)]
+        public string ShortName { get; private set; }
+
+        [Required]
+        public ContactDetails ContactDetails { get; private set; }
+
+        // Private list to hold the IDs
+        private readonly List<QualificationId> _qualifications = new();
+        // Publicly expose a read-only view of the list
+        public IReadOnlyCollection<QualificationId> Qualifications => _qualifications.AsReadOnly();
+
+        [Required]
+        public OperationalWindow OperationalWindow { get; private set; }
+
+        [Required]
+        public StaffStatus CurrentStatus { get; private set; }
+
+        public DateTime CreatedAt { get; private set; }
+        public DateTime UpdatedAt { get; private set; }
+
+        // Constructor for Entity Framework
+        protected StaffMember()
+        {
+            MecanographicNumber = null!;
+            ShortName = string.Empty;
+            ContactDetails = null!;
+            OperationalWindow = null!;
+        }
+
+        public StaffMember(MecanographicNumber mecanographicNumber, string shortName, ContactDetails contactDetails, 
+                           OperationalWindow operationalWindow, List<QualificationId>? initialQualifications = null)
+        {
+            MecanographicNumber = mecanographicNumber ?? throw new ArgumentNullException(nameof(mecanographicNumber));
+            
+            if (string.IsNullOrWhiteSpace(shortName))
+                throw new ArgumentException("Short name cannot be null or empty.", nameof(shortName));
+
+            ShortName = shortName;
+            ContactDetails = contactDetails ?? throw new ArgumentNullException(nameof(contactDetails));
+            OperationalWindow = operationalWindow ?? throw new ArgumentNullException(nameof(operationalWindow));
+            
+            if (initialQualifications != null && initialQualifications.Count > 0)
+            {
+                _qualifications.AddRange(initialQualifications);
+            }
+
+            CurrentStatus = StaffStatus.Available; // Default status on creation
+            CreatedAt = DateTime.UtcNow;
+            UpdatedAt = DateTime.UtcNow;
+        }
+        
+        // --- Methods to Mutate State ---
+
+        public void ChangeShortName(string newShortName)
+        {
+            if (string.IsNullOrWhiteSpace(newShortName))
+                throw new ArgumentException("Short name cannot be null or empty.", nameof(newShortName));
+            
+            ShortName = newShortName;
+            UpdatedAt = DateTime.UtcNow;
+        }
+
+        public void UpdateContactDetails(ContactDetails newContactDetails)
+        {
+            ContactDetails = newContactDetails ?? throw new ArgumentNullException(nameof(newContactDetails));
+            UpdatedAt = DateTime.UtcNow;
+        }
+
+        public void AddQualification(QualificationId qualificationId)
+        {
+            if (!_qualifications.Contains(qualificationId))
+            {
+                _qualifications.Add(qualificationId);
+                UpdatedAt = DateTime.UtcNow;
+            }
+        }
+
+        public void RemoveQualification(QualificationId qualificationId)
+        {
+            if (_qualifications.Remove(qualificationId))
+            {
+                UpdatedAt = DateTime.UtcNow;
+            }
+        }
+
+        public void UpdateOperationalWindow(OperationalWindow newOperationalWindow)
+        {
+            OperationalWindow = newOperationalWindow ?? throw new ArgumentNullException(nameof(newOperationalWindow));
+            UpdatedAt = DateTime.UtcNow;
+        }
+
+        public void UpdateStatus(StaffStatus newStatus)
+        {
+            // You could add logic here, e.g., cannot change status if OnLeave, etc.
+            CurrentStatus = newStatus;
+            UpdatedAt = DateTime.UtcNow;
+        }
+
+        // --- Business Logic / Queries ---
+
+        public bool IsAvailableAt(DateTime dateTime)
+        {
+            if (CurrentStatus != StaffStatus.Available)
+                return false;
+
+            return OperationalWindow.IsWithinWindow(dateTime);
+        }
+
+        public override string ToString()
+        {
+            return $"{ShortName} ({MecanographicNumber}) - Status: {CurrentStatus}";
+        }
+    }
+}
