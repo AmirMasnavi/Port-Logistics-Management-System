@@ -1,0 +1,38 @@
+@startuml
+' Use template styling (assuming monochrome, etc.)
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+title US2.2.2: Register and Update Vessel Records - System Sequence Diagram (SSD)
+
+autonumber
+actor "Port Authority Officer" as Authority
+participant ":System" as System
+
+activate Authority
+'--- Register Scenario ---
+Authority -> System : attempts to register a new vessel with details (IMO number, vessel name, vessel type, owner, vessel status)
+activate System
+System --> Authority : validates IMO number format (7 digits + check digit)
+System --> Authority : confirms successful registration of the vessel record
+deactivate System
+
+'--- Update Scenario ---
+... Authority selects an existing vessel record to update ...
+Authority -> System : requests to update vessel record details (IMO number, newName, newType, newOwner, newStatus)
+activate System
+System --> Authority : validates IMO number format
+System --> Authority : confirms successful update of the vessel record
+deactivate System
+
+'--- Search Scenario ---
+... Authority wants to search vessel records ...
+Authority -> System : searches vessels by (IMO number, name, or operator)
+activate System
+System --> Authority : returns matching vessel records
+deactivate System
+
+deactivate Authority
+
+@enduml

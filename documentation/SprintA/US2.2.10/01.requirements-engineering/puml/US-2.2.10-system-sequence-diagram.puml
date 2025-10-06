@@ -1,0 +1,29 @@
+@startuml
+' Use template styling (monochrome, etc.)
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+title US2.2.10: View the Status of Vessel Visit Notifications - System Sequence Diagram (SSD)
+
+autonumber
+actor "Shipping Agent Representative" as Agent
+participant ":System" as System
+
+activate Agent
+
+'--- View All Notifications ---
+Agent -> System : requests list of all Vessel Visit Notifications\n(submitted by self or same organization)
+activate System
+System --> Agent : retrieves and returns notifications with statuses\n(In Progress, Pending, Approved, Rejected)
+deactivate System
+
+'--- Filter by Criteria ---
+... Agent applies filters ...
+Agent -> System : searches notifications by (vessel, status, representative, time)
+activate System
+System --> Agent : returns matching filtered notification records
+deactivate System
+
+deactivate Agent
+@enduml

@@ -1,0 +1,36 @@
+@startuml
+' Use template styling (assuming monochrome, etc.)
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+title US2.2.1: Create and Update Vessel Types - System Sequence Diagram (SSD)
+
+autonumber
+actor "Port Authority Officer" as Authority
+participant ":System" as System
+
+activate Authority
+'--- Create Scenario ---
+Authority -> System : attempts to create a new vessel type with details (name, description, capacity, dimensions)
+activate System
+System --> Authority : confirms successful creation of the vessel type
+deactivate System
+
+'--- Update Scenario ---
+... Authority selects an existing vessel type to update ...
+Authority -> System : requests to update vessel type details (id, newName, newDescription, newCapacity, newDimensions)
+activate System
+System --> Authority : confirms successful update of the vessel type
+deactivate System
+
+'--- Search/Filter Scenario ---
+... Authority wants to search/filter vessel types ...
+Authority -> System : searches vessel types by (name or description)
+activate System
+System --> Authority : returns matching vessel types
+deactivate System
+
+deactivate Authority
+
+@enduml
