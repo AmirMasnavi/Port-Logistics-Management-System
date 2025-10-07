@@ -1,6 +1,7 @@
 using Microsoft.OpenApi.Models;
 using PortProject.Api.Models;
 using Microsoft.EntityFrameworkCore;
+using PortProject.Api.Application.StaffMembers.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,7 +19,7 @@ builder.Services.AddSwaggerGen(c =>
 
 builder.Services.AddDbContext<PortProjectContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
-
+builder.Services.AddScoped<IStaffMemberService, StaffMemberService>();
 
 var app = builder.Build();
 

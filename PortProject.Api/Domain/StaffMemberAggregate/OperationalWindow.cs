@@ -5,12 +5,8 @@ namespace PortProject.Api.Domain.StaffMemberAggregate
     // Value Object for Operational Window
     public record OperationalWindow
     {
-        [Required]
         public TimeOnly StartTime { get; }
-
-        [Required]
         public TimeOnly EndTime { get; }
-
         public IReadOnlyCollection<DayOfWeek> WorkingDays { get; }
 
         public OperationalWindow(TimeOnly startTime, TimeOnly endTime, IEnumerable<DayOfWeek>? workingDays = null)

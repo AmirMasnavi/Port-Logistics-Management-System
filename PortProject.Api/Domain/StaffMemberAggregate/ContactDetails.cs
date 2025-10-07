@@ -5,12 +5,7 @@ namespace PortProject.Api.Domain.StaffMemberAggregate
     // Value Object for Contact Details
     public record ContactDetails
     {
-        [Required]
-        [EmailAddress]
         public string Email { get; }
-
-        [Required]
-        [Phone]
         public string Phone { get; }
 
         public ContactDetails(string email, string phone)
