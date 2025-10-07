@@ -68,4 +68,47 @@ public class StaffMemberService : IStaffMemberService
             OperationalWindow = staffMember.OperationalWindow.ToString()
         };
     }
+    
+    public async Task<StaffMemberDto?> UpdateStatusAsync(string id, UpdateStaffStatusDto dto)
+    {
+        var mecanographicNumber = new MecanographicNumber(id);
+        var staffMember = await _staffMemberRepository.GetByIdAsync(mecanographicNumber);
+
+        if (staffMember == null)
+        {
+            return null; // Not found
+        }
+
+        // Use the domain method to update the status
+        staffMember.UpdateStatus(dto.NewStatus);
+
+        // Save the changes to the database
+        await _context.SaveChangesAsync();
+
+        // Map and return the updated DTO
+        return new StaffMemberDto
+        {
+            MecanographicNumber = staffMember.MecanographicNumber.Value,
+            ShortName = staffMember.ShortName,
+            Email = staffMember.ContactDetails.Email,
+            Phone = staffMember.ContactDetails.Phone,
+            CurrentStatus = staffMember.CurrentStatus.ToString(),
+            OperationalWindow = staffMember.OperationalWindow.ToString()
+        };
+    }
+    
+    public async Task<IEnumerable<StaffMemberDto>> GetAllAsync(string? nameFilter, StaffStatus? statusFilter)
+    {
+        var staffMembers = await _staffMemberRepository.GetAllAsync(nameFilter, statusFilter);
+        
+        // Map the list of entities to a list of DTOs
+        return staffMembers.Select(sm => new StaffMemberDto {
+            MecanographicNumber = sm.MecanographicNumber.Value,
+            ShortName = sm.ShortName,
+            Email = sm.ContactDetails.Email,
+            Phone = sm.ContactDetails.Phone,
+            CurrentStatus = sm.CurrentStatus.ToString(),
+            OperationalWindow = sm.OperationalWindow.ToString()
+        });
+    }
 }

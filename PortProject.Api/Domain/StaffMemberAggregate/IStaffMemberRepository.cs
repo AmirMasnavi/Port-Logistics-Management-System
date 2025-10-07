@@ -4,5 +4,5 @@ public interface IStaffMemberRepository
 {
     Task AddAsync(StaffMember staffMember);
     Task<StaffMember?> GetByIdAsync(MecanographicNumber id);
-    // You'll add more methods here later, like GetAllAsync and UpdateAsync
+    Task<IEnumerable<StaffMember>> GetAllAsync(string? nameFilter, StaffStatus? statusFilter);
 }

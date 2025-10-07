@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using PortProject.Api.Application.StaffMembers.DTOs;
 using PortProject.Api.Application.StaffMembers.Services;
+using PortProject.Api.Domain.StaffMemberAggregate;
 
 namespace PortProject.Api.Controllers;
 
@@ -51,6 +52,33 @@ public class StaffMembersController : ControllerBase
         }
 
         return Ok(resultDto);
+    }
+    
+    /// <summary>
+    /// Updates the status of a Staff Member.
+    /// </summary>
+    [HttpPatch("{id}/status")]
+    public async Task<ActionResult<StaffMemberDto>> UpdateStaffMemberStatus(string id, [FromBody] UpdateStaffStatusDto dto)
+    {
+        var resultDto = await _staffMemberService.UpdateStatusAsync(id, dto);
+
+        if (resultDto == null)
+        {
+            return NotFound();
+        }
+
+        return Ok(resultDto);
+    }
+    
+    /// <summary>
+    /// Gets all Staff Members, with optional filtering by name and status.
+    /// </summary>
+    [HttpGet]
+    public async Task<ActionResult<IEnumerable<StaffMemberDto>>> GetAllStaffMembers(
+        [FromQuery] string? name, [FromQuery] StaffStatus? status)
+    {
+        var resultDtos = await _staffMemberService.GetAllAsync(name, status);
+        return Ok(resultDtos);
     }
 }
 
