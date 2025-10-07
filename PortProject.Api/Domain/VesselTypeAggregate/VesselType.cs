@@ -1,0 +1,91 @@
+using src.Domain.Shared;
+using System;
+
+namespace src.Domain.VesselTypeAggregate
+{
+    /// <summary>
+    /// Represents a VesselType entity in the domain.
+    /// </summary>
+    public class VesselType : Entity<VesselTypeId>, IAggregateRoot
+    {
+        public VesselTypeName Name { get; private set; }
+        public VesselTypeDescription Description { get; private set; }
+        public VesselTypeCapacity Capacity { get; private set; }
+        public VesselTypeDimensions OperationalConstraints { get; private set; }
+
+        // Construtor padrão exigido pelo EF Core
+        protected VesselType() { }
+
+        // Construtor principal para criar uma nova instância de VesselType
+        public VesselType(VesselTypeId id, VesselTypeName name, VesselTypeDescription description, VesselTypeCapacity capacity, VesselTypeDimensions operationalConstraints)
+        {
+            // Atribui o ID diretamente, pois a classe base Entity não possui um construtor que aceita o ID.
+            this.Id = id ?? throw new ArgumentNullException(nameof(id)); // Atribui e valida o ID
+
+            if (name == null) throw new ArgumentNullException(nameof(name));
+            if (description == null) throw new ArgumentNullException(nameof(description));
+            if (capacity == null) throw new ArgumentNullException(nameof(capacity));
+            if (operationalConstraints == null) throw new ArgumentNullException(nameof(operationalConstraints));
+
+            Name = name;
+            Description = description;
+            Capacity = capacity;
+            OperationalConstraints = operationalConstraints;
+        }
+
+        /// <summary>
+        /// Factory method to create a new VesselType.
+        /// </summary>
+        public static VesselType Create( string id, string name, string description, int capacity, int rows, int bays, int tiers)
+        {
+            return new VesselType(
+                new VesselTypeId(id),
+                new VesselTypeName(name),
+                new VesselTypeDescription(description),
+                new VesselTypeCapacity(capacity),
+                new VesselTypeDimensions(rows, bays, tiers)
+            );
+        }
+
+        /// <summary>
+        /// Updates the name of the vessel type.
+        /// </summary>
+        public void UpdateName(VesselTypeName newName)
+        {
+            if (newName == null) throw new ArgumentNullException(nameof(newName));
+            Name = newName;
+        }
+
+        /// <summary>
+        /// Updates the description of the vessel type.
+        /// </summary>
+        public void UpdateDescription(VesselTypeDescription newDescription)
+        {
+            if (newDescription == null) throw new ArgumentNullException(nameof(newDescription));
+            Description = newDescription;
+        }
+
+        /// <summary>
+        /// Updates the capacity of the vessel type.
+        /// </summary>
+        public void UpdateCapacity(VesselTypeCapacity newCapacity)
+        {
+            if (newCapacity == null) throw new ArgumentNullException(nameof(newCapacity));
+            Capacity = newCapacity;
+        }
+
+        /// <summary>
+        /// Updates the operational constraints of the vessel type.
+        /// </summary>
+        public void UpdateOperationalConstraints(VesselTypeDimensions newConstraints)
+        {
+            if (newConstraints == null) throw new ArgumentNullException(nameof(newConstraints));
+            OperationalConstraints = newConstraints;
+        }
+
+        public override string ToString()
+        {
+            return $"ID: {Id}, Name: {Name}, Description: {Description}, Capacity: {Capacity}, Constraints: {OperationalConstraints}";
+        }
+    }
+}
