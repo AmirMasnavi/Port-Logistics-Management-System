@@ -7,4 +7,5 @@ public interface IStaffMemberService
 {
     // It takes a DTO for creation and will return the DTO representation of the created entity.
     Task<StaffMemberDto> CreateStaffMemberAsync(CreateStaffMemberDto dto);
+    Task<StaffMemberDto?> GetByIdAsync(string id);
 }

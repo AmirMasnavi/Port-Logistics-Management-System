@@ -1,6 +1,5 @@
 using System;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using PortProject.Api.Domain.Qualification;
 using PortProject.Api.Domain.StaffMemberAggregate;
 
 namespace PortProject.Api.Tests.Domain.StaffMemberAggregate

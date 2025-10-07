@@ -66,6 +66,13 @@ public class PortProjectContext : DbContext
                     dbString => dbString.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(Enum.Parse<DayOfWeek>).ToList()
                 );
         });
+        
+        //TODO: change this after implementing the Qualification entity
+        staffMemberBuilder.OwnsMany(sm => sm.Qualifications, ownedBuilder =>
+        {
+            ownedBuilder.ToTable("StaffMemberQualifications");
+            ownedBuilder.Property(q => q.Value).HasColumnName("QualificationIdValue");
+        });
 
         // --- 3. Configure other properties ---
         staffMemberBuilder.Property(sm => sm.ShortName)

@@ -1,7 +1,9 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Moq;
 using PortProject.Api.Application.StaffMembers.DTOs;
 using PortProject.Api.Application.StaffMembers.Services;
 using PortProject.Api.Domain.StaffMemberAggregate;
+using PortProject.Api.Models;
 using System;
 using System.Threading.Tasks;
 
@@ -14,9 +16,14 @@ public class StaffMemberServiceTest
 
     public StaffMemberServiceTest()
     {
-        // StaffMemberService currently does not depend on a repository (constructor is parameterless),
-        // so instantiate it directly.
-        _service = new StaffMemberService();
+        // Mock dependencies
+        var mockRepo = new Mock<IStaffMemberRepository>();
+        var mockContext = new Mock<PortProjectContext>();
+
+        // Setup mock for SaveChangesAsync to return a completed task
+        mockContext.Setup(c => c.SaveChangesAsync(default)).ReturnsAsync(1);
+
+        _service = new StaffMemberService(mockRepo.Object, mockContext.Object);
     }
 
     [TestMethod]

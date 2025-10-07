@@ -1,16 +1,19 @@
 using PortProject.Api.Application.StaffMembers.DTOs;
 using PortProject.Api.Domain.StaffMemberAggregate;
+using PortProject.Api.Models;
 
 namespace PortProject.Api.Application.StaffMembers.Services;
 
 public class StaffMemberService : IStaffMemberService
 {
     // In a real app, you would inject a repository to save to the database.
-    // private readonly IStaffMemberRepository _staffMemberRepository;
-    // public StaffMemberService(IStaffMemberRepository staffMemberRepository)
-    // {
-    //     _staffMemberRepository = staffMemberRepository;
-    // }
+    private readonly IStaffMemberRepository _staffMemberRepository;
+    private readonly PortProjectContext _context;
+    public StaffMemberService(IStaffMemberRepository staffMemberRepository, PortProjectContext context)
+    {
+        _staffMemberRepository = staffMemberRepository;
+        _context = context;
+    }
 
     public async Task<StaffMemberDto> CreateStaffMemberAsync(CreateStaffMemberDto dto)
     {
@@ -23,8 +26,8 @@ public class StaffMemberService : IStaffMemberService
         var newStaffMember = new StaffMember(mecanographicNumber, dto.ShortName, contactDetails, operationalWindow);
 
         // 3. TODO: Persist the new entity using the repository.
-        // await _staffMemberRepository.AddAsync(newStaffMember);
-        // await _staffMemberRepository.SaveChangesAsync(); // Or similar unit of work pattern
+        await _staffMemberRepository.AddAsync(newStaffMember);
+        await _context.SaveChangesAsync();
 
         // 4. Map the resulting entity back to a DTO to return.
         var resultDto = new StaffMemberDto
@@ -38,5 +41,31 @@ public class StaffMemberService : IStaffMemberService
         };
 
         return resultDto;
+    }
+    
+    public async Task<StaffMemberDto?> GetByIdAsync(string id)
+    {
+        // 1. Convert the string ID to your strongly-typed Value Object
+        var mecanographicNumber = new MecanographicNumber(id);
+
+        // 2. Use the repository to find the staff member in the database
+        var staffMember = await _staffMemberRepository.GetByIdAsync(mecanographicNumber);
+
+        // 3. If not found, return null
+        if (staffMember == null)
+        {
+            return null;
+        }
+
+        // 4. If found, map the entity to a DTO and return it
+        return new StaffMemberDto
+        {
+            MecanographicNumber = staffMember.MecanographicNumber.Value,
+            ShortName = staffMember.ShortName,
+            Email = staffMember.ContactDetails.Email,
+            Phone = staffMember.ContactDetails.Phone,
+            CurrentStatus = staffMember.CurrentStatus.ToString(),
+            OperationalWindow = staffMember.OperationalWindow.ToString()
+        };
     }
 }

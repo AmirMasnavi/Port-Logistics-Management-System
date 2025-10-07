@@ -1,5 +1,5 @@
 using System.ComponentModel.DataAnnotations;
-using PortProject.Api.Domain.Qualification;
+using PortProject.Api.Domain.QualificationAggregate;
 
 namespace PortProject.Api.Domain.StaffMemberAggregate
 {

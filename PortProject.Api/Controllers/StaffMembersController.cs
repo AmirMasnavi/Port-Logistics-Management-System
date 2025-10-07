@@ -43,8 +43,14 @@ public class StaffMembersController : ControllerBase
     [HttpGet("{id}")]
     public async Task<ActionResult<StaffMemberDto>> GetStaffMemberById(string id)
     {
-        // TODO: This would also call a method on the service, e.g., _staffMemberService.GetByIdAsync(id)
-        return NotFound($"Staff member with ID {id} not found.");
+        var resultDto = await _staffMemberService.GetByIdAsync(id);
+
+        if (resultDto == null)
+        {
+            return NotFound($"Staff member with ID {id} not found.");
+        }
+
+        return Ok(resultDto);
     }
 }
 
