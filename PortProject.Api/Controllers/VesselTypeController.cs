@@ -25,25 +25,23 @@ using System.Threading.Tasks;
         /// Creates a new Vessel Type.
         /// </summary>
         [HttpPost]
-        public async Task<ActionResult<VesselTypeDto>> CreateVesselType([FromBody] VesselTypeDto vesselTypeDto)
+        public async Task<ActionResult<VesselTypeDto>> CreateVesselType([FromBody] VesselTypeCreateDto dto)
         {
-            try
+            if (dto == null)
+                return BadRequest(new { message = "Body inválido." });
+
+            // Mapeia para o DTO usado internamente no serviço (Id será gerado no serviço)
+            var created = await _service.CreateVesselTypeAsync(new VesselTypeDto
             {
-                var createdVesselType = await _service.CreateVesselTypeAsync(vesselTypeDto);
-                return CreatedAtAction(nameof(GetVesselTypeById), new { id = createdVesselType.Id }, createdVesselType);
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-            catch (InvalidOperationException ex)
-            {
-                return Conflict(new { message = ex.Message }); // 409 Conflict se o nome já existe
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "An error occurred while creating the vessel type.", details = ex.Message });
-            }
+                Name = dto.Name,
+                Description = dto.Description,
+                Capacity = dto.Capacity,
+                MaxRows = dto.MaxRows,
+                MaxBays = dto.MaxBays,
+                MaxTiers = dto.MaxTiers
+            });
+
+            return CreatedAtAction(nameof(GetVesselTypeById), new { id = created.Id }, created);
         }
 
         /// <summary>

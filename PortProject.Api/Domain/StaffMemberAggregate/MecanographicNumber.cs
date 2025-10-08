@@ -5,7 +5,6 @@ namespace PortProject.Api.Domain.StaffMemberAggregate
     // Value Object for Mecanographic Number
     public record MecanographicNumber
     {
-        [Required]
         public string Value { get; }
 
         public MecanographicNumber(string value)

@@ -9,9 +9,11 @@ namespace src.Domain.VesselTypeAggregate
     public class VesselType : Entity<VesselTypeId>, IAggregateRoot
     {
         public VesselTypeName Name { get; private set; }
+        public VesselTypeId Id { get; private set; }
         public VesselTypeDescription Description { get; private set; }
         public VesselTypeCapacity Capacity { get; private set; }
         public VesselTypeDimensions OperationalConstraints { get; private set; }
+        
 
         // Construtor padrão exigido pelo EF Core
         protected VesselType() { }
@@ -19,14 +21,14 @@ namespace src.Domain.VesselTypeAggregate
         // Construtor principal para criar uma nova instância de VesselType
         public VesselType(VesselTypeId id, VesselTypeName name, VesselTypeDescription description, VesselTypeCapacity capacity, VesselTypeDimensions operationalConstraints)
         {
-            // Atribui o ID diretamente, pois a classe base Entity não possui um construtor que aceita o ID.
-            this.Id = id ?? throw new ArgumentNullException(nameof(id)); // Atribui e valida o ID
-
+         
+            if (id== null) throw new ArgumentNullException(nameof(id));
             if (name == null) throw new ArgumentNullException(nameof(name));
             if (description == null) throw new ArgumentNullException(nameof(description));
             if (capacity == null) throw new ArgumentNullException(nameof(capacity));
             if (operationalConstraints == null) throw new ArgumentNullException(nameof(operationalConstraints));
 
+            Id = id;
             Name = name;
             Description = description;
             Capacity = capacity;
@@ -36,10 +38,15 @@ namespace src.Domain.VesselTypeAggregate
         /// <summary>
         /// Factory method to create a new VesselType.
         /// </summary>
-        public static VesselType Create( string id, string name, string description, int capacity, int rows, int bays, int tiers)
+        public static VesselType Create( string? id, string name, string description, int capacity, int rows, int bays, int tiers)
         {
+            if (string.IsNullOrWhiteSpace(name))
+                throw new ArgumentException("Name obrigatório.", nameof(name));
+
+            var effectiveId = string.IsNullOrWhiteSpace(id) ? Guid.NewGuid().ToString() : id;
+
             return new VesselType(
-                new VesselTypeId(id),
+                new VesselTypeId(effectiveId),
                 new VesselTypeName(name),
                 new VesselTypeDescription(description),
                 new VesselTypeCapacity(capacity),
