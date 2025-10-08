@@ -1,31 +1,21 @@
 using System.ComponentModel.DataAnnotations;
-using PortProject.Api.Domain.Qualification;
+using PortProject.Api.Domain.QualificationAggregate;
 
 namespace PortProject.Api.Domain.StaffMemberAggregate
 {
     // This is the Aggregate Root
     public class StaffMember
     {
-        [Key]
-        [Required]
         public MecanographicNumber MecanographicNumber { get; private set; }
-
-        [Required]
-        [StringLength(100)]
         public string ShortName { get; private set; }
-
-        [Required]
         public ContactDetails ContactDetails { get; private set; }
 
         // Private list to hold the IDs
         private readonly List<QualificationId> _qualifications = new();
         // Publicly expose a read-only view of the list
         public IReadOnlyCollection<QualificationId> Qualifications => _qualifications.AsReadOnly();
-
-        [Required]
+        
         public OperationalWindow OperationalWindow { get; private set; }
-
-        [Required]
         public StaffStatus CurrentStatus { get; private set; }
 
         public DateTime CreatedAt { get; private set; }

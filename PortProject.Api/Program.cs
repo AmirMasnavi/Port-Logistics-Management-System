@@ -1,15 +1,20 @@
+using System.Text.Json.Serialization;
 using Microsoft.OpenApi.Models;
 using PortProject.Api.Models;
 using Microsoft.EntityFrameworkCore;
-using PortProject.Api.Domain.VesselTypeAggregate;
-using PortProject.Api.Services;
-using src.Application.Services;
-using src.Infrastructure.VesselTypeAggregate;
+using PortProject.Api.Application.StaffMembers.Services;
+using PortProject.Api.Domain.StaffMemberAggregate;
+using PortProject.Api.Infrastructure.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        // This converter tells the API to always use strings for enums
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
@@ -22,9 +27,8 @@ builder.Services.AddSwaggerGen(c =>
 
 builder.Services.AddDbContext<PortProjectContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
-
-builder.Services.AddScoped<IVesselTypeService, VesselTypeService>();
-builder.Services.AddScoped<IVesselTypeRepository, VesselTypeRepository>();
+builder.Services.AddScoped<IStaffMemberService, StaffMemberService>();
+builder.Services.AddScoped<IStaffMemberRepository, StaffMemberRepository>();
 
 var app = builder.Build();
 
