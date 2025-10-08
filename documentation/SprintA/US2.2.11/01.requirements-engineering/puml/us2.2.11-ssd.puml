@@ -1,0 +1,37 @@
+@startuml
+' US 2.2.11: Manage Staff Members - System Sequence Diagram (SSD)
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+title US 2.2.11: Manage Staff Members - SSD
+
+autonumber
+actor "Logistics Operator" as User
+participant ":System" as System
+
+activate User
+
+alt Create Staff Member
+    User -> System : requests to create staff member(data)
+    activate System
+    System --> User : confirms creation and shows new staff member data
+    deactivate System
+end
+
+alt Update Staff Member Status (Deactivate/Reactivate)
+    User -> System : requests to update staff member status(id, newStatus)
+    activate System
+    System --> User : confirms status update
+    deactivate System
+end
+
+alt List/Filter Staff Members
+    User -> System : requests to list staff members(filterCriteria)
+    activate System
+    System --> User : shows list of matching staff members
+    deactivate System
+end
+
+deactivate User
+@enduml

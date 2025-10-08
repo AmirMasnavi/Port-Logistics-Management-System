@@ -1,0 +1,55 @@
+@startuml
+' US 2.2.11: Create Staff Member - Sequence Diagram (Design)
+
+title US 2.2.11: Create Staff Member - Application Flow
+
+actor "Logistics Operator" as User
+participant ":StaffMembersController" as Controller <<Application>>
+participant "service:IStaffMemberService" as Service <<Application>>
+participant "repo:IStaffMemberRepository" as Repo <<Repository>>
+participant "staffMember:StaffMember" as Domain <<Domain Entity>>
+database "Database" as DB
+
+skinparam sequenceArrowThickness 2
+skinparam roundcorner 10
+skinparam maxmessagesize 180
+skinparam sequenceParticipant underline
+
+activate User
+User -> Controller : POST /api/staffmembers (createDto)
+activate Controller
+
+Controller -> Service : CreateStaffMemberAsync(createDto)
+activate Service
+
+' The service can check if the ID already exists
+Service -> Repo : findByIdAsync(createDto.MecanographicNumber)
+activate Repo
+Repo -> DB : SELECT ... WHERE MecanographicNumber = ?
+DB --> Repo : null (not found)
+deactivate Repo
+
+' Create the domain entity using its constructor
+Service -> Domain : staffMember = new StaffMember(createDto)
+activate Domain
+' The constructor validates data and sets the default status to 'Available'
+Domain --> Service
+deactivate Domain
+
+' Persist the new entity
+Service -> Repo : addAsync(staffMember)
+activate Repo
+Repo -> DB : INSERT INTO StaffMembers (...) VALUES (...)
+DB --> Repo : success
+Repo --> Service : savedStaffMember
+deactivate Repo
+
+Service --> Controller : staffMemberDto
+deactivate Service
+
+Controller -> User : 201 Created (staffMemberDto)
+deactivate Controller
+
+deactivate User
+
+@enduml

@@ -1,0 +1,50 @@
+@startuml
+' US 2.2.11 - Class Diagram
+title US 2.2.11 - Manage Staff Members Class Diagram
+
+skinparam linetype ortho
+skinparam monochrome true
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+
+class StaffMembersController <<Controller>> {
+  + CreateStaffMember(dto): Task<ActionResult>
+  + UpdateStaffMemberStatus(id, dto): Task<ActionResult>
+  + GetAllStaffMembers(...): Task<ActionResult>
+}
+
+interface IStaffMemberService <<Service>> {
+  + CreateStaffMemberAsync(dto): Task<StaffMemberDto>
+  + UpdateStatusAsync(id, dto): Task<StaffMemberDto?>
+  + GetAllAsync(...): Task<IEnumerable<StaffMemberDto>>
+}
+
+class StaffMemberService <<Service>>
+
+interface IStaffMemberRepository <<Repository>> {
+  + addAsync(staffMember): Task<StaffMember>
+  + findByIdAsync(id): Task<StaffMember?>
+  + saveAsync(staffMember): Task<StaffMember>
+}
+
+class StaffMember <<(D,orchid) Domain>> {
+  + MecanographicNumber
+  + ShortName
+  + CurrentStatus
+  ---
+  + StaffMember(...)
+  + UpdateStatus(newStatus)
+}
+
+class CreateStaffMemberDto <<DTO>>
+class UpdateStaffStatusDto <<DTO>>
+
+StaffMembersController .> IStaffMemberService : uses
+StaffMemberService .up.|> IStaffMemberService
+StaffMemberService .> IStaffMemberRepository : uses
+IStaffMemberRepository ..> StaffMember : manages
+StaffMemberService ..> StaffMember : creates & uses
+StaffMembersController ..> CreateStaffMemberDto : receives
+StaffMembersController ..> UpdateStaffStatusDto : receives
+
+@enduml
