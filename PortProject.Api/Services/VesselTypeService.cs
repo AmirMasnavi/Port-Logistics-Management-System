@@ -59,8 +59,8 @@ using System;
             {
                 throw new KeyNotFoundException($"Vessel Type with ID '{dto.Id}' not found.");
             }
-
-            // Você pode adicionar mais validações aqui, como verificar se o novo nome já existe para outro ID
+            
+            // Verifica se já existe outro VesselType com o mesmo nome
             var existingVesselTypeByName = await _repository.GetByNameAsync(new VesselTypeName(dto.Name));
             if (existingVesselTypeByName != null && !existingVesselTypeByName.Id.Equals(vesselType.Id))
             {

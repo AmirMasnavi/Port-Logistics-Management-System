@@ -31,7 +31,7 @@
                 
                         public async Task<VesselType?> GetByIdAsync(VesselTypeId id)
                         {
-                            return await _set.FirstOrDefaultAsync(v => v.Id.Value == id.Value);
+                            return (await _set.AsNoTracking().ToListAsync()).FirstOrDefault(v => v.Id.Value == id.Value);
                         }
                 
                         public async Task<List<VesselType>> GetByIdsAsync(List<VesselTypeId> ids)
