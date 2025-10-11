@@ -4,6 +4,7 @@ using PortProject.Api.Models;
 using Microsoft.EntityFrameworkCore;
 using PortProject.Api.Application.StaffMembers.Services;
 using PortProject.Api.Domain.StaffMemberAggregate;
+using PortProject.Api.Domain.VesselAggregate;
 using PortProject.Api.Domain.VesselTypeAggregate;
 using PortProject.Api.Infrastructure.Repositories;
 using src.Infrastructure.VesselTypeAggregate;
@@ -12,6 +13,7 @@ using PortProject.Api.Domain.VesselTypeAggregate;
 using PortProject.Api.Infrastructure.Repositories;
 using PortProject.Api.Services;
 using src.Application.Services;
+using src.Infrastructure.VesselAggregate;
 using src.Infrastructure.VesselTypeAggregate;
 
 
@@ -40,6 +42,8 @@ builder.Services.AddScoped<IStaffMemberService, StaffMemberService>();
 builder.Services.AddScoped<IStaffMemberRepository, StaffMemberRepository>();
 builder.Services.AddScoped<IVesselTypeRepository, VesselTypeRepository>();
 builder.Services.AddScoped<IVesselTypeService, VesselTypeService>();
+builder.Services.AddScoped<IVesselService, VesselService>();
+builder.Services.AddScoped<IVesselRepository, VesselRepository>();
 
 var app = builder.Build();
 

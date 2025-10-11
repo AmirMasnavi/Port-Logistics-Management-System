@@ -1,6 +1,6 @@
+using src.Domain.Shared;
 using System;
 using System.ComponentModel.DataAnnotations;
-using PortProject.Api.Domain.VesselTypeAggregate;
 using src.Domain.VesselTypeAggregate;
 
 namespace PortProject.Api.Domain.VesselAggregate
@@ -8,7 +8,7 @@ namespace PortProject.Api.Domain.VesselAggregate
     /// <summary>
     /// Aggregate Root representing a registered vessel.
     /// </summary>
-    public class Vessel
+    public class Vessel : IAggregateRoot
     {
         [Key]
         public ImoNumber ImoNumber { get; private set; }
@@ -25,32 +25,36 @@ namespace PortProject.Api.Domain.VesselAggregate
         public DateTime CreatedAt { get; private set; }
         public DateTime UpdatedAt { get; private set; }
 
-        // Construtor protegido para EF Core
-        protected Vessel()
-        {
-            ImoNumber = null!;
-            Name = string.Empty;
-            VesselTypeId = null!;
-            Operator = null!;
-        }
+        // EF Core
+        protected Vessel() { }
 
         public Vessel(ImoNumber imoNumber, string name, VesselTypeId vesselTypeId, VesselOperator vesselOperator)
         {
-            ImoNumber = imoNumber ?? throw new ArgumentNullException(nameof(imoNumber));
+            if (imoNumber == null) throw new ArgumentNullException(nameof(imoNumber));
+            if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Vessel name cannot be null or empty.", nameof(name));
+            if (vesselTypeId == null) throw new ArgumentNullException(nameof(vesselTypeId));
+            if (vesselOperator == null) throw new ArgumentNullException(nameof(vesselOperator));
 
-            if (string.IsNullOrWhiteSpace(name))
-                throw new ArgumentException("Vessel name cannot be null or empty.", nameof(name));
-
+            ImoNumber = imoNumber;
             Name = name.Trim();
-            VesselTypeId = vesselTypeId ?? throw new ArgumentNullException(nameof(vesselTypeId));
-            Operator = vesselOperator ?? throw new ArgumentNullException(nameof(vesselOperator));
+            VesselTypeId = vesselTypeId;
+            Operator = vesselOperator;
 
             CreatedAt = DateTime.UtcNow;
             UpdatedAt = DateTime.UtcNow;
         }
 
-        // --- Métodos de atualização ---
+        // Factory method (seguindo padrão do VesselType)
+        public static Vessel Create(string imo, string name, string vesselTypeId, string operatorName)
+        {
+            var imoNumber = new ImoNumber(imo);
+            var vesselType = new VesselTypeId(vesselTypeId);
+            var vesselOperator = new VesselOperator(operatorName);
 
+            return new Vessel(imoNumber, name, vesselType, vesselOperator);
+        }
+
+        // Atualizações
         public void UpdateName(string newName)
         {
             if (string.IsNullOrWhiteSpace(newName))
@@ -72,9 +76,7 @@ namespace PortProject.Api.Domain.VesselAggregate
             UpdatedAt = DateTime.UtcNow;
         }
 
-        public override string ToString()
-        {
-            return $"{Name} (IMO {ImoNumber}) - Operator: {Operator}";
-        }
+        public override string ToString() =>
+            $"{Name} (IMO {ImoNumber}) - Operator: {Operator}";
     }
 }
