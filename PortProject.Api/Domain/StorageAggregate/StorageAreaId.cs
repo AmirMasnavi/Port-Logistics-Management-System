@@ -6,9 +6,6 @@
         
         public StorageAreaId(int value)
         {
-            if (value <= 0)
-                throw new ArgumentException("Storage Area ID must be a positive integer.", nameof(value));
-            
             Value = value;
         }
         

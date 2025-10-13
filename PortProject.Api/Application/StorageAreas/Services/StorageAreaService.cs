@@ -5,7 +5,7 @@ using PortProject.Api.Models;
 
 namespace PortProject.Api.Application.StorageAreas.Services;
 
-public class StorageAreaService
+public class StorageAreaService : IStorageAreaService
 {
     private readonly IStorageAreaRepository _repository;
     private readonly PortProjectContext _context;
@@ -19,12 +19,11 @@ public class StorageAreaService
     public async Task<StorageAreaDto> CreateStorageAreaAsync(CreateStorageAreaDto dto)
     {
         // DTO -> Domain
-        var id = new StorageAreaId(0);
         var location = BuildLocation(dto.Location);
         var type = Enum.Parse<StorageAreaType>(dto.Type, ignoreCase: true);
         var capacity = new StorageCapacity(dto.Capacity);
 
-        var storageArea = new StorageArea(id, location, type, capacity);
+        var storageArea = new StorageArea(location, type, capacity);
         
         await _repository.AddAsync(storageArea);
         await _context.SaveChangesAsync();
@@ -37,6 +36,28 @@ public class StorageAreaService
             Capacity = dto.Capacity
         };
     }
+
+    
+    
+    
+    // PedroS42 is going to implement this in the future!
+    public Task<StorageAreaDto?> GetByIdAsync(int id)
+    {
+        //TODO: Implement this method properly - PedroS42
+        throw new NotImplementedException();
+    }
+    // PedroS42 is going to implement this in the future!
+
+    // PedroS42 is going to implement this in the future!
+    public Task<IEnumerable<StorageAreaDto>> GetAllAsync(string? nameFilter, StorageAreaType? typeFilter)
+    {
+        //TODO: Implement this method properly - PedroS42
+        throw new NotImplementedException();
+    }
+    // PedroS42 is going to implement this in the future!
+
+    
+    
     
     private static StorageAreaLocation BuildLocation(string location)
     {

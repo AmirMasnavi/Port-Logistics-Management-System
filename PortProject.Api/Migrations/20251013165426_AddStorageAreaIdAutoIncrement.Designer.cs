@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using PortProject.Api.Models;
 
@@ -10,9 +11,11 @@ using PortProject.Api.Models;
 namespace PortProject.Api.Migrations
 {
     [DbContext(typeof(PortProjectContext))]
-    partial class PortProjectContextModelSnapshot : ModelSnapshot
+    [Migration("20251013165426_AddStorageAreaIdAutoIncrement")]
+    partial class AddStorageAreaIdAutoIncrement
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.9");
