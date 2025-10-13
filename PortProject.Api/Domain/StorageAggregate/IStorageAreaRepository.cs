@@ -1,6 +1,6 @@
 ﻿namespace PortProject.Api.Domain.StorageAggregate;
 
-public class IStorageAreaRepository
+public interface IStorageAreaRepository
 {
     Task AddAsync(StorageArea storageArea);
     

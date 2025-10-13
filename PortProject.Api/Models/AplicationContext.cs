@@ -1,8 +1,8 @@
 using Microsoft.EntityFrameworkCore;
-using PortProject.Api.Domain;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using PortProject.Api.Domain.StaffMemberAggregate;
 using PortProject.Api.Domain.VesselAggregate;
-using src.Domain.VesselTypeAggregate;
 using PortProject.Api.Domain.StorageAggregate;
 using src.Domain.VesselTypeAggregate;
 
@@ -13,90 +13,98 @@ public class PortProjectContext : DbContext
     public PortProjectContext() { }
     public PortProjectContext(DbContextOptions<PortProjectContext> options) : base(options) { }
 
-
     public DbSet<VesselType> VesselTypes { get; set; }
     public DbSet<StaffMember> StaffMembers { get; set; }
     public DbSet<Vessel> Vessels { get; set; }
     public DbSet<StorageArea> StorageAreas { get; set; }
-    
-    
-        // This method is where you configure your database model
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        base.OnModelCreating(modelBuilder);
+        // Compare by value (order‑insensitive) and snapshot as a List
+        var workingDaysComparer = new ValueComparer<IReadOnlyCollection<DayOfWeek>>(
+            (l, r) =>
+                ReferenceEquals(l, r) ||
+                (l != null && r != null && l.OrderBy(x => x).SequenceEqual(r.OrderBy(x => x))),
+            v => v == null
+                ? 0
+                : v.OrderBy(x => x).Aggregate(0, (acc, d) => HashCode.Combine(acc, (int)d)),
+            v => v == null ? new List<DayOfWeek>() : v.ToList()
+        );
+
+        // Persist WorkingDays as sorted CSV of ints (stable ordering)
+        var workingDaysConverter = new ValueConverter<IReadOnlyCollection<DayOfWeek>, string>(
+            v => string.Join(",", (v ?? Array.Empty<DayOfWeek>()).OrderBy(x => x).Select(d => ((int)d).ToString())),
+            v => (IReadOnlyCollection<DayOfWeek>)(v ?? string.Empty)
+                .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(s => (DayOfWeek)int.Parse(s))
+                .ToList()
+        );
+
+        // Optional: SQL Server needs TimeOnly conversion
+        var timeConverter = new ValueConverter<TimeOnly, TimeSpan>(
+            t => t.ToTimeSpan(),
+            ts => TimeOnly.FromTimeSpan(ts)
+        );
 
         // === STAFF MEMBER CONFIGURATION ===
-        // Get a reference to the StaffMember entity builder
         var staffMemberBuilder = modelBuilder.Entity<StaffMember>();
 
-        // --- 1. Define the Primary Key ---
         staffMemberBuilder.HasKey(sm => sm.MecanographicNumber);
 
-        // --- 2. Configure Value Objects to be stored correctly ---
-        
-        // For MecanographicNumber, we tell EF to use its 'Value' property (a string)
-        // when saving to the database, and how to create a MecanographicNumber when reading.
         staffMemberBuilder.Property(sm => sm.MecanographicNumber)
             .HasConversion(
-                mecanographicNumber => mecanographicNumber.Value, 
+                mecanographicNumber => mecanographicNumber.Value,
                 value => new MecanographicNumber(value))
-            .HasMaxLength(20); // Define max length for the database column
+            .HasMaxLength(20);
 
-        // For ContactDetails, we use OwnsOne. This tells EF that ContactDetails
-        // belongs to StaffMember and its properties should be stored as columns
-        // in the StaffMembers table (e.g., "Email", "Phone").
         staffMemberBuilder.OwnsOne(sm => sm.ContactDetails, contactBuilder =>
         {
-            // Map the Email property from ContactDetails to a column named "Email"
             contactBuilder.Property(cd => cd.Email)
                 .HasColumnName("Email")
                 .IsRequired();
-            
-            // Map the Phone property from ContactDetails to a column named "Phone"
+
             contactBuilder.Property(cd => cd.Phone)
                 .HasColumnName("Phone")
                 .IsRequired();
         });
 
-        // We do the same for OperationalWindow
         staffMemberBuilder.OwnsOne(sm => sm.OperationalWindow, windowBuilder =>
         {
-            windowBuilder.Property(ow => ow.StartTime).IsRequired();
-            windowBuilder.Property(ow => ow.EndTime).IsRequired();
-            
-            // For a collection like WorkingDays, a simple way to store it
-            // is to convert it to a single string (e.g., "Monday,Tuesday,Wednesday")
+            // Apply TimeOnly converter if needed by your provider
+            windowBuilder.Property(ow => ow.StartTime)
+                .HasConversion(timeConverter)
+                .IsRequired();
+
+            windowBuilder.Property(ow => ow.EndTime)
+                .HasConversion(timeConverter)
+                .IsRequired();
+
+            // Apply value converter + comparer to stop fake changes
             windowBuilder.Property(ow => ow.WorkingDays)
-                .HasConversion(
-                    days => string.Join(',', days),
-                    dbString => dbString.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(Enum.Parse<DayOfWeek>).ToList()
-                );
+                .HasConversion(workingDaysConverter)
+                .Metadata.SetValueComparer(workingDaysComparer);
         });
-        
-        //TODO: change this after implementing the Qualification entity
+
+        // TODO: replace with real Qualification entity when ready
         staffMemberBuilder.OwnsMany(sm => sm.Qualifications, ownedBuilder =>
         {
             ownedBuilder.ToTable("StaffMemberQualifications");
             ownedBuilder.Property(q => q.Value).HasColumnName("QualificationIdValue");
         });
 
-        // --- 3. Configure other properties ---
         staffMemberBuilder.Property(sm => sm.ShortName)
             .IsRequired()
             .HasMaxLength(100);
 
-        // We can also tell EF how to handle the enum
         staffMemberBuilder.Property(sm => sm.CurrentStatus)
-            .HasConversion<string>() // Store the status as a string (e.g., "Available")
+            .HasConversion<string>()
             .IsRequired();
 
         // === VESSEL TYPE CONFIGURATION ===
         var vesselTypeBuilder = modelBuilder.Entity<VesselType>();
 
-        // --- 1. Define the Primary Key ---
         vesselTypeBuilder.HasKey(vt => vt.Id);
 
-        // --- 2. Configure Value Objects ---
         vesselTypeBuilder.Property(vt => vt.Id)
             .HasConversion(
                 id => id.Value,
@@ -110,10 +118,9 @@ public class PortProjectContext : DbContext
                 .HasColumnName("Name")
                 .HasMaxLength(100)
                 .IsRequired();
+
             nb.HasIndex(p => p.Value).IsUnique();
         });
-        
-       
 
         vesselTypeBuilder.OwnsOne(vt => vt.Description, db =>
         {
@@ -129,32 +136,18 @@ public class PortProjectContext : DbContext
                 .IsRequired();
         });
 
-        // --- 3. Configure Owned Entity for Dimensions ---
-        
         vesselTypeBuilder.OwnsOne(vt => vt.OperationalConstraints, oc =>
         {
-            
-            oc.Property(p => p.MaxRows)
-                .HasColumnName("MaxRows")
-                .IsRequired();
-            oc.Property(p => p.MaxBays)          
-                .HasColumnName("MaxBays")           
-                .IsRequired();
-
-            oc.Property(p => p.MaxTiers)
-                .HasColumnName("MaxTiers")
-                .IsRequired();
+            oc.Property(p => p.MaxRows).HasColumnName("MaxRows").IsRequired();
+            oc.Property(p => p.MaxBays).HasColumnName("MaxBays").IsRequired();
+            oc.Property(p => p.MaxTiers).HasColumnName("MaxTiers").IsRequired();
         });
-        
 
-        base.OnModelCreating(modelBuilder);
-        
+        // === VESSEL CONFIGURATION ===
         var vesselBuilder = modelBuilder.Entity<Vessel>();
 
-        // --- 1. Define Primary Key ---
         vesselBuilder.HasKey(v => v.ImoNumber);
 
-        // --- 2. Configure Value Objects ---
         vesselBuilder.Property(v => v.ImoNumber)
             .HasConversion(
                 imo => imo.Value,
@@ -168,7 +161,6 @@ public class PortProjectContext : DbContext
             .HasMaxLength(100)
             .IsRequired();
 
-        // --- 3. Relation with VesselType ---
         vesselBuilder.Property(v => v.VesselTypeId)
             .HasConversion(
                 id => id.Value,
@@ -176,12 +168,11 @@ public class PortProjectContext : DbContext
             .HasColumnName("VesselTypeId")
             .IsRequired();
 
-        vesselBuilder.HasOne<VesselType>() // relação 1:N (muitos vessels de um tipo)
+        vesselBuilder.HasOne<VesselType>()
             .WithMany()
             .HasForeignKey(v => v.VesselTypeId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        // --- 4. Configure Operator as Owned Value Object ---
         vesselBuilder.OwnsOne(v => v.Operator, op =>
         {
             op.Property(o => o.Value)
@@ -190,8 +181,6 @@ public class PortProjectContext : DbContext
                 .IsRequired();
         });
 
-
-        // --- 5. Configure Audit Fields ---
         vesselBuilder.Property(v => v.CreatedAt)
             .HasColumnName("CreatedAt")
             .IsRequired();
@@ -199,5 +188,34 @@ public class PortProjectContext : DbContext
         vesselBuilder.Property(v => v.UpdatedAt)
             .HasColumnName("UpdatedAt")
             .IsRequired();
+
+        // === STORAGE AREA CONFIGURATION ===
+        var storageAreaBuilder = modelBuilder.Entity<StorageArea>();
+
+        storageAreaBuilder.HasKey(storageArea => storageArea.Id);
+
+        storageAreaBuilder.Property(storageArea => storageArea.Id)
+            .HasConversion(
+                id => id.Value,
+                value => new StorageAreaId(value))
+            .ValueGeneratedOnAdd()
+            .IsRequired();
+
+        storageAreaBuilder.Property(sa => sa.Type)
+            .HasConversion<string>()
+            .IsRequired();
+
+        storageAreaBuilder.OwnsOne(sa => sa.Location, loc =>
+        {
+            loc.Property(p => p.X).HasColumnName("X").IsRequired();
+            loc.Property(p => p.Y).HasColumnName("Y").IsRequired();
+        });
+
+        storageAreaBuilder.OwnsOne(sa => sa.Capacity, cap =>
+        {
+            cap.Property(p => p.Value).HasColumnName("Capacity").IsRequired();
+        });
+
+        base.OnModelCreating(modelBuilder);
     }
 }

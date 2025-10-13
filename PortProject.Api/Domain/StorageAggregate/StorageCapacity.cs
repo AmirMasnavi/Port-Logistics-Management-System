@@ -2,17 +2,17 @@
 {
     public class StorageCapacity
     {
-        public int Capacity { get; }
+        public int Value { get; }
         
-        public StorageCapacity(int capacity)
+        public StorageCapacity(int value)
         {
-            if(capacity <= 0)
+            if(value <= 0)
                 throw new ArgumentException("Capacity must be a positive integer!");
             
-            Capacity = capacity;
+            Value = value;
         }
         
-        public override string ToString() => Capacity.ToString();
+        public override string ToString() => Value.ToString();
     }    
 }
 

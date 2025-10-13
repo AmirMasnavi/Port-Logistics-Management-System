@@ -2,17 +2,17 @@
 {
     public class StorageAreaId
     {
-        public int ID { get; }
+        public int Value { get; }
         
-        public StorageAreaId(int id)
+        public StorageAreaId(int value)
         {
-            if (id <= 0)
-                throw new ArgumentException("Storage Area ID must be a positive integer.", nameof(id));
+            if (value <= 0)
+                throw new ArgumentException("Storage Area ID must be a positive integer.", nameof(value));
             
-            ID = id;
+            Value = value;
         }
         
-        public override string ToString() => ID.ToString();
+        public override string ToString() => Value.ToString();
     }    
 }
 
