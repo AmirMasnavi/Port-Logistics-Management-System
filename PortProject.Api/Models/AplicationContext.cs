@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using PortProject.Api.Domain;
 using PortProject.Api.Domain.StaffMemberAggregate;
+using PortProject.Api.Domain.VesselAggregate;
+using src.Domain.VesselTypeAggregate;
 using PortProject.Api.Domain.StorageAggregate;
 using src.Domain.VesselTypeAggregate;
 
@@ -14,6 +16,7 @@ public class PortProjectContext : DbContext
 
     public DbSet<VesselType> VesselTypes { get; set; }
     public DbSet<StaffMember> StaffMembers { get; set; }
+    public DbSet<Vessel> Vessels { get; set; }
     public DbSet<StorageArea> StorageAreas { get; set; }
     
     
@@ -85,6 +88,116 @@ public class PortProjectContext : DbContext
         // We can also tell EF how to handle the enum
         staffMemberBuilder.Property(sm => sm.CurrentStatus)
             .HasConversion<string>() // Store the status as a string (e.g., "Available")
+            .IsRequired();
+
+        // === VESSEL TYPE CONFIGURATION ===
+        var vesselTypeBuilder = modelBuilder.Entity<VesselType>();
+
+        // --- 1. Define the Primary Key ---
+        vesselTypeBuilder.HasKey(vt => vt.Id);
+
+        // --- 2. Configure Value Objects ---
+        vesselTypeBuilder.Property(vt => vt.Id)
+            .HasConversion(
+                id => id.Value,
+                value => new VesselTypeId(value))
+            .HasColumnName("Id")
+            .IsRequired();
+
+        vesselTypeBuilder.OwnsOne(vt => vt.Name, nb =>
+        {
+            nb.Property(p => p.Value)
+                .HasColumnName("Name")
+                .HasMaxLength(100)
+                .IsRequired();
+            nb.HasIndex(p => p.Value).IsUnique();
+        });
+        
+       
+
+        vesselTypeBuilder.OwnsOne(vt => vt.Description, db =>
+        {
+            db.Property(p => p.Value)
+                .HasColumnName("Description")
+                .HasMaxLength(255);
+        });
+
+        vesselTypeBuilder.OwnsOne(vt => vt.Capacity, cb =>
+        {
+            cb.Property(p => p.Value)
+                .HasColumnName("Capacity")
+                .IsRequired();
+        });
+
+        // --- 3. Configure Owned Entity for Dimensions ---
+        
+        vesselTypeBuilder.OwnsOne(vt => vt.OperationalConstraints, oc =>
+        {
+            
+            oc.Property(p => p.MaxRows)
+                .HasColumnName("MaxRows")
+                .IsRequired();
+            oc.Property(p => p.MaxBays)          
+                .HasColumnName("MaxBays")           
+                .IsRequired();
+
+            oc.Property(p => p.MaxTiers)
+                .HasColumnName("MaxTiers")
+                .IsRequired();
+        });
+        
+
+        base.OnModelCreating(modelBuilder);
+        
+        var vesselBuilder = modelBuilder.Entity<Vessel>();
+
+        // --- 1. Define Primary Key ---
+        vesselBuilder.HasKey(v => v.ImoNumber);
+
+        // --- 2. Configure Value Objects ---
+        vesselBuilder.Property(v => v.ImoNumber)
+            .HasConversion(
+                imo => imo.Value,
+                value => new ImoNumber(value))
+            .HasColumnName("IMO")
+            .HasMaxLength(7)
+            .IsRequired();
+
+        vesselBuilder.Property(v => v.Name)
+            .HasColumnName("Name")
+            .HasMaxLength(100)
+            .IsRequired();
+
+        // --- 3. Relation with VesselType ---
+        vesselBuilder.Property(v => v.VesselTypeId)
+            .HasConversion(
+                id => id.Value,
+                value => new VesselTypeId(value))
+            .HasColumnName("VesselTypeId")
+            .IsRequired();
+
+        vesselBuilder.HasOne<VesselType>() // relação 1:N (muitos vessels de um tipo)
+            .WithMany()
+            .HasForeignKey(v => v.VesselTypeId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // --- 4. Configure Operator as Owned Value Object ---
+        vesselBuilder.OwnsOne(v => v.Operator, op =>
+        {
+            op.Property(o => o.Value)
+                .HasColumnName("OperatorName")
+                .HasMaxLength(100)
+                .IsRequired();
+        });
+
+
+        // --- 5. Configure Audit Fields ---
+        vesselBuilder.Property(v => v.CreatedAt)
+            .HasColumnName("CreatedAt")
+            .IsRequired();
+
+        vesselBuilder.Property(v => v.UpdatedAt)
+            .HasColumnName("UpdatedAt")
             .IsRequired();
     }
 }

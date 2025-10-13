@@ -22,25 +22,31 @@ using System;
         public async Task<VesselTypeDto> CreateVesselTypeAsync(VesselTypeDto dto)
         {
             if (dto == null) throw new ArgumentNullException(nameof(dto));
+            if (string.IsNullOrWhiteSpace(dto.Name))
+                throw new ArgumentException("Name é obrigatório.");
 
-            var existingVesselType = await _repository.GetByNameAsync(new VesselTypeName(dto.Name));
-            if (existingVesselType != null)
-            {
-                throw new InvalidOperationException($"Vessel Type with name '{dto.Name}' already exists.");
-            }
-
-            var vesselType = VesselType.Create(
-                Guid.NewGuid().ToString(), // Gera um novo ID único
-                dto.Name,
-                dto.Description,
-                dto.Capacity,
-                dto.Rows,
-                dto.Bays,
-                dto.Tiers
+            var entity = VesselType.Create(
+                id: null, // força geração
+                name: dto.Name.Trim(),
+                description: string.IsNullOrWhiteSpace(dto.Description) ? string.Empty : dto.Description.Trim(),
+                capacity: dto.Capacity,
+                rows: dto.MaxRows,
+                bays: dto.MaxBays,
+                tiers: dto.MaxTiers
             );
 
-            await _repository.AddAsync(vesselType);
-            return ToDto(vesselType);
+            await _repository.AddAsync(entity);
+            
+            return new VesselTypeDto
+            {
+                Id = entity.Id.ToString(),
+                Name = entity.Name.ToString(),
+                Description = entity.Description.ToString(),
+                Capacity = entity.Capacity.Value,
+                MaxRows = entity.OperationalConstraints.MaxRows,
+                MaxBays = entity.OperationalConstraints.MaxBays,
+                MaxTiers = entity.OperationalConstraints.MaxTiers
+            };
         }
 
         public async Task<VesselTypeDto> UpdateVesselTypeAsync(VesselTypeDto dto)
@@ -53,8 +59,8 @@ using System;
             {
                 throw new KeyNotFoundException($"Vessel Type with ID '{dto.Id}' not found.");
             }
-
-            // Você pode adicionar mais validações aqui, como verificar se o novo nome já existe para outro ID
+            
+            // Verifica se já existe outro VesselType com o mesmo nome
             var existingVesselTypeByName = await _repository.GetByNameAsync(new VesselTypeName(dto.Name));
             if (existingVesselTypeByName != null && !existingVesselTypeByName.Id.Equals(vesselType.Id))
             {
@@ -65,7 +71,7 @@ using System;
             vesselType.UpdateName(new VesselTypeName(dto.Name));
             vesselType.UpdateDescription(new VesselTypeDescription(dto.Description));
             vesselType.UpdateCapacity(new VesselTypeCapacity(dto.Capacity));
-            vesselType.UpdateOperationalConstraints(new VesselTypeDimensions(dto.Rows, dto.Bays, dto.Tiers));
+            vesselType.UpdateOperationalConstraints(new VesselTypeDimensions(dto.MaxRows, dto.MaxBays, dto.MaxTiers));
 
             await _repository.UpdateAsync(vesselType); // Chama o método UpdateAsync do repositório
             return ToDto(vesselType);
@@ -111,9 +117,9 @@ using System;
                 Name = vesselType.Name.Value,
                 Description = vesselType.Description.Value,
                 Capacity = vesselType.Capacity.Value,
-                Rows = vesselType.OperationalConstraints.Rows,
-                Bays = vesselType.OperationalConstraints.Bays,
-                Tiers = vesselType.OperationalConstraints.Tiers
+                MaxRows = vesselType.OperationalConstraints.MaxRows,
+                MaxBays = vesselType.OperationalConstraints.MaxBays,
+                MaxTiers = vesselType.OperationalConstraints.MaxTiers
             };
         }
     }
