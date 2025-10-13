@@ -99,11 +99,15 @@ package "ShippingAgentOrganization" {
     class OrganizationId <<ValueObject>> {}
     class Address <<ValueObject>> {}
     class TaxNumber <<ValueObject>> {}
+    class LegalName <<ValueObject>> {}
+    class AlternativeName <<ValueObject>> {}
 
 
     ShippingAgentOrganization "1" *-- "1" OrganizationId
     ShippingAgentOrganization "1" *-- "1" Address
     "ShippingAgentOrganization" "1" *-- "1" TaxNumber
+    "ShippingAgentOrganization" "1" *-- "1" LegalName
+    "ShippingAgentOrganization" "1" *-- "1" AlternativeName
 }
 
 ' Aggregate: Representative

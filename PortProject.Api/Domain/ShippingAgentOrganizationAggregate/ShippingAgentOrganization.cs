@@ -1,50 +1,46 @@
-using System;
+
+
+using Domain.ShippingAgentOrganizationAggregate;
 
 namespace PortProject.Api.Domain.ShippingAgentOrganizationAggregate
 {
     /// <summary>
-    /// Entidade raiz do agregado (Aggregate Root) que representa
-    /// uma organização de agente de navegação.
+    /// Aggregate Root que representa uma organização de agente de navegação.
     /// </summary>
     public sealed class ShippingAgentOrganization
     {
         public OrganizationId Id { get; private set; }
-        public string LegalName { get; private set; }
-        public string AlternativeName { get; private set; }
+        public LegalName LegalName { get; private set; }
+        public AlternativeName AlternativeName { get; private set; }
         public Address Address { get; private set; }
         public TaxNumber TaxNumber { get; private set; }
 
-        // 🔒 Necessário para o Entity Framework Core
+        // 🔒 Construtor privado exigido pelo EF Core
         private ShippingAgentOrganization() { }
 
         public ShippingAgentOrganization(
             OrganizationId id,
-            string legalName,
-            string alternativeName,
+            LegalName legalName,
+            AlternativeName alternativeName,
             Address address,
             TaxNumber taxNumber)
         {
-            if (id is null)
-                throw new ArgumentNullException(nameof(id), "Organization ID is required.");
-            if (string.IsNullOrWhiteSpace(legalName))
-                throw new ArgumentException("Legal name is required.", nameof(legalName));
-            if (taxNumber is null)
-                throw new ArgumentNullException(nameof(taxNumber), "Tax number is required.");
-
-            Id = id;
-            LegalName = legalName.Trim();
-            AlternativeName = alternativeName?.Trim() ?? string.Empty;
-            Address = address ?? Address.Empty;
-            TaxNumber = taxNumber;
+            Id = id ?? throw new ArgumentNullException(nameof(id), "Organization ID is required.");
+            LegalName = legalName ?? throw new ArgumentNullException(nameof(legalName), "Legal name is required.");
+            AlternativeName = alternativeName ?? throw new ArgumentNullException(nameof(alternativeName), "Alternative name is required.");
+            Address = address ?? throw new ArgumentNullException(nameof(address), "Address is required.");
+            TaxNumber = taxNumber ?? throw new ArgumentNullException(nameof(taxNumber), "Tax number is required.");
         }
 
         /// <summary>
-        /// Atualiza dados básicos da organização (opcional para futuras US).
+        /// Atualiza dados básicos da organização (exemplo para futuras US).
         /// </summary>
-        public void UpdateDetails(string alternativeName, Address address)
+        public void UpdateDetails(AlternativeName alternativeName, Address address)
         {
-            AlternativeName = alternativeName?.Trim() ?? AlternativeName;
-            Address = address ?? Address;
+            if (alternativeName != null)
+                AlternativeName = alternativeName;
+            if (address != null)
+                Address = address;
         }
 
         public override string ToString() => $"{LegalName} ({TaxNumber})";
