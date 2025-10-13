@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using PortProject.Api.Domain;
 using PortProject.Api.Domain.StaffMemberAggregate;
+using PortProject.Api.Domain.StorageAggregate;
+using src.Domain.VesselTypeAggregate;
 
 namespace PortProject.Api.Models;
 
@@ -12,6 +14,7 @@ public class PortProjectContext : DbContext
 
     public DbSet<VesselType> VesselTypes { get; set; }
     public DbSet<StaffMember> StaffMembers { get; set; }
+    public DbSet<StorageArea> StorageAreas { get; set; }
     
     
         // This method is where you configure your database model
