@@ -53,7 +53,7 @@ namespace PortProject.Api.Application.ShippingAgentsOrganization.Services
 
             var tax = new TaxNumber(dto.TaxNumber);
 
-            if (await _repository.ExistsByTaxNumberAsync(tax, ct))
+            if (await _repository.ExistsByTaxNumberAsync(tax))
                 throw new InvalidOperationException($"An organization with tax number '{dto.TaxNumber}' already exists.");
 
             var org = new ShippingAgentOrganization(
@@ -70,14 +70,14 @@ namespace PortProject.Api.Application.ShippingAgentsOrganization.Services
                 org.AddRepresentative(representative);
             }
 
-            await _repository.AddAsync(org, ct);
+            await _repository.AddAsync(org);
             await _context.SaveChangesAsync(ct);
             return org.Id?.Value ?? Guid.Empty;
         }
 
         public async Task<ShippingAgentOrganizationDto?> GetByIdAsync(Guid id, CancellationToken ct = default)
         {
-            var org = await _repository.GetByIdAsync(new OrganizationId(id), ct);
+            var org = await _repository.GetByIdAsync(new OrganizationId(id));
             if (org == null) return null;
             return MapToDto(org);
         }

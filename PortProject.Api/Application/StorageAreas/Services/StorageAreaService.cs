@@ -33,20 +33,28 @@ public class StorageAreaService : IStorageAreaService
             Id = storageArea.Id.ToString(),
             Type = storageArea.Type.ToString(),
             Location = storageArea.Location.ToString(),
-            Capacity = dto.Capacity
+            Capacity = storageArea.Capacity.Value
         };
     }
-
     
     
-    
-    // PedroS42 is going to implement this in the future!
-    public Task<StorageAreaDto?> GetByIdAsync(int id)
+    public async Task<StorageAreaDto?> GetByIdAsync(int id)
     {
-        //TODO: Implement this method properly - PedroS42
-        throw new NotImplementedException();
+        var value = new StorageAreaId(id);
+        
+        var storageArea = await _repository.GetByIdAsync(value);
+        
+        if (storageArea == null)
+            return null;
+
+        return new StorageAreaDto
+        {
+            Id = storageArea.Id?.ToString() ?? "0",
+            Type = storageArea.Type.ToString()
+        };
     }
-    // PedroS42 is going to implement this in the future!
+    
+    
 
     // PedroS42 is going to implement this in the future!
     public Task<IEnumerable<StorageAreaDto>> GetAllAsync(string? nameFilter, StorageAreaType? typeFilter)
@@ -54,7 +62,6 @@ public class StorageAreaService : IStorageAreaService
         //TODO: Implement this method properly - PedroS42
         throw new NotImplementedException();
     }
-    // PedroS42 is going to implement this in the future!
 
     
     

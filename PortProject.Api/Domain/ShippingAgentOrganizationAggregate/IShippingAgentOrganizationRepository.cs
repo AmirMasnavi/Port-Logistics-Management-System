@@ -12,17 +12,17 @@ namespace PortProject.Api.Domain.ShippingAgentOrganizationAggregate
         /// <summary>
         /// Adiciona uma nova organização ao repositório.
         /// </summary>
-        Task AddAsync(ShippingAgentOrganization organization, CancellationToken ct = default);
+        Task AddAsync(ShippingAgentOrganization organization);
 
         /// <summary>
         /// Verifica se já existe uma organização com o mesmo número fiscal.
         /// </summary>
-        Task<bool> ExistsByTaxNumberAsync(TaxNumber taxNumber, CancellationToken ct = default);
+        Task<bool> ExistsByTaxNumberAsync(TaxNumber taxNumber);
 
         /// <summary>
         /// Obtém uma organização pelo seu identificador.
         /// </summary>
-        Task<ShippingAgentOrganization?> GetByIdAsync(OrganizationId id, CancellationToken ct = default);
+        Task<ShippingAgentOrganization?> GetByIdAsync(OrganizationId id);
 
         Task<IEnumerable<ShippingAgentOrganization>> GetAllAsync(CancellationToken ct = default);
 

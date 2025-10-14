@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using PortProject.Api.Domain.DockAggregate;
+using PortProject.Api.Domain.ShippingAgentOrganizationAggregate;
+using PortProject.Api.Domain.ShippingAgentRepresentativeAggregate;
 using PortProject.Api.Domain.StaffMemberAggregate;
 using PortProject.Api.Domain.VesselAggregate;
 using PortProject.Api.Domain.StorageAggregate;
@@ -20,8 +22,8 @@ public class PortProjectContext : DbContext
     public DbSet<Vessel> Vessels { get; set; }
     public DbSet<StorageArea> StorageAreas { get; set; }
     public DbSet<Dock> Docks { get; set; }
-    public DbSet<PortProject.Api.Domain.ShippingAgentOrganizationAggregate.ShippingAgentOrganization> ShippingAgentOrganizations { get; set; }
-    public DbSet<PortProject.Api.Domain.ShippingAgentRepresentativeAggregate.ShippingAgentRepresentative> ShippingAgentRepresentatives { get; set; }
+    public DbSet<ShippingAgentOrganization> ShippingAgentOrganizations { get; set; }
+    public DbSet<ShippingAgentRepresentative> ShippingAgentRepresentatives { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -34,55 +36,64 @@ public class PortProjectContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         // === SHIPPING AGENT REPRESENTATIVE CONFIGURATION ===
-        var repBuilder = modelBuilder.Entity<PortProject.Api.Domain.ShippingAgentRepresentativeAggregate.ShippingAgentRepresentative>();
+        var repBuilder = modelBuilder.Entity<ShippingAgentRepresentative>();
         repBuilder.HasKey(r => r.RepresentativeId);
         repBuilder.Property(r => r.RepresentativeId)
             .HasConversion(
                 id => id.Value,
-                value => new PortProject.Api.Domain.ShippingAgentRepresentativeAggregate.RepresentativeId(value))
+                value => new RepresentativeId(value))
             .IsRequired();
         repBuilder.Property(r => r.CitizenId)
             .HasConversion(
                 id => id.Value,
-                value => new PortProject.Api.Domain.ShippingAgentRepresentativeAggregate.CitizenId(value))
+                value => new CitizenId(value))
             .IsRequired();
         repBuilder.Property(r => r.RepresentativeName)
             .HasConversion(
                 name => name.Value,
-                value => new PortProject.Api.Domain.ShippingAgentRepresentativeAggregate.RepresentativeName(value))
+                value => new RepresentativeName(value))
             .IsRequired();
         repBuilder.Property(r => r.RepresentativePhone)
             .HasConversion(
                 phone => phone.Value,
-                value => new PortProject.Api.Domain.ShippingAgentRepresentativeAggregate.RepresentativePhone(value))
+                value => new RepresentativePhone(value))
             .IsRequired();
         repBuilder.Property(r => r.RepresentativeEmail)
             .HasConversion(
                 email => email.Value,
-                value => new PortProject.Api.Domain.ShippingAgentRepresentativeAggregate.RepresentativeEmail(value))
+                value => new RepresentativeEmail(value))
             .IsRequired();
         repBuilder.Property(r => r.RepresentativeNationality)
             .HasConversion(
                 nat => nat.Value,
-                value => new PortProject.Api.Domain.ShippingAgentRepresentativeAggregate.RepresentativeNationality(value))
+                value => new RepresentativeNationality(value))
             .IsRequired();
+        
+        
+        
+        
         // === SHIPPING AGENT ORGANIZATION CONFIGURATION ===
-        var orgBuilder = modelBuilder.Entity<PortProject.Api.Domain.ShippingAgentOrganizationAggregate.ShippingAgentOrganization>();
+        var orgBuilder = modelBuilder.Entity<ShippingAgentOrganization>();
+        orgBuilder
+            .HasMany(o => o.Representatives)
+            .WithOne() 
+            .HasForeignKey("ShippingAgentOrganizationId")
+            .OnDelete(DeleteBehavior.Cascade);
         orgBuilder.HasKey(o => o.Id);
         orgBuilder.Property(o => o.Id)
             .HasConversion(
                 id => id.Value,
-                value => new PortProject.Api.Domain.ShippingAgentOrganizationAggregate.OrganizationId(value))
+                value => new OrganizationId(value))
             .IsRequired();
         orgBuilder.Property(o => o.LegalName)
             .HasConversion(
                 name => name.Value,
-                value => new PortProject.Api.Domain.ShippingAgentOrganizationAggregate.LegalName(value))
+                value => new LegalName(value))
             .IsRequired();
         orgBuilder.Property(o => o.AlternativeName)
             .HasConversion(
                 name => name.Value,
-                value => new PortProject.Api.Domain.ShippingAgentOrganizationAggregate.AlternativeName(value))
+                value => new AlternativeName(value))
             .IsRequired();
         orgBuilder.OwnsOne(o => o.Address, addressBuilder =>
         {
@@ -93,8 +104,13 @@ public class PortProjectContext : DbContext
         orgBuilder.Property(o => o.TaxNumber)
             .HasConversion(
                 tax => tax.Value,
-                value => new PortProject.Api.Domain.ShippingAgentOrganizationAggregate.TaxNumber(value))
+                value => new TaxNumber(value))
             .IsRequired();
+        
+        
+        
+        
+        
                 // Compare by value (order‑insensitive) and snapshot as a List
                 var workingDaysComparer = new ValueComparer<IReadOnlyCollection<DayOfWeek>>(
                     (l, r) =>

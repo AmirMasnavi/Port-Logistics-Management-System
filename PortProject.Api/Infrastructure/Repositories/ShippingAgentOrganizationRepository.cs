@@ -16,21 +16,21 @@ namespace PortProject.Api.Infrastructure.Repositories
             _context = context;
         }
 
-        public async Task AddAsync(ShippingAgentOrganization organization, CancellationToken ct = default)
+        public async Task AddAsync(ShippingAgentOrganization organization)
         {
-            await _context.Set<ShippingAgentOrganization>().AddAsync(organization, ct);
+            await _context.ShippingAgentOrganizations.AddAsync(organization);
         }
 
-        public async Task<bool> ExistsByTaxNumberAsync(TaxNumber taxNumber, CancellationToken ct = default)
+        public async Task<bool> ExistsByTaxNumberAsync(TaxNumber taxNumber)
         {
-            return await _context.Set<ShippingAgentOrganization>().AnyAsync(o => o.TaxNumber == taxNumber, ct);
+            return await _context.Set<ShippingAgentOrganization>().AnyAsync(o => o.TaxNumber == taxNumber);
         }
 
-        public async Task<ShippingAgentOrganization?> GetByIdAsync(OrganizationId id, CancellationToken ct = default)
+        public async Task<ShippingAgentOrganization?> GetByIdAsync(OrganizationId id)
         {
             return await _context.Set<ShippingAgentOrganization>()
                 .Include(o => o.Representatives)
-                .FirstOrDefaultAsync(o => o.Id == id, ct);
+                .FirstOrDefaultAsync(o => o.Id == id);
         }
 
         public async Task<IEnumerable<ShippingAgentOrganization>> GetAllAsync(CancellationToken ct = default)

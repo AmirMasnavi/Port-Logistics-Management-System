@@ -57,8 +57,8 @@ builder.Services.AddScoped<IStorageAreaService, StorageAreaService>();
 builder.Services.AddScoped<IDockRepository, DockRepository>();
 builder.Services.AddScoped<IDockService, DockService>();
 builder.Services.AddScoped<IShippingAgentOrganizationService, ShippingAgentOrganizationService>();
-builder.Services.AddScoped<IShippingAgentOrganizationRepository, ShippingAgentOrganizationRepository>();builder.Services.AddScoped<IShippingAgentOrganizationService, ShippingAgentOrganizationService>();
-builder.Services.AddScoped<IShippingAgentRepresentativeService, ShippingAgentRepresentativeService>();builder.Services.AddScoped<IShippingAgentOrganizationService, ShippingAgentOrganizationService>();
+builder.Services.AddScoped<IShippingAgentOrganizationRepository, ShippingAgentOrganizationRepository>();
+builder.Services.AddScoped<IShippingAgentRepresentativeService, ShippingAgentRepresentativeService>();
 builder.Services.AddScoped<IShippingAgentRepresentativeRepository, ShippingAgentRepresentativeRepository>();
 
 

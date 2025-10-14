@@ -17,7 +17,7 @@ namespace PortProject.Api.Infrastructure.Repositories
 
         public async Task AddAsync(ShippingAgentRepresentative representative)
         {
-            await _context.Set<ShippingAgentRepresentative>().AddAsync(representative);
+            await _context.ShippingAgentRepresentatives.AddAsync(representative);
         }
 
         public async Task<ShippingAgentRepresentative?> GetByIdAsync(RepresentativeId id)
