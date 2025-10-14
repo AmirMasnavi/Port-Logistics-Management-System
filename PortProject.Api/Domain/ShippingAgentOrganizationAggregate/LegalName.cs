@@ -1,7 +1,7 @@
 using System;
 using System.Text.RegularExpressions;
 
-namespace Domain.ShippingAgentOrganizationAggregate
+namespace PortProject.Api.Domain.ShippingAgentOrganizationAggregate
 {
     public class LegalName
     {

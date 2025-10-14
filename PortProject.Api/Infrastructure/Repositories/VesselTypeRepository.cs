@@ -36,9 +36,10 @@
                 
                         public async Task<List<VesselType>> GetByIdsAsync(List<VesselTypeId> ids)
                         {
-                            if (ids == null || ids.Count == 0) return new List<VesselType>();
                             var idValues = ids.Select(i => i.Value).ToList();
-                            return await _set.Where(v => idValues.Contains(v.Id.Value)).ToListAsync();
+                            var result = _context.VesselTypes.AsEnumerable()
+                                .Where(vt => idValues.Contains(vt.Id.Value)).ToList();
+                            return await Task.FromResult(result);
                         }
                 
                         public async Task<VesselType?> GetByNameAsync(VesselTypeName name)
@@ -71,7 +72,8 @@
                 
                         public async Task<VesselType> UpdateAsync(VesselType vesselType)
                         {
-                            _context.Entry(vesselType).State = EntityState.Modified;
+                            if (vesselType == null) throw new ArgumentNullException(nameof(vesselType));
+                            _set.Update(vesselType);
                             await _context.SaveChangesAsync();
                             return vesselType;
                         }

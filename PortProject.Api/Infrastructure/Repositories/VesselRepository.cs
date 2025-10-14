@@ -25,7 +25,7 @@ namespace src.Infrastructure.VesselAggregate
             if (imoNumber == null) throw new ArgumentNullException(nameof(imoNumber));
 
             return await _set.AsNoTracking()
-                .FirstOrDefaultAsync(v => v.ImoNumber.Value == imoNumber.Value);
+                .FirstOrDefaultAsync(v => v.ImoNumber == imoNumber);
         }
 
         public async Task<IEnumerable<Vessel>> SearchByCriteriaAsync(string? imo = null, string? name = null, string? operatorName = null)
@@ -33,7 +33,10 @@ namespace src.Infrastructure.VesselAggregate
             IQueryable<Vessel> query = _set.AsNoTracking();
 
             if (!string.IsNullOrWhiteSpace(imo))
-                query = query.Where(v => v.ImoNumber.Value.Contains(imo.Trim()));
+            {
+                var imoObject = new ImoNumber(imo.Trim()); // Crie o Value Object para comparação
+                query = query.Where(v => v.ImoNumber == imoObject); // Compare diretamente o Value Object
+            }
 
             if (!string.IsNullOrWhiteSpace(name))
                 query = query.Where(v => v.Name.ToLower().Contains(name.Trim().ToLower()));

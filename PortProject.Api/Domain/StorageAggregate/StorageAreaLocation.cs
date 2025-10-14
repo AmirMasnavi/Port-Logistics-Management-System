@@ -5,6 +5,8 @@
         public float X { get; }
         public float Y { get; }
         
+        private StorageAreaLocation() { } // For EF Core
+        
         public StorageAreaLocation(float x, float y)
         {
             if(x <= 0 || y <= 0)

@@ -19,7 +19,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Application\ShippingAgentsOrganization\Services\" />
     <Folder Include="Infrastructure\" />
     <Folder Include="Migrations\" />
   </ItemGroup>
