@@ -18,6 +18,8 @@ using PortProject.Api.Services;
 using src.Application.Services;
 using src.Infrastructure.VesselAggregate;
 using src.Infrastructure.VesselTypeAggregate;
+using PortProject.Api.Application.Qualifications;
+using PortProject.Api.Application.Qualifications.Services;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -50,6 +52,7 @@ builder.Services.AddScoped<IVesselRepository, VesselRepository>();
 builder.Services.AddScoped<IStorageAreaRepository, StorageAreaRepository>();
 builder.Services.AddScoped<IStorageAreaService, StorageAreaService>();
 builder.Services.AddScoped<IQualificationRepository, QualificationRepository>();
+builder.Services.AddScoped<IQualificationService, QualificationService>();
 
 var app = builder.Build();
 

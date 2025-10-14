@@ -21,7 +21,7 @@ public class QualificationRepository : IQualificationRepository
     public async Task<Qualification?> GetByCodeAsync(QualificationCode code)
     {
         // Since Code is a Value Object, we need to compare its Value property
-        return await _context.Qualifications.FirstOrDefaultAsync(q => q.Code.Value == code.Value);
+        return await _context.Qualifications.FirstOrDefaultAsync(q => q.Code == code);
     }
 
     public async Task<IEnumerable<Qualification>> GetAllAsync()
