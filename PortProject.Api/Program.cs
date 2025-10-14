@@ -2,8 +2,10 @@ using System.Text.Json.Serialization;
 using Microsoft.OpenApi.Models;
 using PortProject.Api.Models;
 using Microsoft.EntityFrameworkCore;
+using PortProject.Api.Application.Dock.Services;
 using PortProject.Api.Application.StaffMembers.Services;
 using PortProject.Api.Application.StorageAreas.Services;
+using PortProject.Api.Domain.DockAggregate;
 using PortProject.Api.Domain.StaffMemberAggregate;
 using PortProject.Api.Domain.StorageAggregate;
 using PortProject.Api.Domain.VesselAggregate;
@@ -48,6 +50,8 @@ builder.Services.AddScoped<IVesselService, VesselService>();
 builder.Services.AddScoped<IVesselRepository, VesselRepository>();
 builder.Services.AddScoped<IStorageAreaRepository, StorageAreaRepository>();
 builder.Services.AddScoped<IStorageAreaService, StorageAreaService>();
+builder.Services.AddScoped<IDockRepository, DockRepository>();
+builder.Services.AddScoped<IDockService, DockService>();
 
 var app = builder.Build();
 

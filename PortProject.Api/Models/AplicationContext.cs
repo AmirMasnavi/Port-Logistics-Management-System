@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using PortProject.Api.Domain.DockAggregate;
 using PortProject.Api.Domain.StaffMemberAggregate;
 using PortProject.Api.Domain.VesselAggregate;
 using PortProject.Api.Domain.StorageAggregate;
@@ -18,6 +19,7 @@ public class PortProjectContext : DbContext
     public DbSet<StaffMember> StaffMembers { get; set; }
     public DbSet<Vessel> Vessels { get; set; }
     public DbSet<StorageArea> StorageAreas { get; set; }
+    public DbSet<Dock> Docks { get; set; }
     
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -226,5 +228,71 @@ public class PortProjectContext : DbContext
         });
 
         base.OnModelCreating(modelBuilder);
+        
+        // === DOCK CONFIGURATION ===
+        var dockBuilder = modelBuilder.Entity<Dock>();
+
+        dockBuilder.HasKey(d => d.Id);
+
+        dockBuilder.Property(d => d.Id)
+            .HasConversion(
+                id => id.Value,
+                value => new DockId(value))
+            .HasColumnName("Id")
+            .IsRequired();
+
+        dockBuilder.OwnsOne(d => d.Name, name =>
+        {
+            name.Property(n => n.Value)
+                .HasColumnName("Name")
+                .HasMaxLength(100)
+                .IsRequired();
+
+            name.HasIndex(n => n.Value).IsUnique();
+        });
+
+        dockBuilder.OwnsOne(d => d.Location, location =>
+        {
+            location.Property(l => l.Zone)
+                .HasColumnName("LocationZone")
+                .HasMaxLength(50)
+                .IsRequired();
+
+            location.Property(l => l.Section)
+                .HasColumnName("LocationSection")
+                .HasMaxLength(50)
+                .IsRequired();
+        });
+
+        dockBuilder.OwnsOne(d => d.Characteristics, characteristics =>
+        {
+            characteristics.Property(c => c.LengthInMeters)
+                .HasColumnName("LengthInMeters")
+                .IsRequired();
+
+            characteristics.Property(c => c.DepthInMeters)
+                .HasColumnName("DepthInMeters")
+                .IsRequired();
+
+            characteristics.Property(c => c.MaxDraftInMeters)
+                .HasColumnName("MaxDraftInMeters")
+                .IsRequired();
+        });
+
+        dockBuilder.OwnsOne(d => d.STSCranes, cranes =>
+        {
+            cranes.Property(c => c.Value)
+                .HasColumnName("NumberOfSTSCranes")
+                .IsRequired();
+        });
+
+// Persist AllowedVesselTypes as CSV string
+        dockBuilder.Property(d => d.AllowedVesselTypes)
+            .HasConversion(
+                list => string.Join(",", list.Select(v => v.Value)),
+                value => value.Split(",", StringSplitOptions.RemoveEmptyEntries).Select(v => new VesselTypeId(v)).ToList()
+            )
+            .HasColumnName("AllowedVesselTypeIds")
+            .IsRequired();
     }
 }
