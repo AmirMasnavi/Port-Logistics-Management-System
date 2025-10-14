@@ -73,7 +73,7 @@ using System;
             vesselType.UpdateCapacity(new VesselTypeCapacity(dto.Capacity));
             vesselType.UpdateOperationalConstraints(new VesselTypeDimensions(dto.MaxRows, dto.MaxBays, dto.MaxTiers));
 
-            await _repository.UpdateAsync(vesselType); // Chama o método UpdateAsync do repositório
+            await _repository.UpdateAsync(vesselType); 
             return ToDto(vesselType);
         }
 

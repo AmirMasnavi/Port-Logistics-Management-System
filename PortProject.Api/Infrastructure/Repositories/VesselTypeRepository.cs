@@ -1,5 +1,4 @@
-
-                using System;
+using System;
                 using System.Collections.Generic;
                 using System.Linq;
                 using System.Threading.Tasks;
@@ -71,7 +70,8 @@
                 
                         public async Task<VesselType> UpdateAsync(VesselType vesselType)
                         {
-                            _context.Entry(vesselType).State = EntityState.Modified;
+                            if (vesselType == null) throw new ArgumentNullException(nameof(vesselType));
+                            _set.Update(vesselType);
                             await _context.SaveChangesAsync();
                             return vesselType;
                         }
