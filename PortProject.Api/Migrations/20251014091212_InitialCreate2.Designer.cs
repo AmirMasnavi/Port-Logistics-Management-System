@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using PortProject.Api.Models;
 
@@ -10,9 +11,11 @@ using PortProject.Api.Models;
 namespace PortProject.Api.Migrations
 {
     [DbContext(typeof(PortProjectContext))]
-    partial class PortProjectContextModelSnapshot : ModelSnapshot
+    [Migration("20251014091212_InitialCreate2")]
+    partial class InitialCreate2
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.9");
@@ -97,7 +100,7 @@ namespace PortProject.Api.Migrations
 
                     b.HasKey("MecanographicNumber");
 
-                    b.ToTable("StaffMembers", (string)null);
+                    b.ToTable("StaffMembers");
                 });
 
             modelBuilder.Entity("PortProject.Api.Domain.StorageAggregate.StorageArea", b =>
@@ -113,7 +116,7 @@ namespace PortProject.Api.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("StorageAreas", (string)null);
+                    b.ToTable("StorageAreas");
                 });
 
             modelBuilder.Entity("PortProject.Api.Domain.VesselAggregate.Vessel", b =>
@@ -146,7 +149,7 @@ namespace PortProject.Api.Migrations
 
                     b.HasIndex("VesselTypeId");
 
-                    b.ToTable("Vessels", (string)null);
+                    b.ToTable("Vessels");
                 });
 
             modelBuilder.Entity("src.Domain.VesselTypeAggregate.VesselType", b =>
@@ -157,7 +160,47 @@ namespace PortProject.Api.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("VesselTypes", (string)null);
+                    b.ToTable("VesselTypes");
+                });
+
+            modelBuilder.Entity("PortProject.Api.Domain.ShippingAgentOrganizationAggregate.ShippingAgentOrganization", b =>
+                {
+                    b.OwnsOne("PortProject.Api.Domain.ShippingAgentOrganizationAggregate.Address", "Address", b1 =>
+                        {
+                            b1.Property<Guid>("ShippingAgentOrganizationId")
+                                .HasColumnType("TEXT");
+
+                            b1.Property<string>("City")
+                                .IsRequired()
+                                .HasColumnType("TEXT")
+                                .HasColumnName("City");
+
+                            b1.Property<string>("Country")
+                                .IsRequired()
+                                .HasColumnType("TEXT")
+                                .HasColumnName("Country");
+
+                            b1.Property<string>("Street")
+                                .IsRequired()
+                                .HasColumnType("TEXT")
+                                .HasColumnName("Street");
+
+                            b1.HasKey("ShippingAgentOrganizationId");
+
+                            b1.ToTable("ShippingAgentOrganizations");
+
+                            b1.WithOwner()
+                                .HasForeignKey("ShippingAgentOrganizationId");
+                        });
+
+                    b.Navigation("Address");
+                });
+
+            modelBuilder.Entity("PortProject.Api.Domain.ShippingAgentRepresentativeAggregate.ShippingAgentRepresentative", b =>
+                {
+                    b.HasOne("PortProject.Api.Domain.ShippingAgentOrganizationAggregate.ShippingAgentOrganization", null)
+                        .WithMany("Representatives")
+                        .HasForeignKey("ShippingAgentOrganizationId");
                 });
 
             modelBuilder.Entity("PortProject.Api.Domain.StaffMemberAggregate.StaffMember", b =>
@@ -200,7 +243,7 @@ namespace PortProject.Api.Migrations
 
                             b1.HasKey("StaffMemberMecanographicNumber");
 
-                            b1.ToTable("StaffMembers", (string)null);
+                            b1.ToTable("StaffMembers");
 
                             b1.WithOwner()
                                 .HasForeignKey("StaffMemberMecanographicNumber");
@@ -223,28 +266,7 @@ namespace PortProject.Api.Migrations
 
                             b1.HasKey("StaffMemberMecanographicNumber");
 
-                            b1.ToTable("StaffMembers", (string)null);
-
-                            b1.WithOwner()
-                                .HasForeignKey("StaffMemberMecanographicNumber");
-                        });
-
-                    b.OwnsMany("PortProject.Api.Domain.QualificationAggregate.QualificationId", "Qualifications", b1 =>
-                        {
-                            b1.Property<string>("StaffMemberMecanographicNumber")
-                                .HasColumnType("TEXT");
-
-                            b1.Property<int>("Id")
-                                .ValueGeneratedOnAdd()
-                                .HasColumnType("INTEGER");
-
-                            b1.Property<Guid>("Value")
-                                .HasColumnType("TEXT")
-                                .HasColumnName("QualificationIdValue");
-
-                            b1.HasKey("StaffMemberMecanographicNumber", "Id");
-
-                            b1.ToTable("StaffMemberQualifications", (string)null);
+                            b1.ToTable("StaffMembers");
 
                             b1.WithOwner()
                                 .HasForeignKey("StaffMemberMecanographicNumber");
@@ -261,23 +283,6 @@ namespace PortProject.Api.Migrations
 
             modelBuilder.Entity("PortProject.Api.Domain.StorageAggregate.StorageArea", b =>
                 {
-                    b.OwnsOne("PortProject.Api.Domain.StorageAggregate.StorageCapacity", "Capacity", b1 =>
-                        {
-                            b1.Property<int>("StorageAreaId")
-                                .HasColumnType("INTEGER");
-
-                            b1.Property<int>("Value")
-                                .HasColumnType("INTEGER")
-                                .HasColumnName("Capacity");
-
-                            b1.HasKey("StorageAreaId");
-
-                            b1.ToTable("StorageAreas", (string)null);
-
-                            b1.WithOwner()
-                                .HasForeignKey("StorageAreaId");
-                        });
-
                     b.OwnsOne("PortProject.Api.Domain.StorageAggregate.StorageAreaLocation", "Location", b1 =>
                         {
                             b1.Property<int>("StorageAreaId")
@@ -293,7 +298,24 @@ namespace PortProject.Api.Migrations
 
                             b1.HasKey("StorageAreaId");
 
-                            b1.ToTable("StorageAreas", (string)null);
+                            b1.ToTable("StorageAreas");
+
+                            b1.WithOwner()
+                                .HasForeignKey("StorageAreaId");
+                        });
+
+                    b.OwnsOne("PortProject.Api.Domain.StorageAggregate.StorageCapacity", "Capacity", b1 =>
+                        {
+                            b1.Property<int>("StorageAreaId")
+                                .HasColumnType("INTEGER");
+
+                            b1.Property<int>("Value")
+                                .HasColumnType("INTEGER")
+                                .HasColumnName("Capacity");
+
+                            b1.HasKey("StorageAreaId");
+
+                            b1.ToTable("StorageAreas");
 
                             b1.WithOwner()
                                 .HasForeignKey("StorageAreaId");
@@ -327,7 +349,7 @@ namespace PortProject.Api.Migrations
 
                             b1.HasKey("VesselImoNumber");
 
-                            b1.ToTable("Vessels", (string)null);
+                            b1.ToTable("Vessels");
 
                             b1.WithOwner()
                                 .HasForeignKey("VesselImoNumber");
@@ -350,7 +372,7 @@ namespace PortProject.Api.Migrations
 
                             b1.HasKey("VesselTypeId");
 
-                            b1.ToTable("VesselTypes", (string)null);
+                            b1.ToTable("VesselTypes");
 
                             b1.WithOwner()
                                 .HasForeignKey("VesselTypeId");
@@ -369,29 +391,7 @@ namespace PortProject.Api.Migrations
 
                             b1.HasKey("VesselTypeId");
 
-                            b1.ToTable("VesselTypes", (string)null);
-
-                            b1.WithOwner()
-                                .HasForeignKey("VesselTypeId");
-                        });
-
-                    b.OwnsOne("src.Domain.VesselTypeAggregate.VesselTypeName", "Name", b1 =>
-                        {
-                            b1.Property<string>("VesselTypeId")
-                                .HasColumnType("TEXT");
-
-                            b1.Property<string>("Value")
-                                .IsRequired()
-                                .HasMaxLength(100)
-                                .HasColumnType("TEXT")
-                                .HasColumnName("Name");
-
-                            b1.HasKey("VesselTypeId");
-
-                            b1.HasIndex("Value")
-                                .IsUnique();
-
-                            b1.ToTable("VesselTypes", (string)null);
+                            b1.ToTable("VesselTypes");
 
                             b1.WithOwner()
                                 .HasForeignKey("VesselTypeId");
@@ -416,7 +416,29 @@ namespace PortProject.Api.Migrations
 
                             b1.HasKey("VesselTypeId");
 
-                            b1.ToTable("VesselTypes", (string)null);
+                            b1.ToTable("VesselTypes");
+
+                            b1.WithOwner()
+                                .HasForeignKey("VesselTypeId");
+                        });
+
+                    b.OwnsOne("src.Domain.VesselTypeAggregate.VesselTypeName", "Name", b1 =>
+                        {
+                            b1.Property<string>("VesselTypeId")
+                                .HasColumnType("TEXT");
+
+                            b1.Property<string>("Value")
+                                .IsRequired()
+                                .HasMaxLength(100)
+                                .HasColumnType("TEXT")
+                                .HasColumnName("Name");
+
+                            b1.HasKey("VesselTypeId");
+
+                            b1.HasIndex("Value")
+                                .IsUnique();
+
+                            b1.ToTable("VesselTypes");
 
                             b1.WithOwner()
                                 .HasForeignKey("VesselTypeId");

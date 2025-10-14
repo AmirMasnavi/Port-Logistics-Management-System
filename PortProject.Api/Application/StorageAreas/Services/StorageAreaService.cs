@@ -30,10 +30,10 @@ public class StorageAreaService : IStorageAreaService
         
         return new StorageAreaDto
         {
-            Id = storageArea.Id.ToString() ?? "0",
+            Id = storageArea.Id.ToString(),
             Type = storageArea.Type.ToString(),
             Location = storageArea.Location.ToString(),
-            Capacity = storageArea.Capacity.Value
+            Capacity = dto.Capacity
         };
     }
 
@@ -41,18 +41,10 @@ public class StorageAreaService : IStorageAreaService
     
     
     // PedroS42 is going to implement this in the future!
-    public async Task<StorageAreaDto?> GetByIdAsync(int id)
+    public Task<StorageAreaDto?> GetByIdAsync(int id)
     {
-        var value = new StorageAreaId(id);
-        var storageArea = await _repository.GetByIdAsync(value);
-        if (storageArea == null)
-            return null;
-
-        return new StorageAreaDto
-        {
-            Id = storageArea.Id?.ToString() ?? "0",
-            Type = storageArea.Type.ToString()
-        };
+        //TODO: Implement this method properly - PedroS42
+        throw new NotImplementedException();
     }
     // PedroS42 is going to implement this in the future!
 

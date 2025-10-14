@@ -2,12 +2,12 @@ using System.Text.Json.Serialization;
 using Microsoft.OpenApi.Models;
 using PortProject.Api.Models;
 using Microsoft.EntityFrameworkCore;
-using PortProject.Api.Application.Dock.Services;
 using PortProject.Api.Application.StaffMembers.Services;
 using PortProject.Api.Application.StorageAreas.Services;
-using PortProject.Api.Domain.DockAggregate;
 using PortProject.Api.Domain.StaffMemberAggregate;
 using PortProject.Api.Domain.StorageAggregate;
+using PortProject.Api.Application.Dock.Services;
+using PortProject.Api.Domain.DockAggregate;
 using PortProject.Api.Domain.VesselAggregate;
 using PortProject.Api.Domain.VesselTypeAggregate;
 using PortProject.Api.Infrastructure.Repositories;
@@ -19,6 +19,10 @@ using PortProject.Api.Services;
 using src.Application.Services;
 using src.Infrastructure.VesselAggregate;
 using src.Infrastructure.VesselTypeAggregate;
+using PortProject.Api.Domain.ShippingAgentOrganizationAggregate;
+using PortProject.Api.Application.ShippingAgentsOrganization.Services;
+using PortProject.Api.Domain.ShippingAgentRepresentativeAggregate;
+using PortProject.Api.Application.ShippingAgentsRepresentative.Services;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -52,6 +56,11 @@ builder.Services.AddScoped<IStorageAreaRepository, StorageAreaRepository>();
 builder.Services.AddScoped<IStorageAreaService, StorageAreaService>();
 builder.Services.AddScoped<IDockRepository, DockRepository>();
 builder.Services.AddScoped<IDockService, DockService>();
+builder.Services.AddScoped<IShippingAgentOrganizationService, ShippingAgentOrganizationService>();
+builder.Services.AddScoped<IShippingAgentOrganizationRepository, ShippingAgentOrganizationRepository>();builder.Services.AddScoped<IShippingAgentOrganizationService, ShippingAgentOrganizationService>();
+builder.Services.AddScoped<IShippingAgentRepresentativeService, ShippingAgentRepresentativeService>();builder.Services.AddScoped<IShippingAgentOrganizationService, ShippingAgentOrganizationService>();
+builder.Services.AddScoped<IShippingAgentRepresentativeRepository, ShippingAgentRepresentativeRepository>();
+
 
 var app = builder.Build();
 
