@@ -16,9 +16,8 @@
             Id = null!;
         }
         
-        public StorageArea(StorageAreaId id, StorageAreaLocation location, StorageAreaType type, StorageCapacity capacity)
+        public StorageArea(StorageAreaLocation location, StorageAreaType type, StorageCapacity capacity)
         {
-            Id = id ?? throw new ArgumentNullException(nameof(id));
             Location = location ?? throw new ArgumentNullException(nameof(location));
             Type = type;
             Capacity = capacity ?? throw new ArgumentNullException(nameof(capacity));
@@ -26,8 +25,8 @@
         
         
         // Convenience overload: defaults type to Yard
-        public StorageArea(StorageAreaId id, StorageAreaLocation location, StorageCapacity capacity)
-            : this(id, location, StorageAreaType.Yard, capacity) { }
+        public StorageArea(StorageAreaLocation location, StorageCapacity capacity)
+            : this(location, StorageAreaType.Yard, capacity) { }
         
         // --- Methods to Mutate State ---
         

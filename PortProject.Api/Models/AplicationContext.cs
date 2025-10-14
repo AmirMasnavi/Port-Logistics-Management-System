@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using PortProject.Api.Domain.StaffMemberAggregate;
 using PortProject.Api.Domain.VesselAggregate;
@@ -17,6 +18,14 @@ public class PortProjectContext : DbContext
     public DbSet<StaffMember> StaffMembers { get; set; }
     public DbSet<Vessel> Vessels { get; set; }
     public DbSet<StorageArea> StorageAreas { get; set; }
+    
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {
+        optionsBuilder
+            .UseSqlite("Data Source=portproject.db")
+            .ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
+    }
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -200,7 +209,7 @@ public class PortProjectContext : DbContext
                 id => id.Value,
                 value => new StorageAreaId(value))
             .ValueGeneratedOnAdd()
-            .IsRequired();
+            .IsRequired().HasAnnotation("Sqlite:Autoincrement", true);
 
         storageAreaBuilder.Property(sa => sa.Type)
             .HasConversion<string>()

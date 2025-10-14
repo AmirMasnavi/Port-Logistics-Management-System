@@ -3,6 +3,7 @@ using Microsoft.OpenApi.Models;
 using PortProject.Api.Models;
 using Microsoft.EntityFrameworkCore;
 using PortProject.Api.Application.StaffMembers.Services;
+using PortProject.Api.Application.StorageAreas.Services;
 using PortProject.Api.Domain.StaffMemberAggregate;
 using PortProject.Api.Domain.StorageAggregate;
 using PortProject.Api.Domain.VesselAggregate;
@@ -46,6 +47,7 @@ builder.Services.AddScoped<IVesselTypeService, VesselTypeService>();
 builder.Services.AddScoped<IVesselService, VesselService>();
 builder.Services.AddScoped<IVesselRepository, VesselRepository>();
 builder.Services.AddScoped<IStorageAreaRepository, StorageAreaRepository>();
+builder.Services.AddScoped<IStorageAreaService, StorageAreaService>();
 
 var app = builder.Build();
 
