@@ -6,6 +6,9 @@ using PortProject.Api.Domain.QualificationAggregate;
 using PortProject.Api.Domain.StaffMemberAggregate;
 using PortProject.Api.Domain.VesselAggregate;
 using PortProject.Api.Domain.StorageAggregate;
+using PortProject.Api.Domain.DockAggregate;
+using PortProject.Api.Domain.ShippingAgentOrganizationAggregate;
+using PortProject.Api.Domain.ShippingAgentRepresentativeAggregate;
 using src.Domain.VesselTypeAggregate;
 
 namespace PortProject.Api.Models;
@@ -20,6 +23,9 @@ public class PortProjectContext : DbContext
     public DbSet<Vessel> Vessels { get; set; }
     public DbSet<StorageArea> StorageAreas { get; set; }
     public DbSet<Qualification> Qualifications { get; set; }
+    public DbSet<Dock> Docks { get; set; }
+    public DbSet<ShippingAgentOrganization> ShippingAgentOrganizations { get; set; }
+    public DbSet<ShippingAgentRepresentative> ShippingAgentRepresentatives { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
