@@ -154,7 +154,7 @@ public class PortProjectContext : DbContext
 
         // === VESSEL CONFIGURATION ===
         var vesselBuilder = modelBuilder.Entity<Vessel>();
-        vesselBuilder.ToTable("Vessel");
+        vesselBuilder.ToTable("Vessels");
 
         vesselBuilder.HasKey(v => v.ImoNumber);
 
