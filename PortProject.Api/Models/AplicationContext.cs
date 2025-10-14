@@ -156,6 +156,7 @@ public class PortProjectContext : DbContext
 
         // === VESSEL CONFIGURATION ===
         var vesselBuilder = modelBuilder.Entity<Vessel>();
+        vesselBuilder.ToTable("Vessels");
 
         vesselBuilder.HasKey(v => v.ImoNumber);
 
@@ -226,6 +227,8 @@ public class PortProjectContext : DbContext
         {
             cap.Property(p => p.Value).HasColumnName("Capacity").IsRequired();
         });
+
+        modelBuilder.ApplyConfiguration(new VesselEntityTypeConfiguration());
 
         base.OnModelCreating(modelBuilder);
         
