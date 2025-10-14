@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using PortProject.Api.Domain.QualificationAggregate;
 using PortProject.Api.Domain.StaffMemberAggregate;
 using PortProject.Api.Domain.VesselAggregate;
 using PortProject.Api.Domain.StorageAggregate;
@@ -18,7 +19,8 @@ public class PortProjectContext : DbContext
     public DbSet<StaffMember> StaffMembers { get; set; }
     public DbSet<Vessel> Vessels { get; set; }
     public DbSet<StorageArea> StorageAreas { get; set; }
-    
+    public DbSet<Qualification> Qualifications { get; set; }
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         optionsBuilder
@@ -57,6 +59,23 @@ public class PortProjectContext : DbContext
 
         // === STAFF MEMBER CONFIGURATION ===
         var staffMemberBuilder = modelBuilder.Entity<StaffMember>();
+        
+        // --- QUALIFICATION CONFIGURATION ---
+        var qualificationBuilder = modelBuilder.Entity<Qualification>();
+        
+        qualificationBuilder.HasKey(q => q.Code);
+        qualificationBuilder.Property(q => q.Code)
+            .HasConversion(qc => qc.Value, val => new QualificationCode(val))
+            .HasMaxLength(20);
+            
+        qualificationBuilder.Property(q => q.Name)
+            .HasConversion(qn => qn.Value, val => new QualificationName(val))
+            .IsRequired()
+            .HasMaxLength(100);
+
+        qualificationBuilder.Property(q => q.Description)
+            .HasConversion(qd => qd.Value, val => new QualificationDescription(val))
+            .HasMaxLength(500);
 
         staffMemberBuilder.HasKey(sm => sm.MecanographicNumber);
 
@@ -94,12 +113,10 @@ public class PortProjectContext : DbContext
                 .Metadata.SetValueComparer(workingDaysComparer);
         });
 
-        // TODO: replace with real Qualification entity when ready
-        staffMemberBuilder.OwnsMany(sm => sm.Qualifications, ownedBuilder =>
-        {
-            ownedBuilder.ToTable("StaffMemberQualifications");
-            ownedBuilder.Property(q => q.Value).HasColumnName("QualificationIdValue");
-        });
+        staffMemberBuilder
+            .HasMany(sm => sm.Qualifications) // A StaffMember has many Qualifications
+            .WithMany() // A Qualification can be on many StaffMembers
+            .UsingEntity(j => j.ToTable("StaffMemberQualification")); // Name the join table
 
         staffMemberBuilder.Property(sm => sm.ShortName)
             .IsRequired()

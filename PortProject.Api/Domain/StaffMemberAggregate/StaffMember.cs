@@ -11,9 +11,10 @@ namespace PortProject.Api.Domain.StaffMemberAggregate
         public ContactDetails ContactDetails { get; private set; }
 
         // Private list to hold the IDs
-        private readonly List<QualificationCode> _qualifications = new();
+        private readonly List<Qualification> _qualifications = new();
+
         // Publicly expose a read-only view of the list
-        public IReadOnlyCollection<QualificationCode> Qualifications => _qualifications.AsReadOnly();
+        public IReadOnlyCollection<Qualification> Qualifications => _qualifications.AsReadOnly();
         
         public OperationalWindow OperationalWindow { get; private set; }
         public StaffStatus CurrentStatus { get; private set; }
@@ -31,7 +32,7 @@ namespace PortProject.Api.Domain.StaffMemberAggregate
         }
 
         public StaffMember(MecanographicNumber mecanographicNumber, string shortName, ContactDetails contactDetails, 
-                           OperationalWindow operationalWindow, List<QualificationCode>? initialQualifications = null)
+                           OperationalWindow operationalWindow, List<Qualification>? initialQualifications = null)
         {
             MecanographicNumber = mecanographicNumber ?? throw new ArgumentNullException(nameof(mecanographicNumber));
             
@@ -69,18 +70,19 @@ namespace PortProject.Api.Domain.StaffMemberAggregate
             UpdatedAt = DateTime.UtcNow;
         }
 
-        public void AddQualification(QualificationCode qualificationCode)
+        public void AddQualification(Qualification qualification)
         {
-            if (!_qualifications.Contains(qualificationCode))
+            // You can add logic here, e.g., to prevent duplicates
+            if (!_qualifications.Contains(qualification))
             {
-                _qualifications.Add(qualificationCode);
+                _qualifications.Add(qualification);
                 UpdatedAt = DateTime.UtcNow;
             }
         }
 
-        public void RemoveQualification(QualificationCode qualificationCode)
+        public void RemoveQualification(Qualification qualification)
         {
-            if (_qualifications.Remove(qualificationCode))
+            if (_qualifications.Remove(qualification))
             {
                 UpdatedAt = DateTime.UtcNow;
             }

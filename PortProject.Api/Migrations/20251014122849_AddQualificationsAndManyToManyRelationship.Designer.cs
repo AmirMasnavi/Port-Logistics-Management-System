@@ -11,14 +11,35 @@ using PortProject.Api.Models;
 namespace PortProject.Api.Migrations
 {
     [DbContext(typeof(PortProjectContext))]
-    [Migration("20251013165426_AddStorageAreaIdAutoIncrement")]
-    partial class AddStorageAreaIdAutoIncrement
+    [Migration("20251014122849_AddQualificationsAndManyToManyRelationship")]
+    partial class AddQualificationsAndManyToManyRelationship
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.9");
+
+            modelBuilder.Entity("PortProject.Api.Domain.QualificationAggregate.Qualification", b =>
+                {
+                    b.Property<string>("Code")
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Code");
+
+                    b.ToTable("Qualifications");
+                });
 
             modelBuilder.Entity("PortProject.Api.Domain.StaffMemberAggregate.StaffMember", b =>
                 {
@@ -95,6 +116,21 @@ namespace PortProject.Api.Migrations
                     b.ToTable("Vessels");
                 });
 
+            modelBuilder.Entity("QualificationStaffMember", b =>
+                {
+                    b.Property<string>("QualificationsCode")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("StaffMemberMecanographicNumber")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("QualificationsCode", "StaffMemberMecanographicNumber");
+
+                    b.HasIndex("StaffMemberMecanographicNumber");
+
+                    b.ToTable("StaffMemberQualification", (string)null);
+                });
+
             modelBuilder.Entity("src.Domain.VesselTypeAggregate.VesselType", b =>
                 {
                     b.Property<string>("Id")
@@ -108,27 +144,6 @@ namespace PortProject.Api.Migrations
 
             modelBuilder.Entity("PortProject.Api.Domain.StaffMemberAggregate.StaffMember", b =>
                 {
-                    b.OwnsMany("PortProject.Api.Domain.QualificationAggregate.QualificationId", "Qualifications", b1 =>
-                        {
-                            b1.Property<string>("StaffMemberMecanographicNumber")
-                                .HasColumnType("TEXT");
-
-                            b1.Property<int>("Id")
-                                .ValueGeneratedOnAdd()
-                                .HasColumnType("INTEGER");
-
-                            b1.Property<Guid>("Value")
-                                .HasColumnType("TEXT")
-                                .HasColumnName("QualificationIdValue");
-
-                            b1.HasKey("StaffMemberMecanographicNumber", "Id");
-
-                            b1.ToTable("StaffMemberQualifications", (string)null);
-
-                            b1.WithOwner()
-                                .HasForeignKey("StaffMemberMecanographicNumber");
-                        });
-
                     b.OwnsOne("PortProject.Api.Domain.StaffMemberAggregate.ContactDetails", "ContactDetails", b1 =>
                         {
                             b1.Property<string>("StaffMemberMecanographicNumber")
@@ -180,8 +195,6 @@ namespace PortProject.Api.Migrations
 
                     b.Navigation("OperationalWindow")
                         .IsRequired();
-
-                    b.Navigation("Qualifications");
                 });
 
             modelBuilder.Entity("PortProject.Api.Domain.StorageAggregate.StorageArea", b =>
@@ -259,6 +272,21 @@ namespace PortProject.Api.Migrations
                         });
 
                     b.Navigation("Operator")
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("QualificationStaffMember", b =>
+                {
+                    b.HasOne("PortProject.Api.Domain.QualificationAggregate.Qualification", null)
+                        .WithMany()
+                        .HasForeignKey("QualificationsCode")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("PortProject.Api.Domain.StaffMemberAggregate.StaffMember", null)
+                        .WithMany()
+                        .HasForeignKey("StaffMemberMecanographicNumber")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 

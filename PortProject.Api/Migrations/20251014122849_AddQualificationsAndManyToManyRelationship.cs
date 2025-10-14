@@ -5,7 +5,7 @@
 namespace PortProject.Api.Migrations
 {
     /// <inheritdoc />
-    public partial class AddStorageAreaIdAutoIncrement : Migration
+    public partial class AddQualificationsAndManyToManyRelationship : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
