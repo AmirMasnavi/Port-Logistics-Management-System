@@ -2,7 +2,9 @@ namespace PortProject.Api.Domain.ShippingAgentRepresentativeAggregate
 {
     public sealed class RepresentativeId
     {
-        public Guid Value { get; }
+        public Guid Value { get; private set; }
+        
+        private RepresentativeId() { }
 
         public RepresentativeId(Guid value)
         {

@@ -4,7 +4,9 @@ namespace PortProject.Api.Domain.ShippingAgentRepresentativeAggregate
 {
     public sealed class RepresentativeEmail
     {
-        public string Value { get; }
+        public string Value { get; private set; }
+        
+        private RepresentativeEmail() { }
 
         public RepresentativeEmail(string value)
         {

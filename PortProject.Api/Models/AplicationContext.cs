@@ -248,6 +248,119 @@ public class PortProjectContext : DbContext
             cap.Property(p => p.Value).HasColumnName("Capacity").IsRequired();
         });
 
+        // === DOCK CONFIGURATION ===
+        var dockBuilder = modelBuilder.Entity<Dock>();
+
+        // 1. Define the Primary Key (This is the direct fix for your error)
+        dockBuilder.HasKey(d => d.Id);
+
+        // 2. Configure the Primary Key's Value Object
+        dockBuilder.Property(d => d.Id)
+            .HasConversion(id => id.Value, val => new DockId(val));
+
+        // 3. Configure the other owned Value Objects
+        dockBuilder.OwnsOne(d => d.Name, nb => {
+            nb.Property(p => p.Value).HasColumnName("DockName").IsRequired();
+        });
+
+        dockBuilder.OwnsOne(d => d.Location, lb => {
+            lb.Property(p => p.Zone).HasColumnName("LocationZone");
+            lb.Property(p => p.Section).HasColumnName("LocationSection");
+        });
+
+        dockBuilder.OwnsOne(d => d.Characteristics, cb => {
+            cb.Property(p => p.LengthInMeters).HasColumnName("Length");
+            cb.Property(p => p.DepthInMeters).HasColumnName("Depth");
+            cb.Property(p => p.MaxDraftInMeters).HasColumnName("MaxDraft");
+        });
+
+        dockBuilder.OwnsOne(d => d.STSCranes, sb => {
+            sb.Property(p => p.Value).HasColumnName("NumberOfSTSCranes");
+        });
+
+        // 4. Configure the collection of allowed VesselType IDs
+        dockBuilder.OwnsMany(d => d.AllowedVesselTypes, ab => {
+            ab.ToTable("DockAllowedVesselTypes"); // Create a separate table for this list
+            ab.WithOwner().HasForeignKey("DockId"); // Link back to the Dock
+            ab.Property(vt => vt.Value).HasColumnName("VesselTypeId");
+            ab.HasKey("DockId", "Value"); // Create a composite key for the new table
+        });
+        
+
+        // === SHIPPING AGENT ORGANIZATION CONFIGURATION ===
+        var orgBuilder = modelBuilder.Entity<ShippingAgentOrganization>();
+
+        // 1. Define the Primary Key
+        orgBuilder.HasKey(o => o.Id);
+        orgBuilder.Property(o => o.Id)
+            .HasConversion(id => id.Value, val => new OrganizationId(val));
+
+        // 2. Configure the simple Value Objects to map to single columns
+        orgBuilder.Property(o => o.LegalName)
+            .HasConversion(ln => ln.Value, val => new LegalName(val))
+            .HasColumnName("LegalName")
+            .IsRequired();
+
+        orgBuilder.Property(o => o.AlternativeName)
+            .HasConversion(an => an.Value, val => new AlternativeName(val))
+            .HasColumnName("AlternativeName");
+
+        orgBuilder.Property(o => o.TaxNumber)
+            .HasConversion(tn => tn.Value, val => new TaxNumber(val))
+            .HasColumnName("TaxNumber")
+            .IsRequired();
+
+        // 3. Configure the complex Address Value Object as an owned type
+        orgBuilder.OwnsOne(o => o.Address, ab =>
+        {
+            // Assuming property names inside Address are Street, City, etc. Adjust if needed.
+            ab.Property(a => a.Street).HasColumnName("Address_Street");
+            ab.Property(a => a.City).HasColumnName("Address_City");
+            ab.Property(a => a.Country).HasColumnName("Address_Country");
+        });
+
+        // 4. Configure the one-to-many relationship with Representatives
+        // This assumes ShippingAgentRepresentative has a foreign key property pointing back to the organization.
+        orgBuilder.HasMany(o => o.Representatives)
+            .WithOne() // Or .WithOne(r => r.Organization) if there's a back-reference
+            .HasForeignKey("OrganizationId") // This FK needs to exist on the Representative entity
+            .IsRequired();
+        
+
+        // === SHIPPING AGENT REPRESENTATIVE CONFIGURATION ===
+        var repBuilder = modelBuilder.Entity<ShippingAgentRepresentative>();
+
+        // 1. Define the Primary Key
+        repBuilder.HasKey(r => r.RepresentativeId);
+        repBuilder.Property(r => r.RepresentativeId)
+            .HasConversion(id => id.Value, val => new RepresentativeId(val));
+
+        // 2. Configure all the simple Value Objects to map to single columns
+        repBuilder.Property(r => r.CitizenId)
+            .HasConversion(cid => cid.Value, val => new CitizenId(val))
+            .HasColumnName("CitizenId")
+            .IsRequired();
+
+        repBuilder.Property(r => r.RepresentativeName)
+            .HasConversion(name => name.Value, val => new RepresentativeName(val))
+            .HasColumnName("RepresentativeName")
+            .IsRequired();
+
+        repBuilder.Property(r => r.RepresentativeEmail)
+            .HasConversion(email => email.Value, val => new RepresentativeEmail(val))
+            .HasColumnName("RepresentativeEmail")
+            .IsRequired();
+
+        repBuilder.Property(r => r.RepresentativePhone)
+            .HasConversion(phone => phone.Value, val => new RepresentativePhone(val))
+            .HasColumnName("RepresentativePhone")
+            .IsRequired();
+
+        repBuilder.Property(r => r.RepresentativeNationality)
+            .HasConversion(nat => nat.Value, val => new RepresentativeNationality(val))
+            .HasColumnName("RepresentativeNationality")
+            .IsRequired();
+
         base.OnModelCreating(modelBuilder);
     }
 }

@@ -2,7 +2,9 @@ namespace PortProject.Api.Domain.ShippingAgentRepresentativeAggregate
 {
     public sealed class CitizenId
     {
-        public string Value { get; }
+        public string Value { get; private set; }
+        
+        private CitizenId() { }
 
         public CitizenId(string value)
         {
