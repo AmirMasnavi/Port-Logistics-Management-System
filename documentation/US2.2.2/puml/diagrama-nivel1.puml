@@ -1,0 +1,29 @@
+@startuml
+title Sequence Diagram - Level 1
+title US2.2.2 - Register, Update and Search Vessels
+
+participant "REST Client" as Client
+participant "Backend API" as API
+
+== Create Vessel ==
+
+Client -> API : POST /api/vessel\nBody: { imoNumber, name, vesselTypeId, operator }
+API --> Client : 201 Created\nBody: { imoNumber, name, vesselTypeId, operator }
+
+
+
+== Update Vessel ==
+
+Client -> API : PUT /api/vessel/{imo}\nBody: { imoNumber, name, vesselTypeId, operator }
+API --> Client : 200 OK\nBody: { imoNumber, name, vesselTypeId, operator }
+
+
+
+== Search Vessels ==
+
+Client -> API : GET /api/vessel/search?imo={imo?}&name={name?}&operatorName={operator?}
+API --> Client : 200 OK\nBody: [ { imoNumber, name, vesselTypeId, operator }, ... ]
+
+
+
+@enduml

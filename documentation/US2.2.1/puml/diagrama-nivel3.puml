@@ -1,0 +1,255 @@
+@startuml
+participant ":Client" as client
+participant ":Controller" as ctrl
+participant ":RequestDto" as dto
+participant ":Service" as service
+participant ":Repository" as repo
+participant ":IUnitOfWork" as uow
+database ":Database" as db
+participant ":DTOMapper" as mapper
+participant ":ResponseDto" as rdto
+
+
+'=========================================
+' CREATE Vessel Type
+'=========================================
+activate client
+client -> ctrl: POST /api/vessel-types {JSON body}
+activate ctrl
+
+ctrl -> dto **: new RequestDto
+note right: Desserializa JSON para DTO
+ctrl -> service: Create(dto)
+deactivate ctrl
+activate service
+
+service -> repo: AddAsync(entity)
+activate repo
+repo -> uow: CommitAsync()
+activate uow
+uow -> db: INSERT INTO vessel_types ...
+activate db
+db --> uow: success
+deactivate db
+uow --> service: success
+deactivate uow
+repo --> service: entity saved
+deactivate repo
+
+service -> mapper: ToDto(entity)
+activate mapper
+mapper -> rdto **: new ResponseDto
+activate rdto
+rdto --> mapper: ResponseDto
+deactivate rdto
+mapper --> service: ResponseDto
+deactivate mapper
+
+service --> ctrl: ResponseDto
+activate ctrl
+ctrl --> client: HTTP 201 Created {ResponseDto}
+deactivate ctrl
+
+'=========================================
+' UPDATE Vessel Type
+'=========================================
+client -> ctrl: PUT /api/vessel-types/{id} {RequestDto JSON}
+activate ctrl
+
+ctrl -> dto **: new RequestDto
+ctrl -> service: Update(dto)
+deactivate ctrl
+activate service
+
+service -> repo: GetByIdAsync(dto.Id)
+activate repo
+repo -> db: SELECT * FROM vessel_types WHERE id = ?
+activate db
+db --> repo: existing entity
+deactivate db
+repo --> service: entity
+deactivate repo
+
+alt Entity not found
+    service --> ctrl: NotFoundException
+    deactivate service
+    activate ctrl
+    ctrl --> client: HTTP 404 Not Found
+    deactivate ctrl
+else Entity exists
+    service -> repo: UpdateAsync(entity)
+    activate repo
+    repo -> uow: CommitAsync()
+    activate uow
+    uow -> db: UPDATE vessel_types ...
+    activate db
+    db --> uow: success
+    deactivate db
+    uow --> service: success
+    deactivate uow
+    repo --> service: entity updated
+    deactivate repo
+
+    service -> mapper: ToDto(entity)
+    activate mapper
+    mapper -> rdto **: new ResponseDto
+    activate rdto
+    rdto --> mapper: ResponseDto
+    deactivate rdto
+    mapper --> service: ResponseDto
+    deactivate mapper
+
+    service --> ctrl: ResponseDto
+    activate ctrl
+    ctrl --> client: HTTP 200 OK {ResponseDto}
+    deactivate ctrl
+end
+
+'=========================================
+' GET Vessel Type by ID
+'=========================================
+client -> ctrl: GET /api/vessel-types/{id}
+activate ctrl
+ctrl -> service: GetById(id)
+deactivate ctrl
+activate service
+
+service -> repo: GetByIdAsync(id)
+activate repo
+repo -> db: SELECT * FROM vessel_types WHERE id = ?
+activate db
+db --> repo: entity or null
+deactivate db
+repo --> service: entity or null
+deactivate repo
+
+alt Entity not found
+    service --> ctrl: NotFoundException
+    deactivate service
+    activate ctrl
+    ctrl --> client: HTTP 404 Not Found
+    deactivate ctrl
+else Entity found
+    service -> mapper: ToDto(entity)
+    activate mapper
+    mapper -> rdto **: new ResponseDto
+    activate rdto
+    rdto --> mapper: ResponseDto
+    deactivate rdto
+    mapper --> service: ResponseDto
+    deactivate mapper
+    service --> ctrl: ResponseDto
+    activate ctrl
+    ctrl --> client: HTTP 200 OK {ResponseDto}
+    deactivate ctrl
+end
+
+'=========================================
+' GET ALL Vessel Types
+'=========================================
+client -> ctrl: GET /api/vessel-types
+activate ctrl
+ctrl -> service: GetAll()
+deactivate ctrl
+activate service
+
+service -> repo: GetAllAsync()
+activate repo
+repo -> db: SELECT * FROM vessel_types
+activate db
+db --> repo: list of entities
+deactivate db
+repo --> service: list of entities
+deactivate repo
+
+service -> mapper: ToDtoList(entities)
+activate mapper
+mapper -> rdto **: new List<ResponseDto>
+activate rdto
+rdto --> mapper: List<ResponseDto>
+deactivate rdto
+mapper --> service: List<ResponseDto>
+deactivate mapper
+
+service --> ctrl: List<ResponseDto>
+activate ctrl
+ctrl --> client: HTTP 200 OK [ResponseDto...]
+deactivate ctrl
+
+'=========================================
+' SEARCH Vessel Types (by name/description)
+'=========================================
+client -> ctrl: GET /api/vessel-types/search?query=term
+activate ctrl
+ctrl -> service: Search(query)
+deactivate ctrl
+activate service
+
+service -> repo: SearchAsync(query)
+activate repo
+repo -> db: SELECT * FROM vessel_types WHERE name LIKE ? OR description LIKE ?
+activate db
+db --> repo: filtered list
+deactivate db
+repo --> service: filtered list
+deactivate repo
+
+service -> mapper: ToDtoList(filtered)
+activate mapper
+mapper -> rdto **: new List<ResponseDto>
+activate rdto
+rdto --> mapper: List<ResponseDto>
+deactivate rdto
+mapper --> service: List<ResponseDto>
+deactivate mapper
+
+service --> ctrl: List<ResponseDto>
+activate ctrl
+ctrl --> client: HTTP 200 OK [ResponseDto...]
+deactivate ctrl
+
+'=========================================
+' DELETE Vessel Type
+'=========================================
+client -> ctrl: DELETE /api/vessel-types/{id}
+activate ctrl
+ctrl -> service: Delete(id)
+deactivate ctrl
+activate service
+
+service -> repo: GetByIdAsync(id)
+activate repo
+repo -> db: SELECT * FROM vessel_types WHERE id = ?
+activate db
+db --> repo: entity or null
+deactivate db
+repo --> service: entity or null
+deactivate repo
+
+alt Entity not found
+    service --> ctrl: NotFoundException
+    deactivate service
+    activate ctrl
+    ctrl --> client: HTTP 404 Not Found
+    deactivate ctrl
+else Entity found
+    service -> repo: DeleteAsync(entity)
+    activate repo
+    repo -> uow: CommitAsync()
+    activate uow
+    uow -> db: DELETE FROM vessel_types WHERE id = ?
+    activate db
+    db --> uow: success
+    deactivate db
+    uow --> service: success
+    deactivate uow
+    repo --> service: deleted
+    deactivate repo
+
+    service --> ctrl: NoContent
+    activate ctrl
+    ctrl --> client: HTTP 204 No Content
+    deactivate ctrl
+end
+
+@enduml
