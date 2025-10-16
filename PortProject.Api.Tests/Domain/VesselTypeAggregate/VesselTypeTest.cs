@@ -16,7 +16,7 @@ public class VesselTypeTest
     public void WhenPassingCorrectDataToConstructor_ThenVesselTypeIsInstantiated()
     {
         // Arrange
-        var id = new VesselTypeId(Guid.NewGuid().ToString());
+        var id = new VesselTypeId("1001");
         var name = new VesselTypeName("CargoShip");
         var description = new VesselTypeDescription("Container Vessel");
         var capacity = new VesselTypeCapacity(100);
@@ -55,7 +55,7 @@ public class VesselTypeTest
     public void WhenPassingNullName_ThenThrowsArgumentNullException()
     {
         // Arrange
-        var id = new VesselTypeId(Guid.NewGuid().ToString());
+        var id = new VesselTypeId("1002");
         VesselTypeName name = null;
         var description = new VesselTypeDescription("Container Vessel");
         var capacity = new VesselTypeCapacity(100);
@@ -73,7 +73,7 @@ public class VesselTypeTest
     public void WhenPassingNullDescription_ThenThrowsArgumentNullException()
     {
         // Arrange
-        var id = new VesselTypeId(Guid.NewGuid().ToString());
+        var id = new VesselTypeId("1003");
         var name = new VesselTypeName("CargoShip");
         VesselTypeDescription description = null;
         var capacity = new VesselTypeCapacity(100);
@@ -91,7 +91,7 @@ public class VesselTypeTest
     public void WhenPassingNullCapacity_ThenThrowsArgumentNullException()
     {
         // Arrange
-        var id = new VesselTypeId(Guid.NewGuid().ToString());
+        var id = new VesselTypeId("1004");
         var name = new VesselTypeName("CargoShip");
         var description = new VesselTypeDescription("Container Vessel");
         VesselTypeCapacity capacity = null;
@@ -109,7 +109,7 @@ public class VesselTypeTest
     public void WhenPassingNullOperationalConstraints_ThenThrowsArgumentNullException()
     {
         // Arrange
-        var id = new VesselTypeId(Guid.NewGuid().ToString());
+        var id = new VesselTypeId("1005");
         var name = new VesselTypeName("CargoShip");
         var description = new VesselTypeDescription("Container Vessel");
         var capacity = new VesselTypeCapacity(100);
@@ -125,8 +125,8 @@ public class VesselTypeTest
 
     // Testes para o método Factory Create
     [Theory]
-    [InlineData("Vessel001", "Tanker", "Petroleum Carrier", 5000, 20, 10, 15)]
-    [InlineData(null, "Container Vessel", "Standard Container Ship", 2000, 15, 8, 12)]
+    [InlineData("1", "Tanker", "Petroleum Carrier", 5000, 20, 10, 15)]
+    [InlineData("2", "ContainerVessel", "Standard Container Ship", 2000, 15, 8, 12)]
     public void WhenCreatingVesselTypeWithCorrectData_ThenVesselTypeIsInstantiated(string id, string name, string description, int capacity, int rows, int bays, int tiers)
     {
         // Act
@@ -134,20 +134,13 @@ public class VesselTypeTest
 
         // Assert
         Assert.NotNull(vesselType);
+        Assert.Equal(id, vesselType.Id.Value);
         Assert.Equal(name, vesselType.Name.Value);
         Assert.Equal(description, vesselType.Description.Value);
         Assert.Equal(capacity, vesselType.Capacity.Value);
         Assert.Equal(rows, vesselType.OperationalConstraints.MaxRows);
         Assert.Equal(bays, vesselType.OperationalConstraints.MaxBays);
         Assert.Equal(tiers, vesselType.OperationalConstraints.MaxTiers);
-        if (id == null)
-        {
-            Assert.False(string.IsNullOrWhiteSpace(vesselType.Id.Value));
-        }
-        else
-        {
-            Assert.Equal(id, vesselType.Id.Value);
-        }
     }
 
 
@@ -156,7 +149,7 @@ public class VesselTypeTest
     public void WhenUpdatingName_ThenNameIsUpdated()
     {
         // Arrange
-        var id = new VesselTypeId(Guid.NewGuid().ToString());
+        var id = new VesselTypeId("1006");
         var originalName = new VesselTypeName("OldName");
         var description = new VesselTypeDescription("Desc");
         var capacity = new VesselTypeCapacity(100);
@@ -176,7 +169,7 @@ public class VesselTypeTest
     public void WhenUpdatingNameWithNull_ThenThrowsArgumentNullException()
     {
         // Arrange
-        var vesselType = VesselType.Create(null, "Name", "Desc", 100, 10, 5, 8);
+        var vesselType = VesselType.Create("1007", "Name", "Desc", 100, 10, 5, 8);
         VesselTypeName newName = null;
 
         // Assert
@@ -191,7 +184,7 @@ public class VesselTypeTest
     public void WhenUpdatingDescription_ThenDescriptionIsUpdated()
     {
         // Arrange
-        var id = new VesselTypeId(Guid.NewGuid().ToString());
+        var id = new VesselTypeId("1008");
         var name = new VesselTypeName("Name");
         var originalDescription = new VesselTypeDescription("OldDesc");
         var capacity = new VesselTypeCapacity(100);
@@ -211,7 +204,7 @@ public class VesselTypeTest
     public void WhenUpdatingDescriptionWithNull_ThenThrowsArgumentNullException()
     {
         // Arrange
-        var vesselType = VesselType.Create(null, "Name", "Desc", 100, 10, 5, 8);
+        var vesselType = VesselType.Create("1009", "Name", "Desc", 100, 10, 5, 8);
         VesselTypeDescription newDescription = null;
 
         // Assert
@@ -226,7 +219,7 @@ public class VesselTypeTest
     public void WhenUpdatingCapacity_ThenCapacityIsUpdated()
     {
         // Arrange
-        var id = new VesselTypeId(Guid.NewGuid().ToString());
+        var id = new VesselTypeId("1010");
         var name = new VesselTypeName("Name");
         var description = new VesselTypeDescription("Desc");
         var originalCapacity = new VesselTypeCapacity(100);
@@ -246,7 +239,7 @@ public class VesselTypeTest
     public void WhenUpdatingCapacityWithNull_ThenThrowsArgumentNullException()
     {
         // Arrange
-        var vesselType = VesselType.Create(null, "Name", "Desc", 100, 10, 5, 8);
+        var vesselType = VesselType.Create("1011", "Name", "Desc", 100, 10, 5, 8);
         VesselTypeCapacity newCapacity = null;
 
         // Assert
@@ -261,7 +254,7 @@ public class VesselTypeTest
     public void WhenUpdatingOperationalConstraints_ThenOperationalConstraintsAreUpdated()
     {
         // Arrange
-        var id = new VesselTypeId(Guid.NewGuid().ToString());
+        var id = new VesselTypeId("1012");
         var name = new VesselTypeName("Name");
         var description = new VesselTypeDescription("Desc");
         var capacity = new VesselTypeCapacity(100);
@@ -281,7 +274,7 @@ public class VesselTypeTest
     public void WhenUpdatingOperationalConstraintsWithNull_ThenThrowsArgumentNullException()
     {
         // Arrange
-        var vesselType = VesselType.Create(null, "Name", "Desc", 100, 10, 5, 8);
+        var vesselType = VesselType.Create("1013", "Name", "Desc", 100, 10, 5, 8);
         VesselTypeDimensions newConstraints = null;
 
         // Assert
@@ -297,7 +290,7 @@ public class VesselTypeTest
     public void ToString_ReturnsExpectedFormat()
     {
         // Arrange
-        var id = new VesselTypeId("ID123");
+        var id = new VesselTypeId("123");
         var name = new VesselTypeName("TestVessel");
         var description = new VesselTypeDescription("Test Description");
         var capacity = new VesselTypeCapacity(500);
