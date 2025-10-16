@@ -30,11 +30,17 @@ using System.Threading.Tasks;
             if (dto == null)
                 return BadRequest(new { message = "Body inválido." });
 
-            // Mapeia para o DTO usado internamente no serviço (Id será gerado no serviço)
+            if (string.IsNullOrWhiteSpace(dto.Id) || !dto.Id.All(char.IsDigit))
+                return BadRequest(new { message = "O Id do VesselType é obrigatório e deve conter apenas dígitos (0-9)." });
+            if (string.IsNullOrWhiteSpace(dto.Name))
+                return BadRequest(new { message = "O nome é obrigatório." });
+
+            // Mapeia para o DTO usado internamente no serviço (Id é fornecido pelo utilizador)
             var created = await _service.CreateVesselTypeAsync(new VesselTypeDto
             {
+                Id = dto.Id,
                 Name = dto.Name,
-                Description = dto.Description,
+                Description = dto.Description ?? string.Empty,
                 Capacity = dto.Capacity,
                 MaxRows = dto.MaxRows,
                 MaxBays = dto.MaxBays,

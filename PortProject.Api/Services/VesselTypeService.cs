@@ -22,11 +22,13 @@ using System;
         public async Task<VesselTypeDto> CreateVesselTypeAsync(VesselTypeDto dto)
         {
             if (dto == null) throw new ArgumentNullException(nameof(dto));
+            if (string.IsNullOrWhiteSpace(dto.Id))
+                throw new ArgumentException("Id é obrigatório e deve conter apenas dígitos.", nameof(dto.Id));
             if (string.IsNullOrWhiteSpace(dto.Name))
                 throw new ArgumentException("Name é obrigatório.");
 
             var entity = VesselType.Create(
-                id: null, // força geração
+                id: dto.Id.Trim(),
                 name: dto.Name.Trim(),
                 description: string.IsNullOrWhiteSpace(dto.Description) ? string.Empty : dto.Description.Trim(),
                 capacity: dto.Capacity,

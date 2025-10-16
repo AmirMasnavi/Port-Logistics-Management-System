@@ -38,15 +38,15 @@ namespace src.Domain.VesselTypeAggregate
         /// <summary>
         /// Factory method to create a new VesselType.
         /// </summary>
-        public static VesselType Create( string? id, string name, string description, int capacity, int rows, int bays, int tiers)
+        public static VesselType Create(string id, string name, string description, int capacity, int rows, int bays, int tiers)
         {
+            if (string.IsNullOrWhiteSpace(id))
+                throw new ArgumentException("Id obrigatório.", nameof(id));
             if (string.IsNullOrWhiteSpace(name))
                 throw new ArgumentException("Name obrigatório.", nameof(name));
 
-            var effectiveId = string.IsNullOrWhiteSpace(id) ? Guid.NewGuid().ToString() : id;
-
             return new VesselType(
-                new VesselTypeId(effectiveId),
+                new VesselTypeId(id),
                 new VesselTypeName(name),
                 new VesselTypeDescription(description),
                 new VesselTypeCapacity(capacity),

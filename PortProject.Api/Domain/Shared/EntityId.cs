@@ -7,28 +7,39 @@ namespace src.Domain.Shared
     /// </summary>
     public abstract class EntityId: IEquatable<EntityId>, IComparable<EntityId>
     {
-        protected Object ObjValue {get;}
+        protected object ObjValue { get; private set; }
 
-        public String Value { 
-            get { 
-                    if (this.ObjValue.GetType() == typeof(String))
-                        return (String) this.ObjValue;
-                    return AsString();
-                } 
+        public string Value 
+        { 
+            get 
+            { 
+                if (this.ObjValue.GetType() == typeof(string))
+                    return (string)this.ObjValue;
+                return AsString();
+            }
+            // Allow EF Core to materialize this property via the non-public setter
+            protected set
+            {
+                if (value is null)
+                    throw new ArgumentNullException(nameof(value));
+                this.ObjValue = createFromString(value);
+            }
         }
 
-        public EntityId(Object value)
+        protected EntityId() { }
+
+        public EntityId(object value)
         {
-            if (value.GetType() == typeof(String))
-                this.ObjValue = createFromString((String)value);
+            if (value.GetType() == typeof(string))
+                this.ObjValue = createFromString((string)value);
             else
                 this.ObjValue = value;
         }
 
        
-        protected abstract Object createFromString(String text);
+        protected abstract object createFromString(string text);
         
-        public abstract String AsString();
+        public abstract string AsString();
 
 
         public override bool Equals(object obj)
