@@ -20,6 +20,10 @@ using src.Infrastructure.VesselAggregate;
 using src.Infrastructure.VesselTypeAggregate;
 using PortProject.Api.Application.Qualifications;
 using PortProject.Api.Application.Qualifications.Services;
+using PortProject.Api.Application.ShippingAgentsOrganization.Services;
+using PortProject.Api.Application.ShippingAgentsRepresentative.Services;
+using PortProject.Api.Domain.ShippingAgentOrganizationAggregate;
+using PortProject.Api.Domain.ShippingAgentRepresentativeAggregate;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -53,6 +57,12 @@ builder.Services.AddScoped<IStorageAreaRepository, StorageAreaRepository>();
 builder.Services.AddScoped<IStorageAreaService, StorageAreaService>();
 builder.Services.AddScoped<IQualificationRepository, QualificationRepository>();
 builder.Services.AddScoped<IQualificationService, QualificationService>();
+builder.Services.AddScoped<IShippingAgentOrganizationService, ShippingAgentOrganizationService>();
+builder.Services.AddScoped<IShippingAgentRepresentativeService, ShippingAgentRepresentativeService>();
+builder.Services.AddScoped<IShippingAgentOrganizationRepository, ShippingAgentOrganizationRepository>();
+builder.Services.AddScoped<IShippingAgentRepresentativeRepository, ShippingAgentRepresentativeRepository>();
+
+
 
 var app = builder.Build();
 
