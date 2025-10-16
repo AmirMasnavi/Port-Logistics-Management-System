@@ -1,3 +1,5 @@
+using PortProject.Api.Domain.ShippingAgentOrganizationAggregate;
+
 namespace PortProject.Api.Domain.ShippingAgentRepresentativeAggregate
 {
     public sealed class ShippingAgentRepresentative

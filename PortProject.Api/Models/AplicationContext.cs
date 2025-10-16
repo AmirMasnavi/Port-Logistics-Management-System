@@ -9,6 +9,7 @@ using PortProject.Api.Domain.StorageAggregate;
 using PortProject.Api.Domain.DockAggregate;
 using PortProject.Api.Domain.ShippingAgentOrganizationAggregate;
 using PortProject.Api.Domain.ShippingAgentRepresentativeAggregate;
+using PortProject.Api.Domain.VesselVisitNotificationAggregate;
 using src.Domain.VesselTypeAggregate;
 
 namespace PortProject.Api.Models;
@@ -26,6 +27,7 @@ public class PortProjectContext : DbContext
     public DbSet<Dock> Docks { get; set; }
     public DbSet<ShippingAgentOrganization> ShippingAgentOrganizations { get; set; }
     public DbSet<ShippingAgentRepresentative> ShippingAgentRepresentatives { get; set; }
+    public DbSet<VesselVisitNotification> VesselVisitNotifications { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -360,6 +362,92 @@ public class PortProjectContext : DbContext
             .HasConversion(nat => nat.Value, val => new RepresentativeNationality(val))
             .HasColumnName("RepresentativeNationality")
             .IsRequired();
+        
+        // === VESSEL VISIT NOTIFICATION CONFIGURATION ===
+        var vvnBuilder = modelBuilder.Entity<VesselVisitNotification>();
+
+        // 1. Primary Key
+        vvnBuilder.HasKey(vvn => vvn.Id);
+        vvnBuilder.Property(vvn => vvn.Id)
+            .HasConversion(id => id.Value, val => new NotificationId(val));
+
+        // 2. Foreign Keys to other Aggregates
+        vvnBuilder.Property(vvn => vvn.VesselId)
+            .HasConversion(id => id.Value, val => new ImoNumber(val))
+            .IsRequired();
+        vvnBuilder.HasOne<Vessel>()
+            .WithMany()
+            .HasForeignKey(vvn => vvn.VesselId);
+
+        vvnBuilder.Property(vvn => vvn.SubmittedBy)
+            .HasConversion(id => id.Value, val => new RepresentativeId(val))
+            .IsRequired();
+        vvnBuilder.HasOne<ShippingAgentRepresentative>()
+            .WithMany()
+            .HasForeignKey(vvn => vvn.SubmittedBy);
+
+        // 3. Simple Value Objects & Enums
+        vvnBuilder.Property(vvn => vvn.Status).HasConversion<string>();
+        vvnBuilder.OwnsOne(vvn => vvn.EstimatedArrival, etaBuilder => {
+            etaBuilder.Property(p => p.Value).HasColumnName("ETA").IsRequired();
+        });
+        vvnBuilder.OwnsOne(vvn => vvn.EstimatedDeparture, etdBuilder => {
+            etdBuilder.Property(p => p.Value).HasColumnName("ETD").IsRequired();
+        });
+        
+        // 1. Tell EF how to store the DockId value object
+        vvnBuilder.Property(vvn => vvn.AssignedDockId)
+            .HasConversion(id => id.Value, val => new DockId(val))
+            .IsRequired(false); // Make it clear this is an optional field
+
+        // 2. Define the relationship to the Dock table
+        vvnBuilder.HasOne<Dock>()
+            .WithMany() // A Dock can have many notifications
+            .HasForeignKey(vvn => vvn.AssignedDockId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        // 4. Complex Owned Entities
+
+        // Configure Cargo as an owned type
+        vvnBuilder.OwnsOne(vvn => vvn.Cargo, cargoBuilder => {
+            cargoBuilder.Property(c => c.Description);
+            cargoBuilder.Property(c => c.Weight);
+
+            // Configure the list of Containers inside Cargo
+            cargoBuilder.OwnsMany(c => c.Containers, containerBuilder => {
+                containerBuilder.ToTable("Containers"); // Store in a separate table
+                containerBuilder.WithOwner().HasForeignKey("VvnId"); // Foreign key back to the notification
+                containerBuilder.HasKey("Id"); // Each container needs a key in this table
+                containerBuilder.Property(p => p.Code)
+                              .HasConversion(cc => cc.Value, v => new ContainerCode(v))
+                              .HasColumnName("ContainerCode");
+                containerBuilder.Property(p => p.Position);
+            });
+        });
+
+        // Configure the list of CrewMembers as an owned collection
+        vvnBuilder.OwnsMany(vvn => vvn.CrewMembers, cmBuilder => {
+            cmBuilder.ToTable("CrewMembers");
+            cmBuilder.WithOwner().HasForeignKey("VvnId");
+            cmBuilder.HasKey(cm => cm.Id);
+            cmBuilder.Property(cm => cm.Id)
+                     .HasConversion(id => id.Value, v => new CrewMemberId(v));
+            cmBuilder.Property(cm => cm.Name);
+            cmBuilder.Property(cm => cm.Nationality);
+            cmBuilder.Property(cm => cm.IsSafetyOfficer);
+        });
+
+        // Configure the list of DecisionLogEntries as an owned collection
+        vvnBuilder.OwnsMany(vvn => vvn.DecisionLog, dlBuilder => {
+            dlBuilder.ToTable("DecisionLogEntries");
+            dlBuilder.WithOwner().HasForeignKey("VvnId");
+            dlBuilder.HasKey("Id");
+            dlBuilder.Property(dl => dl.Timestamp);
+            dlBuilder.Property(dl => dl.Outcome).HasConversion<string>();
+            dlBuilder.Property(dl => dl.Reason);
+            dlBuilder.Property(dl => dl.OfficerId)
+                     .HasConversion(id => id.Value, v => new MecanographicNumber(v));
+        });
 
         base.OnModelCreating(modelBuilder);
     }
