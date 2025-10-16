@@ -70,7 +70,7 @@ using System.Threading.Tasks;
             }
             catch (InvalidOperationException ex)
             {
-                return Conflict(new { message = ex.Message }); // 409 Conflict se o nome já existe
+                return Conflict(new { message = ex.Message }); 
             }
             catch (Exception ex)
             {
@@ -146,7 +146,7 @@ using System.Threading.Tasks;
             try
             {
                 await _service.DeleteVesselTypeAsync(id);
-                return NoContent(); // 204 No Content
+                return NoContent(); 
             }
             catch (ArgumentException ex)
             {

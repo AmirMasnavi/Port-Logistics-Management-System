@@ -34,8 +34,8 @@ namespace src.Infrastructure.VesselAggregate
 
             if (!string.IsNullOrWhiteSpace(imo))
             {
-                var imoObject = new ImoNumber(imo.Trim()); // Crie o Value Object para comparação
-                query = query.Where(v => v.ImoNumber == imoObject); // Compare diretamente o Value Object
+                var imoObject = new ImoNumber(imo.Trim()); 
+                query = query.Where(v => v.ImoNumber == imoObject); 
             }
 
             if (!string.IsNullOrWhiteSpace(name))

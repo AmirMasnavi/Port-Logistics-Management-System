@@ -44,7 +44,7 @@ namespace PortProject.Api.Domain.VesselAggregate
             UpdatedAt = DateTime.UtcNow;
         }
 
-        // Factory method (seguindo padrão do VesselType)
+        
         public static Vessel Create(string imo, string name, string vesselTypeId, string operatorName)
         {
             var imoNumber = new ImoNumber(imo);
@@ -54,7 +54,7 @@ namespace PortProject.Api.Domain.VesselAggregate
             return new Vessel(imoNumber, name, vesselType, vesselOperator);
         }
 
-        // Atualizações
+    
         public void UpdateName(string newName)
         {
             if (string.IsNullOrWhiteSpace(newName))

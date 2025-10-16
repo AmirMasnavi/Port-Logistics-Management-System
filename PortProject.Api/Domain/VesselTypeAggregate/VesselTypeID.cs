@@ -16,7 +16,7 @@ using System;
        
                public static VesselTypeId New(string value) => new VesselTypeId(value.Trim());
        
-               // IMPORTANTO: devolver apenas a string normalizada (sem criar nova instância)
+               
                protected override object createFromString(string text)
                {
                    if (string.IsNullOrWhiteSpace(text))

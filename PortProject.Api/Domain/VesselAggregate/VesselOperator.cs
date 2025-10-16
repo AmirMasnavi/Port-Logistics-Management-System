@@ -9,7 +9,7 @@ namespace PortProject.Api.Domain.VesselAggregate
     {
         public string Value { get; private set; }
 
-        // Parameterless constructor for EF Core
+     
         protected VesselOperator() { }
 
         public VesselOperator(string value)

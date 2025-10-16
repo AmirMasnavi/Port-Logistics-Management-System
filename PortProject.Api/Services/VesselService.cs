@@ -25,7 +25,6 @@ namespace PortProject.Api.Services
         {
             if (dto == null) throw new ArgumentNullException(nameof(dto));
 
-            // validação básica
             var imo = new ImoNumber(dto.ImoNumber);
             var existing = await _repository.GetByImoAsync(imo);
             if (existing != null)
