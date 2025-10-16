@@ -18,7 +18,7 @@ namespace PortProject.Api.Domain.ShippingAgentOrganizationAggregate
             if (value.Length < 3 || value.Length > 100)
                 throw new ArgumentException("The alternative name must contain between 3 and 100 characters.", nameof(value));
 
-            if (!Regex.IsMatch(value, @"^[A-Za-z0-9\\s.,&'()-]+$"))
+            if (!Regex.IsMatch(value, @"^[A-Za-z0-9\s.,&'()-]+$"))
                 throw new ArgumentException("The alternative name contains invalid characters.", nameof(value));
 
             Value = value.Trim();

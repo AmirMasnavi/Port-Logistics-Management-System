@@ -20,7 +20,8 @@ public class StorageAreaRepository : IStorageAreaRepository
     
     public async Task<StorageArea?> GetByIdAsync(StorageAreaId id)
     {
-        return await _context.StorageAreas.FindAsync(id);
+        return await _context.StorageAreas.Include(sa => sa.Location)
+            .Include(sa => sa.Capacity).FirstOrDefaultAsync(sa => sa.Id == id);
     }
     
     

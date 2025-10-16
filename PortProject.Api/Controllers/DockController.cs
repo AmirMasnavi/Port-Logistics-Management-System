@@ -1,0 +1,72 @@
+﻿using Microsoft.AspNetCore.Mvc;
+using PortProject.Api.Application.Dock.DTOs;
+using PortProject.Api.Application.Dock.Services;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+
+namespace PortProject.Api.Controllers
+{
+    [Route("api/[controller]")]
+    [ApiController]
+    public class DockController : ControllerBase
+    {
+        private readonly IDockService _service;
+
+        public DockController(IDockService service)
+        {
+            _service = service;
+        }
+
+        [HttpPost]
+        public async Task<ActionResult<DockDto>> CreateDock([FromBody] DockCreateDto dto)
+        {
+            if (dto == null)
+                return BadRequest(new { message = "Body inválido." });
+
+            var created = await _service.CreateDockAsync(dto);
+            return CreatedAtAction(nameof(GetDockById), new { id = created.Id }, created);
+        }
+
+        [HttpPut("{id}")]
+        public async Task<ActionResult<DockDto>> UpdateDock(string id, [FromBody] DockDto dto)
+        {
+            if (id != dto.Id)
+                return BadRequest(new { message = "ID mismatch." });
+
+            var updated = await _service.UpdateDockAsync(dto);
+            return Ok(updated);
+        }
+
+        [HttpGet("{id}")]
+        public async Task<ActionResult<DockDto>> GetDockById(string id)
+        {
+            var dock = await _service.GetDockByIdAsync(id);
+            if (dock == null)
+                return NotFound(new { message = $"Dock with ID '{id}' not found." });
+
+            return Ok(dock);
+        }
+
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<DockDto>>> GetAllDocks()
+        {
+            var docks = await _service.GetAllDocksAsync();
+            return Ok(docks);
+        }
+
+        [HttpGet("search")]
+        public async Task<ActionResult<IEnumerable<DockDto>>> SearchDocks([FromQuery] string? name, [FromQuery] string? location, [FromQuery] string? vesselTypeId)
+        {
+            var docks = await _service.SearchDocksAsync(name, location, vesselTypeId);
+            return Ok(docks);
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteDock(string id)
+        {
+            await _service.DeleteDockAsync(id);
+            return NoContent();
+        }
+    }
+}

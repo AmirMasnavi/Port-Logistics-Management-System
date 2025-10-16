@@ -5,6 +5,8 @@ using System;
        {
            public class VesselTypeId : EntityId
            {
+               
+               public string Value { get; protected set; }
                // Construtor protegido para EF
                protected VesselTypeId() : base("") { }
        

@@ -8,6 +8,6 @@ namespace PortProject.Api.Application.ShippingAgentsOrganization.DTOs
         public string AlternativeName { get; init; } = default!;
         public string Address { get; init; } = default!;
         public string TaxNumber { get; init; } = default!;
-        public List<RepresentativeItemDto> Representatives { get; init; } = new();
+        public List<ShippingAgentRepresentativeDto> Representatives { get; init; } = new();
     }
 }

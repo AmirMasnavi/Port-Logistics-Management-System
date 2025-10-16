@@ -22,7 +22,7 @@ namespace src.Domain.VesselTypeAggregate
         public VesselType(VesselTypeId id, VesselTypeName name, VesselTypeDescription description, VesselTypeCapacity capacity, VesselTypeDimensions operationalConstraints)
         {
          
-            if (id== null) throw new ArgumentNullException(nameof(id));
+            if (id == null) throw new ArgumentNullException(nameof(id));
             if (name == null) throw new ArgumentNullException(nameof(name));
             if (description == null) throw new ArgumentNullException(nameof(description));
             if (capacity == null) throw new ArgumentNullException(nameof(capacity));

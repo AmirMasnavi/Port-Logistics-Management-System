@@ -1,6 +1,6 @@
 
 
-using Domain.ShippingAgentOrganizationAggregate;
+using PortProject.Api.Domain.ShippingAgentRepresentativeAggregate;
 
 namespace PortProject.Api.Domain.ShippingAgentOrganizationAggregate
 {
@@ -9,14 +9,18 @@ namespace PortProject.Api.Domain.ShippingAgentOrganizationAggregate
     /// </summary>
     public sealed class ShippingAgentOrganization
     {
-        public OrganizationId Id { get; private set; }
-        public LegalName LegalName { get; private set; }
-        public AlternativeName AlternativeName { get; private set; }
-        public Address Address { get; private set; }
-        public TaxNumber TaxNumber { get; private set; }
+    public OrganizationId? Id { get; private set; }
+    public LegalName? LegalName { get; private set; }
+    public AlternativeName? AlternativeName { get; private set; }
+    public Address? Address { get; private set; }
+    public TaxNumber? TaxNumber { get; private set; }
+    public List<ShippingAgentRepresentative> Representatives { get; private set;  }
 
         // 🔒 Construtor privado exigido pelo EF Core
-        private ShippingAgentOrganization() { }
+        private ShippingAgentOrganization()
+        {
+            Representatives = new List<ShippingAgentRepresentative>();
+        }
 
         public ShippingAgentOrganization(
             OrganizationId id,
@@ -30,6 +34,14 @@ namespace PortProject.Api.Domain.ShippingAgentOrganizationAggregate
             AlternativeName = alternativeName ?? throw new ArgumentNullException(nameof(alternativeName), "Alternative name is required.");
             Address = address ?? throw new ArgumentNullException(nameof(address), "Address is required.");
             TaxNumber = taxNumber ?? throw new ArgumentNullException(nameof(taxNumber), "Tax number is required.");
+            Representatives = new List<ShippingAgentRepresentative>();
+        }
+
+        public void AddRepresentative(ShippingAgentRepresentative representative)
+        {
+            if (representative == null)
+                throw new ArgumentNullException(nameof(representative));
+            Representatives.Add(representative);
         }
 
         /// <summary>
