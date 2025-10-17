@@ -8,7 +8,7 @@ box "Backend System (Sistema AIT)" #LightBlue
     participant "HTTP Request" as HttpRequest
     participant "Route" as Route
     participant "VesselTypeController" as Controller
-    participant "VesselTypeCreateDto" as CreateDto
+    participant "VesselTypeDto" as Dto
     participant "VesselTypeService" as ServiceImpl
     participant "VesselType" as DomainEntity
     participant "VesselTypeId" as EntityId
@@ -19,69 +19,98 @@ box "Backend System (Sistema AIT)" #LightBlue
     participant "VesselTypeRepository" as RepoImpl
 end box
 
-Officer -> UI : 1: create vessel type data
+Officer -> UI : 1: create or update vessel type data
 activate UI
 
-UI -> HttpRequest : 1.1: POST /api/vesseltype \n (VesselTypeCreateDto)
+UI -> HttpRequest : 1.1: POST /api/vesseltype OR PUT /api/vesseltype/{id} \n (VesselTypeCreateDto / VesselTypeDto)
 activate HttpRequest
 HttpRequest -> Route : 1.2: Match Route
 activate Route
-Route -> Controller : 1.3: Invoke CreateVesselType(dto)
+Route -> Controller : 1.3: Invoke CreateVesselType / UpdateVesselType(dto)
 activate Controller
 
-Controller -> CreateDto : 1.3.1: Map request body to CreateDto
-activate CreateDto
-CreateDto --> Controller : 1.3.2: CreateDto instance
-deactivate CreateDto
+Controller -> Dto : 1.3.1: Map request body to DTO
+activate Dto
+Dto --> Controller : 1.3.2: DTO instance
+deactivate Dto
 
-Controller -> ServiceImpl : 1.4: CreateVesselTypeAsync(VesselTypeDto)
+Controller -> ServiceImpl : 1.4: CreateVesselTypeAsync / UpdateVesselTypeAsync (VesselTypeDto)
 activate ServiceImpl
 
-' ** Detalhe do ServiceImpl criando a entidade de domínio **
-ServiceImpl -> DomainEntity : 1.4.1: VesselType.Create(\n id, name, desc, cap, rows, bays, tiers)
-activate DomainEntity
+alt Create VesselType
+    ' ** Detalhe do fluxo de criação **
+    ServiceImpl -> DomainEntity : 1.4.1: VesselType.Create(\n id, name, desc, cap, rows, bays, tiers)
+    activate DomainEntity
 
-DomainEntity -> EntityId : 1.4.1.1: new VesselTypeId(id)
-activate EntityId
-EntityId --> DomainEntity
-deactivate EntityId
+    DomainEntity -> EntityId : 1.4.1.1: new VesselTypeId(id)
+    activate EntityId
+    EntityId --> DomainEntity
+    deactivate EntityId
 
-DomainEntity -> NameVO : 1.4.1.2: new VesselTypeName(name)
-activate NameVO
-NameVO --> DomainEntity
-deactivate NameVO
+    DomainEntity -> NameVO : 1.4.1.2: new VesselTypeName(name)
+    activate NameVO
+    NameVO --> DomainEntity
+    deactivate NameVO
 
-DomainEntity -> DescVO : 1.4.1.3: new VesselTypeDescription(description)
-activate DescVO
-DescVO --> DomainEntity
-deactivate DescVO
+    DomainEntity -> DescVO : 1.4.1.3: new VesselTypeDescription(description)
+    activate DescVO
+    DescVO --> DomainEntity
+    deactivate DescVO
 
-DomainEntity -> CapacityVO : 1.4.1.4: new VesselTypeCapacity(capacity)
-activate CapacityVO
-CapacityVO --> DomainEntity
-deactivate CapacityVO
+    DomainEntity -> CapacityVO : 1.4.1.4: new VesselTypeCapacity(capacity)
+    activate CapacityVO
+    CapacityVO --> DomainEntity
+    deactivate CapacityVO
 
-DomainEntity -> DimensionsVO : 1.4.1.5: new VesselTypeDimensions(rows, bays, tiers)
-activate DimensionsVO
-DimensionsVO --> DomainEntity
-deactivate DimensionsVO
+    DomainEntity -> DimensionsVO : 1.4.1.5: new VesselTypeDimensions(rows, bays, tiers)
+    activate DimensionsVO
+    DimensionsVO --> DomainEntity
+    deactivate DimensionsVO
 
-DomainEntity --> ServiceImpl : 1.4.2: New VesselType entity created
-deactivate DomainEntity
+    DomainEntity --> ServiceImpl : 1.4.2: New VesselType entity created
+    deactivate DomainEntity
 
-' ** Detalhe do ServiceImpl interagindo com o Repository **
-ServiceImpl -> RepoImpl : 1.5: AddAsync(VesselType entity)
-activate RepoImpl
+    ServiceImpl -> RepoImpl : 1.5: AddAsync(VesselType entity)
+    activate RepoImpl
+    RepoImpl --> ServiceImpl : 1.6: Entity persisted
+    deactivate RepoImpl
+else Update VesselType
+    ' ** Detalhe do fluxo de atualização **
+    ServiceImpl -> RepoImpl : 1.4.1: GetByIdAsync(id)
+    activate RepoImpl
+    RepoImpl --> ServiceImpl : 1.4.2: Existing VesselType entity
+    deactivate RepoImpl
 
+    ServiceImpl -> DomainEntity : 1.4.3: UpdateName(name)
+    activate DomainEntity
+    DomainEntity --> ServiceImpl : 1.4.4: Name updated
+    deactivate DomainEntity
 
+    ServiceImpl -> DomainEntity : 1.4.5: UpdateDescription(description)
+    activate DomainEntity
+    DomainEntity --> ServiceImpl : 1.4.6: Description updated
+    deactivate DomainEntity
 
-RepoImpl --> ServiceImpl : 1.6: Entity persisted
-deactivate RepoImpl
+    ServiceImpl -> DomainEntity : 1.4.7: UpdateCapacity(capacity)
+    activate DomainEntity
+    DomainEntity --> ServiceImpl : 1.4.8: Capacity updated
+    deactivate DomainEntity
 
-ServiceImpl --> Controller : 1.7: VesselTypeDto (converted from entity)
+    ServiceImpl -> DomainEntity : 1.4.9: UpdateDimensions(rows, bays, tiers)
+    activate DomainEntity
+    DomainEntity --> ServiceImpl : 1.4.10: Dimensions updated
+    deactivate DomainEntity
+
+    ServiceImpl -> RepoImpl : 1.5: UpdateAsync(VesselType entity)
+    activate RepoImpl
+    RepoImpl --> ServiceImpl : 1.6: Entity persisted
+    deactivate RepoImpl
+end
+
+ServiceImpl --> Controller : 1.7: VesselTypeDto (created/updated)
 deactivate ServiceImpl
 
-Controller --> HttpRequest : 1.8: HTTP 201 Created (VesselTypeDto)
+Controller --> HttpRequest : 1.8: HTTP 201 Created / 200 OK (VesselTypeDto)
 deactivate Controller
 deactivate Route
 deactivate HttpRequest
