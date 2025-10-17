@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using Microsoft.OpenApi.Models;
 using PortProject.Api.Models;
 using Microsoft.EntityFrameworkCore;
+using PortProject.Api.Application.Dock.Services;
 using PortProject.Api.Application.StaffMembers.Services;
 using PortProject.Api.Application.StorageAreas.Services;
 using PortProject.Api.Domain.QualificationAggregate;
@@ -24,6 +25,7 @@ using PortProject.Api.Application.ShippingAgentsOrganization.Services;
 using PortProject.Api.Application.ShippingAgentsRepresentative.Services;
 using PortProject.Api.Application.VesselVisitNotification;
 using PortProject.Api.Application.VesselVisitNotification.Services;
+using PortProject.Api.Domain.DockAggregate;
 using PortProject.Api.Domain.ShippingAgentOrganizationAggregate;
 using PortProject.Api.Domain.ShippingAgentRepresentativeAggregate;
 using PortProject.Api.Domain.VesselVisitNotificationAggregate;
@@ -66,6 +68,8 @@ builder.Services.AddScoped<IShippingAgentOrganizationRepository, ShippingAgentOr
 builder.Services.AddScoped<IShippingAgentRepresentativeRepository, ShippingAgentRepresentativeRepository>();
 builder.Services.AddScoped<IVesselVisitNotificationService, VesselVisitNotificationService>();
 builder.Services.AddScoped<IVesselVisitNotificationRepository, VesselVisitNotificationRepository>();
+builder.Services.AddScoped<IDockRepository, DockRepository>();
+builder.Services.AddScoped<IDockService, DockService>();
 
 
 

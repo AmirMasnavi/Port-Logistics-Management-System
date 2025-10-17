@@ -31,8 +31,7 @@ namespace PortProject.Api.Controllers
         [HttpPut("{id}")]
         public async Task<ActionResult<DockDto>> UpdateDock(string id, [FromBody] DockDto dto)
         {
-            if (id != dto.Id)
-                return BadRequest(new { message = "ID mismatch." });
+            dto.Id = id; // força o ID do corpo a ser igual ao da URL
 
             var updated = await _service.UpdateDockAsync(dto);
             return Ok(updated);
