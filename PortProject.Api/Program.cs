@@ -22,8 +22,11 @@ using PortProject.Api.Application.Qualifications;
 using PortProject.Api.Application.Qualifications.Services;
 using PortProject.Api.Application.ShippingAgentsOrganization.Services;
 using PortProject.Api.Application.ShippingAgentsRepresentative.Services;
+using PortProject.Api.Application.VesselVisitNotification;
+using PortProject.Api.Application.VesselVisitNotification.Services;
 using PortProject.Api.Domain.ShippingAgentOrganizationAggregate;
 using PortProject.Api.Domain.ShippingAgentRepresentativeAggregate;
+using PortProject.Api.Domain.VesselVisitNotificationAggregate;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -61,6 +64,8 @@ builder.Services.AddScoped<IShippingAgentOrganizationService, ShippingAgentOrgan
 builder.Services.AddScoped<IShippingAgentRepresentativeService, ShippingAgentRepresentativeService>();
 builder.Services.AddScoped<IShippingAgentOrganizationRepository, ShippingAgentOrganizationRepository>();
 builder.Services.AddScoped<IShippingAgentRepresentativeRepository, ShippingAgentRepresentativeRepository>();
+builder.Services.AddScoped<IVesselVisitNotificationService, VesselVisitNotificationService>();
+builder.Services.AddScoped<IVesselVisitNotificationRepository, VesselVisitNotificationRepository>();
 
 
 

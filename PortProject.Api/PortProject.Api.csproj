@@ -23,4 +23,8 @@
     <Folder Include="Migrations\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="Application\VesselVisitNotification\.DS_Store" />
+  </ItemGroup>
+
 </Project>
