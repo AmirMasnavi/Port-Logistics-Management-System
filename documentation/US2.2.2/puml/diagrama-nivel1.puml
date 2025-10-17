@@ -1,29 +1,81 @@
 @startuml
-title Sequence Diagram - Level 1
-title US2.2.2 - Register, Update and Search Vessels
+!theme plain
+title Level 3 - Logical View: Planning Container Components
 
-participant "REST Client" as Client
-participant "Backend API" as API
+' Container "Planning" (ou MDV) como a caixa externa para este nível de detalhe
+rectangle "Planning Container" <<container (C4)>> #LightSkyBlue {
 
-== Create Vessel ==
+    ' Controller Layer
+    component "VesselTypeController" as Controller <<component>> #White
 
-Client -> API : POST /api/vessel\nBody: { imoNumber, name, vesselTypeId, operator }
-API --> Client : 201 Created\nBody: { imoNumber, name, vesselTypeId, operator }
+    ' Application Service Layer
+    component "VesselTypeService" as ApplicationService <<component>> #White
 
+    ' Repository Layer
+    component "VesselTypeRepository" as Repository <<component>> #White
 
-
-== Update Vessel ==
-
-Client -> API : PUT /api/vessel/{imo}\nBody: { imoNumber, name, vesselTypeId, operator }
-API --> Client : 200 OK\nBody: { imoNumber, name, vesselTypeId, operator }
-
-
-
-== Search Vessels ==
-
-Client -> API : GET /api/vessel/search?imo={imo?}&name={name?}&operatorName={operator?}
-API --> Client : 200 OK\nBody: [ { imoNumber, name, vesselTypeId, operator }, ... ]
+    ' Persistence Layer
+    component "Persistence" as Persistence <<component>> #White
 
 
+    ' Interfaces (APIs)
+    interface "VesselType API" as VesselTypeAPI
+    interface "Application Service API" as AppServiceAPI
+    interface "Repository API" as RepoAPI
+    interface "Persistence API" as PersistenceAPI
+    interface "DTO API" as DTO_API
+    interface "Domain Model API" as DomainModel_API
+    interface "Data Model API" as DataModel_API
+
+    ' Data/Model Components
+    component "VesselTypeDto" as DTO <<component>> #White
+    component "VesselType Domain Model" as DomainModel <<component>> #White
+    component "VesselType Data Model" as DataModel <<component>> #White
+
+
+    ' ** Conexões **
+
+    ' Externo: A API principal do contêiner (Planning API do Nível 2)
+    VesselTypeAPI -[hidden]up-> Controller
+    VesselTypeAPI .up.> Controller : "Provides"
+
+
+    ' Controller calls Application Service
+    Controller --> AppServiceAPI
+    AppServiceAPI --> ApplicationService : "Provides"
+    Controller --> DTO_API
+    DTO_API --> DTO : "Provides"
+
+
+    ' Application Service calls Repository
+    ApplicationService --> RepoAPI
+    RepoAPI --> Repository : "Provides"
+    ApplicationService --> DomainModel_API
+    DomainModel_API --> DomainModel : "Provides"
+
+
+    ' Repository calls Persistence
+    Repository --> PersistenceAPI
+    PersistenceAPI --> Persistence : "Provides"
+    Repository --> DataModel_API
+    DataModel_API --> DataModel : "Provides"
+
+    ' Controller usa o DTO
+    Controller --> DTO : "Uses"
+    ' Application Service usa o DTO e o Domain Model
+    ApplicationService --> DTO : "Uses"
+    ApplicationService --> DomainModel : "Uses"
+    ' Repository usa o Domain Model e o Data Model
+    Repository --> DomainModel : "Uses"
+    Repository --> DataModel : "Uses"
+    ' Persistence usa o Data Model
+    Persistence --> DataModel : "Uses"
+
+}
+
+' Declarar a FilesystemAPI fora do container principal
+interface "filesystem API" as FilesystemAPI
+' Conectar a Persistência à FilesystemAPI
+Persistence --> FilesystemAPI : "Uses"
 
 @enduml

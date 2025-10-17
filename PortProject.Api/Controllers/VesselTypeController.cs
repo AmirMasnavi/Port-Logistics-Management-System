@@ -35,7 +35,6 @@ using System.Threading.Tasks;
             if (string.IsNullOrWhiteSpace(dto.Name))
                 return BadRequest(new { message = "O nome é obrigatório." });
 
-            // Mapeia para o DTO usado internamente no serviço (Id é fornecido pelo utilizador)
             var created = await _service.CreateVesselTypeAsync(new VesselTypeDto
             {
                 Id = dto.Id,
