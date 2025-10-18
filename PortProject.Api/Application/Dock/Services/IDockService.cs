@@ -8,7 +8,20 @@ namespace PortProject.Api.Application.Dock.Services
         Task<DockDto> UpdateDockAsync(DockDto dto);
         Task<DockDto> GetDockByIdAsync(string id);
         Task<IEnumerable<DockDto>> GetAllDocksAsync();
-        Task<IEnumerable<DockDto>> SearchDocksAsync(string? name, string? location, string? vesselTypeId);
+        /// <summary>
+        /// Pesquisa docas com filtros opcionais e suporte a paginação e ordenação.
+        /// </summary>
+        Task<IEnumerable<DockDto>> SearchDocksAsync(
+            string? name = null,
+            string? vesselTypeId = null,
+            string? zone = null,
+            string? section = null,
+            int page = 1,
+            int pageSize = 10,
+            string? sortBy = "name",
+            string? sortOrder = "asc"
+        );
+
         Task DeleteDockAsync(string id);
     }
 }

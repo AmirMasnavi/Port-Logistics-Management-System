@@ -1,6 +1,9 @@
-﻿using PortProject.Api.Application.VesselVisitNotification.DTOs;
+﻿using Microsoft.EntityFrameworkCore;
+using PortProject.Api.Application.VesselVisitNotification.DTOs;
+using PortProject.Api.Domain.DockAggregate;
 using PortProject.Api.Domain.VesselAggregate;
 using PortProject.Api.Domain.ShippingAgentRepresentativeAggregate;
+using PortProject.Api.Domain.StaffMemberAggregate;
 using PortProject.Api.Domain.VesselVisitNotificationAggregate;
 using PortProject.Api.Models;
 
@@ -78,7 +81,67 @@ public class VesselVisitNotificationService : IVesselVisitNotificationService
         
         return notification == null ? null : MapToDto(notification);
     }
+    
+    public async Task ApproveAsync(string notificationId, string officerMecNumber, string dockId)
+    {
+        var notification = await _vvnRepo.GetByIdAsync(new NotificationId(Guid.Parse(notificationId)))
+                           ?? throw new KeyNotFoundException($"Notification with ID '{notificationId}' not found.");
 
+        notification.Approve(new MecanographicNumber(officerMecNumber), new DockId(dockId));
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task RejectAsync(string notificationId, string officerMecNumber, string reason)
+    {
+        var notification = await _vvnRepo.GetByIdAsync(new NotificationId(Guid.Parse(notificationId)))
+                           ?? throw new KeyNotFoundException($"Notification with ID '{notificationId}' not found.");
+
+        notification.Reject(new MecanographicNumber(officerMecNumber), reason);
+        await _context.SaveChangesAsync();
+    }
+    public async Task<List<VesselVisitNotificationDto>> SearchAsync(
+        string? vesselImo,
+        string? status,
+        string? representativeId,
+        string? organizationId,
+        DateTime? from,
+        DateTime? to)
+    {
+        var query = _context.VesselVisitNotifications
+            .Include(vvn => vvn.Cargo).ThenInclude(c => c.Containers)
+            .Include(vvn => vvn.CrewMembers)
+            .Include(vvn => vvn.DecisionLog)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(vesselImo))
+            query = query.Where(v => v.VesselId.Value == vesselImo);
+
+        if (!string.IsNullOrWhiteSpace(status))
+            query = query.Where(v => v.Status.ToString().Equals(status, StringComparison.OrdinalIgnoreCase));
+
+        if (!string.IsNullOrWhiteSpace(representativeId))
+            query = query.Where(v => v.SubmittedBy.Value == Guid.Parse(representativeId));
+
+        if (!string.IsNullOrWhiteSpace(organizationId))
+        {
+            var repIds = await _context.ShippingAgentRepresentatives
+                .Where(r => r.OrganizationId.Value == Guid.Parse(organizationId))
+                .Select(r => r.RepresentativeId.Value)
+                .ToListAsync();
+
+            query = query.Where(v => repIds.Contains(v.SubmittedBy.Value));
+        }
+
+        if (from.HasValue)
+            query = query.Where(v => v.EstimatedArrival.Value >= from.Value);
+
+        if (to.HasValue)
+            query = query.Where(v => v.EstimatedArrival.Value <= to.Value);
+
+        var results = await query.ToListAsync();
+        return results.Select(MapToDto).ToList();
+    }
+    
     // This private helper keeps our mapping logic in one place
     private VesselVisitNotificationDto MapToDto(Domain.VesselVisitNotificationAggregate.VesselVisitNotification entity)
     {

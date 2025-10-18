@@ -55,11 +55,20 @@ namespace PortProject.Api.Controllers
         }
 
         [HttpGet("search")]
-        public async Task<ActionResult<IEnumerable<DockDto>>> SearchDocks([FromQuery] string? name, [FromQuery] string? location, [FromQuery] string? vesselTypeId)
+        public async Task<ActionResult<IEnumerable<DockDto>>> SearchDock(
+            [FromQuery] string? name,
+            [FromQuery] string? vesselTypeId,
+            [FromQuery] string? zone,
+            [FromQuery] string? section,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 10,
+            [FromQuery] string? sortBy = "name",
+            [FromQuery] string? sortOrder = "asc")
         {
-            var docks = await _service.SearchDocksAsync(name, location, vesselTypeId);
-            return Ok(docks);
+            var results = await _service.SearchDocksAsync(name, vesselTypeId, zone, section, page, pageSize, sortBy, sortOrder);
+            return Ok(results);
         }
+
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteDock(string id)

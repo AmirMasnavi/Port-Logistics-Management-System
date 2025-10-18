@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using PortProject.Api.Application.VesselVisitNotification;
 using PortProject.Api.Application.VesselVisitNotification.DTOs;
+using PortProject.Api.Application.VesselVisitNotification.Services;
 
 namespace PortProject.Api.Controllers;
 
@@ -48,6 +49,45 @@ public class VesselVisitNotificationController : ControllerBase
             return NotFound(ex.Message);
         }
     }
+    [HttpPatch("{id}/approve")]
+    public async Task<IActionResult> Approve(string id, [FromBody] ApproveVvnDto dto)
+    {
+        try {
+            await _service.ApproveAsync(id, dto.OfficerId, dto.DockId);
+            return NoContent();
+        } catch (KeyNotFoundException ex) {
+            return NotFound(ex.Message);
+        } catch (InvalidOperationException ex) {
+            return BadRequest(ex.Message);
+        }
+    }
+
+    [HttpPatch("{id}/reject")]
+    public async Task<IActionResult> Reject(string id, [FromBody] RejectVvnDto dto)
+    {
+        try {
+            await _service.RejectAsync(id, dto.OfficerId, dto.Reason);
+            return NoContent();
+        } catch (KeyNotFoundException ex) {
+            return NotFound(ex.Message);
+        } catch (InvalidOperationException ex) {
+            return BadRequest(ex.Message);
+        }
+    }
+    [HttpGet("search")]
+    public async Task<ActionResult<List<VesselVisitNotificationDto>>> Search(
+        [FromQuery] string? vesselImo,
+        [FromQuery] string? status,
+        [FromQuery] string? representativeId,
+        [FromQuery] string? organizationId,
+        [FromQuery] DateTime? from,
+        [FromQuery] DateTime? to)
+    {
+        var results = await _service.SearchAsync(vesselImo, status, representativeId, organizationId, from, to);
+        return Ok(results);
+    }
+
+
 
     // Helper endpoint to get a notification by its ID
     [HttpGet("{id}")]

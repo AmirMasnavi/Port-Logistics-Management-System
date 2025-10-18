@@ -80,10 +80,17 @@ namespace PortProject.Api.Application.Dock.Services
             return dock != null ? ToDto(dock) : null;
         }
 
-        public async Task<IEnumerable<DockDto>> SearchDocksAsync(string? name = null, string? location = null, string? vesselTypeId = null)
+        public async Task<IEnumerable<DockDto>> SearchDocksAsync(
+            string? name,
+            string? vesselTypeId,
+            string? zone,
+            string? section,
+            int page,
+            int pageSize,
+            string? sortBy,
+            string? sortOrder)
         {
-            VesselTypeId? vesselType = !string.IsNullOrWhiteSpace(vesselTypeId) ? new VesselTypeId(vesselTypeId) : null;
-            var docks = await _repository.SearchByCriteriaAsync(name, location, vesselType);
+            var docks = await _repository.SearchByAdvancedCriteriaAsync(name, vesselTypeId, zone, section, page, pageSize, sortBy, sortOrder);
             return docks.Select(ToDto);
         }
 
