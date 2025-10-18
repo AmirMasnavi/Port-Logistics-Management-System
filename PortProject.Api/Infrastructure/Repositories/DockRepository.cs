@@ -23,9 +23,14 @@ namespace PortProject.Api.Infrastructure.Repositories
             return entity;
         }
 
-        public async Task<Dock?> GetByIdAsync(DockId id)
+        public Task<Dock?> GetByIdAsync(DockId id)
         {
-            return await _set.AsNoTracking().FirstOrDefaultAsync(d => d.Id.Value == id.Value);
+            var dock = _set
+                .AsNoTracking()
+                .AsEnumerable()
+                .FirstOrDefault(d => d.Id.Value == id.Value);
+
+            return Task.FromResult(dock);
         }
 
         public async Task<List<Dock>> GetByIdsAsync(List<DockId> ids)
@@ -36,7 +41,8 @@ namespace PortProject.Api.Infrastructure.Repositories
 
         public async Task<Dock?> GetByNameAsync(DockName name)
         {
-            return await _set.AsNoTracking().FirstOrDefaultAsync(d => d.Name.Value == name.Value);
+            var nameValue = name.Value.ToLower();
+            return await _set.AsNoTracking().FirstOrDefaultAsync(d => d.Name.Value.ToLower() == nameValue);
         }
 
         public async Task<IEnumerable<Dock>> SearchByCriteriaAsync(string? name = null, string? location = null, VesselTypeId? vesselType = null)
