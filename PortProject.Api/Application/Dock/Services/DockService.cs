@@ -90,7 +90,7 @@ namespace PortProject.Api.Application.Dock.Services
             string? sortBy,
             string? sortOrder)
         {
-            var docks = await _repository.SearchByAdvancedCriteriaAsync(name, vesselTypeId, zone, section, page, pageSize, sortBy, sortOrder);
+            var docks = await _repository.SearchByCriteriaAsync(name, vesselTypeId, zone, section, page, pageSize, sortBy, sortOrder);
             return docks.Select(ToDto);
         }
 
