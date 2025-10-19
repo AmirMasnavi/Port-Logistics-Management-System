@@ -9,6 +9,7 @@ using PortProject.Api.Domain.StorageAggregate;
 using PortProject.Api.Domain.DockAggregate;
 using PortProject.Api.Domain.ShippingAgentOrganizationAggregate;
 using PortProject.Api.Domain.ShippingAgentRepresentativeAggregate;
+using PortProject.Api.Domain.VesselTypeAggregate;
 using PortProject.Api.Domain.VesselVisitNotificationAggregate;
 using src.Domain.VesselTypeAggregate;
 

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using src.Domain.Shared;
+using src.Domain.VesselTypeAggregate;
 
 namespace src.Infrastructure.Shared
 {
@@ -30,7 +31,7 @@ namespace src.Infrastructure.Shared
             return await this._objs
                 .Where(x => id.Equals(x.Id)).FirstOrDefaultAsync();
         }
-        public async Task<List<TEntity>> GetByIdsAsync(List<TEntityId> ids)
+        public async Task<List<TEntity>> GetByIdsAsync(List<VesselTypeId> ids)
         {
             return await this._objs
                 .Where(x => ids.Contains(x.Id)).ToListAsync();
