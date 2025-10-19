@@ -3,11 +3,11 @@
 autonumber
 
 actor "Port Authority Officer" as Officer
-participant "<<system (C4)>>\nPort System" as AIT
+participant "<<system (C4)>>\nPort System" as PortSystem
 
-Officer -> AIT : 1: create or update vessel type data
-activate AIT
-AIT --> Officer : 1.1: vessel type data confirmed
-deactivate AIT
+Officer -> PortSystem : 1: register new Shipping Agent Organization
+activate PortSystem
+PortSystem --> Officer : 1.1: organization successfully created (201 Created)
+deactivate PortSystem
 
 @enduml
