@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using PortProject.Api.Application.ShippingAgentsOrganization.DTOs;
 using PortProject.Api.Application.ShippingAgentsRepresentative.Services;
+using PortProject.Api.Application.ShippingAgentsOrganization.Services;
 
 namespace PortProject.Api.Controllers
 {
@@ -9,20 +10,26 @@ namespace PortProject.Api.Controllers
     public class ShippingAgentRepresentativesController : ControllerBase
     {
         private readonly IShippingAgentRepresentativeService _service;
+        private readonly IShippingAgentOrganizationService _orgService;
 
-        public ShippingAgentRepresentativesController(IShippingAgentRepresentativeService service)
+        public ShippingAgentRepresentativesController(IShippingAgentRepresentativeService service, IShippingAgentOrganizationService orgService)
         {
             _service = service;
+            _orgService = orgService;
         }
 
         /// <summary>
-        /// Creates a new Shipping Agent Representative.
+    /// Creates a new Shipping Agent Representative. Requires OrganizationId in the request body.
         /// </summary>
         [HttpPost]
         public async Task<ActionResult<ShippingAgentRepresentativeDto>> CreateRepresentative(CreateShippingAgentRepresentativeDto dto)
         {
-            var resultDto = await _service.CreateRepresentativeAsync(dto);
-            return CreatedAtAction(nameof(GetRepresentativeById), new { id = resultDto.RepresentativeId }, resultDto);
+            if (string.IsNullOrWhiteSpace(dto.OrganizationId))
+                return BadRequest(new { message = "OrganizationId is required to create a representative." });
+
+            // Delegate to org service to ensure FK is set and representative attached to organization
+            var repDto = await _orgService.AddRepresentativeToOrganizationAsync(dto.OrganizationId, dto);
+            return CreatedAtAction(nameof(GetRepresentativeById), new { id = repDto.RepresentativeId }, repDto);
         }
 
         /// <summary>

@@ -328,7 +328,7 @@ public class PortProjectContext : DbContext
         // This assumes ShippingAgentRepresentative has a foreign key property pointing back to the organization.
         orgBuilder.HasMany(o => o.Representatives)
             .WithOne() // Or .WithOne(r => r.Organization) if there's a back-reference
-            .HasForeignKey("OrganizationId") // This FK needs to exist on the Representative entity
+            .HasForeignKey(r => r.OrganizationId) // Use explicit FK property on the entity
             .IsRequired();
 
 
@@ -364,6 +364,12 @@ public class PortProjectContext : DbContext
         repBuilder.Property(r => r.RepresentativeNationality)
             .HasConversion(nat => nat.Value, val => new RepresentativeNationality(val))
             .HasColumnName("RepresentativeNationality")
+            .IsRequired();
+
+        // Explicitly map the OrganizationId value object as the FK column
+        repBuilder.Property(r => r.OrganizationId)
+            .HasConversion(id => id.Value, val => new OrganizationId(val))
+            .HasColumnName("OrganizationId")
             .IsRequired();
 
         // === VESSEL VISIT NOTIFICATION CONFIGURATION ===

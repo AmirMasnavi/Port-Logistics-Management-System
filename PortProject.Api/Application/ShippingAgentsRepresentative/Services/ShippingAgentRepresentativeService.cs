@@ -1,4 +1,5 @@
 using PortProject.Api.Application.ShippingAgentsOrganization.DTOs;
+using PortProject.Api.Domain.ShippingAgentOrganizationAggregate;
 using PortProject.Api.Domain.ShippingAgentRepresentativeAggregate;
 using PortProject.Api.Models;
 
@@ -24,9 +25,6 @@ public class ShippingAgentRepresentativeService : IShippingAgentRepresentativeSe
             new RepresentativeEmail(dto.RepresentativeEmail)
         );
 
-        await _representativeRepository.AddAsync(representative);
-        await _context.SaveChangesAsync();
-
         return representative;
     }
 
@@ -42,7 +40,8 @@ public class ShippingAgentRepresentativeService : IShippingAgentRepresentativeSe
             CitizenId = representative.CitizenId?.Value ?? string.Empty,
             RepresentativeNationality = representative.RepresentativeNationality?.Value ?? string.Empty,
             RepresentativeEmail = representative.RepresentativeEmail?.Value ?? string.Empty,
-            RepresentativePhone = representative.RepresentativePhone?.Value ?? string.Empty
+            RepresentativePhone = representative.RepresentativePhone?.Value ?? string.Empty,
+            OrganizationId = representative.OrganizationId?.Value.ToString() ?? string.Empty
         };
     }
 
@@ -56,7 +55,8 @@ public class ShippingAgentRepresentativeService : IShippingAgentRepresentativeSe
             CitizenId = r.CitizenId?.Value ?? string.Empty,
             RepresentativeNationality = r.RepresentativeNationality?.Value ?? string.Empty,
             RepresentativeEmail = r.RepresentativeEmail?.Value ?? string.Empty,
-            RepresentativePhone = r.RepresentativePhone?.Value ?? string.Empty
+            RepresentativePhone = r.RepresentativePhone?.Value ?? string.Empty,
+            OrganizationId = r.OrganizationId?.Value.ToString() ?? string.Empty
         });
     }
 
@@ -86,7 +86,8 @@ public class ShippingAgentRepresentativeService : IShippingAgentRepresentativeSe
             CitizenId = representative.CitizenId?.Value ?? string.Empty,
             RepresentativeNationality = representative.RepresentativeNationality?.Value ?? string.Empty,
             RepresentativeEmail = representative.RepresentativeEmail?.Value ?? string.Empty,
-            RepresentativePhone = representative.RepresentativePhone?.Value ?? string.Empty
+            RepresentativePhone = representative.RepresentativePhone?.Value ?? string.Empty,
+            OrganizationId = representative.OrganizationId?.Value.ToString() ?? string.Empty
         };
     }
 

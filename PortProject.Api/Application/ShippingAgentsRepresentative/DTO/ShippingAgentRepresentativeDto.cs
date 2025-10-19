@@ -6,6 +6,7 @@ namespace PortProject.Api.Application.ShippingAgentsOrganization.DTOs
     {
 
         public string RepresentativeId = string.Empty;
+        public string OrganizationId { get; set; } = string.Empty;
 
         [Required, StringLength(120, MinimumLength = 2)]
         public string RepresentativeName { get; set; } = string.Empty;
