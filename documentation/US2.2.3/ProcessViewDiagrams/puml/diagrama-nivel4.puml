@@ -1,0 +1,126 @@
+@startuml
+!theme plain
+autonumber
+
+actor "Port Authority Officer" as Officer
+participant "User Interface\n(UI)" as UI
+box "Backend System (Sistema AIT)" #LightBlue
+    participant "HTTP Request" as HttpRequest
+    participant "Route" as Route
+    participant "DockController" as Controller
+    participant "DockDto" as Dto
+    participant "DockService" as ServiceImpl
+    participant "Dock" as DomainEntity
+    participant "DockId" as EntityId
+    participant "DockName" as NameVO
+    participant "DockLocation" as LocVO
+    participant "NumberOfSTSCranes" as stsCranes
+    participant "PhysicalCharacteristics" as Characteristics
+    participant "DockRepository" as RepoImpl
+end box
+
+Officer -> UI : 1: create or update dock data
+activate UI
+
+UI -> HttpRequest : 1.1: POST /api/dock OR PUT /api/dock/{id} \n (DockCreateDto / DockDto)
+activate HttpRequest
+HttpRequest -> Route : 1.2: Match Route
+activate Route
+Route -> Controller : 1.3: Invoke CreateDock / UpdateDock(dto)
+activate Controller
+
+Controller -> Dto : 1.3.1: Map request body to DTO
+activate Dto
+Dto --> Controller : 1.3.2: DTO instance
+deactivate Dto
+
+Controller -> ServiceImpl : 1.4: CreateDockAsync / UpdateDockAsync (DockDto)
+activate ServiceImpl
+
+alt Create Dock
+    ServiceImpl -> DomainEntity : 1.4.1: Dock.Create(\n id, name, locationZone, locationSection, lengthInMeters, depthInMeters, maxDraftInMeters, numberOfSTSCranes, allowedVesselTypeIds)
+    activate DomainEntity
+
+    DomainEntity -> EntityId : 1.4.1.1: new DockId(id)
+    activate EntityId
+    EntityId --> DomainEntity
+    deactivate EntityId
+
+    DomainEntity -> NameVO : 1.4.1.2: new DockName(name)
+    activate NameVO
+    NameVO --> DomainEntity
+    deactivate NameVO
+
+    DomainEntity -> LocVO : 1.4.1.3: new DockLocation(locationZone, locationSection)
+    activate LocVO
+    LocVO --> DomainEntity
+    deactivate LocVO
+
+    DomainEntity -> Characteristics : 1.4.1.4: new PhysicalCharacteristics(length, depth, maxDraft)
+    activate Characteristics
+    Characteristics --> DomainEntity
+    deactivate Characteristics
+
+    DomainEntity -> stsCranes : 1.4.1.5: new NumberOfSTSCranes(numberOfSTSCranes)
+    activate stsCranes
+    stsCranes --> DomainEntity
+    deactivate stsCranes
+
+    DomainEntity --> ServiceImpl : 1.4.2: New Dock entity created
+    deactivate DomainEntity
+
+    ServiceImpl -> RepoImpl : 1.5: AddAsync(Dock entity)
+    activate RepoImpl
+    RepoImpl --> ServiceImpl : 1.6: Entity persisted
+    deactivate RepoImpl
+else Update Dock
+    ServiceImpl -> RepoImpl : 1.4.1: GetByIdAsync(id)
+    activate RepoImpl
+    RepoImpl --> ServiceImpl : 1.4.2: Existing Dock entity
+    deactivate RepoImpl
+
+    ServiceImpl -> DomainEntity : 1.4.3: UpdateName(name)
+    activate DomainEntity
+    DomainEntity --> ServiceImpl : 1.4.4: Name updated
+    deactivate DomainEntity
+
+    ServiceImpl -> DomainEntity : 1.4.5: UpdateLocation(locationZone, locationSection)
+    activate DomainEntity
+    DomainEntity --> ServiceImpl : 1.4.6: Location updated
+    deactivate DomainEntity
+
+    ServiceImpl -> DomainEntity : 1.4.7: UpdateCharacteristics(length, depth, maxDraft)
+    activate DomainEntity
+    DomainEntity --> ServiceImpl : 1.4.8: Characteristics updated
+    deactivate DomainEntity
+
+    ServiceImpl -> DomainEntity : 1.4.9: UpdateSTSCranes(numberOfSTSCranes)
+    activate DomainEntity
+    DomainEntity --> ServiceImpl : 1.4.10: STS Cranes updated
+    deactivate DomainEntity
+
+    ServiceImpl -> DomainEntity : 1.4.11: UpdateAllowedVesselTypes(allowedVesselTypeIds)
+    activate DomainEntity
+    DomainEntity --> ServiceImpl : 1.4.12: Allowed types updated
+    deactivate DomainEntity
+
+    ServiceImpl -> RepoImpl : 1.5: UpdateAsync(Dock entity)
+    activate RepoImpl
+    RepoImpl --> ServiceImpl : 1.6: Entity persisted
+    deactivate RepoImpl
+end
+
+ServiceImpl --> Controller : 1.7: DockDto (created/updated)
+deactivate ServiceImpl
+
+Controller --> HttpRequest : 1.8: HTTP 201 Created / 200 OK (DockDto)
+deactivate Controller
+deactivate Route
+deactivate HttpRequest
+
+HttpRequest --> UI : 1.9: HTTP Response
+deactivate UI
+
+UI --> Officer : 1.10: Display confirmation / new data
+
+@enduml
