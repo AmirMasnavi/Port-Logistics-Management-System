@@ -19,9 +19,5 @@
   <ItemGroup>
     <ProjectReference Include="..\PortProject.Api\PortProject.Api.csproj" />
   </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Domain\Dock Aggregate\" />
-  </ItemGroup>
   
 </Project>
