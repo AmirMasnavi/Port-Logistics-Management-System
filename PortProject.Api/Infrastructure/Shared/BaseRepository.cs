@@ -1,12 +1,7 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using src.Domain.Shared;
-using src.Domain.VesselTypeAggregate;
 
-namespace src.Infrastructure.Shared
+namespace PortProject.Api.Infrastructure.Shared
 {
     public class BaseRepository<TEntity,TEntityId> : IRepository<TEntity,TEntityId>
     where TEntity : Entity<TEntityId>
@@ -31,7 +26,7 @@ namespace src.Infrastructure.Shared
             return await this._objs
                 .Where(x => id.Equals(x.Id)).FirstOrDefaultAsync();
         }
-        public async Task<List<TEntity>> GetByIdsAsync(List<VesselTypeId> ids)
+        public async Task<List<TEntity>> GetByIdsAsync(List<TEntityId> ids)
         {
             return await this._objs
                 .Where(x => ids.Contains(x.Id)).ToListAsync();
