@@ -1,4 +1,5 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using PortProject.Api.Domain.VesselTypeAggregate;
 
 namespace PortProject.Api.Tests.Domain.VesselTypeAggregate;
 

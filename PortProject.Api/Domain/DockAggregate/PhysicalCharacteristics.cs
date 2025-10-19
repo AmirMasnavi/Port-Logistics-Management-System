@@ -32,7 +32,7 @@ namespace PortProject.Api.Domain.DockAggregate
             var other = (PhysicalCharacteristics)obj;
             return LengthInMeters == other.LengthInMeters &&
                    DepthInMeters == other.DepthInMeters &&
-                   MaxDraftInMeters == other.MaxDraftInMeters;
+                   MaxDraftInMeters == other.MaxDraftInMeters; 
         }
 
         public override int GetHashCode()
