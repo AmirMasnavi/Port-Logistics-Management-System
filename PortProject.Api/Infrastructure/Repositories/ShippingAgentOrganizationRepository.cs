@@ -29,7 +29,6 @@ namespace PortProject.Api.Infrastructure.Repositories
         public async Task<ShippingAgentOrganization?> GetByIdAsync(OrganizationId id)
         {
             return await _context.Set<ShippingAgentOrganization>()
-                .Include(o => o.Representatives)
                 .FirstOrDefaultAsync(o => o.Id == id);
         }
 

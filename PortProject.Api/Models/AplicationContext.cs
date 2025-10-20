@@ -326,10 +326,10 @@ public class PortProjectContext : DbContext
 
         // 4. Configure the one-to-many relationship with Representatives
         // This assumes ShippingAgentRepresentative has a foreign key property pointing back to the organization.
-        orgBuilder.HasMany(o => o.Representatives)
-            .WithOne() // Or .WithOne(r => r.Organization) if there's a back-reference
-            .HasForeignKey(r => r.OrganizationId) // Use explicit FK property on the entity
-            .IsRequired();
+     //   orgBuilder.HasMany(o => o.Representatives)
+       //     .WithOne() // Or .WithOne(r => r.Organization) if there's a back-reference
+         //   .HasForeignKey(r => r.OrganizationId) // Use explicit FK property on the entity
+           // .IsRequired();
 
 
         // === SHIPPING AGENT REPRESENTATIVE CONFIGURATION ===

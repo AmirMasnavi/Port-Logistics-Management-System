@@ -1,3 +1,6 @@
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel;
+
 namespace PortProject.Api.Application.ShippingAgentsOrganization.DTOs
 {
     public sealed class CreateShippingAgentOrganizationDto
@@ -7,6 +10,8 @@ namespace PortProject.Api.Application.ShippingAgentsOrganization.DTOs
         public string Street { get; set; } = string.Empty;
         public string City { get; set; } = string.Empty;
         public string Country { get; set; } = string.Empty;
+        
+        [DefaultValue("351123456789")]
         public string TaxNumber { get; set; } = string.Empty;
         public List<CreateShippingAgentRepresentativeDto> Representatives { get; set; } = new();
     }

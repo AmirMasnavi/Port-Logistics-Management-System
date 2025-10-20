@@ -32,12 +32,13 @@ namespace PortProject.Api.Application.ShippingAgentsOrganization.Services
                 throw new KeyNotFoundException($"Organization with ID {organizationId} not found.");
 
             var representative = await _repService.CreateRepresentativeAsync(dto);
-            org.AddRepresentative(representative);
+           // org.AddRepresentative(representative);
             _context.Update(org);
             await _context.SaveChangesAsync();
             return new ShippingAgentRepresentativeDto
             {
                 RepresentativeId = representative.RepresentativeId?.Value.ToString() ?? string.Empty,
+                OrganizationId = representative.OrganizationId?.Value.ToString() ?? string.Empty,
                 RepresentativeName = representative.RepresentativeName?.Value ?? string.Empty,
                 CitizenId = representative.CitizenId?.Value ?? string.Empty,
                 RepresentativeNationality = representative.RepresentativeNationality?.Value ?? string.Empty,
@@ -67,7 +68,9 @@ namespace PortProject.Api.Application.ShippingAgentsOrganization.Services
             foreach (var rep in dto.Representatives)
             {
                 var representative = await _repService.CreateRepresentativeAsync(rep);
-                org.AddRepresentative(representative);
+                // Set the organizationId for the representative
+                representative.AttachToOrganization(org.Id!);
+                await _context.ShippingAgentRepresentatives.AddAsync(representative);
             }
 
             await _repository.AddAsync(org);
@@ -92,23 +95,13 @@ namespace PortProject.Api.Application.ShippingAgentsOrganization.Services
         {
             return new ShippingAgentOrganizationDto
             {
-                Id = org.Id.ToString(),
+                Id = org.Id?.ToString() ?? string.Empty,
                 LegalName = org.LegalName?.Value ?? string.Empty,
                 AlternativeName = org.AlternativeName?.Value ?? string.Empty,
                 Street = org.Address?.Street ?? string.Empty,
                 City = org.Address?.City ?? string.Empty,
                 Country = org.Address?.Country ?? string.Empty,
-                TaxNumber = org.TaxNumber?.Value ?? string.Empty,
-                Representatives = org.Representatives?.Select(r => new ShippingAgentRepresentativeDto
-                {
-                    RepresentativeId = r.RepresentativeId?.Value.ToString() ?? string.Empty,
-                    OrganizationId = r.OrganizationId?.Value.ToString() ?? string.Empty,
-                    RepresentativeName = r.RepresentativeName?.Value ?? string.Empty,
-                    CitizenId = r.CitizenId?.Value ?? string.Empty,
-                    RepresentativeNationality = r.RepresentativeNationality?.Value ?? string.Empty,
-                    RepresentativeEmail = r.RepresentativeEmail?.Value ?? string.Empty,
-                    RepresentativePhone = r.RepresentativePhone?.Value ?? string.Empty
-                }).ToList() ?? new List<ShippingAgentRepresentativeDto>()
+                TaxNumber = org.TaxNumber?.Value ?? string.Empty
             };
         }
     }

@@ -1,4 +1,6 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel;
+using System.Text.Json.Serialization;
 
 namespace PortProject.Api.Application.ShippingAgentsOrganization.DTOs
 {
@@ -19,9 +21,12 @@ namespace PortProject.Api.Application.ShippingAgentsOrganization.DTOs
 
         // Aceita formatos internacionais simples (+351..., etc.)
         [Required, Phone, StringLength(40)]
+        [DefaultValue("+351912345678")]
         public string RepresentativePhone { get; set; } = string.Empty;
 
-        [Required]
+        // OrganizationId is optional here - required only for direct POST to representatives endpoint
+        // When creating reps as part of organization registration, it's set automatically
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
         public string OrganizationId { get; set; } = string.Empty;
     }
 }

@@ -4,18 +4,14 @@ namespace PortProject.Api.Domain.ShippingAgentOrganizationAggregate
 {
     public sealed class ShippingAgentOrganization
     {
-        public OrganizationId Id { get; private set; }
-        public LegalName LegalName { get; private set; }
-        public AlternativeName AlternativeName { get; private set; }
-        public Address Address { get; private set; }
-        public TaxNumber TaxNumber { get; private set; }
+    public OrganizationId? Id { get; private set; }
+    public LegalName? LegalName { get; private set; }
+    public AlternativeName? AlternativeName { get; private set; }
+    public Address? Address { get; private set; }
+    public TaxNumber? TaxNumber { get; private set; }
 
-        public List<ShippingAgentRepresentative> Representatives { get; private set; }
 
-        private ShippingAgentOrganization()
-        {
-            Representatives = new List<ShippingAgentRepresentative>();
-        }
+        private ShippingAgentOrganization() { }
 
         public ShippingAgentOrganization(
             OrganizationId id,
@@ -29,18 +25,8 @@ namespace PortProject.Api.Domain.ShippingAgentOrganizationAggregate
             AlternativeName = alternativeName ?? throw new ArgumentNullException(nameof(alternativeName));
             Address = address ?? throw new ArgumentNullException(nameof(address));
             TaxNumber = taxNumber ?? throw new ArgumentNullException(nameof(taxNumber));
-            Representatives = new List<ShippingAgentRepresentative>();
         }
 
-        public void AddRepresentative(ShippingAgentRepresentative representative)
-        {
-            if (representative == null) throw new ArgumentNullException(nameof(representative));
-
-            // ✅ cola o representante a esta organização (preenche a FK)
-            representative.AttachToOrganization(Id);
-
-            Representatives.Add(representative);
-        }
 
         public void UpdateDetails(AlternativeName alternativeName, Address address)
         {

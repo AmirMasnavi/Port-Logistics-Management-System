@@ -5,7 +5,7 @@ namespace PortProject.Api.Application.ShippingAgentsOrganization.DTOs
     public sealed class ShippingAgentRepresentativeDto
     {
 
-        public string RepresentativeId = string.Empty;
+    public string RepresentativeId { get; set; } = string.Empty;
         public string OrganizationId { get; set; } = string.Empty;
 
         [Required, StringLength(120, MinimumLength = 2)]

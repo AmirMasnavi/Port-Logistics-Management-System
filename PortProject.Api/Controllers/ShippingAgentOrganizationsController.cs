@@ -59,24 +59,24 @@ namespace PortProject.Api.Controllers
         /// <summary>
         /// Adds a new representative to an existing Shipping Agent Organization.
         /// </summary>
-        [HttpPost("{organizationId}/representatives")]
-        public async Task<ActionResult<ShippingAgentRepresentativeDto>> AddRepresentativeToOrganization(string organizationId, CreateShippingAgentRepresentativeDto dto)
-        {
-            try
-            {
-                // Add representative using service
-                var repDto = await _service.AddRepresentativeToOrganizationAsync(organizationId, dto);
-                return CreatedAtAction(nameof(GetOrganizationById), new { id = organizationId }, repDto);
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
-        }
+     //   [HttpPost("{organizationId}/representatives")]
+       // public async Task<ActionResult<ShippingAgentRepresentativeDto>> AddRepresentativeToOrganization(string organizationId, CreateShippingAgentRepresentativeDto dto)
+        //{
+        //     try
+        //     {
+        //         // Add representative using service
+        //         var repDto = await _service.AddRepresentativeToOrganizationAsync(organizationId, dto);
+        //         return CreatedAtAction(nameof(GetOrganizationById), new { id = organizationId }, repDto);
+        //     }
+        //     catch (ArgumentException ex)
+        //     {
+        //         return BadRequest(new { message = ex.Message });
+        //     }
+        //     catch (KeyNotFoundException ex)
+        //     {
+        //         return NotFound(new { message = ex.Message });
+        //     }
+        // }
 
         /// <summary>
         /// Gets all representatives for a specific organization.
@@ -84,10 +84,8 @@ namespace PortProject.Api.Controllers
         [HttpGet("{organizationId}/representatives")]
         public async Task<ActionResult<IEnumerable<ShippingAgentRepresentativeDto>>> GetRepresentativesForOrganization(string organizationId)
         {
-            var org = await _service.GetByIdAsync(Guid.Parse(organizationId));
-            if (org == null)
-                return NotFound($"Organization with ID {organizationId} not found.");
-            return Ok(org.Representatives);
+            // This endpoint should query representatives by organizationId, not from the org DTO
+            return StatusCode(501, "Not implemented: Query representatives by organizationId directly.");
         }
     }
 }

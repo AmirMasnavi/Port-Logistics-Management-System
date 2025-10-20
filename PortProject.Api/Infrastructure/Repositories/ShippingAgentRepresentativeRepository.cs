@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using PortProject.Api.Domain.ShippingAgentOrganizationAggregate;
 using PortProject.Api.Domain.ShippingAgentRepresentativeAggregate;
 using PortProject.Api.Models;
 using System.Collections.Generic;
@@ -28,6 +29,13 @@ namespace PortProject.Api.Infrastructure.Repositories
         public async Task<IEnumerable<ShippingAgentRepresentative>> GetAllAsync()
         {
             return await _context.Set<ShippingAgentRepresentative>().ToListAsync();
+        }
+
+        public async Task<IEnumerable<ShippingAgentRepresentative>> GetByOrganizationIdAsync(OrganizationId organizationId)
+        {
+            return await _context.ShippingAgentRepresentatives
+                .Where(r => r.OrganizationId == organizationId)
+                .ToListAsync();
         }
     }
 }

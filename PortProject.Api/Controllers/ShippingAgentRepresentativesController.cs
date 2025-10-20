@@ -80,14 +80,14 @@ namespace PortProject.Api.Controllers
             return Ok(resultDtos);
         }
 
-        /// <summary>
-        /// Gets all Shipping Agent Representatives by OrganizationId.
-        /// </summary>
-        // [HttpGet("by-organization/{organizationId}")]
-        // public async Task<ActionResult<IEnumerable<ShippingAgentRepresentativeDto>>> GetRepresentativesByOrganizationId(string organizationId)
-        // {
-        //     var resultDtos = await _service.GetAllByOrganizationIdAsync(organizationId);
-        //     return Ok(resultDtos);
-        // }
+        // <summary>
+        // Gets all Shipping Agent Representatives by OrganizationId.
+        // </summary>
+        [HttpGet("by-organization/{organizationId}")]
+        public async Task<ActionResult<IEnumerable<ShippingAgentRepresentativeDto>>> GetRepresentativesByOrganizationId(string organizationId)
+        {
+            var resultDtos = await _service.GetByOrganizationIdAsync(organizationId);
+            return Ok(resultDtos);
+        }
     }
 }
