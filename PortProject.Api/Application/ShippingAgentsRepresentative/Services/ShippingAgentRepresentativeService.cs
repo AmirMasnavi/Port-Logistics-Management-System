@@ -28,7 +28,13 @@ namespace PortProject.Api.Application.ShippingAgentsRepresentative.Services
                 new RepresentativeNationality(dto.RepresentativeNationality),
                 new RepresentativeEmail(dto.RepresentativeEmail)
             );
-            representative.AttachToOrganization(new OrganizationId(Guid.Parse(dto.OrganizationId)));
+            
+            // Only attach organization if OrganizationId is provided
+            if (!string.IsNullOrWhiteSpace(dto.OrganizationId))
+            {
+                representative.AttachToOrganization(new OrganizationId(Guid.Parse(dto.OrganizationId)));
+            }
+            
             await _representativeRepository.AddAsync(representative);
             return representative;
         }
