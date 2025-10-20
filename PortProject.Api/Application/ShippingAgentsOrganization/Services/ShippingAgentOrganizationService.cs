@@ -101,6 +101,8 @@ namespace PortProject.Api.Application.ShippingAgentsOrganization.Services
                 TaxNumber = org.TaxNumber?.Value ?? string.Empty,
                 Representatives = org.Representatives?.Select(r => new ShippingAgentRepresentativeDto
                 {
+                    RepresentativeId = r.RepresentativeId?.Value.ToString() ?? string.Empty,
+                    OrganizationId = r.OrganizationId?.Value.ToString() ?? string.Empty,
                     RepresentativeName = r.RepresentativeName?.Value ?? string.Empty,
                     CitizenId = r.CitizenId?.Value ?? string.Empty,
                     RepresentativeNationality = r.RepresentativeNationality?.Value ?? string.Empty,

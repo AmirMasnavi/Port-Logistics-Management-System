@@ -20,5 +20,8 @@ namespace PortProject.Api.Application.ShippingAgentsOrganization.DTOs
         // Aceita formatos internacionais simples (+351..., etc.)
         [Required, Phone, StringLength(40)]
         public string RepresentativePhone { get; set; } = string.Empty;
+
+        [Required]
+        public string OrganizationId { get; set; } = string.Empty;
     }
 }

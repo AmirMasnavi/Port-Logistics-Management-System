@@ -76,4 +76,37 @@ public class VesselVisitNotification // We will add inheritance and interfaces l
         Cargo = newCargo;
     }
     
+    public void Approve(MecanographicNumber officerId, DockId dockId)
+    {
+        if (Status != NotificationStatus.Submitted)
+            throw new InvalidOperationException("Only submitted notifications can be approved.");
+
+        Status = NotificationStatus.Approved;
+        AssignedDockId = dockId;
+
+        _decisionLog.Add(new DecisionLogEntry(
+            DateTime.UtcNow,
+            officerId,
+            DecisionOutcome.Approved,
+            null
+        ));
+    }
+
+    public void Reject(MecanographicNumber officerId, string reason)
+    {
+        if (Status != NotificationStatus.Submitted)
+            throw new InvalidOperationException("Only submitted notifications can be rejected.");
+
+        Status = NotificationStatus.Rejected;
+
+        _decisionLog.Add(new DecisionLogEntry(
+            DateTime.UtcNow,
+            officerId,
+            DecisionOutcome.Rejected,
+            reason
+        ));
+    }
+    
+    
+    
 }

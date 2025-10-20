@@ -9,6 +9,7 @@ using PortProject.Api.Domain.StorageAggregate;
 using PortProject.Api.Domain.DockAggregate;
 using PortProject.Api.Domain.ShippingAgentOrganizationAggregate;
 using PortProject.Api.Domain.ShippingAgentRepresentativeAggregate;
+using PortProject.Api.Domain.VesselTypeAggregate;
 using PortProject.Api.Domain.VesselVisitNotificationAggregate;
 using src.Domain.VesselTypeAggregate;
 
@@ -16,8 +17,13 @@ namespace PortProject.Api.Models;
 
 public class PortProjectContext : DbContext
 {
-    public PortProjectContext() { }
-    public PortProjectContext(DbContextOptions<PortProjectContext> options) : base(options) { }
+    public PortProjectContext()
+    {
+    }
+
+    public PortProjectContext(DbContextOptions<PortProjectContext> options) : base(options)
+    {
+    }
 
     public DbSet<VesselType> VesselTypes { get; set; }
     public DbSet<StaffMember> StaffMembers { get; set; }
@@ -67,15 +73,15 @@ public class PortProjectContext : DbContext
 
         // === STAFF MEMBER CONFIGURATION ===
         var staffMemberBuilder = modelBuilder.Entity<StaffMember>();
-        
+
         // --- QUALIFICATION CONFIGURATION ---
         var qualificationBuilder = modelBuilder.Entity<Qualification>();
-        
+
         qualificationBuilder.HasKey(q => q.Code);
         qualificationBuilder.Property(q => q.Code)
             .HasConversion(qc => qc.Value, val => new QualificationCode(val))
             .HasMaxLength(20);
-            
+
         qualificationBuilder.Property(q => q.Name)
             .HasConversion(qn => qn.Value, val => new QualificationName(val))
             .IsRequired()
@@ -245,10 +251,8 @@ public class PortProjectContext : DbContext
             loc.Property(p => p.Y).HasColumnName("Y").IsRequired();
         });
 
-        storageAreaBuilder.OwnsOne(sa => sa.Capacity, cap =>
-        {
-            cap.Property(p => p.Value).HasColumnName("Capacity").IsRequired();
-        });
+        storageAreaBuilder.OwnsOne(sa => sa.Capacity,
+            cap => { cap.Property(p => p.Value).HasColumnName("Capacity").IsRequired(); });
 
         // === DOCK CONFIGURATION ===
         var dockBuilder = modelBuilder.Entity<Dock>();
@@ -261,33 +265,32 @@ public class PortProjectContext : DbContext
             .HasConversion(id => id.Value, val => new DockId(val));
 
         // 3. Configure the other owned Value Objects
-        dockBuilder.OwnsOne(d => d.Name, nb => {
-            nb.Property(p => p.Value).HasColumnName("DockName").IsRequired();
-        });
+        dockBuilder.OwnsOne(d => d.Name, nb => { nb.Property(p => p.Value).HasColumnName("DockName").IsRequired(); });
 
-        dockBuilder.OwnsOne(d => d.Location, lb => {
+        dockBuilder.OwnsOne(d => d.Location, lb =>
+        {
             lb.Property(p => p.Zone).HasColumnName("LocationZone");
             lb.Property(p => p.Section).HasColumnName("LocationSection");
         });
 
-        dockBuilder.OwnsOne(d => d.Characteristics, cb => {
+        dockBuilder.OwnsOne(d => d.Characteristics, cb =>
+        {
             cb.Property(p => p.LengthInMeters).HasColumnName("Length");
             cb.Property(p => p.DepthInMeters).HasColumnName("Depth");
             cb.Property(p => p.MaxDraftInMeters).HasColumnName("MaxDraft");
         });
 
-        dockBuilder.OwnsOne(d => d.STSCranes, sb => {
-            sb.Property(p => p.Value).HasColumnName("NumberOfSTSCranes");
-        });
+        dockBuilder.OwnsOne(d => d.STSCranes, sb => { sb.Property(p => p.Value).HasColumnName("NumberOfSTSCranes"); });
 
         // 4. Configure the collection of allowed VesselType IDs
-        dockBuilder.OwnsMany(d => d.AllowedVesselTypes, ab => {
+        dockBuilder.OwnsMany(d => d.AllowedVesselTypes, ab =>
+        {
             ab.ToTable("DockAllowedVesselTypes"); // Create a separate table for this list
             ab.WithOwner().HasForeignKey("DockId"); // Link back to the Dock
             ab.Property(vt => vt.Value).HasColumnName("VesselTypeId");
             ab.HasKey("DockId", "Value"); // Create a composite key for the new table
         });
-        
+
 
         // === SHIPPING AGENT ORGANIZATION CONFIGURATION ===
         var orgBuilder = modelBuilder.Entity<ShippingAgentOrganization>();
@@ -325,9 +328,9 @@ public class PortProjectContext : DbContext
         // This assumes ShippingAgentRepresentative has a foreign key property pointing back to the organization.
         orgBuilder.HasMany(o => o.Representatives)
             .WithOne() // Or .WithOne(r => r.Organization) if there's a back-reference
-            .HasForeignKey("OrganizationId") // This FK needs to exist on the Representative entity
+            .HasForeignKey(r => r.OrganizationId) // Use explicit FK property on the entity
             .IsRequired();
-        
+
 
         // === SHIPPING AGENT REPRESENTATIVE CONFIGURATION ===
         var repBuilder = modelBuilder.Entity<ShippingAgentRepresentative>();
@@ -362,7 +365,13 @@ public class PortProjectContext : DbContext
             .HasConversion(nat => nat.Value, val => new RepresentativeNationality(val))
             .HasColumnName("RepresentativeNationality")
             .IsRequired();
-        
+
+        // Explicitly map the OrganizationId value object as the FK column
+        repBuilder.Property(r => r.OrganizationId)
+            .HasConversion(id => id.Value, val => new OrganizationId(val))
+            .HasColumnName("OrganizationId")
+            .IsRequired();
+
         // === VESSEL VISIT NOTIFICATION CONFIGURATION ===
         var vvnBuilder = modelBuilder.Entity<VesselVisitNotification>();
 
@@ -387,66 +396,79 @@ public class PortProjectContext : DbContext
             .HasForeignKey(vvn => vvn.SubmittedBy);
 
         // 3. Simple Value Objects & Enums
-        vvnBuilder.Property(vvn => vvn.Status).HasConversion<string>();
-        vvnBuilder.OwnsOne(vvn => vvn.EstimatedArrival, etaBuilder => {
-            etaBuilder.Property(p => p.Value).HasColumnName("ETA").IsRequired();
+        vvnBuilder.Property(vvn => vvn.Status)
+            .HasConversion(status => status.ToString(), str => Enum.Parse<NotificationStatus>(str));
+
+        vvnBuilder.OwnsOne(vvn => vvn.EstimatedArrival, etaBuilder =>
+        {
+            etaBuilder.Property(p => p.Value)
+                .HasColumnName("ETA")
+                .IsRequired();
         });
-        vvnBuilder.OwnsOne(vvn => vvn.EstimatedDeparture, etdBuilder => {
-            etdBuilder.Property(p => p.Value).HasColumnName("ETD").IsRequired();
+
+        vvnBuilder.OwnsOne(vvn => vvn.EstimatedDeparture, etdBuilder =>
+        {
+            etdBuilder.Property(p => p.Value)
+                .HasColumnName("ETD")
+                .IsRequired();
         });
-        
-        // 1. Tell EF how to store the DockId value object
+
+        // 4. Dock assignment
         vvnBuilder.Property(vvn => vvn.AssignedDockId)
             .HasConversion(id => id.Value, val => new DockId(val))
-            .IsRequired(false); // Make it clear this is an optional field
+            .IsRequired(false);
 
-        // 2. Define the relationship to the Dock table
         vvnBuilder.HasOne<Dock>()
-            .WithMany() // A Dock can have many notifications
+            .WithMany()
             .HasForeignKey(vvn => vvn.AssignedDockId)
             .OnDelete(DeleteBehavior.SetNull);
 
-        // 4. Complex Owned Entities
+        // 5. Owned Entity: Cargo
+        vvnBuilder.OwnsOne(vvn => vvn.Cargo, cargoBuilder =>
+        {
+            cargoBuilder.Property(c => c.Description).IsRequired();
+            cargoBuilder.Property(c => c.Weight).IsRequired();
 
-        // Configure Cargo as an owned type
-        vvnBuilder.OwnsOne(vvn => vvn.Cargo, cargoBuilder => {
-            cargoBuilder.Property(c => c.Description);
-            cargoBuilder.Property(c => c.Weight);
-
-            // Configure the list of Containers inside Cargo
-            cargoBuilder.OwnsMany(c => c.Containers, containerBuilder => {
-                containerBuilder.ToTable("Containers"); // Store in a separate table
-                containerBuilder.WithOwner().HasForeignKey("VvnId"); // Foreign key back to the notification
-                containerBuilder.HasKey("Id"); // Each container needs a key in this table
+            cargoBuilder.OwnsMany(c => c.Containers, containerBuilder =>
+            {
+                containerBuilder.ToTable("Containers");
+                containerBuilder.WithOwner().HasForeignKey("VvnId");
+                containerBuilder.HasKey("Id");
                 containerBuilder.Property(p => p.Code)
-                              .HasConversion(cc => cc.Value, v => new ContainerCode(v))
-                              .HasColumnName("ContainerCode");
-                containerBuilder.Property(p => p.Position);
+                    .HasConversion(cc => cc.Value, v => new ContainerCode(v))
+                    .HasColumnName("ContainerCode")
+                    .IsRequired();
+                containerBuilder.Property(p => p.Position).IsRequired();
             });
         });
 
-        // Configure the list of CrewMembers as an owned collection
-        vvnBuilder.OwnsMany(vvn => vvn.CrewMembers, cmBuilder => {
+        // 6. Owned Collection: CrewMembers
+        vvnBuilder.OwnsMany(vvn => vvn.CrewMembers, cmBuilder =>
+        {
             cmBuilder.ToTable("CrewMembers");
             cmBuilder.WithOwner().HasForeignKey("VvnId");
             cmBuilder.HasKey(cm => cm.Id);
             cmBuilder.Property(cm => cm.Id)
-                     .HasConversion(id => id.Value, v => new CrewMemberId(v));
-            cmBuilder.Property(cm => cm.Name);
-            cmBuilder.Property(cm => cm.Nationality);
-            cmBuilder.Property(cm => cm.IsSafetyOfficer);
+                .HasConversion(id => id.Value, val => new CrewMemberId(val));
+            cmBuilder.Property(cm => cm.Name).IsRequired();
+            cmBuilder.Property(cm => cm.Nationality).IsRequired();
+            cmBuilder.Property(cm => cm.IsSafetyOfficer).IsRequired();
         });
 
-        // Configure the list of DecisionLogEntries as an owned collection
-        vvnBuilder.OwnsMany(vvn => vvn.DecisionLog, dlBuilder => {
+        // 7. Owned Collection: DecisionLog
+        vvnBuilder.OwnsMany(vvn => vvn.DecisionLog, dlBuilder =>
+        {
             dlBuilder.ToTable("DecisionLogEntries");
             dlBuilder.WithOwner().HasForeignKey("VvnId");
             dlBuilder.HasKey("Id");
-            dlBuilder.Property(dl => dl.Timestamp);
-            dlBuilder.Property(dl => dl.Outcome).HasConversion<string>();
+            dlBuilder.Property(dl => dl.Timestamp).IsRequired();
+            dlBuilder.Property(dl => dl.Outcome)
+                .HasConversion(outcome => outcome.ToString(), str => Enum.Parse<DecisionOutcome>(str))
+                .IsRequired();
             dlBuilder.Property(dl => dl.Reason);
             dlBuilder.Property(dl => dl.OfficerId)
-                     .HasConversion(id => id.Value, v => new MecanographicNumber(v));
+                .HasConversion(id => id.Value, val => new MecanographicNumber(val))
+                .IsRequired();
         });
 
         base.OnModelCreating(modelBuilder);

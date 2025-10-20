@@ -1,7 +1,7 @@
 using src.Domain.Shared;
-using System;
+using src.Domain.VesselTypeAggregate;
 
-namespace src.Domain.VesselTypeAggregate
+namespace PortProject.Api.Domain.VesselTypeAggregate
 {
     /// <summary>
     /// Represents a VesselType entity in the domain.
@@ -35,6 +35,7 @@ namespace src.Domain.VesselTypeAggregate
             OperationalConstraints = operationalConstraints;
         }
 
+       
         /// <summary>
         /// Factory method to create a new VesselType.
         /// </summary>

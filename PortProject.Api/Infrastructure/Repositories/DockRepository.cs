@@ -1,7 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using PortProject.Api.Domain.DockAggregate;
 using PortProject.Api.Models;
-using src.Domain.VesselTypeAggregate;
 
 namespace PortProject.Api.Infrastructure.Repositories
 {
@@ -45,22 +44,36 @@ namespace PortProject.Api.Infrastructure.Repositories
             return await _set.AsNoTracking().FirstOrDefaultAsync(d => d.Name.Value.ToLower() == nameValue);
         }
 
-        public async Task<IEnumerable<Dock>> SearchByCriteriaAsync(string? name = null, string? location = null, VesselTypeId? vesselType = null)
+        public async Task<IEnumerable<Dock>> SearchByCriteriaAsync(string? name = null, string? vesselTypeId = null, string? zone = null,  string? section = null, int page = 1, int pageSize = 10, string? sortBy = "name", string? sortOrder = "asc")
         {
             IQueryable<Dock> query = _set;
 
             if (!string.IsNullOrWhiteSpace(name))
                 query = query.Where(d => d.Name.Value.ToLower().Contains(name.ToLower()));
 
-            if (!string.IsNullOrWhiteSpace(location))
-                query = query.Where(d => d.Location.Zone.ToLower().Contains(location.ToLower()) || d.Location.Section.ToLower().Contains(location.ToLower()));
+            if (!string.IsNullOrWhiteSpace(zone))
+                query = query.Where(d => d.Location.Zone.ToLower().Contains(zone.ToLower()));
 
-            if (vesselType != null)
-                query = query.Where(d => d.AllowedVesselTypes.Any(v => v.Value == vesselType.Value));
+            if (!string.IsNullOrWhiteSpace(section))
+                query = query.Where(d => d.Location.Section.ToLower().Contains(section.ToLower()));
+
+            if (!string.IsNullOrWhiteSpace(vesselTypeId))
+                query = query.Where(d => d.AllowedVesselTypes.Any(v => v.Value == vesselTypeId));
+
+            // Sorting
+            query = (sortBy?.ToLower(), sortOrder?.ToLower()) switch
+            {
+                ("name", "desc") => query.OrderByDescending(d => d.Name.Value),
+                ("name", _) => query.OrderBy(d => d.Name.Value),
+                _ => query.OrderBy(d => d.Name.Value),
+            };
+
+            // Pagination
+            query = query.Skip((page - 1) * pageSize).Take(pageSize);
 
             return await query.AsNoTracking().ToListAsync();
         }
-
+        
         public async Task<List<Dock>> GetAllAsync()
         {
             return await _set.AsNoTracking().ToListAsync();

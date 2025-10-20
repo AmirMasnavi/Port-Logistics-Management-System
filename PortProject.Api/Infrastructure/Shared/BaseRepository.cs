@@ -1,11 +1,7 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using src.Domain.Shared;
 
-namespace src.Infrastructure.Shared
+namespace PortProject.Api.Infrastructure.Shared
 {
     public class BaseRepository<TEntity,TEntityId> : IRepository<TEntity,TEntityId>
     where TEntity : Entity<TEntityId>
