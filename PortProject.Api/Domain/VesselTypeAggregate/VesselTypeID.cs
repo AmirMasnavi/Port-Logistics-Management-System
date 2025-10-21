@@ -19,9 +19,7 @@ namespace src.Domain.VesselTypeAggregate
                 throw new ArgumentException("O identificador não pode ser nulo ou vazio.", nameof(text));
 
             var trimmed = text.Trim();
-            if (!trimmed.All(char.IsDigit))
-                throw new ArgumentException("O identificador do VesselType deve conter apenas dígitos (0-9).", nameof(text));
-
+            // Allow any non-empty trimmed string (e.g., GUIDs or numeric strings)
             return trimmed;
         }
 
