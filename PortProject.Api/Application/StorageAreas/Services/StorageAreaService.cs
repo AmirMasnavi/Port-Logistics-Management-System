@@ -18,6 +18,8 @@ public class StorageAreaService : IStorageAreaService
     
     public async Task<StorageAreaDto> CreateStorageAreaAsync(CreateStorageAreaDto dto)
     {
+        if (dto == null) throw new ArgumentNullException(nameof(dto));
+        
         // DTO -> Domain
         var location = BuildLocation(dto.Location);
         var type = Enum.Parse<StorageAreaType>(dto.Type, ignoreCase: true);
