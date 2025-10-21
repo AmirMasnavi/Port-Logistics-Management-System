@@ -85,8 +85,8 @@ namespace PortProject.Api.Application.ShippingAgentsRepresentative.Services
                 new RepresentativeNationality(dto.RepresentativeNationality),
                 new RepresentativeEmail(dto.RepresentativeEmail)
             );
-            // EF Core tracks changes, so just save
-            await _representativeRepository.AddAsync(representative); // If AddAsync is upsert
+            
+            await _representativeRepository.UpdateAsync(representative);
             return new ShippingAgentRepresentativeDto
             {
                 RepresentativeId = representative.RepresentativeId?.Value.ToString() ?? string.Empty,
@@ -105,10 +105,9 @@ namespace PortProject.Api.Application.ShippingAgentsRepresentative.Services
             var representative = await _representativeRepository.GetByIdAsync(repId);
             if (representative == null)
                 return false;
-            // Remove from context and save
-            // If repository does not have Remove, use context directly or add method
-            // For now, not implemented
-            return false;
+            
+            await _representativeRepository.DeleteAsync(representative);
+            return true;
         }
 
         public async Task<IEnumerable<ShippingAgentRepresentativeDto>> GetByOrganizationIdAsync(string organizationId)
