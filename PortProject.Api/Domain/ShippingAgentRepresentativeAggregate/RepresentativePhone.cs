@@ -12,9 +12,11 @@ namespace PortProject.Api.Domain.ShippingAgentRepresentativeAggregate
         {
             if (string.IsNullOrWhiteSpace(value))
                 throw new ArgumentException("Phone number cannot be empty.", nameof(value));
-            // Simple validation: only digits, spaces, +, -
-            if (!Regex.IsMatch(value, @"^[\d\s\+\-]+$"))
-                throw new ArgumentException("Invalid phone number format.", nameof(value));
+
+            // Portuguese mobile numbers: must start with 9 and have exactly 9 digits
+            if (!Regex.IsMatch(value, @"^9\d{8}$"))
+                throw new ArgumentException("Invalid phone number. It must have 9 digits and start with 9.", nameof(value));
+
             Value = value;
         }
 
