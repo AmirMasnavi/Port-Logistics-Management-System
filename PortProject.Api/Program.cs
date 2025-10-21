@@ -21,11 +21,13 @@ using src.Infrastructure.VesselAggregate;
 using src.Infrastructure.VesselTypeAggregate;
 using PortProject.Api.Application.Qualifications;
 using PortProject.Api.Application.Qualifications.Services;
+using PortProject.Api.Application.Resources.Services;
 using PortProject.Api.Application.ShippingAgentsOrganization.Services;
 using PortProject.Api.Application.ShippingAgentsRepresentative.Services;
 using PortProject.Api.Application.VesselVisitNotification;
 using PortProject.Api.Application.VesselVisitNotification.Services;
 using PortProject.Api.Domain.DockAggregate;
+using PortProject.Api.Domain.ResourceAggregate;
 using PortProject.Api.Domain.ShippingAgentOrganizationAggregate;
 using PortProject.Api.Domain.ShippingAgentRepresentativeAggregate;
 using PortProject.Api.Domain.VesselVisitNotificationAggregate;
@@ -70,7 +72,8 @@ builder.Services.AddScoped<IVesselVisitNotificationService, VesselVisitNotificat
 builder.Services.AddScoped<IVesselVisitNotificationRepository, VesselVisitNotificationRepository>();
 builder.Services.AddScoped<IDockRepository, DockRepository>();
 builder.Services.AddScoped<IDockService, DockService>();
-
+builder.Services.AddScoped<IResourceService, ResourceService>();
+builder.Services.AddScoped<IResourceRepository, ResourceRepository>();
 
 
 var app = builder.Build();

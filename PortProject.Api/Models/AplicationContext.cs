@@ -7,11 +7,13 @@ using PortProject.Api.Domain.StaffMemberAggregate;
 using PortProject.Api.Domain.VesselAggregate;
 using PortProject.Api.Domain.StorageAggregate;
 using PortProject.Api.Domain.DockAggregate;
+using PortProject.Api.Domain.ResourceAggregate;
 using PortProject.Api.Domain.ShippingAgentOrganizationAggregate;
 using PortProject.Api.Domain.ShippingAgentRepresentativeAggregate;
 using PortProject.Api.Domain.VesselTypeAggregate;
 using PortProject.Api.Domain.VesselVisitNotificationAggregate;
 using src.Domain.VesselTypeAggregate;
+using System.Text.Json;
 
 namespace PortProject.Api.Models;
 
@@ -34,6 +36,8 @@ public class PortProjectContext : DbContext
     public DbSet<ShippingAgentOrganization> ShippingAgentOrganizations { get; set; }
     public DbSet<ShippingAgentRepresentative> ShippingAgentRepresentatives { get; set; }
     public DbSet<VesselVisitNotification> VesselVisitNotifications { get; set; }
+    
+    public DbSet<Resource> Resources { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -470,6 +474,115 @@ public class PortProjectContext : DbContext
                 .HasConversion(id => id.Value, val => new MecanographicNumber(val))
                 .IsRequired();
         });
+
+        // === RESOURCE CONFIGURATION ===
+        var resourceBuilder = modelBuilder.Entity<PortProject.Api.Domain.ResourceAggregate.Resource>();
+
+        // Primary key on Code (Value Object -> string)
+        resourceBuilder.HasKey(r => r.Code);
+        resourceBuilder.Property(r => r.Code)
+            .HasConversion(
+                code => code.Value,
+                val => new PortProject.Api.Domain.ResourceAggregate.ResourceCode(val))
+            .HasColumnName("Code")
+            .HasMaxLength(50)
+            .IsRequired();
+
+        // Simple enums and scalars
+        resourceBuilder.Property(r => r.Kind)
+            .HasConversion<string>()
+            .HasColumnName("Kind")
+            .IsRequired();
+
+        resourceBuilder.Property(r => r.Status)
+            .HasConversion<string>()
+            .HasColumnName("Status")
+            .IsRequired();
+
+        resourceBuilder.Property(r => r.AssignedArea)
+            .HasColumnName("AssignedArea")
+            .HasMaxLength(100);
+
+        // Description as owned value object
+        resourceBuilder.OwnsOne(r => r.Description, db =>
+        {
+            db.Property(p => p.Description)
+                .HasColumnName("Description")
+                .HasMaxLength(255)
+                .IsRequired();
+        });
+
+        // SetupTime as owned value object
+        resourceBuilder.OwnsOne(r => r.SetupTime, sb =>
+        {
+            sb.Property(p => p.Minutes)
+                .HasColumnName("SetupTimeMinutes")
+                .IsRequired();
+        });
+
+        // OperationalWindow as owned value object (TimeOnly via converter)
+        resourceBuilder.OwnsOne(r => r.OperationalWindow, wb =>
+        {
+            wb.Property(p => p.StartTime)
+                .HasColumnName("OperationalStart")
+                .HasConversion(timeConverter)
+                .IsRequired();
+
+            wb.Property(p => p.EndTime)
+                .HasColumnName("OperationalEnd")
+                .HasConversion(timeConverter)
+                .IsRequired();
+        });
+
+        // OperationalCapacity as owned value object
+        resourceBuilder.OwnsOne(r => r.OperationalCapacity, cb =>
+        {
+            cb.Property(p => p.Kind)
+                .HasConversion<string>()
+                .HasColumnName("CapacityKind")
+                .IsRequired();
+
+            cb.Property(p => p.AverageContainersPerHour)
+                .HasColumnName("AvgContainersPerHour");
+
+            cb.Property(p => p.ContainersPerTrip)
+                .HasColumnName("ContainersPerTrip");
+
+            cb.Property(p => p.AverageSpeedKmh)
+                .HasColumnName("AverageSpeedKmh");
+
+            cb.Property(p => p.Unit)
+                .HasColumnName("CapacityUnit")
+                .HasMaxLength(50);
+
+            cb.Property(p => p.GenericValue)
+                .HasColumnName("CapacityValue");
+        });
+
+        // QualificationRequirements stored as CSV string in a single column using backing field
+        var stringListConverter = new ValueConverter<List<string>, string>(
+            v => string.Join("|", (v ?? new List<string>()).Where(s => !string.IsNullOrWhiteSpace(s))),
+            v => string.IsNullOrWhiteSpace(v)
+                ? new List<string>()
+                : v.Split('|', StringSplitOptions.RemoveEmptyEntries).Select(s => s.Trim()).ToList()
+        );
+
+        var stringListComparer = new ValueComparer<List<string>>(
+            (l, r) => ReferenceEquals(l, r) || (l != null && r != null && l.OrderBy(x => x).SequenceEqual(r.OrderBy(x => x))),
+            v => v == null ? 0 : v.OrderBy(x => x).Aggregate(0, (acc, s) => HashCode.Combine(acc, (s == null ? 0 : s.GetHashCode()))),
+            v => v == null ? new List<string>() : v.ToList()
+        );
+
+        resourceBuilder.Property<List<string>>("_qualificationRequirements")
+            .HasColumnName("QualificationRequirements")
+            .HasConversion(stringListConverter)
+            .Metadata.SetValueComparer(stringListComparer);
+
+        // Ignore the public read-only property to avoid EF trying to map it
+        resourceBuilder.Ignore(r => r.QualificationRequirements);
+
+        // Optional: default table name
+        resourceBuilder.ToTable("Resources");
 
         base.OnModelCreating(modelBuilder);
     }
