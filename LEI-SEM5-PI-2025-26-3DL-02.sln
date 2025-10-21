@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PortProject.Api", "PortProj
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PortProject.Api.Tests", "PortProject.Api.Tests\PortProject.Api.Tests.csproj", "{FD418360-4188-4E62-8D8C-B5610A1B84E9}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PortProject.Api.Integration_Tests", "PortProject.Api.Integration_Tests\PortProject.Api.Integration_Tests.csproj", "{D2876DF2-2CBE-4118-8E76-201443151001}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,5 +29,9 @@ Global
 		{FD418360-4188-4E62-8D8C-B5610A1B84E9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FD418360-4188-4E62-8D8C-B5610A1B84E9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FD418360-4188-4E62-8D8C-B5610A1B84E9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D2876DF2-2CBE-4118-8E76-201443151001}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D2876DF2-2CBE-4118-8E76-201443151001}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D2876DF2-2CBE-4118-8E76-201443151001}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D2876DF2-2CBE-4118-8E76-201443151001}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

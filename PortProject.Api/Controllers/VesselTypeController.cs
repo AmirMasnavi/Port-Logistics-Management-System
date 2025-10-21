@@ -129,10 +129,16 @@ using System.Threading.Tasks;
         /// Searches Vessel Types by name or description.
         /// </summary>
         [HttpGet("search")]
-        public async Task<ActionResult<IEnumerable<VesselTypeDto>>> SearchVesselTypes([FromQuery] string searchTerm)
+        public async Task<ActionResult<IEnumerable<VesselTypeDto>>> SearchVesselTypes([FromQuery] string? searchTerm = null)
         {
             try
             {
+                // normalize empty to null so repository treats it as no filter
+                if (string.IsNullOrWhiteSpace(searchTerm))
+                {
+                    searchTerm = null;
+                }
+
                 var vesselTypes = await _service.SearchVesselTypesAsync(searchTerm);
                 return Ok(vesselTypes);
             }

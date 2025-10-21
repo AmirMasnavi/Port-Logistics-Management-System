@@ -1,4 +1,4 @@
-using System.Text.Json.Serialization;
+using Newtonsoft.Json.Converters;
 using Microsoft.OpenApi.Models;
 using PortProject.Api.Models;
 using Microsoft.EntityFrameworkCore;
@@ -35,10 +35,10 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllers()
-    .AddJsonOptions(options =>
+    .AddNewtonsoftJson(options =>
     {
-        // This converter tells the API to always use strings for enums
-        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+        // preserve enum-as-string behavior
+        options.SerializerSettings.Converters.Add(new StringEnumConverter());
     });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
@@ -92,3 +92,6 @@ app.MapControllers();
 
 
 app.Run();
+
+// Expose the implicit Program type to allow integration tests to reference it
+public partial class Program { }
