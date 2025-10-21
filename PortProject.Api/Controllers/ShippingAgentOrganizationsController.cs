@@ -78,14 +78,14 @@ namespace PortProject.Api.Controllers
         //     }
         // }
 
-        /// <summary>
-        /// Gets all representatives for a specific organization.
-        /// </summary>
-        [HttpGet("{organizationId}/representatives")]
-        public async Task<ActionResult<IEnumerable<ShippingAgentRepresentativeDto>>> GetRepresentativesForOrganization(string organizationId)
-        {
-            // This endpoint should query representatives by organizationId, not from the org DTO
-            return StatusCode(501, "Not implemented: Query representatives by organizationId directly.");
-        }
+        // /// <summary>
+        // /// Gets all representatives for a specific organization.
+        // /// </summary>
+        // [HttpGet("{organizationId}/representatives")]
+        // public async Task<ActionResult<IEnumerable<ShippingAgentRepresentativeDto>>> GetRepresentativesForOrganization(string organizationId)
+        // {
+        //     // This endpoint should query representatives by organizationId, not from the org DTO
+        //     return StatusCode(501, "Not implemented: Query representatives by organizationId directly.");
+        // }
     }
 }
