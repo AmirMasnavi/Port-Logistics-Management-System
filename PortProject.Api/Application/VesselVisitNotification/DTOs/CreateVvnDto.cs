@@ -7,4 +7,5 @@ public class CreateVvnDto
     public string VesselImo { get; set; }
     public CreateCargoDto Cargo { get; set; }
     public string RepresentativeId { get; set; }
+    public List<CreateCrewMemberDto>? CrewMembers { get; set; }
 }

@@ -28,6 +28,10 @@ public class VesselVisitNotificationService : IVesselVisitNotificationService
             dto.Cargo.Weight,
             dto.Cargo.Containers.Select(c => new Container(new ContainerCode(c.ContainerCode), c.Position)).ToList()
         );
+        
+        var crewMembers = dto.CrewMembers? // Check if the list is provided
+            .Select(cmDto => new CrewMember(cmDto.Name, cmDto.Nationality, cmDto.IsSafetyOfficer))
+            .ToList();
 
         // 2. Use the Domain's factory method
         var newNotification = Domain.VesselVisitNotificationAggregate.VesselVisitNotification.Create(
@@ -35,8 +39,14 @@ public class VesselVisitNotificationService : IVesselVisitNotificationService
             new ETD(dto.EstimatedDeparture),
             new ImoNumber(dto.VesselImo),
             new RepresentativeId(Guid.Parse(representativeId)),
-            cargo
+            cargo,
+            crewMembers
         );
+        
+        if (newNotification.CrewMembers.Any())
+        {
+            _context.AddRange(newNotification.CrewMembers);
+        }
 
         // 3. Persist the new entity
         await _vvnRepo.AddAsync(newNotification);
@@ -56,9 +66,13 @@ public class VesselVisitNotificationService : IVesselVisitNotificationService
             dto.Cargo.Weight,
             dto.Cargo.Containers.Select(c => new Container(new ContainerCode(c.ContainerCode), c.Position)).ToList()
         );
+        
+        var newCrewMembers = dto.CrewMembers?
+            .Select(cmDto => new CrewMember(cmDto.Name, cmDto.Nationality, cmDto.IsSafetyOfficer))
+            .ToList();
 
         // Use the domain method to perform the update
-        notification.UpdateDetails(new ETA(dto.EstimatedArrival), new ETD(dto.EstimatedDeparture), newCargo);
+        notification.UpdateDetails(new ETA(dto.EstimatedArrival), new ETD(dto.EstimatedDeparture), newCargo, newCrewMembers);
 
         await _context.SaveChangesAsync();
         return MapToDto(notification);
