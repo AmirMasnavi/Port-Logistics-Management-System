@@ -453,7 +453,8 @@ public class PortProjectContext : DbContext
             cmBuilder.WithOwner().HasForeignKey("VvnId");
             cmBuilder.HasKey(cm => cm.Id);
             cmBuilder.Property(cm => cm.Id)
-                .HasConversion(id => id.Value, val => new CrewMemberId(val));
+                .HasConversion(id => id.Value, val => new CrewMemberId(val))
+                .ValueGeneratedNever();
             cmBuilder.Property(cm => cm.Name).IsRequired();
             cmBuilder.Property(cm => cm.Nationality).IsRequired();
             cmBuilder.Property(cm => cm.IsSafetyOfficer).IsRequired();

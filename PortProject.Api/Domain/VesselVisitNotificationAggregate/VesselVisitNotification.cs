@@ -30,7 +30,7 @@ public class VesselVisitNotification // We will add inheritance and interfaces l
     private VesselVisitNotification() { }
 
     // Public constructor for creating a new notification
-    private VesselVisitNotification(ETA eta, ETD etd, ImoNumber vesselId, RepresentativeId submittedBy, Cargo cargo)
+    private VesselVisitNotification(ETA eta, ETD etd, ImoNumber vesselId, RepresentativeId submittedBy, Cargo cargo, List<CrewMember>? crewMembers)
     {
         Id = new NotificationId(Guid.NewGuid());
         Status = NotificationStatus.InProgress; // Always starts as 'In Progress' [cite: 312]
@@ -39,17 +39,21 @@ public class VesselVisitNotification // We will add inheritance and interfaces l
         VesselId = vesselId;
         SubmittedBy = submittedBy;
         Cargo = cargo;
+        if (crewMembers != null) // Add provided crew members
+        {
+            _crewMembers.AddRange(crewMembers);
+        }
     }
 
     // Static Factory Method for clean creation
-    public static VesselVisitNotification Create(ETA eta, ETD etd, ImoNumber vesselId, RepresentativeId submittedBy, Cargo cargo)
+    public static VesselVisitNotification Create(ETA eta, ETD etd, ImoNumber vesselId, RepresentativeId submittedBy, Cargo cargo, List<CrewMember>? crewMembers)
     {
         // Add any creation-specific business rules here
         if (eta.Value >= etd.Value)
         {
             throw new ArgumentException("Estimated arrival must be before estimated departure.");
         }
-        return new VesselVisitNotification(eta, etd, vesselId, submittedBy, cargo);
+        return new VesselVisitNotification(eta, etd, vesselId, submittedBy, cargo, crewMembers);
     }
     
     // --- Business Logic Methods ---
@@ -65,7 +69,7 @@ public class VesselVisitNotification // We will add inheritance and interfaces l
     }
     
     // Placeholder for US 2.2.9
-    public void UpdateDetails(ETA newEta, ETD newEtd, Cargo newCargo)
+    public void UpdateDetails(ETA newEta, ETD newEtd, Cargo newCargo, List<CrewMember>? newCrewMembers)
     {
         if (Status != NotificationStatus.InProgress)
         {
@@ -74,6 +78,11 @@ public class VesselVisitNotification // We will add inheritance and interfaces l
         EstimatedArrival = newEta;
         EstimatedDeparture = newEtd;
         Cargo = newCargo;
+        _crewMembers.Clear();
+        if (newCrewMembers != null)
+        {
+            _crewMembers.AddRange(newCrewMembers);
+        }
     }
     
     public void Approve(MecanographicNumber officerId, DockId dockId)
