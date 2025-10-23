@@ -7,7 +7,6 @@ namespace PortProject.Api.Domain.StorageAggregate
         public StorageAreaLocation Location { get; private set; }
         public StorageAreaType Type { get; private set; }
         public StorageCapacity Capacity { get; private set; }
-        public StorageAreaId Id { get; private set; }
         
         // Constructor for Entity Framework
         protected StorageArea()
@@ -15,7 +14,6 @@ namespace PortProject.Api.Domain.StorageAggregate
             Location = null!;
             Type = default;
             Capacity = null!;
-            Id = null!;
         }
         
         public StorageArea(StorageAreaLocation location, StorageAreaType type, StorageCapacity capacity)

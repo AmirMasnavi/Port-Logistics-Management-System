@@ -3,15 +3,9 @@
 	
 	<s:String x:Key="/Default/Environment/UnitTesting/CreateUnitTestDialog/TestProjectMapping/=0F2E08FE_002D7B5B_002D4453_002DA5B9_002DFEC4B18303CD/@EntryIndexedValue">FD418360-4188-4E62-8D8C-B5610A1B84E9</s:String>
 	<s:String x:Key="/Default/Environment/UnitTesting/CreateUnitTestDialog/TestTemplateMapping/=MSTest/@EntryIndexedValue">d6790ab7-33c2-4425-b2c9-51480cd1a852</s:String>
-	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=99267075_002D7a2d_002D464f_002D8d16_002D36f63bb6d76b/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="All tests from ShippingAgentRepresentativeTest.cs" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
-  &lt;ProjectFile&gt;D2876DF2-2CBE-4118-8E76-201443151001/f:ShippingAgentRepresentativeTest.cs&lt;/ProjectFile&gt;
+	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=fe8832f8_002D6c1f_002D47be_002Db613_002D8d9c610588f3/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="All tests from ShippingAgentRepresentativeServiceTest.cs" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
+  &lt;ProjectFile&gt;FD418360-4188-4E62-8D8C-B5610A1B84E9/d:Application/d:ShippingAgentRepresentative/f:ShippingAgentRepresentativeServiceTest.cs&lt;/ProjectFile&gt;
 &lt;/SessionState&gt;</s:String>
-	
-	
-	
-	
-	
-	
 	
 	
 	</wpf:ResourceDictionary>
