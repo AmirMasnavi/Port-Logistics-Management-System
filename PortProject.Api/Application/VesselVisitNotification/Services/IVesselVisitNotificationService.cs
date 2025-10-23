@@ -34,5 +34,8 @@ namespace PortProject.Api.Application.VesselVisitNotification.Services
             DateTime? from,
             DateTime? to
         );
+        
+        Task<List<VesselVisitNotificationDto>> GetNotificationsForRepresentativeAsync(VvnSearchFilterDto filter);
+
     }
 }

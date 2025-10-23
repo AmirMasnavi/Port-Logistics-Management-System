@@ -387,21 +387,27 @@ public class PortProjectContext : DbContext
         // 2. Foreign Keys to other Aggregates
         vvnBuilder.Property(vvn => vvn.VesselId)
             .HasConversion(id => id.Value, val => new ImoNumber(val))
+            .HasColumnName("VesselImo") 
             .IsRequired();
+        
+        vvnBuilder.Property(vvn => vvn.SubmittedBy)
+            .HasConversion(id => id.Value, val => new RepresentativeId(val))
+            .HasColumnName("SubmittedBy")
+            .IsRequired();
+        
         vvnBuilder.HasOne<Vessel>()
             .WithMany()
             .HasForeignKey(vvn => vvn.VesselId);
 
-        vvnBuilder.Property(vvn => vvn.SubmittedBy)
-            .HasConversion(id => id.Value, val => new RepresentativeId(val))
-            .IsRequired();
-        vvnBuilder.HasOne<ShippingAgentRepresentative>()
+       vvnBuilder.HasOne<ShippingAgentRepresentative>()
             .WithMany()
             .HasForeignKey(vvn => vvn.SubmittedBy);
 
         // 3. Simple Value Objects & Enums
         vvnBuilder.Property(vvn => vvn.Status)
-            .HasConversion(status => status.ToString(), str => Enum.Parse<NotificationStatus>(str));
+            .HasConversion(status => status.ToString(), str => Enum.Parse<NotificationStatus>(str))
+            .HasColumnName("Status")
+            .IsRequired();
 
         vvnBuilder.OwnsOne(vvn => vvn.EstimatedArrival, etaBuilder =>
         {
@@ -416,10 +422,12 @@ public class PortProjectContext : DbContext
                 .HasColumnName("ETD")
                 .IsRequired();
         });
+        
 
         // 4. Dock assignment
         vvnBuilder.Property(vvn => vvn.AssignedDockId)
             .HasConversion(id => id.Value, val => new DockId(val))
+            .HasColumnName("AssignedDockId")
             .IsRequired(false);
 
         vvnBuilder.HasOne<Dock>()
