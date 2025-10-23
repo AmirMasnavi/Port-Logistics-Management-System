@@ -71,25 +71,55 @@ public class VesselVisitNotificationController : ControllerBase
     [HttpPost("{id}/approve")]
     public async Task<IActionResult> ApproveVvn(string id, [FromBody] ApproveVvnDto dto)
     {
-        var result = await _service.ApproveAsync(id, dto);
-        if (result == null) return NotFound($"Notification {id} not found.");
-        return Ok(result);
+        try
+        {
+            var result = await _service.ApproveAsync(id, dto);
+            return Ok(result);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = $"Cannot approve notification: {ex.Message}" });
+        }
     }
 
     [HttpPost("{id}/reject")]
     public async Task<IActionResult> RejectVvn(string id, [FromBody] RejectVvnDto dto)
     {
-        var result = await _service.RejectAsync(id, dto);
-        if (result == null) return NotFound($"Notification {id} not found.");
-        return Ok(result);
+        try
+        {
+            var result = await _service.RejectAsync(id, dto);
+            return Ok(result);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = $"Cannot reject notification: {ex.Message}" });
+        }
     }
+
 
     [HttpPatch("{id}/reopen")]
     public async Task<IActionResult> ReopenVvn(string id)
     {
-        var result = await _service.ReopenAsync(id);
-        if (result == null) return NotFound($"Notification {id} not found or not rejected.");
-        return Ok(result);
+        try
+        {
+            var result = await _service.ReopenAsync(id);
+            if (result == null)
+                return NotFound(new { message = $"Notification {id} not found or not rejected." });
+
+            return Ok(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = $"Cannot reopen notification: {ex.Message}" });
+        }
     }
 
     
