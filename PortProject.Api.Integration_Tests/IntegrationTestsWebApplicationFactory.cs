@@ -4,6 +4,7 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using PortProject.Api.Models;
+using PortProject.Api.Integration_Tests.Helpers;
 
 namespace PortProject.Api.Integration_Tests;
 
@@ -44,20 +45,14 @@ public class IntegrationTestsWebApplicationFactory<TProgram> : WebApplicationFac
                 var db = scope.ServiceProvider.GetRequiredService<PortProjectContext>();
                 db.Database.EnsureCreated();
 
-                // Seed initial data for tests (if utility exists)
+                // Seed initial data for tests if available in this test project
                 try
                 {
-                    // VesselTypeUtilities.InitializeDbForTests may live in a helpers project; ignore if not present at compile time
-                    var utilsType = System.Type.GetType("PortProject_IntegrationTests.Helpers.VesselTypeUtilities, PortProject_IntegrationTests");
-                    if (utilsType != null)
-                    {
-                        var method = utilsType.GetMethod("InitializeDbForTests");
-                        method?.Invoke(null, new object[] { db });
-                    }
+                    VesselTypeUtilities.InitializeDbForTests(db);
                 }
                 catch (System.Exception)
                 {
-                    // Ignore seeding errors here; tests can seed explicitly if needed
+                    // If seeding fails, ignore here; tests can seed explicitly when required
                 }
             }
         });
