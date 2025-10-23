@@ -1,6 +1,8 @@
-﻿namespace PortProject.Api.Domain.StorageAggregate
+﻿using src.Domain.Shared;
+
+namespace PortProject.Api.Domain.StorageAggregate
 {
-    public class StorageArea
+    public class StorageArea : Entity<StorageAreaId>, IAggregateRoot
     {
         public StorageAreaLocation Location { get; private set; }
         public StorageAreaType Type { get; private set; }
