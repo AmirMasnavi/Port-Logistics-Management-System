@@ -6,8 +6,9 @@ namespace PortProject.Api.Domain.ShippingAgentRepresentativeAggregate
     {
         public RepresentativeId RepresentativeId { get; private set; }
 
-        // ✅ FK explícita (não nula)
-        public OrganizationId OrganizationId { get; private set; }
+
+        // ✅ FK explícita (pode ser nula até ser associada)
+        public OrganizationId? OrganizationId { get; private set; }
 
         public CitizenId CitizenId { get; private set; }
         public RepresentativeName RepresentativeName { get; private set; }
@@ -32,8 +33,8 @@ namespace PortProject.Api.Domain.ShippingAgentRepresentativeAggregate
             RepresentativeEmail = representativeEmail ?? throw new ArgumentNullException(nameof(representativeEmail));
         }
 
-        // ✅ método interno para a Organização “colar” o representante
-        internal void AttachToOrganization(OrganizationId organizationId)
+        // ✅ método para a Organização “colar” o representante (tornado público para os testes)
+        public void AttachToOrganization(OrganizationId organizationId)
         {
             OrganizationId = organizationId ?? throw new ArgumentNullException(nameof(organizationId));
         }
