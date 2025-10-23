@@ -28,4 +28,13 @@ public class QualificationRepository : IQualificationRepository
     {
         return await _context.Qualifications.ToListAsync();
     }
+    
+    public Task UpdateAsync(Qualification qualification)
+    {
+        // Mark the entity as modified. EF Core will generate the UPDATE statement
+        // when SaveChangesAsync is called in the service.
+        _context.Entry(qualification).State = EntityState.Modified;
+        // No SaveChangesAsync here; the service/unit of work handles that.
+        return Task.CompletedTask;
+    }
 }

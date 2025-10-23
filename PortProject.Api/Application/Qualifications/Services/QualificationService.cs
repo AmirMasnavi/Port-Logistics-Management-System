@@ -56,4 +56,34 @@ public class QualificationService : IQualificationService
             Description = qualification.Description.Value
         };
     }
+    
+    // --- ADD THIS METHOD ---
+    public async Task<QualificationDto?> UpdateAsync(string code, UpdateQualificationDto dto)
+    {
+        // 1. Find the existing qualification
+        var qualificationCode = new QualificationCode(code); // Validate code format
+        var qualification = await _qualificationRepository.GetByCodeAsync(qualificationCode);
+
+        if (qualification == null)
+        {
+            return null; // Or throw KeyNotFoundException
+        }
+
+        // 2. Create new Value Objects for the updated data (includes validation)
+        var newName = new QualificationName(dto.Name);
+        var newDescription = new QualificationDescription(dto.Description);
+
+        // 3. Use the domain entity's methods to update its state
+        qualification.UpdateName(newName);
+        qualification.UpdateDescription(newDescription);
+
+        // 4. (Optional but good practice) Explicitly tell the repository to update
+        await _qualificationRepository.UpdateAsync(qualification);
+
+        // 5. Save changes to the database
+        await _context.SaveChangesAsync();
+
+        // 6. Map the updated entity back to a DTO
+        return MapToDto(qualification);
+    }
 }

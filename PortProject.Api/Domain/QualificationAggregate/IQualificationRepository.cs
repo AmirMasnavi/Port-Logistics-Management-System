@@ -7,4 +7,5 @@ public interface IQualificationRepository
     Task AddAsync(Qualification qualification);
     Task<Qualification?> GetByCodeAsync(QualificationCode code);
     Task<IEnumerable<Qualification>> GetAllAsync();
+    Task UpdateAsync(Qualification qualification);
 }
