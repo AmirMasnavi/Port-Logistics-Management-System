@@ -262,6 +262,12 @@ public class VesselTypeTest : IClassFixture<IntegrationTestsWebApplicationFactor
         using (var scope = _factory.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<PortProjectContext>();
+            
+            // Remove all vessels first to avoid FK constraint violations
+            db.Vessels.RemoveRange(db.Vessels);
+            db.SaveChanges();
+            
+            // Then reinitialize VesselTypes
             VesselTypeUtilities.ReinitializeDbForTests(db);
         }
 
@@ -284,6 +290,11 @@ public class VesselTypeTest : IClassFixture<IntegrationTestsWebApplicationFactor
         using (var scope = _factory.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<PortProjectContext>();
+            
+            // Remove all vessels first to avoid FK constraint violations
+            db.Vessels.RemoveRange(db.Vessels);
+            db.SaveChanges();
+            
             VesselTypeUtilities.ReinitializeDbForTests(db);
         }
 

@@ -45,15 +45,8 @@ public class IntegrationTestsWebApplicationFactory<TProgram> : WebApplicationFac
                 var db = scope.ServiceProvider.GetRequiredService<PortProjectContext>();
                 db.Database.EnsureCreated();
 
-                // Seed initial data for tests if available in this test project
-                try
-                {
-                    VesselTypeUtilities.InitializeDbForTests(db);
-                }
-                catch (System.Exception)
-                {
-                    // If seeding fails, ignore here; tests can seed explicitly when required
-                }
+                // Note: Seeding is done explicitly in each test to ensure clean state
+                // and avoid tracking conflicts between tests
             }
         });
 
