@@ -7,7 +7,6 @@ namespace src.Domain.Shared
     /// Base class for entities.
     /// </summary>
     public abstract class Entity<TEntityId>
-    where TEntityId: EntityId
     {
          public TEntityId Id { get;  set; }
     }
