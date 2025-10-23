@@ -11,8 +11,8 @@ using PortProject.Api.Models;
 namespace PortProject.Api.Migrations
 {
     [DbContext(typeof(PortProjectContext))]
-    [Migration("20251021180157_ResourcesTable")]
-    partial class ResourcesTable
+    [Migration("20251023120843_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

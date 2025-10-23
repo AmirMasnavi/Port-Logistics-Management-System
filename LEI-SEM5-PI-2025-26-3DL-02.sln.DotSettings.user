@@ -3,21 +3,18 @@
 	
 	<s:String x:Key="/Default/Environment/UnitTesting/CreateUnitTestDialog/TestProjectMapping/=0F2E08FE_002D7B5B_002D4453_002DA5B9_002DFEC4B18303CD/@EntryIndexedValue">FD418360-4188-4E62-8D8C-B5610A1B84E9</s:String>
 	<s:String x:Key="/Default/Environment/UnitTesting/CreateUnitTestDialog/TestTemplateMapping/=MSTest/@EntryIndexedValue">d6790ab7-33c2-4425-b2c9-51480cd1a852</s:String>
-	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=6ff63162_002Db156_002D4af8_002D853b_002D294012f5db2e/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="MecanographicNumberTest" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
-  &lt;Or&gt;
-    &lt;ProjectFolder&gt;FD418360-4188-4E62-8D8C-B5610A1B84E9/d:Domain/d:StaffMemberAggregate&lt;/ProjectFolder&gt;
-    &lt;TestAncestor&gt;
-      &lt;TestId&gt;MSTest::FD418360-4188-4E62-8D8C-B5610A1B84E9::net9.0::PortProject.Api.Tests.Controllers.StaffMembersControllerTest&lt;/TestId&gt;
-      &lt;TestId&gt;MSTest::FD418360-4188-4E62-8D8C-B5610A1B84E9::net9.0::PortProject.Api.Tests.Application.StaffMembers.Services.StaffMemberServiceTest&lt;/TestId&gt;
-      &lt;TestId&gt;MSTest::FD418360-4188-4E62-8D8C-B5610A1B84E9::net9.0::PortProject.Api.Tests.Domain.QualificationAggregate.QualificationTests&lt;/TestId&gt;
-      &lt;TestId&gt;MSTest::FD418360-4188-4E62-8D8C-B5610A1B84E9::net9.0::PortProject.Api.Tests.Application.Qualifications.Services.QualificationServiceTest&lt;/TestId&gt;
-      &lt;TestId&gt;MSTest::FD418360-4188-4E62-8D8C-B5610A1B84E9::net9.0::PortProject.Api.Tests.Controllers.QualificationsControllerTest&lt;/TestId&gt;
-    &lt;/TestAncestor&gt;
-    &lt;ProjectFile&gt;D2876DF2-2CBE-4118-8E76-201443151001/f:VesselTypeTest.cs&lt;/ProjectFile&gt;
-    &lt;Project Location="/Users/inesgomesoliveira/Desktop/LEI-SEM5-PI-2025-26-3DL-02/PortProject.Api.Tests" Presentation="&amp;lt;PortProject.Api.Tests&amp;gt;" /&gt;
-    &lt;ProjectFile&gt;FD418360-4188-4E62-8D8C-B5610A1B84E9/d:Application/d:ShippingAgent/f:ShippingAgentOrganizationServiceTest.cs&lt;/ProjectFile&gt;
-    &lt;ProjectFile&gt;FD418360-4188-4E62-8D8C-B5610A1B84E9/d:Domain/d:ShippingAgentRepresentativeAggregate/f:ShippingAgentRepresentativeTest.cs&lt;/ProjectFile&gt;
-    &lt;ProjectFile&gt;FD418360-4188-4E62-8D8C-B5610A1B84E9/d:Controllers/f:ShippingAgentOrganizationsControllerTest.cs&lt;/ProjectFile&gt;
-    &lt;ProjectFile&gt;FD418360-4188-4E62-8D8C-B5610A1B84E9/d:Controllers/f:ShippingAgentRepresentativesControllerTest.cs&lt;/ProjectFile&gt;
-  &lt;/Or&gt;
-&lt;/SessionState&gt;</s:String></wpf:ResourceDictionary>
+	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=beed8ac5_002D59bb_002D4c0c_002D8d6e_002D7a787c2f3c34/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="DeleteDockAsync_ExistingDock_DeletesSuccessfully" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
+  &lt;Or&gt;&#xD;
+    &lt;Project Location="C:\Users\Mariana Sarrmento\RiderProjects\LEI-SEM5-PI-2025-26-3DL-02\PortProject.Api.Tests" Presentation="&amp;lt;PortProject.Api.Tests&amp;gt;" /&gt;&#xD;
+    &lt;TestAncestor&gt;&#xD;
+      &lt;TestId&gt;xUnit::D2876DF2-2CBE-4118-8E76-201443151001::net9.0::PortProject.Api.Integration_Tests.DockTest&lt;/TestId&gt;&#xD;
+    &lt;/TestAncestor&gt;&#xD;
+    &lt;Project Location="C:\Users\Mariana Sarrmento\RiderProjects\LEI-SEM5-PI-2025-26-3DL-02\PortProject.Api.Integration_Tests" Presentation="&amp;lt;PortProject.Api.Integration_Tests&amp;gt;" /&gt;&#xD;
+  &lt;/Or&gt;&#xD;
+&lt;/SessionState&gt;</s:String>
+	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=fe8832f8_002D6c1f_002D47be_002Db613_002D8d9c610588f3/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="All tests from ShippingAgentRepresentativeServiceTest.cs" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
+  &lt;ProjectFile&gt;FD418360-4188-4E62-8D8C-B5610A1B84E9/d:Application/d:ShippingAgentRepresentative/f:ShippingAgentRepresentativeServiceTest.cs&lt;/ProjectFile&gt;
+&lt;/SessionState&gt;</s:String>
+	
+	
+	</wpf:ResourceDictionary>

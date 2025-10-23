@@ -8,4 +8,5 @@ public class StaffMemberDto
     public string Phone { get; set; }
     public string CurrentStatus { get; set; }
     public string OperationalWindow { get; set; }
+    public List<string> QualificationCodes { get; set; } = new();
 }
