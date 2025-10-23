@@ -10,4 +10,6 @@ public interface IResourceService
     Task<ResourceDto?> GetByCodeAsync(string code);
     
     Task<IEnumerable<ResourceDto>> GetAllAsync(string? nameFilter, ResourceKind? typeFilter);
+    
+    Task<ResourceDto?> EditResourceAsync(string code, EditResourceDto dto);
 }
