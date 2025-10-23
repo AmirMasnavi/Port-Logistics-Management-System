@@ -1,8 +1,20 @@
-﻿namespace PortProject.Api.Domain.VesselVisitNotificationAggregate;
-
-public interface IVesselVisitNotificationRepository
+﻿namespace PortProject.Api.Domain.VesselVisitNotificationAggregate
 {
-    Task AddAsync(VesselVisitNotification notification);
-    Task<VesselVisitNotification?> GetByIdAsync(NotificationId id);
-    Task UpdateAsync(VesselVisitNotification notification);
+    public interface IVesselVisitNotificationRepository
+    {
+        /// <summary>
+        /// Obtém uma notificação de visita de navio pelo seu identificador.
+        /// </summary>
+        Task<VesselVisitNotification?> GetByIdAsync(NotificationId id);
+
+        /// <summary>
+        /// Adiciona uma nova notificação de visita de navio ao repositório.
+        /// </summary>
+        Task AddAsync(VesselVisitNotification notification);
+
+        /// <summary>
+        /// Atualiza uma notificação de visita de navio existente.
+        /// </summary>
+        Task UpdateAsync(VesselVisitNotification notification);
+    }
 }

@@ -68,31 +68,31 @@ public class VesselVisitNotificationController : ControllerBase
             return NotFound(ex.Message);
         }
     }
-    [HttpPatch("{id}/approve")]
-    public async Task<IActionResult> Approve(string id, [FromBody] ApproveVvnDto dto)
+    [HttpPost("{id}/approve")]
+    public async Task<IActionResult> ApproveVvn(string id, [FromBody] ApproveVvnDto dto)
     {
-        try {
-            await _service.ApproveAsync(id, dto.OfficerId, dto.DockId);
-            return NoContent();
-        } catch (KeyNotFoundException ex) {
-            return NotFound(ex.Message);
-        } catch (InvalidOperationException ex) {
-            return BadRequest(ex.Message);
-        }
+        var result = await _service.ApproveAsync(id, dto);
+        if (result == null) return NotFound($"Notification {id} not found.");
+        return Ok(result);
     }
 
-    [HttpPatch("{id}/reject")]
-    public async Task<IActionResult> Reject(string id, [FromBody] RejectVvnDto dto)
+    [HttpPost("{id}/reject")]
+    public async Task<IActionResult> RejectVvn(string id, [FromBody] RejectVvnDto dto)
     {
-        try {
-            await _service.RejectAsync(id, dto.OfficerId, dto.Reason);
-            return NoContent();
-        } catch (KeyNotFoundException ex) {
-            return NotFound(ex.Message);
-        } catch (InvalidOperationException ex) {
-            return BadRequest(ex.Message);
-        }
+        var result = await _service.RejectAsync(id, dto);
+        if (result == null) return NotFound($"Notification {id} not found.");
+        return Ok(result);
     }
+
+    [HttpPatch("{id}/reopen")]
+    public async Task<IActionResult> ReopenVvn(string id)
+    {
+        var result = await _service.ReopenAsync(id);
+        if (result == null) return NotFound($"Notification {id} not found or not rejected.");
+        return Ok(result);
+    }
+
+    
     [HttpGet("search")]
     public async Task<ActionResult<List<VesselVisitNotificationDto>>> Search(
         [FromQuery] string? vesselImo,

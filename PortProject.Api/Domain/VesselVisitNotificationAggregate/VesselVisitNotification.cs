@@ -22,10 +22,8 @@ public class VesselVisitNotification // We will add inheritance and interfaces l
     public Cargo Cargo { get; private set; }
     private readonly List<CrewMember> _crewMembers = new();
     public IReadOnlyCollection<CrewMember> CrewMembers => _crewMembers.AsReadOnly();
-    
     private readonly List<DecisionLogEntry> _decisionLog = new();
-    public IReadOnlyCollection<DecisionLogEntry> DecisionLog => _decisionLog.AsReadOnly();
-
+    public List<DecisionLogEntry> DecisionLog { get; private set; } = new List<DecisionLogEntry>();
     // Private constructor for EF Core
     private VesselVisitNotification() { }
 
@@ -113,6 +111,20 @@ public class VesselVisitNotification // We will add inheritance and interfaces l
             officerId,
             DecisionOutcome.Rejected,
             reason
+        ));
+    }
+    public void Reopen()
+    {
+        if (Status != NotificationStatus.Rejected)
+            throw new InvalidOperationException("Only rejected notifications can be reopened.");
+
+        Status = NotificationStatus.InProgress;
+
+        _decisionLog.Add(new DecisionLogEntry(
+            DateTime.UtcNow,
+            new MecanographicNumber("SYSTEM"), // ou podes passar null se o reopening for automático
+            DecisionOutcome.Reopened,
+            "Notification reopened for revision by shipping agent."
         ));
     }
     

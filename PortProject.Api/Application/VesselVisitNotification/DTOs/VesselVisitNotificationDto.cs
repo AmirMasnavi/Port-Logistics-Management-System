@@ -1,3 +1,5 @@
+using PortProject.Api.Domain.ShippingAgentRepresentativeAggregate;
+
 namespace PortProject.Api.Application.VesselVisitNotification.DTOs;
 
 public class VesselVisitNotificationDto
@@ -12,4 +14,5 @@ public class VesselVisitNotificationDto
     public CargoDto Cargo { get; set; }
     public List<CrewMemberDto> CrewMembers { get; set; }
     public List<DecisionLogEntryDto> DecisionLog { get; set; }
+    public RepresentativeId RepresentativeId { get; set; }
 }
