@@ -192,6 +192,99 @@ public class ResourceService : IResourceService
         return resources.Select(MapToDto).ToList();
     }
 
+
+    public async Task<ResourceDto?> EditResourceAsync(string code, EditResourceDto dto)
+    {
+        if (string.IsNullOrWhiteSpace(code)) return null;
+        if (dto == null) throw new ArgumentNullException(nameof(dto));
+    
+        ResourceCode codeVo;
+        try
+        {
+            codeVo = new ResourceCode(code);
+        }
+        catch
+        {
+            return null;
+        }
+    
+        var resource = await _context.Resources.FirstOrDefaultAsync(r => r.Code == codeVo);
+        if (resource == null) return null;
+    
+        // Update description
+        if (!string.IsNullOrWhiteSpace(dto.Description))
+        {
+            var newDescription = new ResourceDescription(dto.Description);
+            resource.UpdateDescription(newDescription);
+        }
+    
+        // Update operational capacity based on resource kind
+        // Only update if the relevant fields for that kind are provided and valid
+        if (resource.Kind == ResourceKind.Crane && dto.AverageContainersPerHour.HasValue && dto.AverageContainersPerHour.Value > 0)
+        {
+            var newCapacity = ResourceOperationalCapacity.ForCrane(dto.AverageContainersPerHour.Value);
+            resource.UpdateOperationalCapacity(newCapacity);
+        }
+        else if (resource.Kind == ResourceKind.Truck && 
+                 dto.ContainersPerTrip.HasValue && dto.ContainersPerTrip.Value > 0 &&
+                 dto.AverageSpeedKmh.HasValue && dto.AverageSpeedKmh.Value > 0)
+        {
+            var newCapacity = ResourceOperationalCapacity.ForTruck(dto.ContainersPerTrip.Value, dto.AverageSpeedKmh.Value);
+            resource.UpdateOperationalCapacity(newCapacity);
+        }
+        else if (resource.Kind == ResourceKind.Other && 
+                 !string.IsNullOrWhiteSpace(dto.OtherUnit) && 
+                 dto.OtherUnit != "string" && // Ignore default placeholder value
+                 dto.OtherGenericValue.HasValue && 
+                 dto.OtherGenericValue.Value > 0)
+        {
+            var newCapacity = ResourceOperationalCapacity.ForOther(dto.OtherUnit, dto.OtherGenericValue.Value);
+            resource.UpdateOperationalCapacity(newCapacity);
+        }
+    
+        // Update assigned area (allow setting to null or empty)
+        if (dto.AssignedArea != null && dto.AssignedArea != "string") // Ignore default placeholder value
+        {
+            resource.AssignArea(string.IsNullOrWhiteSpace(dto.AssignedArea) ? null : dto.AssignedArea);
+        }
+    
+        // Update qualifications (filter out placeholder values)
+        if (dto.QualificationRequirements != null)
+        {
+            var validQualifications = dto.QualificationRequirements
+                .Where(q => !string.IsNullOrWhiteSpace(q) && q != "string")
+                .ToList();
+            resource.SetQualifications(validQualifications);
+        }
+    
+        // Update status
+        if (!string.IsNullOrWhiteSpace(dto.Status))
+        {
+            if (Enum.TryParse<ResourceStatus>(dto.Status, ignoreCase: true, out var status))
+            {
+                switch (status)
+                {
+                    case ResourceStatus.Active:
+                        resource.Activate();
+                        break;
+                    case ResourceStatus.Inactive:
+                        resource.Deactivate();
+                        break;
+                    case ResourceStatus.UnderMaintenance:
+                        resource.SetUnderMaintenance();
+                        break;
+                }
+            }
+        }
+    
+        await _context.SaveChangesAsync();
+    
+        // Reload the resource from database to ensure all properties are loaded
+        var updatedResource = await _context.Resources.AsNoTracking().FirstOrDefaultAsync(r => r.Code == codeVo);
+        return updatedResource == null ? null : MapToDto(updatedResource);
+    }
+
+
     private ResourceDto MapToDto(Resource r)
     {
         var dto = new ResourceDto

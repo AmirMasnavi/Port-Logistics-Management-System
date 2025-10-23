@@ -50,4 +50,20 @@ public class ResourceController : ControllerBase
 
         return Ok(resultDto);
     }
+
+
+    /// <summary>
+    /// Edits a Resource identified by its Code.
+    /// </summary>
+    [HttpPut("{code}")]
+    public async Task<ActionResult<ResourceDto>> EditResource(string code, EditResourceDto dto)
+    {
+        var resultDto = await _service.EditResourceAsync(code, dto);
+        if (resultDto == null)
+        {
+            return NotFound($"Resource with code {code} not found.");
+        }
+
+        return Ok(resultDto);
+    }
 }

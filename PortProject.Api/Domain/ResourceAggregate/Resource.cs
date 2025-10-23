@@ -53,7 +53,10 @@ public class Resource
     public void SetQualifications(IEnumerable<string> qualifications)
     {
         _qualificationRequirements.Clear();
-        _qualificationRequirements.AddRange(qualifications?.Where(q => !string.IsNullOrWhiteSpace(q)));
+        if (qualifications != null)
+        {
+            _qualificationRequirements.AddRange(qualifications.Where(q => !string.IsNullOrWhiteSpace(q)));
+        }
     }
     
     public void Activate()
