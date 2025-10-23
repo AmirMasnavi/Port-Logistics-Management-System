@@ -35,7 +35,7 @@ namespace PortProject.Api.Domain.VesselTypeAggregate
             OperationalConstraints = operationalConstraints;
         }
 
-       
+     
         /// <summary>
         /// Factory method to create a new VesselType.
         /// </summary>

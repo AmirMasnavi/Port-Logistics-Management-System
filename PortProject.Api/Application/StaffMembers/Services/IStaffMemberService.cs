@@ -11,5 +11,5 @@ public interface IStaffMemberService
     Task<StaffMemberDto> CreateStaffMemberAsync(CreateStaffMemberDto dto);
     Task<StaffMemberDto?> GetByIdAsync(string id);
     Task<StaffMemberDto?> UpdateStatusAsync(string id, UpdateStaffStatusDto dto);
-    Task<IEnumerable<StaffMemberDto>> GetAllAsync(string? nameFilter, StaffStatus? statusFilter);
+    Task<IEnumerable<StaffMemberDto>> GetAllAsync(string? nameFilter, StaffStatus? statusFilter,string? qualificationCode);
 }
