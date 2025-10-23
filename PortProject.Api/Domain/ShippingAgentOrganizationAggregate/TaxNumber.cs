@@ -3,6 +3,9 @@ using System.Text.RegularExpressions;
 
 namespace PortProject.Api.Domain.ShippingAgentOrganizationAggregate
 {
+    /// <summary>
+    /// Represents a validated tax identification number (NIF/VAT/TIN).
+    /// </summary>
     public sealed class TaxNumber : IEquatable<TaxNumber>
     {
         public string Value { get; }
@@ -16,9 +19,23 @@ namespace PortProject.Api.Domain.ShippingAgentOrganizationAggregate
 
             value = value.Trim().ToUpperInvariant();
 
-            // Letras e/ou dígitos, 8–15 chars (ajusta se precisares)
-            if (!Regex.IsMatch(value, @"^[A-Z0-9]{8,15}$"))
-                throw new ArgumentException("Invalid format for the tax identification number (NIF/VAT).", nameof(value));
+            // Padrões aceites:
+            // - Portugal (NIF): 9 dígitos numéricos, o 1º entre 1 e 9
+            // - UE VAT: prefixo de 2 letras + 8-12 dígitos (ex: PT123456789)
+            // - Outros genéricos: 8–15 caracteres alfanuméricos
+            var nifPattern = @"^[1-9][0-9]{8}$";
+            var vatPattern = @"^[A-Z]{2}[0-9A-Z]{8,12}$";
+            var genericPattern = @"^[A-Z0-9]{8,15}$";
+
+            if (!Regex.IsMatch(value, nifPattern) &&
+                !Regex.IsMatch(value, vatPattern) &&
+                !Regex.IsMatch(value, genericPattern))
+            {
+                throw new ArgumentException(
+                    "Invalid format for the tax identification number. " +
+                    "Examples: 123456789 (NIF), PT123456789 (VAT), or alphanumeric 8–15 chars.",
+                    nameof(value));
+            }
 
             Value = value;
         }

@@ -27,6 +27,18 @@ namespace PortProject.Api.Integration_Tests.Helpers
         /// <param name="db">Contexto da base de dados</param>
         public static void ReinitializeDbForTests(PortProjectContext db)
         {
+            // Remove dependent entities first to avoid FK constraint failures
+            try
+            {
+                db.Vessels.RemoveRange(db.Vessels);
+                db.SaveChanges();
+            }
+            catch
+            {
+                // If there are no vessels or removal fails for another reason, continue to try reinitialization
+            }
+
+            // Now remove vessel types and re-seed
             db.VesselTypes.RemoveRange(db.VesselTypes);
             db.SaveChanges();
             InitializeDbForTests(db);
@@ -131,4 +143,3 @@ namespace PortProject.Api.Integration_Tests.Helpers
         }
     }
 }
-

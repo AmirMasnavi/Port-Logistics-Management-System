@@ -37,5 +37,17 @@ namespace PortProject.Api.Infrastructure.Repositories
                 .Where(r => r.OrganizationId == organizationId)
                 .ToListAsync();
         }
+
+        public async Task UpdateAsync(ShippingAgentRepresentative representative)
+        {
+            _context.ShippingAgentRepresentatives.Update(representative);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task DeleteAsync(ShippingAgentRepresentative representative)
+        {
+            _context.ShippingAgentRepresentatives.Remove(representative);
+            await _context.SaveChangesAsync();
+        }
     }
 }

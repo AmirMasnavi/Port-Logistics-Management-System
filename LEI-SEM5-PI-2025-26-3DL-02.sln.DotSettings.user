@@ -15,5 +15,9 @@
     &lt;/TestAncestor&gt;
     &lt;ProjectFile&gt;D2876DF2-2CBE-4118-8E76-201443151001/f:VesselTypeTest.cs&lt;/ProjectFile&gt;
     &lt;Project Location="/Users/inesgomesoliveira/Desktop/LEI-SEM5-PI-2025-26-3DL-02/PortProject.Api.Tests" Presentation="&amp;lt;PortProject.Api.Tests&amp;gt;" /&gt;
+    &lt;ProjectFile&gt;FD418360-4188-4E62-8D8C-B5610A1B84E9/d:Application/d:ShippingAgent/f:ShippingAgentOrganizationServiceTest.cs&lt;/ProjectFile&gt;
+    &lt;ProjectFile&gt;FD418360-4188-4E62-8D8C-B5610A1B84E9/d:Domain/d:ShippingAgentRepresentativeAggregate/f:ShippingAgentRepresentativeTest.cs&lt;/ProjectFile&gt;
+    &lt;ProjectFile&gt;FD418360-4188-4E62-8D8C-B5610A1B84E9/d:Controllers/f:ShippingAgentOrganizationsControllerTest.cs&lt;/ProjectFile&gt;
+    &lt;ProjectFile&gt;FD418360-4188-4E62-8D8C-B5610A1B84E9/d:Controllers/f:ShippingAgentRepresentativesControllerTest.cs&lt;/ProjectFile&gt;
   &lt;/Or&gt;
 &lt;/SessionState&gt;</s:String></wpf:ResourceDictionary>

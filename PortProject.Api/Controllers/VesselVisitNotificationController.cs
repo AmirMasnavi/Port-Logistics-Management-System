@@ -20,8 +20,8 @@ public class VesselVisitNotificationController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<VesselVisitNotificationDto>> Create(CreateVvnDto dto)
     {
-        // In a real app, you'd get the representative ID from the user's authentication token (claims)
-        var representativeId = "f47ac10b-58cc-4372-a567-0e02b2c3d479";
+        // TODO: Replace hardcoded ID with User.FindFirstValue("RepresentativeId") from authenticated user claims
+        var representativeId = "bd1fe3ff-ab5d-47ef-89d1-bdffdeee18cb";
         var result = await _service.CreateAsync(dto, representativeId);
         return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
     }
@@ -89,14 +89,27 @@ public class VesselVisitNotificationController : ControllerBase
 
 
 
-    // Helper endpoint to get a notification by its ID
+// Helper endpoint to get a notification by its ID
     [HttpGet("{id}")]
     public async Task<ActionResult<VesselVisitNotificationDto>> GetById(string id)
     {
-        // This method would need to be added to the service
-        // var result = await _service.GetByIdAsync(id);
-        // if (result == null) return NotFound();
-        // return Ok(result);
-        return Ok(); // Placeholder
+        try
+        {
+            var result = await _service.GetByIdAsync(id);
+            if (result == null)
+            {
+                return NotFound($"Notification with ID '{id}' not found.");
+            }
+            return Ok(result);
+        }
+        catch (FormatException) // Handle if the provided 'id' string is not a valid GUID
+        {
+            return BadRequest("Invalid Notification ID format. Please provide a valid GUID.");
+        }
+        catch (Exception ex) // Catch unexpected errors
+        {
+            Console.WriteLine($"Unexpected Error in GetById: {ex}"); // Replace with proper logging
+            return StatusCode(500, "An unexpected error occurred while retrieving the notification.");
+        }
     }
 }
