@@ -65,7 +65,8 @@ public class StaffMemberService : IStaffMemberService
             Email = staffMember.ContactDetails.Email,
             Phone = staffMember.ContactDetails.Phone,
             CurrentStatus = staffMember.CurrentStatus.ToString(),
-            OperationalWindow = staffMember.OperationalWindow.ToString()
+            OperationalWindow = staffMember.OperationalWindow.ToString(),
+            QualificationCodes = staffMember.Qualifications.Select(q => q.Code.Value).ToList()
         };
     }
     
@@ -97,9 +98,9 @@ public class StaffMemberService : IStaffMemberService
         };
     }
     
-    public async Task<IEnumerable<StaffMemberDto>> GetAllAsync(string? nameFilter, StaffStatus? statusFilter)
+    public async Task<IEnumerable<StaffMemberDto>> GetAllAsync(string? nameFilter, StaffStatus? statusFilter, string? qualificationCode)
     {
-        var staffMembers = await _staffMemberRepository.GetAllAsync(nameFilter, statusFilter);
+        var staffMembers = await _staffMemberRepository.GetAllAsync(nameFilter, statusFilter, qualificationCode);
         
         // Map the list of entities to a list of DTOs
         return staffMembers.Select(sm => new StaffMemberDto {

@@ -75,9 +75,9 @@ public class StaffMembersController : ControllerBase
     /// </summary>
     [HttpGet]
     public async Task<ActionResult<IEnumerable<StaffMemberDto>>> GetAllStaffMembers(
-        [FromQuery] string? name, [FromQuery] StaffStatus? status)
+        [FromQuery] string? name, [FromQuery] StaffStatus? status, [FromQuery] string? qualificationCode)
     {
-        var resultDtos = await _staffMemberService.GetAllAsync(name, status);
+        var resultDtos = await _staffMemberService.GetAllAsync(name, status, qualificationCode);
         return Ok(resultDtos);
     }
 }

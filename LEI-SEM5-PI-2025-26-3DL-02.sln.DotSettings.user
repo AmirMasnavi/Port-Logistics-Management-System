@@ -1,17 +1,8 @@
 ﻿<wpf:ResourceDictionary xml:space="preserve" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:s="clr-namespace:System;assembly=mscorlib" xmlns:ss="urn:shemas-jetbrains-com:settings-storage-xaml" xmlns:wpf="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
-	<s:String x:Key="/Default/CodeInspection/ExcludedFiles/FilesAndFoldersToSkip2/=7020124F_002D9FFC_002D4AC3_002D8F3D_002DAAB8E0240759_002Ff_003ARuntimeHandles_002Ecs_002Fl_003A_002E_002E_003F_002E_002E_003FAppData_003FRoaming_003FJetBrains_003FRider2025_002E2_003Fresharper_002Dhost_003FSourcesCache_003Fdc595b78de4e2f39c3b170db19bef58e7cb33113a7a8c373a696c7602b6b4ec4_003FRuntimeHandles_002Ecs/@EntryIndexedValue">ForceIncluded</s:String>
 	<s:String x:Key="/Default/CodeInspection/ExcludedFiles/FilesAndFoldersToSkip2/=7020124F_002D9FFC_002D4AC3_002D8F3D_002DAAB8E0240759_002Ff_003AWebApplication_002Ecs_002Fl_003A_002E_002E_003F_002E_002E_003F_002E_002E_003F_002E_002E_003FAppData_003FRoaming_003FJetBrains_003FRider2025_002E2_003Fresharper_002Dhost_003FSourcesCache_003Ff16564c8c4b61e6ea398fe412680c6b795b266584ccf6a362aed712dc4d2b387_003FWebApplication_002Ecs/@EntryIndexedValue">ForceIncluded</s:String>
 	
 	<s:String x:Key="/Default/Environment/UnitTesting/CreateUnitTestDialog/TestProjectMapping/=0F2E08FE_002D7B5B_002D4453_002DA5B9_002DFEC4B18303CD/@EntryIndexedValue">FD418360-4188-4E62-8D8C-B5610A1B84E9</s:String>
 	<s:String x:Key="/Default/Environment/UnitTesting/CreateUnitTestDialog/TestTemplateMapping/=MSTest/@EntryIndexedValue">d6790ab7-33c2-4425-b2c9-51480cd1a852</s:String>
-	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=19261329_002Dcea1_002D49e1_002Db470_002D677f063ebaa9/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" Name="GetAllDocksAsync_ReturnsAllDocks" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
-  &lt;TestAncestor&gt;&#xD;
-    &lt;TestId&gt;xUnit::FD418360-4188-4E62-8D8C-B5610A1B84E9::net9.0::PortProject.Api.Tests.Application.Dock.Services.DockServiceTests.GetAllDocksAsync_ReturnsAllDocks&lt;/TestId&gt;&#xD;
-    &lt;TestId&gt;xUnit::FD418360-4188-4E62-8D8C-B5610A1B84E9::net9.0::PortProject.Api.Tests.Application.Dock.Services.DockServiceTests.GetAllDocksAsync_EmptyList_ReturnsEmpty&lt;/TestId&gt;&#xD;
-    &lt;TestId&gt;xUnit::FD418360-4188-4E62-8D8C-B5610A1B84E9::net9.0::PortProject.Api.Tests.Application.Dock.Services.DockServiceTests.SearchDocksAsync_ReturnsMatchingDocks&lt;/TestId&gt;&#xD;
-    &lt;TestId&gt;xUnit::FD418360-4188-4E62-8D8C-B5610A1B84E9::net9.0::PortProject.Api.Tests.Application.Dock.Services.DockServiceTests.SearchDocksAsync_NoMatches_ReturnsEmptyCollection&lt;/TestId&gt;&#xD;
-  &lt;/TestAncestor&gt;&#xD;
-&lt;/SessionState&gt;</s:String>
 	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=6ff63162_002Db156_002D4af8_002D853b_002D294012f5db2e/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="MecanographicNumberTest" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
   &lt;Or&gt;
     &lt;ProjectFolder&gt;FD418360-4188-4E62-8D8C-B5610A1B84E9/d:Domain/d:StaffMemberAggregate&lt;/ProjectFolder&gt;
@@ -29,19 +20,4 @@
     &lt;ProjectFile&gt;FD418360-4188-4E62-8D8C-B5610A1B84E9/d:Controllers/f:ShippingAgentOrganizationsControllerTest.cs&lt;/ProjectFile&gt;
     &lt;ProjectFile&gt;FD418360-4188-4E62-8D8C-B5610A1B84E9/d:Controllers/f:ShippingAgentRepresentativesControllerTest.cs&lt;/ProjectFile&gt;
   &lt;/Or&gt;
-&lt;/SessionState&gt;</s:String>
-	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=bde17dc9_002D03f3_002D4137_002Dbd38_002De98926c5ed71/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" Name="DeleteDockAsync_EmptyId_ThrowsArgumentException" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
-  &lt;TestAncestor&gt;&#xD;
-    &lt;TestId&gt;xUnit::FD418360-4188-4E62-8D8C-B5610A1B84E9::net9.0::PortProject.Api.Tests.Application.Dock.Services.DockServiceTests.DeleteDockAsync_EmptyId_ThrowsArgumentException&lt;/TestId&gt;&#xD;
-  &lt;/TestAncestor&gt;&#xD;
-&lt;/SessionState&gt;</s:String>
-	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=beed8ac5_002D59bb_002D4c0c_002D8d6e_002D7a787c2f3c34/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="DeleteDockAsync_ExistingDock_DeletesSuccessfully" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
-  &lt;Project Location="C:\Users\Mariana Sarrmento\RiderProjects\LEI-SEM5-PI-2025-26-3DL-02\PortProject.Api.Tests" Presentation="&amp;lt;PortProject.Api.Tests&amp;gt;" /&gt;&#xD;
-&lt;/SessionState&gt;</s:String>
-	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=cae5eca6_002D25e4_002D4737_002D96b4_002D0d8364d2d873/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" Name="DockLocationTest" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
-  &lt;TestAncestor&gt;&#xD;
-    &lt;TestId&gt;xUnit::FD418360-4188-4E62-8D8C-B5610A1B84E9::net9.0::PortProject.Api.Tests.Domain.DockAggregate.DockLocationTest&lt;/TestId&gt;&#xD;
-    &lt;TestId&gt;MSTest::FD418360-4188-4E62-8D8C-B5610A1B84E9::net9.0::PortProject.Api.Tests.Controllers.DockControllerTest&lt;/TestId&gt;&#xD;
-    &lt;TestId&gt;xUnit::FD418360-4188-4E62-8D8C-B5610A1B84E9::net9.0::PortProject.Api.Tests.Application.Dock.Services.DockServiceTests&lt;/TestId&gt;&#xD;
-  &lt;/TestAncestor&gt;&#xD;
 &lt;/SessionState&gt;</s:String></wpf:ResourceDictionary>
