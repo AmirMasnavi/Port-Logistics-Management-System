@@ -6,4 +6,5 @@ public class CreateVvnDto
     public DateTime EstimatedDeparture { get; set; }
     public string VesselImo { get; set; }
     public CreateCargoDto Cargo { get; set; }
+    public string RepresentativeId { get; set; }
 }
