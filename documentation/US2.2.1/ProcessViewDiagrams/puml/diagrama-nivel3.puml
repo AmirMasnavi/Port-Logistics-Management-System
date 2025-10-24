@@ -2,19 +2,17 @@
 !theme plain
 autonumber
 
-actor "Port Authority Officer" as Officer
+
 participant "User Interface\n(UI)" as UI
 box "Backend System (Sistema AIT)" #LightBlue
     participant "HTTP Request" as HttpRequest
     participant "Route" as Route
     participant "VesselTypeController" as Controller
     participant "VesselTypeDto" as Dto
-    participant "IVesselTypeService\n(Service)" as Service
-    participant "IVesselTypeRepository\n(Repository)" as Repository
+    participant "VesselTypeService\n(Service)" as Service
+    participant "VesselTypeRepository\n(Repository)" as Repository
 end box
 
-Officer -> UI : 1: create or update vessel type data
-activate UI
 
 UI -> HttpRequest : 1.1: POST /api/vesseltype OR PUT /api/vesseltype/{id} \n (VesselTypeCreateDto / VesselTypeDto)
 activate HttpRequest
