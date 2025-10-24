@@ -205,7 +205,7 @@ public class ResourceService : IResourceService
             Kind = resource.Kind.ToString(),
             AssignedArea = resource.AssignedArea,
             Status = resource.Status.ToString(),
-            SetupTimeMinutes = resource.SetupTime?.Minutes ?? 0,
+            SetupTimeMinutes = resource.SetupTime.Minutes,
             OperationalWindowStart = resource.OperationalWindow != null
                 ? resource.OperationalWindow.StartTime.ToString("HH:mm")
                 : string.Empty,
@@ -276,8 +276,8 @@ public class ResourceService : IResourceService
     public async Task<IEnumerable<ResourceDto>> GetAllAsync(string? code, string? description, ResourceKind? kind,
         ResourceStatus? status)
     {
-        // Start with base query
-        var query = _context.Resources.AsNoTracking().AsQueryable();
+        // Start with base query - Include Qualifications to avoid lazy loading issues
+        var query = _context.Resources.AsNoTracking().Include(r => r.Qualifications).AsQueryable();
 
         // Server-side enum filters
         if (kind.HasValue)
@@ -323,28 +323,127 @@ public class ResourceService : IResourceService
             return null;
         }
 
-        var resourceList = await _context.Resources
+        var resource = await _context.Resources
             .Include(r => r.Qualifications)
-            .Where(r => r.Code == codeVo)
-            .ToListAsync();
+            .AsSplitQuery()
+            .FirstOrDefaultAsync(r => r.Code == codeVo);
 
-        var resource = resourceList.FirstOrDefault();
         if (resource == null) return null;
 
-        // ... (restante da lógica de atualização)
+        // Update description if provided
+        if (!string.IsNullOrWhiteSpace(dto.Description))
+        {
+            resource.UpdateDescription(new ResourceDescription(dto.Description));
+        }
+
+        // Update assigned area if provided
+        if (dto.AssignedArea != null)
+        {
+            resource.AssignArea(dto.AssignedArea);
+        }
+
+        // Update status if provided
+        if (!string.IsNullOrWhiteSpace(dto.Status))
+        {
+            if (Enum.TryParse<ResourceStatus>(dto.Status, ignoreCase: true, out var newStatus))
+            {
+                resource.UpdateStatus(newStatus);
+            }
+        }
+
+        // Update qualifications if provided
+        if (dto.QualificationRequirements != null)
+        {
+            var qualCodes = dto.QualificationRequirements
+                .Where(q => !string.IsNullOrWhiteSpace(q))
+                .Select(q => q.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (qualCodes.Count > 0)
+            {
+                var codesVos = qualCodes.Select(s => new QualificationCode(s)).ToList();
+
+                // Fetch qualifications from database (WITHOUT AsNoTracking so they're tracked)
+                var qualificationEntities = await _context.Qualifications
+                    .Where(q => codesVos.Contains(q.Code))
+                    .ToListAsync();
+
+                var foundCodes = qualificationEntities
+                    .Select(q => q.Code.Value)
+                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
+                    
+                var missing = qualCodes.Where(n => !foundCodes.Contains(n)).ToList();
+                if (missing.Count > 0)
+                    throw new ArgumentException(
+                        $"The following qualification codes are invalid or do not exist: {string.Join(", ", missing)}",
+                        nameof(dto.QualificationRequirements));
+
+                // Get current qualification codes
+                var currentQualCodes = resource.Qualifications
+                    .Select(q => q.Code.Value)
+                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+                // Remove qualifications that are no longer in the request
+                var toRemove = resource.Qualifications
+                    .Where(q => !foundCodes.Contains(q.Code.Value))
+                    .ToList();
+                foreach (var qual in toRemove)
+                {
+                    resource.RemoveQualification(qual);
+                }
+
+                // Add only NEW qualifications (ones that aren't already in the resource)
+                foreach (var qualEntity in qualificationEntities)
+                {
+                    // Skip if this qualification is already associated with the resource
+                    if (!currentQualCodes.Contains(qualEntity.Code.Value))
+                    {
+                        resource.AddQualification(qualEntity);
+                    }
+                    // If it already exists, do nothing - it's already there!
+                }
+            }
+            else
+            {
+                // Clear all qualifications
+                var allQuals = resource.Qualifications.ToList();
+                foreach (var qual in allQuals)
+                {
+                    resource.RemoveQualification(qual);
+                }
+            }
+        }
+
+        // Update operational capacity based on resource kind
+        switch (resource.Kind)
+        {
+            case ResourceKind.Crane:
+                if (dto.AverageContainersPerHour.HasValue)
+                {
+                    resource.UpdateOperationalCapacity(ResourceOperationalCapacity.ForCrane(dto.AverageContainersPerHour.Value));
+                }
+                break;
+            case ResourceKind.Truck:
+                if (dto.ContainersPerTrip.HasValue && dto.AverageSpeedKmh.HasValue)
+                {
+                    resource.UpdateOperationalCapacity(ResourceOperationalCapacity.ForTruck(dto.ContainersPerTrip.Value, dto.AverageSpeedKmh.Value));
+                }
+                break;
+            case ResourceKind.Other:
+                if (!string.IsNullOrWhiteSpace(dto.OtherUnit) && dto.OtherGenericValue.HasValue)
+                {
+                    resource.UpdateOperationalCapacity(ResourceOperationalCapacity.ForOther(dto.OtherUnit, dto.OtherGenericValue.Value));
+                }
+                break;
+        }
 
         await _context.SaveChangesAsync();
 
-        // Recarregar o recurso atualizado
-        var updatedList = await _context.Resources
-            .Include(r => r.Qualifications)
-            .Where(r => r.Code == codeVo)
-            .ToListAsync();
-        var updated = updatedList.FirstOrDefault();
-        if (updated == null) return null;
+        // Detach the entity to avoid tracking issues and return DTO without reloading
+        _context.Entry(resource).State = EntityState.Detached;
 
-        return MapToDto(updated);
-
+        return MapToDto(resource);
     }
 
 

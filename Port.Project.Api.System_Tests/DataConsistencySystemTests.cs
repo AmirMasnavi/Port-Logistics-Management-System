@@ -13,6 +13,10 @@ using Xunit;
 using PortProject.Api.Models;
 using PortProject.Api.Domain.VesselAggregate;
 using PortProject.Api.Domain.VesselTypeAggregate;
+using PortProject.Api.Domain.ResourceAggregate;
+using PortProject.Api.Domain.QualificationAggregate;
+using PortProject.Api.Application.Resources.DTOs;
+using PortProject.Api.Application.Qualifications.DTOs;
 using src.Dto;
 
 namespace Port.Project.Api.System_Tests
@@ -75,6 +79,8 @@ namespace Port.Project.Api.System_Tests
             using var scope = _factory.Services.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<PortProjectContext>();
             // remove dependent data first
+            if (db.Resources.Any()) db.Resources.RemoveRange(db.Resources);
+            if (db.Qualifications.Any()) db.Qualifications.RemoveRange(db.Qualifications);
             if (db.Vessels.Any()) db.Vessels.RemoveRange(db.Vessels);
             if (db.VesselTypes.Any()) db.VesselTypes.RemoveRange(db.VesselTypes);
             db.SaveChanges();
@@ -83,6 +89,12 @@ namespace Port.Project.Api.System_Tests
             db.VesselTypes.AddRange(new[] {
                 VesselType.Create("1001", "Container Ship", "Seeded container ship", 5000, 10, 20, 8),
                 VesselType.Create("1002", "Bulk Carrier", "Seeded bulk carrier", 8000, 12, 25, 10),
+            });
+
+            // seed minimal qualifications
+            db.Qualifications.AddRange(new[] {
+                new Qualification(new QualificationCode("QUAL001"), new QualificationName("Crane Operator"), new QualificationDescription("Certified crane operator")),
+                new Qualification(new QualificationCode("QUAL002"), new QualificationName("Truck Driver"), new QualificationDescription("Licensed truck driver")),
             });
 
             beforeSave?.Invoke(db);
@@ -240,6 +252,175 @@ namespace Port.Project.Api.System_Tests
                 var vtGet = await _client.GetAsync($"/api/VesselType/{foundVessel.VesselTypeId}");
                 vtGet.EnsureSuccessStatusCode();
             }
+        }
+
+        [Fact(DisplayName = "System: Create Resource without Qualifications should succeed")]
+        public async Task CreateResource_WithoutQualifications_ShouldSucceed()
+        {
+            // Arrange
+            ReinitializeDb();
+
+            var newResource = new CreateResourceDto
+            {
+                Code = "RES001",
+                Description = "Test Resource Without Qualifications",
+                Kind = "Crane",
+                AssignedArea = "Area A",
+                Status = "Active",
+                SetupTimeMinutes = 30,
+                OperationalWindowStart = new TimeOnly(8, 0),
+                OperationalWindowEnd = new TimeOnly(18, 0),
+                QualificationRequirements = null, // No qualifications
+                AverageContainersPerHour = 50
+            };
+
+            // Act
+            var createdResource = await PostAndReadJsonAsync<ResourceDto>("/api/Resource", newResource);
+
+            // Assert
+            Assert.NotNull(createdResource);
+            Assert.Equal("RES001", createdResource.Code);
+            Assert.True(createdResource.QualificationRequirements == null || 
+                       createdResource.QualificationRequirements.Count == 0);
+        }
+
+        [Fact(DisplayName = "System: Create Resource with valid Qualification codes should succeed")]
+        public async Task CreateResource_WithValidQualifications_ShouldSucceed()
+        {
+            // Arrange
+            ReinitializeDb();
+
+            // Create a qualification via API
+            var qual = new CreateQualificationDto
+            {
+                Code = "CRANE_OP",
+                Name = "Crane Operator Certification",
+                Description = "Required for operating cranes"
+            };
+            var createdQual = await PostAndReadJsonAsync<QualificationDto>("/api/Qualifications", qual);
+
+            // Create resource referencing the qualification
+            var newResource = new CreateResourceDto
+            {
+                Code = "CRANE001",
+                Description = "Main Port Crane",
+                Kind = "Crane",
+                AssignedArea = "Dock A",
+                Status = "Active",
+                SetupTimeMinutes = 45,
+                OperationalWindowStart = new TimeOnly(6, 0),
+                OperationalWindowEnd = new TimeOnly(22, 0),
+                QualificationRequirements = new List<string> { createdQual.Code },
+                AverageContainersPerHour = 60
+            };
+
+            // Act
+            var createdResource = await PostAndReadJsonAsync<ResourceDto>("/api/Resource", newResource);
+
+            // Assert
+            Assert.NotNull(createdResource);
+            Assert.Equal("CRANE001", createdResource.Code);
+            Assert.NotNull(createdResource.QualificationRequirements);
+            Assert.Contains(createdQual.Code, createdResource.QualificationRequirements);
+        }
+
+        [Fact(DisplayName = "System: Create Resource with multiple Qualifications should maintain all references")]
+        public async Task CreateResource_WithMultipleQualifications_ShouldMaintainAllReferences()
+        {
+            // Arrange
+            ReinitializeDb();
+
+            // Create multiple qualifications
+            var qual1 = new CreateQualificationDto
+            {
+                Code = "SAFETY_CERT",
+                Name = "Safety Certification",
+                Description = "General safety training"
+            };
+            var qual2 = new CreateQualificationDto
+            {
+                Code = "HEAVY_LIFT",
+                Name = "Heavy Lifting License",
+                Description = "License for heavy equipment"
+            };
+
+            var createdQual1 = await PostAndReadJsonAsync<QualificationDto>("/api/Qualifications", qual1);
+            var createdQual2 = await PostAndReadJsonAsync<QualificationDto>("/api/Qualifications", qual2);
+
+            // Create resource with both qualifications
+            var newResource = new CreateResourceDto
+            {
+                Code = "TRUCK001",
+                Description = "Heavy Duty Truck",
+                Kind = "Truck",
+                AssignedArea = "Yard B",
+                Status = "Active",
+                SetupTimeMinutes = 15,
+                OperationalWindowStart = new TimeOnly(7, 0),
+                OperationalWindowEnd = new TimeOnly(19, 0),
+                QualificationRequirements = new List<string> { createdQual1.Code, createdQual2.Code },
+                ContainersPerTrip = 2,
+                AverageSpeedKmh = 30.0
+            };
+
+            // Act
+            var createdResource = await PostAndReadJsonAsync<ResourceDto>("/api/Resource", newResource);
+
+            // Assert
+            Assert.NotNull(createdResource);
+            Assert.Equal("TRUCK001", createdResource.Code);
+            Assert.NotNull(createdResource.QualificationRequirements);
+            Assert.Equal(2, createdResource.QualificationRequirements.Count);
+            Assert.Contains(createdQual1.Code, createdResource.QualificationRequirements);
+            Assert.Contains(createdQual2.Code, createdResource.QualificationRequirements);
+
+            // Verify both qualifications still exist
+            var qual1Fetched = await GetAndReadJsonAsync<QualificationDto>($"/api/Qualifications/{createdQual1.Code}");
+            var qual2Fetched = await GetAndReadJsonAsync<QualificationDto>($"/api/Qualifications/{createdQual2.Code}");
+            Assert.NotNull(qual1Fetched);
+            Assert.NotNull(qual2Fetched);
+        }
+        
+        
+        // Query resource with qualifications returns data
+        [Fact(DisplayName = "System: Query Resource with Qualifications should return correct data")]
+        public async Task QueryResource_WithQualifications_ShouldReturnCorrectData()
+        {
+            // Arrange
+            ReinitializeDb();
+            // Create a qualification via API
+            var qual = new CreateQualificationDto
+            {
+                Code = "FORKLIFT_OP",
+                Name = "Forklift Operator Certification",
+                Description = "Required for operating forklifts"
+            };
+
+            var createdQual = await PostAndReadJsonAsync<QualificationDto>("/api/Qualifications", qual);
+
+            // Create resource referencing the qualification
+            var newResource = new CreateResourceDto
+            {
+                Code = "crane001",
+                Description = "Warehouse Crane",
+                Kind = "Crane",
+                AssignedArea = "Warehouse 1",
+                Status = "Active",
+                SetupTimeMinutes = 20,
+                OperationalWindowStart = new TimeOnly(7, 0),
+                OperationalWindowEnd = new TimeOnly(17, 0),
+                QualificationRequirements = new List<string> { createdQual.Code },
+                AverageContainersPerHour = 40
+            };
+
+            var createdResource = await PostAndReadJsonAsync<ResourceDto>("/api/Resource", newResource);
+            // Act
+            var queriedResource = await GetAndReadJsonAsync<ResourceDto>($"/api/Resource/{createdResource.Code}");
+            // Assert
+            Assert.NotNull(queriedResource);
+            Assert.Equal("crane001", queriedResource.Code);
+            Assert.NotNull(queriedResource.QualificationRequirements);
+            Assert.Contains(createdQual.Code, queriedResource.QualificationRequirements);
         }
     }
 }
