@@ -14,7 +14,6 @@ using PortProject.Api.Domain.VesselAggregate;
 using PortProject.Api.Domain.VesselTypeAggregate;
 using PortProject.Api.Application.Dock.DTOs;
 using PortProject.Api.Application.ShippingAgentsOrganization.DTOs;
-
 using PortProject.Api.Application.VesselVisitNotification.DTOs;
 using src.Dto;
 using Xunit;
@@ -73,12 +72,14 @@ namespace Port.Project.Api.System_Tests
         {
             using var scope = _factory.Services.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<PortProjectContext>();
-            if (db.Vessels.Any()) db.Vessels.RemoveRange(db.Vessels);
-            if (db.VesselTypes.Any()) db.VesselTypes.RemoveRange(db.VesselTypes);
+            
+            // Remove entities in correct order to respect foreign key constraints
             if (db.VesselVisitNotifications.Any()) db.VesselVisitNotifications.RemoveRange(db.VesselVisitNotifications);
+            if (db.Vessels.Any()) db.Vessels.RemoveRange(db.Vessels);
             if (db.ShippingAgentRepresentatives.Any()) db.ShippingAgentRepresentatives.RemoveRange(db.ShippingAgentRepresentatives);
             if (db.ShippingAgentOrganizations.Any()) db.ShippingAgentOrganizations.RemoveRange(db.ShippingAgentOrganizations);
             if (db.Docks.Any()) db.Docks.RemoveRange(db.Docks);
+            if (db.VesselTypes.Any()) db.VesselTypes.RemoveRange(db.VesselTypes);
             db.SaveChanges();
 
             // seed minimal vessel types
@@ -125,6 +126,7 @@ namespace Port.Project.Api.System_Tests
 
             var vt = await PostAndReadJsonAsync<VesselTypeDto>("/api/VesselType", vesselTypeCreate);
             Assert.NotNull(vt);
+            Assert.Equal("2001", vt.Id);
 
             // 2) Create Vessel
             var imo = GenerateValidImo(new Random().Next(100000, 999999));
@@ -155,8 +157,9 @@ namespace Port.Project.Api.System_Tests
 
             var dock = await PostAndReadJsonAsync<DockDto>("/api/Dock", dockCreate);
             Assert.NotNull(dock);
+            Assert.Equal("Operations Test Dock", dock.Name);
 
-            // 4) Create Organization
+            // 4) Create Organization with Representative included (required by business rules)
             var orgCreate = new CreateShippingAgentOrganizationDto
             {
                 LegalName = "System Test Org",
@@ -164,34 +167,42 @@ namespace Port.Project.Api.System_Tests
                 Street = "Test Street 1",
                 City = "Test City",
                 Country = "TestLand",
-                TaxNumber = "351111222"
+                TaxNumber = "PT123456789", // Valid Portuguese NIF format
+                Representatives = new List<CreateShippingAgentRepresentativeDto>
+                {
+                    new CreateShippingAgentRepresentativeDto
+                    {
+                        RepresentativeName = "Operations Representative",
+                        CitizenId = "12345678Z", // Valid Portuguese CC format (8 digits + 1 letter)
+                        RepresentativeNationality = "Portuguese",
+                        RepresentativeEmail = "ops.rep@systemtest.com",
+                        RepresentativePhone = "912345678" // Valid Portuguese mobile format
+                    }
+                }
             };
 
             var orgId = await PostAndReadJsonAsync<Guid>("/api/ShippingAgentOrganizations", orgCreate);
             Assert.NotEqual(Guid.Empty, orgId);
 
-            // 5) Create Representative (requires OrganizationId)
-            var repCreate = new CreateShippingAgentRepresentativeDto
+            // 5) Get the created representative ID from the database
+            string repId;
+            using (var scope1 = _factory.Services.CreateScope())
             {
-                RepresentativeName = "Operations Rep",
-                CitizenId = "123456789",
-                RepresentativeNationality = "Portuguese",
-                RepresentativeEmail = "ops@example.com",
-                RepresentativePhone = "+351912345678",
-                OrganizationId = orgId.ToString()
-            };
+                var db1 = scope1.ServiceProvider.GetRequiredService<PortProjectContext>();
+                var representatives = await db1.ShippingAgentRepresentatives.ToListAsync();
+                var representative = representatives.FirstOrDefault(r => r.OrganizationId.Value == orgId);
+                Assert.NotNull(representative);
+                repId = representative.RepresentativeId.Value.ToString();
+            }
 
-            var rep = await PostAndReadJsonAsync<PortProject.Api.Application.ShippingAgentsOrganization.DTOs.ShippingAgentRepresentativeDto>("/api/ShippingAgentRepresentatives", repCreate);
-            Assert.NotNull(rep);
-
-            // 6) Create Vessel Visit Notification
+            // 6) Create Vessel Visit Notification with valid container code
             var createCargo = new CreateCargoDto
             {
-                Description = "Test cargo",
+                Description = "Test cargo for system test",
                 Weight = 5000.0,
                 Containers = new List<CreateContainerDto>
                 {
-                    new CreateContainerDto { ContainerCode = "TEST1234567", Position = "Bay1-Row1-Tier1" }
+                    new CreateContainerDto { ContainerCode = "CSQU3054383", Position = "Bay1-Row1-Tier1" } // Valid ISO 6346 container code
                 }
             };
 
@@ -201,23 +212,39 @@ namespace Port.Project.Api.System_Tests
                 EstimatedDeparture = DateTime.UtcNow.AddDays(4),
                 VesselImo = imo,
                 Cargo = createCargo,
-                RepresentativeId = rep.RepresentativeId,
+                RepresentativeId = repId,
                 CrewMembers = new List<CreateCrewMemberDto>
                 {
-                    new CreateCrewMemberDto { Name = "Captain Test", Nationality = "PT", IsSafetyOfficer = true }
+                    new CreateCrewMemberDto { Name = "Captain Test", Nationality = "PT", IsSafetyOfficer = true },
+                    new CreateCrewMemberDto { Name = "First Officer", Nationality = "PT", IsSafetyOfficer = false }
                 }
             };
 
             var vvn = await PostAndReadJsonAsync<VesselVisitNotificationDto>("/api/notifications", createVvn);
             Assert.NotNull(vvn);
             Assert.Equal(imo, vvn.VesselImo);
-            Assert.Equal(Guid.Parse(rep.RepresentativeId), vvn.SubmittedBy);
+            Assert.Equal(Guid.Parse(repId), vvn.SubmittedBy);
+            Assert.NotNull(vvn.Cargo);
+            Assert.NotEmpty(vvn.CrewMembers);
+            Assert.Equal(2, vvn.CrewMembers.Count);
 
-            // Verify persisted in DB
+            // Verify persisted in DB with all relationships intact
             using var scope = _factory.Services.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<PortProjectContext>();
-            var dbVvn = await db.VesselVisitNotifications.FirstOrDefaultAsync();
+            
+            var dbVvn = await db.VesselVisitNotifications
+                .Include(v => v.Cargo)
+                .FirstOrDefaultAsync();
             Assert.NotNull(dbVvn);
+            Assert.Equal(imo, dbVvn.VesselId.Value);
+            
+            var vessels = await db.Vessels.ToListAsync();
+            var dbVessel = vessels.FirstOrDefault(v => v.ImoNumber.Value == imo);
+            Assert.NotNull(dbVessel);
+            
+            var dbDock = await db.Docks.FirstOrDefaultAsync();
+            Assert.NotNull(dbDock);
+            Assert.Contains(dbDock.AllowedVesselTypes, vesselTypeId => vesselTypeId.Value == vt.Id);
         }
     }
 }
