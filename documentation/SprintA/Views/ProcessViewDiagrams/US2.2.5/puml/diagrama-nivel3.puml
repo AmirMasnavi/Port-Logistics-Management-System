@@ -1,0 +1,58 @@
+@startuml
+!theme plain
+autonumber
+
+box "Backend System (Sistema AIT)" #LightBlue
+    participant "HTTP Request" as HttpRequest
+    participant "Route" as Route
+    participant "Controller" as Controller
+    participant "DTO" as Dto
+    participant "Service" as Service
+    box "Persistence" #LightGreen
+        participant "Data Model" as DataModel
+        participant "Aggregate" as Aggregate
+        participant "Value Object" as ValueObject
+        participant "Entity" as Entity
+    end box
+    participant "Repository" as Repository
+end box
+
+HttpRequest -> Route : 1.1: POST /api/organizations
+activate HttpRequest
+Route -> Controller : 1.2: Invoke CreateOrganization
+activate Route
+Controller -> Dto : 1.3: Map request body → CreateOrganizationDto
+activate Controller
+Dto --> Controller : 1.4: Organization data mapped
+deactivate Dto
+Controller -> Service : 1.5: Process CreateOrganization
+activate Service
+Service -> Aggregate : 1.6: Build Organization aggregate
+activate Aggregate
+Aggregate -> ValueObject : 1.6.1: Create/validate VOs\n(LegalName, AltName, TaxNumber, Address)
+activate ValueObject
+ValueObject --> Aggregate : 1.6.2: VOs OK
+deactivate ValueObject
+Aggregate -> Entity : 1.6.3: Create Organization entity\n(+ attach Representatives if provided)
+activate Entity
+Entity --> Aggregate : 1.6.4: Entity ready
+deactivate Entity
+Aggregate --> Service : 1.6.5: Aggregate ready
+deactivate Aggregate
+Service -> Repository : 1.7: Persist Organization
+activate Repository
+Repository -> DataModel : 1.7.1: Map aggregate → data model\n(Organization [+ Representatives])
+activate DataModel
+DataModel --> Repository : 1.7.2: Data model mapped
+deactivate DataModel
+Repository --> Service : 1.8: Data persisted
+deactivate Repository
+Service --> Controller : 1.9: Return OrganizationDto
+deactivate Service
+Controller --> HttpRequest : 1.10: HTTP 201 Created (+ Location)
+deactivate Controller
+deactivate Route
+HttpRequest --> : 1.11: HTTP Response
+deactivate HttpRequest
+
+@enduml

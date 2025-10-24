@@ -20,7 +20,9 @@ public class ResourceRepository : IResourceRepository
     
     public async Task<Resource?> GetByIdAsync(ResourceCode code)
     {
-        return await _context.Resources.FindAsync(code);
+        return await _context.Resources
+            .Include(r => r.Qualifications)
+            .FirstOrDefaultAsync(r => r.Code == code);
     }
     
     

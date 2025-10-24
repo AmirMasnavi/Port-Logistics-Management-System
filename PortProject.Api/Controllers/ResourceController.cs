@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using PortProject.Api.Application.Resources.DTOs;
 using PortProject.Api.Application.Resources.Services;
+using PortProject.Api.Domain.ResourceAggregate; // added for enums
 
 namespace PortProject.Api.Controllers;
 
@@ -35,6 +36,19 @@ public class ResourceController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Lists resources with optional filters: code (partial), description (partial), kind, status.
+    /// </summary>
+    [HttpGet]
+    public async Task<ActionResult<IEnumerable<ResourceDto>>> SearchResources(
+        [FromQuery] string? code,
+        [FromQuery] string? description,
+        [FromQuery] ResourceKind? kind,
+        [FromQuery] ResourceStatus? status)
+    {
+        var results = await _service.GetAllAsync(code, description, kind, status);
+        return Ok(results);
+    }
 
     /// <summary>
     /// Gets a Resource by its Code.
@@ -59,6 +73,22 @@ public class ResourceController : ControllerBase
     public async Task<ActionResult<ResourceDto>> EditResource(string code, EditResourceDto dto)
     {
         var resultDto = await _service.EditResourceAsync(code, dto);
+        if (resultDto == null)
+        {
+            return NotFound($"Resource with code {code} not found.");
+        }
+
+        return Ok(resultDto);
+    }
+    
+    
+    /// <summary>
+    /// Updates the status of a Resource.
+    /// </summary>
+    [HttpPatch("{code}/status")]
+    public async Task<ActionResult<ResourceDto>> UpdateResourceStatus(string code, [FromBody] UpdateResourceStatusDto dto)
+    {
+        var resultDto = await _service.UpdateStatusAsync(code, dto);
         if (resultDto == null)
         {
             return NotFound($"Resource with code {code} not found.");

@@ -1,6 +1,7 @@
 using PortProject.Api.Application.StaffMembers.DTOs;
 using PortProject.Api.Domain.StaffMemberAggregate;
 using PortProject.Api.Models;
+using PortProject.Api.Domain.QualificationAggregate; // <-- added
 
 namespace PortProject.Api.Application.StaffMembers.Services;
 
@@ -8,10 +9,12 @@ public class StaffMemberService : IStaffMemberService
 {
     // In a real app, you would inject a repository to save to the database.
     private readonly IStaffMemberRepository _staffMemberRepository;
+    private readonly IQualificationRepository _qualificationRepository; // <-- added
     private readonly PortProjectContext _context;
-    public StaffMemberService(IStaffMemberRepository staffMemberRepository, PortProjectContext context)
+    public StaffMemberService(IStaffMemberRepository staffMemberRepository, IQualificationRepository qualificationRepository, PortProjectContext context)
     {
         _staffMemberRepository = staffMemberRepository;
+        _qualificationRepository = qualificationRepository; // <-- added
         _context = context;
     }
 
@@ -111,5 +114,83 @@ public class StaffMemberService : IStaffMemberService
             CurrentStatus = sm.CurrentStatus.ToString(),
             OperationalWindow = sm.OperationalWindow.ToString()
         });
+    }
+
+    // --- NEW: Add a qualification to a staff member by code ---
+    public async Task<StaffMemberDto?> AddQualificationAsync(string mecanographicNumber, string qualificationCode)
+    {
+        if (string.IsNullOrWhiteSpace(mecanographicNumber) || string.IsNullOrWhiteSpace(qualificationCode))
+            throw new ArgumentException("Invalid id or qualification code.");
+
+        var mecanographicVo = new MecanographicNumber(mecanographicNumber);
+        var staffMember = await _staffMemberRepository.GetByIdAsync(mecanographicVo);
+        if (staffMember == null) return null;
+
+        // Validate qualification exists
+        QualificationCode qcVo;
+        try { qcVo = new QualificationCode(qualificationCode); }
+        catch (ArgumentException)
+        {
+            throw new ArgumentException("Qualification code format is invalid.", nameof(qualificationCode));
+        }
+
+        var qualification = await _qualificationRepository.GetByCodeAsync(qcVo);
+        if (qualification == null)
+            throw new ArgumentException($"Qualification with code '{qualificationCode}' does not exist.", nameof(qualificationCode));
+
+        // Add qualification to staff member (domain method handles duplicates)
+        staffMember.AddQualification(qualification);
+
+        // Persist changes
+        await _context.SaveChangesAsync();
+
+        // Return updated DTO
+        return new StaffMemberDto
+        {
+            MecanographicNumber = staffMember.MecanographicNumber.Value,
+            ShortName = staffMember.ShortName,
+            Email = staffMember.ContactDetails.Email,
+            Phone = staffMember.ContactDetails.Phone,
+            CurrentStatus = staffMember.CurrentStatus.ToString(),
+            OperationalWindow = staffMember.OperationalWindow.ToString(),
+            QualificationCodes = staffMember.Qualifications.Select(q => q.Code.Value).ToList()
+        };
+    }
+
+    // --- NEW: Remove a qualification from a staff member by code ---
+    public async Task<StaffMemberDto?> RemoveQualificationAsync(string mecanographicNumber, string qualificationCode)
+    {
+        if (string.IsNullOrWhiteSpace(mecanographicNumber) || string.IsNullOrWhiteSpace(qualificationCode))
+            throw new ArgumentException("Invalid id or qualification code.");
+
+        var mecanographicVo = new MecanographicNumber(mecanographicNumber);
+        var staffMember = await _staffMemberRepository.GetByIdAsync(mecanographicVo);
+        if (staffMember == null) return null;
+
+        QualificationCode qcVo;
+        try { qcVo = new QualificationCode(qualificationCode); }
+        catch (ArgumentException)
+        {
+            throw new ArgumentException("Qualification code format is invalid.", nameof(qualificationCode));
+        }
+
+        var qualification = await _qualificationRepository.GetByCodeAsync(qcVo);
+        if (qualification == null)
+            throw new ArgumentException($"Qualification with code '{qualificationCode}' does not exist.", nameof(qualificationCode));
+
+        staffMember.RemoveQualification(qualification);
+
+        await _context.SaveChangesAsync();
+
+        return new StaffMemberDto
+        {
+            MecanographicNumber = staffMember.MecanographicNumber.Value,
+            ShortName = staffMember.ShortName,
+            Email = staffMember.ContactDetails.Email,
+            Phone = staffMember.ContactDetails.Phone,
+            CurrentStatus = staffMember.CurrentStatus.ToString(),
+            OperationalWindow = staffMember.OperationalWindow.ToString(),
+            QualificationCodes = staffMember.Qualifications.Select(q => q.Code.Value).ToList()
+        };
     }
 }

@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using PortProject.Api.Application.VesselVisitNotification;
 using PortProject.Api.Application.VesselVisitNotification.DTOs;
 using PortProject.Api.Application.VesselVisitNotification.Services;
@@ -38,6 +39,17 @@ public class VesselVisitNotificationController : ControllerBase
         {
             return BadRequest(new { message = $"Invalid Representative ID format provided: {ex.Message}" });
         }
+        catch (DbUpdateException ex) // Catches database errors
+        {
+            // Check for specific SQLite FK error (Error 19)
+            if (ex.InnerException is Microsoft.Data.Sqlite.SqliteException sqliteEx && sqliteEx.SqliteErrorCode == 19)
+            {
+                return BadRequest(new { message = "Foreign key constraint failed. Ensure Vessel IMO and Representative ID exist." });
+            }
+            // Log other DB errors (replace with real logging)
+            Console.WriteLine($"DbUpdateException: {ex}");
+            return StatusCode(500, "Database error occurred while saving.");
+        }
         catch (Exception ex)
         {
             Console.WriteLine($"Unexpected Error: {ex}");
@@ -55,6 +67,11 @@ public class VesselVisitNotificationController : ControllerBase
         } catch (KeyNotFoundException ex) {
             return NotFound(ex.Message);
         }
+        
+        catch (InvalidOperationException ex) // Catches business rule violations (e.g. wrong status)
+        {
+            return Conflict(new { message = ex.Message }); // 409 Conflict is good for state issues
+        }
     }
     
     // US 2.2.8: Submit a notification
@@ -66,6 +83,11 @@ public class VesselVisitNotificationController : ControllerBase
             return NoContent();
         } catch (KeyNotFoundException ex) {
             return NotFound(ex.Message);
+        }
+        
+        catch (InvalidOperationException ex) // Catches business rule violations (e.g. wrong status)
+        {
+            return Conflict(new { message = ex.Message }); // 409 Conflict
         }
     }
     [HttpPost("{id}/approve")]
