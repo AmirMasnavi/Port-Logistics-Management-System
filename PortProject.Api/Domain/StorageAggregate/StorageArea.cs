@@ -1,11 +1,12 @@
-﻿namespace PortProject.Api.Domain.StorageAggregate
+﻿using src.Domain.Shared;
+
+namespace PortProject.Api.Domain.StorageAggregate
 {
-    public class StorageArea
+    public class StorageArea : Entity<StorageAreaId>, IAggregateRoot
     {
         public StorageAreaLocation Location { get; private set; }
         public StorageAreaType Type { get; private set; }
         public StorageCapacity Capacity { get; private set; }
-        public StorageAreaId Id { get; private set; }
         
         // Constructor for Entity Framework
         protected StorageArea()
@@ -13,7 +14,6 @@
             Location = null!;
             Type = default;
             Capacity = null!;
-            Id = null!;
         }
         
         public StorageArea(StorageAreaLocation location, StorageAreaType type, StorageCapacity capacity)

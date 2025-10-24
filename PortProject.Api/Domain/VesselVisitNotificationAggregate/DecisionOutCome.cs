@@ -6,5 +6,6 @@
 public enum DecisionOutcome
 {
     Approved,
-    Rejected
+    Rejected,
+    Reopened
 }

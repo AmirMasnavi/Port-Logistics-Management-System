@@ -46,4 +46,31 @@ public class QualificationsController : ControllerBase
         }
         return Ok(qualification);
     }
+    
+    // --- ADD THIS ACTION ---
+    [HttpPut("{code}")]
+    public async Task<ActionResult<QualificationDto>> UpdateQualification(string code, [FromBody] UpdateQualificationDto dto)
+    {
+        try
+        {
+            var updatedQualification = await _qualificationService.UpdateAsync(code, dto);
+
+            if (updatedQualification == null)
+            {
+                return NotFound($"Qualification with code '{code}' not found.");
+            }
+
+            return Ok(updatedQualification);
+        }
+        catch (ArgumentException ex) // Catch validation errors from Value Objects
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex) // Catch unexpected errors
+        {
+            // Log the error details (replace Console.WriteLine with proper logging)
+            Console.WriteLine($"Error updating qualification {code}: {ex}");
+            return StatusCode(500, "An unexpected error occurred while updating the qualification.");
+        }
+    }
 }
