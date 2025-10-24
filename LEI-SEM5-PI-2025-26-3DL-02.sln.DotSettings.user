@@ -3,19 +3,32 @@
 	
 	<s:String x:Key="/Default/Environment/UnitTesting/CreateUnitTestDialog/TestProjectMapping/=0F2E08FE_002D7B5B_002D4453_002DA5B9_002DFEC4B18303CD/@EntryIndexedValue">FD418360-4188-4E62-8D8C-B5610A1B84E9</s:String>
 	<s:String x:Key="/Default/Environment/UnitTesting/CreateUnitTestDialog/TestTemplateMapping/=MSTest/@EntryIndexedValue">d6790ab7-33c2-4425-b2c9-51480cd1a852</s:String>
-	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=b0349b48_002Dc9a6_002D4478_002Db9ce_002D115f89218969/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="All tests from ShippingAgentOrganizationTest.cs" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
+	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=8b1fefe5_002D7cca_002D4b0a_002D9fa8_002D96d5c2490ddf/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="All tests from VesselServiceTests.cs" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
   &lt;Or&gt;
-    &lt;ProjectFile&gt;D2876DF2-2CBE-4118-8E76-201443151001/f:ShippingAgentOrganizationTest.cs&lt;/ProjectFile&gt;
-    &lt;ProjectFile&gt;D2876DF2-2CBE-4118-8E76-201443151001/f:ShippingAgentRepresentativeTest.cs&lt;/ProjectFile&gt;
-    &lt;Project Location="/home/leonor/RiderProjects/LEI-SEM5-PI-2025-26-3DL-02/PortProject.Api.Tests" Presentation="&amp;lt;PortProject.Api.Tests&amp;gt;" /&gt;
+    &lt;ProjectFile&gt;FD418360-4188-4E62-8D8C-B5610A1B84E9/d:Application/d:Vessel/d:Services/f:VesselServiceTests.cs&lt;/ProjectFile&gt;
+    &lt;ProjectFile&gt;FD418360-4188-4E62-8D8C-B5610A1B84E9/d:Controllers/f:VesselControllerTests.cs&lt;/ProjectFile&gt;
+    &lt;ProjectFile&gt;D2876DF2-2CBE-4118-8E76-201443151001/f:VesselTest.cs&lt;/ProjectFile&gt;
+    &lt;ProjectFile&gt;D2876DF2-2CBE-4118-8E76-201443151001/f:VesselTypeTest.cs&lt;/ProjectFile&gt;
+    &lt;Project Location="/Users/inesgomesoliveira/RiderProjects/LEI-SEM5-PI-2025-26-3DL-02- NOVO/PortProject.Api.Integration_Tests" Presentation="&amp;lt;PortProject.Api.Integration_Tests&amp;gt;" /&gt;
+    &lt;ProjectFile&gt;13BEE119-E9F3-4D14-8951-50C9E46350FD/f:VesselSystemTests.cs&lt;/ProjectFile&gt;
+    &lt;ProjectFile&gt;13BEE119-E9F3-4D14-8951-50C9E46350FD/f:VesselTypeSystemTests.cs&lt;/ProjectFile&gt;
+    &lt;Project Location="/Users/inesgomesoliveira/RiderProjects/LEI-SEM5-PI-2025-26-3DL-02- NOVO/PortProject.Api.Tests" Presentation="&amp;lt;PortProject.Api.Tests&amp;gt;" /&gt;
+    &lt;ProjectFile&gt;7B1FF5D9-9DC5-492C-A04D-153E7A9B71BA/f:DataConsistencySystemTests.cs&lt;/ProjectFile&gt;
+    &lt;ProjectFile&gt;7B1FF5D9-9DC5-492C-A04D-153E7A9B71BA/f:PortOperationsSystemTests.cs&lt;/ProjectFile&gt;
   &lt;/Or&gt;
 &lt;/SessionState&gt;</s:String>
-	
-	
-	
-	
-	
-	
+	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=beed8ac5_002D59bb_002D4c0c_002D8d6e_002D7a787c2f3c34/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="DeleteDockAsync_ExistingDock_DeletesSuccessfully" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
+  &lt;Or&gt;&#xD;
+    &lt;Project Location="C:\Users\Mariana Sarrmento\RiderProjects\LEI-SEM5-PI-2025-26-3DL-02\PortProject.Api.Tests" Presentation="&amp;lt;PortProject.Api.Tests&amp;gt;" /&gt;&#xD;
+    &lt;TestAncestor&gt;&#xD;
+      &lt;TestId&gt;xUnit::D2876DF2-2CBE-4118-8E76-201443151001::net9.0::PortProject.Api.Integration_Tests.DockTest&lt;/TestId&gt;&#xD;
+    &lt;/TestAncestor&gt;&#xD;
+    &lt;Project Location="C:\Users\Mariana Sarrmento\RiderProjects\LEI-SEM5-PI-2025-26-3DL-02\PortProject.Api.Integration_Tests" Presentation="&amp;lt;PortProject.Api.Integration_Tests&amp;gt;" /&gt;&#xD;
+  &lt;/Or&gt;&#xD;
+&lt;/SessionState&gt;</s:String>
+	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=fe8832f8_002D6c1f_002D47be_002Db613_002D8d9c610588f3/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="All tests from ShippingAgentRepresentativeServiceTest.cs" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
+  &lt;ProjectFile&gt;FD418360-4188-4E62-8D8C-B5610A1B84E9/d:Application/d:ShippingAgentRepresentative/f:ShippingAgentRepresentativeServiceTest.cs&lt;/ProjectFile&gt;
+&lt;/SessionState&gt;</s:String>
 	
 	
 	</wpf:ResourceDictionary>
