@@ -96,23 +96,43 @@ public class VesselVisitNotificationService : IVesselVisitNotificationService
         return notification == null ? null : MapToDto(notification);
     }
     
-    public async Task ApproveAsync(string notificationId, string officerMecNumber, string dockId)
+    public async Task<VesselVisitNotificationDto> ApproveAsync(string notificationId, ApproveVvnDto dto)
     {
-        var notification = await _vvnRepo.GetByIdAsync(new NotificationId(Guid.Parse(notificationId)))
-                           ?? throw new KeyNotFoundException($"Notification with ID '{notificationId}' not found.");
+        var id = new NotificationId(Guid.Parse(notificationId));
+        var notification = await _vvnRepo.GetByIdAsync(id)
+                           ?? throw new KeyNotFoundException($"Notification {notificationId} not found.");
 
-        notification.Approve(new MecanographicNumber(officerMecNumber), new DockId(dockId));
+        notification.Approve(new MecanographicNumber(dto.OfficerId), new DockId(dto.DockId));
         await _context.SaveChangesAsync();
+
+        return MapToDto(notification);
     }
 
-    public async Task RejectAsync(string notificationId, string officerMecNumber, string reason)
+    public async Task<VesselVisitNotificationDto> RejectAsync(string notificationId, RejectVvnDto dto)
     {
-        var notification = await _vvnRepo.GetByIdAsync(new NotificationId(Guid.Parse(notificationId)))
-                           ?? throw new KeyNotFoundException($"Notification with ID '{notificationId}' not found.");
+        var id = new NotificationId(Guid.Parse(notificationId));
+        var notification = await _vvnRepo.GetByIdAsync(id)
+                           ?? throw new KeyNotFoundException($"Notification {notificationId} not found.");
 
-        notification.Reject(new MecanographicNumber(officerMecNumber), reason);
+        notification.Reject(new MecanographicNumber(dto.OfficerId), dto.Reason);
         await _context.SaveChangesAsync();
+
+        return MapToDto(notification);
     }
+
+    public async Task<VesselVisitNotificationDto?> ReopenAsync(string notificationId)
+    {
+        var id = new NotificationId(Guid.Parse(notificationId));
+        var notification = await _vvnRepo.GetByIdAsync(id);
+        if (notification == null || notification.Status != NotificationStatus.Rejected)
+            return null;
+
+        notification.Reopen();
+        await _context.SaveChangesAsync();
+
+        return MapToDto(notification);
+    }
+    
     public async Task<List<VesselVisitNotificationDto>> SearchAsync(
         string? vesselImo,
         string? status,
@@ -128,7 +148,7 @@ public class VesselVisitNotificationService : IVesselVisitNotificationService
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(vesselImo))
-            query = query.Where(v => v.VesselId.Value == vesselImo);
+            query = query.Where(v => v.VesselId == new ImoNumber(vesselImo));
 
         if (!string.IsNullOrWhiteSpace(status))
             query = query.Where(v => v.Status.ToString().Equals(status, StringComparison.OrdinalIgnoreCase));
@@ -155,6 +175,23 @@ public class VesselVisitNotificationService : IVesselVisitNotificationService
         var results = await query.ToListAsync();
         return results.Select(MapToDto).ToList();
     }
+    
+    public async Task<List<DecisionLogEntryDto>> GetDecisionLogAsync(string notificationId)
+    {
+        var id = new NotificationId(Guid.Parse(notificationId));
+        var notification = await _vvnRepo.GetByIdAsync(id)
+                           ?? throw new KeyNotFoundException($"Notification {notificationId} not found.");
+
+        return notification.DecisionLog.Select(dl => new DecisionLogEntryDto
+        {
+            Timestamp = dl.Timestamp,
+            OfficerId = dl.OfficerId.Value,
+            Outcome = dl.Outcome.ToString(),
+            Reason = dl.Reason
+        }).ToList();
+    }
+
+    
     
     // This private helper keeps our mapping logic in one place
     private VesselVisitNotificationDto MapToDto(Domain.VesselVisitNotificationAggregate.VesselVisitNotification entity)

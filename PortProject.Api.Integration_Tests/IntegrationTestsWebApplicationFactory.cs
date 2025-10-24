@@ -18,7 +18,7 @@ public class IntegrationTestsWebApplicationFactory<TProgram> : WebApplicationFac
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
-        // Use Development environment for tests
+        // Use Development environment for testsçt
         builder.UseEnvironment("Development");
 
         builder.ConfigureServices(services =>
