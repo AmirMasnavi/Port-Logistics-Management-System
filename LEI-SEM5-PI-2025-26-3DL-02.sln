@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PortProject.Api.Tests", "Po
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PortProject.Api.Integration_Tests", "PortProject.Api.Integration_Tests\PortProject.Api.Integration_Tests.csproj", "{D2876DF2-2CBE-4118-8E76-201443151001}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Port.Project.Api.System_Tests", "Port.Project.Api.System_Tests\Port.Project.Api.System_Tests.csproj", "{7B1FF5D9-9DC5-492C-A04D-153E7A9B71BA}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -33,5 +35,9 @@ Global
 		{D2876DF2-2CBE-4118-8E76-201443151001}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D2876DF2-2CBE-4118-8E76-201443151001}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D2876DF2-2CBE-4118-8E76-201443151001}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7B1FF5D9-9DC5-492C-A04D-153E7A9B71BA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7B1FF5D9-9DC5-492C-A04D-153E7A9B71BA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7B1FF5D9-9DC5-492C-A04D-153E7A9B71BA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7B1FF5D9-9DC5-492C-A04D-153E7A9B71BA}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

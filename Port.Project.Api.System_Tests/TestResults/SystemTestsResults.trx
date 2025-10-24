@@ -1,0 +1,343 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="0b4cdcd8-fa71-4058-8f24-6e10ae19844c" name="@unknown26dc38a48d5d 2025-10-24 15:14:52" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2025-10-24T15:14:52.5572520+01:00" queuing="2025-10-24T15:14:52.5572520+01:00" start="2025-10-24T15:14:51.0453030+01:00" finish="2025-10-24T15:14:52.5595300+01:00" />
+  <TestSettings name="default" id="64ecec20-b620-4519-a247-da02b5ea8cb4">
+    <Deployment runDeploymentRoot="_unknown26dc38a48d5d_2025-10-24_15_14_52" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="44794e49-937e-4349-9487-af188ccfff94" testId="81909f9f-d860-c5e1-2ad7-9398f379426b" testName="System: Prevent deleting VesselType when dependent Vessels exist" computerName="unknown26dc38a48d5d" duration="00:00:01.0767534" startTime="2025-10-24T15:14:52.4553000+01:00" endTime="2025-10-24T15:14:52.4553090+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="44794e49-937e-4349-9487-af188ccfff94" />
+    <UnitTestResult executionId="64b85d82-de3c-4955-8e9f-8c6e7ffced11" testId="19d1c2de-1058-7766-09e1-e54a062c5450" testName="System: Complex query includes vessel types and returns expected results" computerName="unknown26dc38a48d5d" duration="00:00:00.0164109" startTime="2025-10-24T15:14:52.5003940+01:00" endTime="2025-10-24T15:14:52.5003940+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="64b85d82-de3c-4955-8e9f-8c6e7ffced11" />
+    <UnitTestResult executionId="0f1003b4-37c1-4bed-a71a-658d5184b385" testId="37914a5e-c23c-4236-97bc-20a803a1c1b0" testName="System: Update Vessel should not break existing Vessel records referenced by other flows" computerName="unknown26dc38a48d5d" duration="00:00:00.0284334" startTime="2025-10-24T15:14:52.4839060+01:00" endTime="2025-10-24T15:14:52.4839070+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="0f1003b4-37c1-4bed-a71a-658d5184b385" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="System: Complex query includes vessel types and returns expected results" storage="/users/inesgomesoliveira/riderprojects/lei-sem5-pi-2025-26-3dl-02- novo/port.project.api.system_tests/bin/debug/net9.0/port.project.api.system_tests.dll" id="19d1c2de-1058-7766-09e1-e54a062c5450">
+      <Execution id="64b85d82-de3c-4955-8e9f-8c6e7ffced11" />
+      <TestMethod codeBase="/Users/inesgomesoliveira/RiderProjects/LEI-SEM5-PI-2025-26-3DL-02- NOVO/Port.Project.Api.System_Tests/bin/Debug/net9.0/Port.Project.Api.System_Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Port.Project.Api.System_Tests.DataConsistencySystemTests" name="ComplexQueryScenario_MultipleFiltersAndIncludes_ShouldReturnCorrectData" />
+    </UnitTest>
+    <UnitTest name="System: Update Vessel should not break existing Vessel records referenced by other flows" storage="/users/inesgomesoliveira/riderprojects/lei-sem5-pi-2025-26-3dl-02- novo/port.project.api.system_tests/bin/debug/net9.0/port.project.api.system_tests.dll" id="37914a5e-c23c-4236-97bc-20a803a1c1b0">
+      <Execution id="0f1003b4-37c1-4bed-a71a-658d5184b385" />
+      <TestMethod codeBase="/Users/inesgomesoliveira/RiderProjects/LEI-SEM5-PI-2025-26-3DL-02- NOVO/Port.Project.Api.System_Tests/bin/Debug/net9.0/Port.Project.Api.System_Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Port.Project.Api.System_Tests.DataConsistencySystemTests" name="VesselUpdate_ShouldNotBreakExistingReferences" />
+    </UnitTest>
+    <UnitTest name="System: Prevent deleting VesselType when dependent Vessels exist" storage="/users/inesgomesoliveira/riderprojects/lei-sem5-pi-2025-26-3dl-02- novo/port.project.api.system_tests/bin/debug/net9.0/port.project.api.system_tests.dll" id="81909f9f-d860-c5e1-2ad7-9398f379426b">
+      <Execution id="44794e49-937e-4349-9487-af188ccfff94" />
+      <TestMethod codeBase="/Users/inesgomesoliveira/RiderProjects/LEI-SEM5-PI-2025-26-3DL-02- NOVO/Port.Project.Api.System_Tests/bin/Debug/net9.0/Port.Project.Api.System_Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Port.Project.Api.System_Tests.DataConsistencySystemTests" name="DeleteVesselType_WithExistingVessels_ShouldPreventDeletion" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="81909f9f-d860-c5e1-2ad7-9398f379426b" executionId="44794e49-937e-4349-9487-af188ccfff94" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="19d1c2de-1058-7766-09e1-e54a062c5450" executionId="64b85d82-de3c-4955-8e9f-8c6e7ffced11" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="37914a5e-c23c-4236-97bc-20a803a1c1b0" executionId="0f1003b4-37c1-4bed-a71a-658d5184b385" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Completed">
+    <Counters total="3" executed="3" passed="3" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v2.8.0+6438bb880a (64-bit .NET 9.0.9)
+[xUnit.net 00:00:00.04]   Discovering: Port.Project.Api.System_Tests
+[xUnit.net 00:00:00.06]   Discovered:  Port.Project.Api.System_Tests
+[xUnit.net 00:00:00.06]   Starting:    Port.Project.Api.System_Tests
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (6ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT COUNT(*) FROM "sqlite_master" WHERE "type" = 'table' AND "rootpage" IS NOT NULL;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT EXISTS (
+          SELECT 1
+          FROM "VesselTypes" AS "v")
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT EXISTS (
+          SELECT 1
+          FROM "Vessels" AS "v")
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT EXISTS (
+          SELECT 1
+          FROM "VesselTypes" AS "v")
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT "v"."Id", "v"."Capacity", "v"."Description", "v"."Name", "v"."MaxBays", "v"."MaxRows", "v"."MaxTiers"
+      FROM "VesselTypes" AS "v"
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (2ms) [Parameters=[@p0='?' (Size = 4)], CommandType='Text', CommandTimeout='30']
+      DELETE FROM "VesselTypes"
+      WHERE "Id" = @p0
+      RETURNING 1;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@p0='?' (Size = 4)], CommandType='Text', CommandTimeout='30']
+      DELETE FROM "VesselTypes"
+      WHERE "Id" = @p0
+      RETURNING 1;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@p0='?' (Size = 4)], CommandType='Text', CommandTimeout='30']
+      DELETE FROM "VesselTypes"
+      WHERE "Id" = @p0
+      RETURNING 1;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@p0='?' (Size = 4), @p1='?' (DbType = Int32), @p2='?' (Size = 21), @p3='?' (DbType = Int32), @p4='?' (DbType = Int32), @p5='?' (DbType = Int32), @p6='?' (Size = 14)], CommandType='Text', CommandTimeout='30']
+      INSERT INTO "VesselTypes" ("Id", "Capacity", "Description", "MaxBays", "MaxRows", "MaxTiers", "Name")
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6);
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@p0='?' (Size = 4), @p1='?' (DbType = Int32), @p2='?' (Size = 19), @p3='?' (DbType = Int32), @p4='?' (DbType = Int32), @p5='?' (DbType = Int32), @p6='?' (Size = 12)], CommandType='Text', CommandTimeout='30']
+      INSERT INTO "VesselTypes" ("Id", "Capacity", "Description", "MaxBays", "MaxRows", "MaxTiers", "Name")
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6);
+warn: Microsoft.AspNetCore.HttpsPolicy.HttpsRedirectionMiddleware[3]
+      Failed to determine the https port for redirect.
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@p0='?' (Size = 4), @p1='?' (DbType = Int32), @p2='?' (Size = 13), @p3='?' (DbType = Int32), @p4='?' (DbType = Int32), @p5='?' (DbType = Int32), @p6='?' (Size = 14)], CommandType='Text', CommandTimeout='30']
+      INSERT INTO "VesselTypes" ("Id", "Capacity", "Description", "MaxBays", "MaxRows", "MaxTiers", "Name")
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6);
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__imoNumber_0='?' (Size = 7)], CommandType='Text', CommandTimeout='30']
+      SELECT "v"."IMO", "v"."CreatedAt", "v"."Name", "v"."UpdatedAt", "v"."VesselTypeId", "v"."OperatorName"
+      FROM "Vessels" AS "v"
+      WHERE "v"."IMO" = @__imoNumber_0
+      LIMIT 1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT "v"."Id", "v"."Capacity", "v"."Description", "v"."Name", "v"."MaxBays", "v"."MaxRows", "v"."MaxTiers"
+      FROM "VesselTypes" AS "v"
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@p0='?' (Size = 7), @p1='?' (DbType = DateTime), @p2='?' (Size = 16), @p3='?' (DbType = DateTime), @p4='?' (Size = 4), @p5='?' (Size = 6)], CommandType='Text', CommandTimeout='30']
+      INSERT INTO "Vessels" ("IMO", "CreatedAt", "Name", "UpdatedAt", "VesselTypeId", "OperatorName")
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5);
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT "v"."Id", "v"."Capacity", "v"."Description", "v"."Name", "v"."MaxBays", "v"."MaxRows", "v"."MaxTiers"
+      FROM "VesselTypes" AS "v"
+fail: Microsoft.EntityFrameworkCore.Database.Command[20102]
+      Failed executing DbCommand (1ms) [Parameters=[@p0='?' (Size = 4)], CommandType='Text', CommandTimeout='30']
+      DELETE FROM "VesselTypes"
+      WHERE "Id" = @p0
+      RETURNING 1;
+fail: Microsoft.EntityFrameworkCore.Update[10000]
+      An exception occurred in the database while saving changes for context type 'PortProject.Api.Models.PortProjectContext'.
+      Microsoft.EntityFrameworkCore.DbUpdateException: An error occurred while saving the entity changes. See the inner exception for details.
+       ---&gt; Microsoft.Data.Sqlite.SqliteException (0x80004005): SQLite Error 19: 'FOREIGN KEY constraint failed'.
+         at Microsoft.Data.Sqlite.SqliteException.ThrowExceptionForRC(Int32 rc, sqlite3 db)
+         at Microsoft.Data.Sqlite.SqliteDataReader.NextResult()
+         at Microsoft.Data.Sqlite.SqliteCommand.ExecuteReader(CommandBehavior behavior)
+         at Microsoft.Data.Sqlite.SqliteCommand.ExecuteReaderAsync(CommandBehavior behavior, CancellationToken cancellationToken)
+         at Microsoft.Data.Sqlite.SqliteCommand.ExecuteDbDataReaderAsync(CommandBehavior behavior, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteReaderAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteReaderAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Update.ReaderModificationCommandBatch.ExecuteAsync(IRelationalConnection connection, CancellationToken cancellationToken)
+         --- End of inner exception stack trace ---
+         at Microsoft.EntityFrameworkCore.Update.ReaderModificationCommandBatch.ExecuteAsync(IRelationalConnection connection, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Update.Internal.BatchExecutor.ExecuteAsync(IEnumerable`1 commandBatches, IRelationalConnection connection, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Update.Internal.BatchExecutor.ExecuteAsync(IEnumerable`1 commandBatches, IRelationalConnection connection, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Update.Internal.BatchExecutor.ExecuteAsync(IEnumerable`1 commandBatches, IRelationalConnection connection, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Storage.RelationalDatabase.SaveChangesAsync(IList`1 entries, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.ChangeTracking.Internal.StateManager.SaveChangesAsync(IList`1 entriesToSave, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.ChangeTracking.Internal.StateManager.SaveChangesAsync(StateManager stateManager, Boolean acceptAllChangesOnSuccess, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.DbContext.SaveChangesAsync(Boolean acceptAllChangesOnSuccess, CancellationToken cancellationToken)
+      Microsoft.EntityFrameworkCore.DbUpdateException: An error occurred while saving the entity changes. See the inner exception for details.
+       ---&gt; Microsoft.Data.Sqlite.SqliteException (0x80004005): SQLite Error 19: 'FOREIGN KEY constraint failed'.
+         at Microsoft.Data.Sqlite.SqliteException.ThrowExceptionForRC(Int32 rc, sqlite3 db)
+         at Microsoft.Data.Sqlite.SqliteDataReader.NextResult()
+         at Microsoft.Data.Sqlite.SqliteCommand.ExecuteReader(CommandBehavior behavior)
+         at Microsoft.Data.Sqlite.SqliteCommand.ExecuteReaderAsync(CommandBehavior behavior, CancellationToken cancellationToken)
+         at Microsoft.Data.Sqlite.SqliteCommand.ExecuteDbDataReaderAsync(CommandBehavior behavior, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteReaderAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteReaderAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Update.ReaderModificationCommandBatch.ExecuteAsync(IRelationalConnection connection, CancellationToken cancellationToken)
+         --- End of inner exception stack trace ---
+         at Microsoft.EntityFrameworkCore.Update.ReaderModificationCommandBatch.ExecuteAsync(IRelationalConnection connection, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Update.Internal.BatchExecutor.ExecuteAsync(IEnumerable`1 commandBatches, IRelationalConnection connection, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Update.Internal.BatchExecutor.ExecuteAsync(IEnumerable`1 commandBatches, IRelationalConnection connection, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Update.Internal.BatchExecutor.ExecuteAsync(IEnumerable`1 commandBatches, IRelationalConnection connection, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Storage.RelationalDatabase.SaveChangesAsync(IList`1 entries, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.ChangeTracking.Internal.StateManager.SaveChangesAsync(IList`1 entriesToSave, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.ChangeTracking.Internal.StateManager.SaveChangesAsync(StateManager stateManager, Boolean acceptAllChangesOnSuccess, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.DbContext.SaveChangesAsync(Boolean acceptAllChangesOnSuccess, CancellationToken cancellationToken)
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT "v"."Id", "v"."Capacity", "v"."Description", "v"."Name", "v"."MaxBays", "v"."MaxRows", "v"."MaxTiers"
+      FROM "VesselTypes" AS "v"
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT EXISTS (
+          SELECT 1
+          FROM "Vessels" AS "v")
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT "v"."IMO", "v"."CreatedAt", "v"."Name", "v"."UpdatedAt", "v"."VesselTypeId", "v"."OperatorName"
+      FROM "Vessels" AS "v"
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT EXISTS (
+          SELECT 1
+          FROM "VesselTypes" AS "v")
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT "v"."Id", "v"."Capacity", "v"."Description", "v"."Name", "v"."MaxBays", "v"."MaxRows", "v"."MaxTiers"
+      FROM "VesselTypes" AS "v"
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@p0='?' (Size = 4)], CommandType='Text', CommandTimeout='30']
+      DELETE FROM "VesselTypes"
+      WHERE "Id" = @p0
+      RETURNING 1;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@p0='?' (Size = 4)], CommandType='Text', CommandTimeout='30']
+      DELETE FROM "VesselTypes"
+      WHERE "Id" = @p0
+      RETURNING 1;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@p0='?' (Size = 7)], CommandType='Text', CommandTimeout='30']
+      DELETE FROM "Vessels"
+      WHERE "IMO" = @p0
+      RETURNING 1;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@p0='?' (Size = 4)], CommandType='Text', CommandTimeout='30']
+      DELETE FROM "VesselTypes"
+      WHERE "Id" = @p0
+      RETURNING 1;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@p0='?' (Size = 4), @p1='?' (DbType = Int32), @p2='?' (Size = 21), @p3='?' (DbType = Int32), @p4='?' (DbType = Int32), @p5='?' (DbType = Int32), @p6='?' (Size = 14)], CommandType='Text', CommandTimeout='30']
+      INSERT INTO "VesselTypes" ("Id", "Capacity", "Description", "MaxBays", "MaxRows", "MaxTiers", "Name")
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6);
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@p0='?' (Size = 4), @p1='?' (DbType = Int32), @p2='?' (Size = 19), @p3='?' (DbType = Int32), @p4='?' (DbType = Int32), @p5='?' (DbType = Int32), @p6='?' (Size = 12)], CommandType='Text', CommandTimeout='30']
+      INSERT INTO "VesselTypes" ("Id", "Capacity", "Description", "MaxBays", "MaxRows", "MaxTiers", "Name")
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6);
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@p0='?' (Size = 4), @p1='?' (DbType = Int32), @p2='?' (Size = 18), @p3='?' (DbType = Int32), @p4='?' (DbType = Int32), @p5='?' (DbType = Int32), @p6='?' (Size = 16)], CommandType='Text', CommandTimeout='30']
+      INSERT INTO "VesselTypes" ("Id", "Capacity", "Description", "MaxBays", "MaxRows", "MaxTiers", "Name")
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6);
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__imoNumber_0='?' (Size = 7)], CommandType='Text', CommandTimeout='30']
+      SELECT "v"."IMO", "v"."CreatedAt", "v"."Name", "v"."UpdatedAt", "v"."VesselTypeId", "v"."OperatorName"
+      FROM "Vessels" AS "v"
+      WHERE "v"."IMO" = @__imoNumber_0
+      LIMIT 1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT "v"."Id", "v"."Capacity", "v"."Description", "v"."Name", "v"."MaxBays", "v"."MaxRows", "v"."MaxTiers"
+      FROM "VesselTypes" AS "v"
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@p0='?' (Size = 7), @p1='?' (DbType = DateTime), @p2='?' (Size = 20), @p3='?' (DbType = DateTime), @p4='?' (Size = 4), @p5='?' (Size = 6)], CommandType='Text', CommandTimeout='30']
+      INSERT INTO "Vessels" ("IMO", "CreatedAt", "Name", "UpdatedAt", "VesselTypeId", "OperatorName")
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5);
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__imoNumber_0='?' (Size = 7)], CommandType='Text', CommandTimeout='30']
+      SELECT "v"."IMO", "v"."CreatedAt", "v"."Name", "v"."UpdatedAt", "v"."VesselTypeId", "v"."OperatorName"
+      FROM "Vessels" AS "v"
+      WHERE "v"."IMO" = @__imoNumber_0
+      LIMIT 1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT "v"."Id", "v"."Capacity", "v"."Description", "v"."Name", "v"."MaxBays", "v"."MaxRows", "v"."MaxTiers"
+      FROM "VesselTypes" AS "v"
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@p4='?' (Size = 7), @p0='?' (DbType = DateTime), @p1='?' (Size = 19), @p2='?' (DbType = DateTime), @p3='?' (Size = 4)], CommandType='Text', CommandTimeout='30']
+      UPDATE "Vessels" SET "CreatedAt" = @p0, "Name" = @p1, "UpdatedAt" = @p2, "VesselTypeId" = @p3
+      WHERE "IMO" = @p4
+      RETURNING 1;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__imoNumber_0='?' (Size = 7)], CommandType='Text', CommandTimeout='30']
+      SELECT "v"."IMO", "v"."CreatedAt", "v"."Name", "v"."UpdatedAt", "v"."VesselTypeId", "v"."OperatorName"
+      FROM "Vessels" AS "v"
+      WHERE "v"."IMO" = @__imoNumber_0
+      LIMIT 1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT EXISTS (
+          SELECT 1
+          FROM "Vessels" AS "v")
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT "v"."IMO", "v"."CreatedAt", "v"."Name", "v"."UpdatedAt", "v"."VesselTypeId", "v"."OperatorName"
+      FROM "Vessels" AS "v"
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT EXISTS (
+          SELECT 1
+          FROM "VesselTypes" AS "v")
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT "v"."Id", "v"."Capacity", "v"."Description", "v"."Name", "v"."MaxBays", "v"."MaxRows", "v"."MaxTiers"
+      FROM "VesselTypes" AS "v"
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@p0='?' (Size = 4)], CommandType='Text', CommandTimeout='30']
+      DELETE FROM "VesselTypes"
+      WHERE "Id" = @p0
+      RETURNING 1;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@p0='?' (Size = 4)], CommandType='Text', CommandTimeout='30']
+      DELETE FROM "VesselTypes"
+      WHERE "Id" = @p0
+      RETURNING 1;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@p0='?' (Size = 7)], CommandType='Text', CommandTimeout='30']
+      DELETE FROM "Vessels"
+      WHERE "IMO" = @p0
+      RETURNING 1;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@p0='?' (Size = 4)], CommandType='Text', CommandTimeout='30']
+      DELETE FROM "VesselTypes"
+      WHERE "Id" = @p0
+      RETURNING 1;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@p0='?' (Size = 4), @p1='?' (DbType = Int32), @p2='?' (Size = 21), @p3='?' (DbType = Int32), @p4='?' (DbType = Int32), @p5='?' (DbType = Int32), @p6='?' (Size = 14)], CommandType='Text', CommandTimeout='30']
+      INSERT INTO "VesselTypes" ("Id", "Capacity", "Description", "MaxBays", "MaxRows", "MaxTiers", "Name")
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6);
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@p0='?' (Size = 4), @p1='?' (DbType = Int32), @p2='?' (Size = 19), @p3='?' (DbType = Int32), @p4='?' (DbType = Int32), @p5='?' (DbType = Int32), @p6='?' (Size = 12)], CommandType='Text', CommandTimeout='30']
+      INSERT INTO "VesselTypes" ("Id", "Capacity", "Description", "MaxBays", "MaxRows", "MaxTiers", "Name")
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6);
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@p0='?' (Size = 4), @p1='?' (DbType = Int32), @p2='?', @p3='?' (DbType = Int32), @p4='?' (DbType = Int32), @p5='?' (DbType = Int32), @p6='?' (Size = 10)], CommandType='Text', CommandTimeout='30']
+      INSERT INTO "VesselTypes" ("Id", "Capacity", "Description", "MaxBays", "MaxRows", "MaxTiers", "Name")
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6);
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__imoNumber_0='?' (Size = 7)], CommandType='Text', CommandTimeout='30']
+      SELECT "v"."IMO", "v"."CreatedAt", "v"."Name", "v"."UpdatedAt", "v"."VesselTypeId", "v"."OperatorName"
+      FROM "Vessels" AS "v"
+      WHERE "v"."IMO" = @__imoNumber_0
+      LIMIT 1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT "v"."Id", "v"."Capacity", "v"."Description", "v"."Name", "v"."MaxBays", "v"."MaxRows", "v"."MaxTiers"
+      FROM "VesselTypes" AS "v"
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@p0='?' (Size = 7), @p1='?' (DbType = DateTime), @p2='?' (Size = 14), @p3='?' (DbType = DateTime), @p4='?' (Size = 4), @p5='?' (Size = 5)], CommandType='Text', CommandTimeout='30']
+      INSERT INTO "Vessels" ("IMO", "CreatedAt", "Name", "UpdatedAt", "VesselTypeId", "OperatorName")
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5);
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@p0='?' (Size = 4), @p1='?' (DbType = Int32), @p2='?', @p3='?' (DbType = Int32), @p4='?' (DbType = Int32), @p5='?' (DbType = Int32), @p6='?' (Size = 10)], CommandType='Text', CommandTimeout='30']
+      INSERT INTO "VesselTypes" ("Id", "Capacity", "Description", "MaxBays", "MaxRows", "MaxTiers", "Name")
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6);
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__imoNumber_0='?' (Size = 7)], CommandType='Text', CommandTimeout='30']
+      SELECT "v"."IMO", "v"."CreatedAt", "v"."Name", "v"."UpdatedAt", "v"."VesselTypeId", "v"."OperatorName"
+      FROM "Vessels" AS "v"
+      WHERE "v"."IMO" = @__imoNumber_0
+      LIMIT 1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT "v"."Id", "v"."Capacity", "v"."Description", "v"."Name", "v"."MaxBays", "v"."MaxRows", "v"."MaxTiers"
+      FROM "VesselTypes" AS "v"
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@p0='?' (Size = 7), @p1='?' (DbType = DateTime), @p2='?' (Size = 14), @p3='?' (DbType = DateTime), @p4='?' (Size = 4), @p5='?' (Size = 5)], CommandType='Text', CommandTimeout='30']
+      INSERT INTO "Vessels" ("IMO", "CreatedAt", "Name", "UpdatedAt", "VesselTypeId", "OperatorName")
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5);
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT "v"."IMO", "v"."CreatedAt", "v"."Name", "v"."UpdatedAt", "v"."VesselTypeId", "v"."OperatorName"
+      FROM "Vessels" AS "v"
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT "v"."Id", "v"."Capacity", "v"."Description", "v"."Name", "v"."MaxBays", "v"."MaxRows", "v"."MaxTiers"
+      FROM "VesselTypes" AS "v"
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT "v"."Id", "v"."Capacity", "v"."Description", "v"."Name", "v"."MaxBays", "v"."MaxRows", "v"."MaxTiers"
+      FROM "VesselTypes" AS "v"
+[xUnit.net 00:00:01.21]   Finished:    Port.Project.Api.System_Tests
+</StdOut>
+    </Output>
+  </ResultSummary>
+</TestRun>
