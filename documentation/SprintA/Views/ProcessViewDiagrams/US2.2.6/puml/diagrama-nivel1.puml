@@ -5,9 +5,9 @@ autonumber
 actor "Port Authority Officer" as Officer
 participant "<<system (C4)>>\nPort System" as PortSystem
 
-Officer -> PortSystem : 1: view or manage Shipping Agent Representatives
+Officer -> PortSystem : 1: view and manage Shipping Agent Representatives
 activate PortSystem
-PortSystem --> Officer : 1.1: representatives list displayed (200 OK)
+PortSystem --> Officer : 1.1: representatives data confirmed 
 deactivate PortSystem
 
 @enduml
