@@ -23,8 +23,10 @@ public class StaffMemberRepository : IStaffMemberRepository
 
     public async Task<StaffMember?> GetByIdAsync(MecanographicNumber id)
     {
-        // FindAsync is optimized for finding an entity by its primary key
-        return await _context.StaffMembers.FindAsync(id);
+        // Eager-load Qualifications so callers can manage associations
+        return await _context.StaffMembers
+            .Include(sm => sm.Qualifications)
+            .FirstOrDefaultAsync(sm => sm.MecanographicNumber == id);
     }
     public async Task<IEnumerable<StaffMember>> GetAllAsync(string? nameFilter, StaffStatus? statusFilter, string? qualificationCode)
     {

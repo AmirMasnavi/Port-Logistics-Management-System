@@ -559,6 +559,11 @@ public class PortProjectContext : DbContext
             cb.Property(p => p.GenericValue)
                 .HasColumnName("CapacityValue");
         });
+        
+        resourceBuilder
+            .HasMany(r => r.Qualifications)
+            .WithMany()
+            .UsingEntity(j => j.ToTable("ResourceQualification"));
 
         // QualificationRequirements stored as CSV string in a single column using backing field
         var stringListConverter = new ValueConverter<List<string>, string>(
@@ -573,14 +578,6 @@ public class PortProjectContext : DbContext
             v => v == null ? 0 : v.OrderBy(x => x).Aggregate(0, (acc, s) => HashCode.Combine(acc, (s == null ? 0 : s.GetHashCode()))),
             v => v == null ? new List<string>() : v.ToList()
         );
-
-        resourceBuilder.Property<List<string>>("_qualificationRequirements")
-            .HasColumnName("QualificationRequirements")
-            .HasConversion(stringListConverter)
-            .Metadata.SetValueComparer(stringListComparer);
-
-        // Ignore the public read-only property to avoid EF trying to map it
-        resourceBuilder.Ignore(r => r.QualificationRequirements);
 
         // Optional: default table name
         resourceBuilder.ToTable("Resources");
