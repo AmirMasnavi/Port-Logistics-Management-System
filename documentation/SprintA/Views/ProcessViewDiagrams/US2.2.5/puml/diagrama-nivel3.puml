@@ -2,62 +2,56 @@
 !theme plain
 autonumber
 
-box "Backend System (Sistema AIT)" #LightBlue
+actor "Port Authority Officer" as Officer
+participant "User Interface\n(Organizations UI)" as UI
+
+box "Backend System (Port System)" #LightBlue
     participant "HTTP Request" as HttpRequest
-    participant "Route" as Route
+    participant "API Route" as Route
     participant "OrganizationController" as Controller
-    participant "CreateOrganizationDto\n/ OrganizationDto" as Dto
+    participant "Organization DTOs\n(Create / Output)" as Dto
     participant "OrganizationService" as Service
-    box "Persistence" #LightGreen
-        participant "Data Model" as DataModel
-        participant "Aggregate\n(ShippingAgentOrganization)" as Aggregate
-        participant "Value Object\n(OrgId, LegalName, AltName, Address, TaxNumber)" as ValueObject
-        participant "Entity\n(Organization + Representatives[])" as Entity
+
+    box "Persistence Layer" #LightGreen
+        participant "Repository" as Repository
+        participant "Data Model (EF Core)" as DataModel
     end box
-    participant "Repository" as Repository
 end box
 
-HttpRequest -> Route : 1.1: POST /api/organizations
+' --- Interaction Flow (N3 ARQSI) ---
+Officer -> UI : 1.0: Create Organization
+activate UI
+
+UI -> HttpRequest : 1.1: POST /api/organizations
 activate HttpRequest
-Route -> Controller : 1.2: Invoke CreateOrganization
+HttpRequest -> Route : 1.2: Route matching
 activate Route
-Controller -> Dto : 1.3: Map request body → CreateOrganizationDto
+Route -> Controller : 1.3: Invoke CreateOrganization
 activate Controller
-Dto --> Controller : 1.4: Mapped data (org + representatives[≥1])
+
+Controller -> Dto : 1.4: Bind request → CreateOrganizationDto
+activate Dto
+Dto --> Controller : 1.5: DTO ready
 deactivate Dto
-Controller -> Service : 1.5: Process data
+
+Controller -> Service : 1.6: Create organization (process request)
 activate Service
 
-' --- Domain build & validation (org + reps) ---
-Service -> Aggregate : 1.6: Create Organization aggregate
-activate Aggregate
-Aggregate -> ValueObject : 1.6.1: Build/validate VO (Id, Legal/Alt Names, Address, TaxNumber)
-activate ValueObject
-ValueObject --> Aggregate : 1.6.2: VO OK
-deactivate ValueObject
-Aggregate -> Entity : 1.6.3: Create entity + attach Representatives[≥1]\n(each with Name, CitizenId, Nationality, Email, Phone)
-activate Entity
-Entity --> Aggregate : 1.6.4: Entity ready
-deactivate Entity
-Aggregate --> Service : 1.6.5: Aggregate ready
-deactivate Aggregate
-
-' --- Persistence ---
 Service -> Repository : 1.7: Add(Organization)
 activate Repository
-Repository -> DataModel : 1.7.1: Map aggregate → data model (org + reps)
+Repository -> DataModel : 1.8: Map domain → data model (org + reps, if provided)
 activate DataModel
-DataModel --> Repository : 1.7.2: Data model mapped
+DataModel --> Repository : 1.9: Persisted
 deactivate DataModel
-Repository --> Service : 1.8: Data persisted
+Repository --> Service : 1.10: Result OK
 deactivate Repository
 
-Service --> Controller : 1.9: OrganizationDto (created)
+Service --> Controller : 1.11: OrganizationDto
 deactivate Service
-Controller --> HttpRequest : 1.10: HTTP 201 Created (payload + Location)
+Controller --> HttpRequest : 1.12: HTTP 201 Created (+ Location)
 deactivate Controller
 deactivate Route
-HttpRequest --> : 1.11: HTTP Response
+HttpRequest --> UI : 1.13: HTTP Response
 deactivate HttpRequest
-
+deactivate UI
 @enduml

@@ -3,16 +3,16 @@
 autonumber
 
 actor "Port Authority Officer" as Officer
-participant "User Interface\n(Shipping Agent Organizations)" as UI
+participant "User Interface\n(UI)" as UI
 participant "Backend Service\n(Port System)" as Backend
 
 Officer -> UI : 1: create new Shipping Agent Organization
 activate UI
-UI -> Backend : 1.1: send organization data (POST /api/organizations)
+UI -> Backend : 1.1: Request (CreateOrganization)
 activate Backend
-Backend --> UI : 1.2: return confirmation (201 Created)
+Backend --> UI : 1.2: Response (OrganizationDto)
 deactivate Backend
-UI --> Officer : 1.3: display success message
+UI --> Officer : 1.3: 1.3: Display confirmation
 deactivate UI
 
 @enduml

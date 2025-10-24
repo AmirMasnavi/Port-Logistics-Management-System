@@ -2,62 +2,59 @@
 !theme plain
 autonumber
 
-box "Backend System (Sistema AIT)" #LightBlue
-    participant "HTTP Request" as HttpRequest
-    participant "Route" as Route
-    participant "RepresentativeController" as Controller
-    participant "Create/UpdateRepresentativeDto\n/ RepresentativeDto" as Dto
-    participant "RepresentativeService" as Service
-    box "Persistence" #LightGreen
-        participant "Data Model" as DataModel
-        participant "Aggregate\n(ShippingAgentRepresentative)" as Aggregate
-        participant "Value Object\n(CitizenId, Email, Phone, Nationality, Name)" as ValueObject
-        participant "Entity\n(Representative + OrgId)" as Entity
-    end box
-    participant "Repository" as Repository
+actor "Port Authority Officer" as Officer
+
+participant "User Interface\n(Representatives Management UI)" as UI
+
+box "Backend System (Port System)" #LightBlue
+participant "HTTP Request" as HttpRequest
+participant "API Route" as Route
+participant "RepresentativeController" as Controller
+participant "Representative DTOs\n(Create / Update / Output)" as Dto
+participant "RepresentativeService" as Service
+box "Persistence Layer" #LightGreen
+participant "Data Model (EF Core)" as DataModel
+participant "Domain Aggregate\n(ShippingAgentRepresentative)" as Aggregate
+participant "Value Objects\n(CitizenId, Email, Phone, Nationality, Name)" as ValueObject
+participant "Entity\n(Representative + OrgId)" as Entity
+end box
+participant "Repository" as Repository
 end box
 
-HttpRequest -> Route : 1.1: POST /orgs/{orgId}/representatives\nOR PUT /orgs/{orgId}/representatives/{repId}\nOR DELETE /orgs/{orgId}/representatives/{repId}
+' --- Interaction Flow ---
+Officer -> UI : 1.0: Create / Update / Deactivate Representative
+activate UI
+
+UI -> HttpRequest : 1.1: Send HTTP Request\n(POST / PUT / PATCH)
 activate HttpRequest
-Route -> Controller : 1.2: Invoke Create / Update / Deactivate
+HttpRequest -> Route : 1.2: Forward request to correct endpoint
 activate Route
-Controller -> Dto : 1.3: Map request body (POST/PUT)
+Route -> Controller : 1.3: Invoke corresponding action\n(Create / Update / Deactivate)
 activate Controller
-Dto --> Controller : 1.4: Mapped data
+Controller -> Dto : 1.4: Map request body → DTO
+activate Dto
+Dto --> Controller : 1.5: DTO data mapped
 deactivate Dto
-Controller -> Service : 1.5: Process (orgId, repId?, dto?)
+
+Controller -> Service : 1.6: Call application service\n(Process representative request)
 activate Service
 
-' Create/Update path (validations + mapping no domínio)
-Service -> Aggregate : 1.6: Build or update aggregate (scoped to orgId)
-activate Aggregate
-Aggregate -> ValueObject : 1.6.1: Create/validate VOs
-activate ValueObject
-ValueObject --> Aggregate : 1.6.2: VOs OK
-deactivate ValueObject
-Aggregate -> Entity : 1.6.3: Create/update entity state
-activate Entity
-Entity --> Aggregate : 1.6.4: State ready
-deactivate Entity
-Aggregate --> Service : 1.6.5: Aggregate ready
-deactivate Aggregate
-
-' Persistência (Create/Update ou Deactivate)
-Service -> Repository : 1.7: Add/Update OR Mark inactive
+Service -> Repository : 1.7: Persist representative data
 activate Repository
-Repository -> DataModel : 1.7.1: Map aggregate → data model
+Repository -> DataModel : 1.8: Map domain object → data model (EF Core)
 activate DataModel
-DataModel --> Repository : 1.7.2: Data model mapped
+DataModel --> Repository : 1.9: Persisted successfully
 deactivate DataModel
-Repository --> Service : 1.8: Data persisted
+Repository --> Service : 1.10: Return persistence result
 deactivate Repository
 
-Service --> Controller : 1.9: RepresentativeDto / No content
+Service --> Controller : 1.11: Return operation result (DTO / Success)
 deactivate Service
-Controller --> HttpRequest : 1.10: HTTP 201 Created / 200 OK / 204 No Content
+Controller --> HttpRequest : 1.12: HTTP 201 Created / 200 OK / 204 No Content
 deactivate Controller
 deactivate Route
-HttpRequest --> : 1.11: HTTP Response
+HttpRequest --> UI : 1.13: HTTP Response (Success / No Content)
 deactivate HttpRequest
+deactivate UI
 
 @enduml
