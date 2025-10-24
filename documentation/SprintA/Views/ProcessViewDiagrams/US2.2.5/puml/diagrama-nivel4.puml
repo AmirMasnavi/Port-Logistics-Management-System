@@ -5,54 +5,64 @@ autonumber
 box "Backend System (Sistema AIT)" #LightBlue
     participant "HTTP Request" as HttpRequest
     participant "Route" as Route
-    participant "Controller" as Controller
-    participant "DTO" as Dto
-    participant "Service" as Service
+    participant "OrganizationController" as Controller
+    participant "Create/UpdateOrganizationDto\n/ OrganizationDto" as Dto
+    participant "IOrganizationService" as ServiceInterface
+    participant "OrganizationService" as ServiceImpl
     box "Persistence" #LightGreen
-        participant "Data Model" as DataModel
-        participant "Aggregate" as Aggregate
-        participant "Value Object" as ValueObject
-        participant "Entity" as Entity
+        participant "Data Model\n(EF Core)" as DataModel
+        participant "Aggregate\n(ShippingAgentOrganization)" as Aggregate
+        participant "Value Object\n(OrgId, LegalName, AltName, TaxNumber, Address)" as ValueObject
+        participant "Entity\n(Organization + Representatives[])" as Entity
+        participant "IOrganizationRepository" as RepoInterface
+        participant "OrganizationRepository" as RepoImpl
     end box
-    participant "Repository" as Repository
 end box
 
-HttpRequest -> Route : 1.1: POST /api/organizations
+HttpRequest -> Route : 1.1: POST /api/organizations\nOR PUT /api/organizations/{id}
 activate HttpRequest
-Route -> Controller : 1.2: Invoke CreateOrganization
+Route -> Controller : 1.2: Invoke Create / Update Organization
 activate Route
-Controller -> Dto : 1.3: Map request body → CreateOrganizationDto
+Controller -> Dto : 1.3: Map request body → Create/UpdateOrganizationDto
 activate Controller
-Dto --> Controller : 1.4: Organization data mapped
+Dto --> Controller : 1.4: DTO data mapped
 deactivate Dto
-Controller -> Service : 1.5: Process CreateOrganization
-activate Service
-Service -> Aggregate : 1.6: Build Organization aggregate
+Controller -> ServiceInterface : 1.5: Call service method
+activate ServiceInterface
+ServiceInterface -> ServiceImpl : 1.6: Delegate to implementation
+activate ServiceImpl
+ServiceImpl -> Aggregate : 1.7: Create or update Organization aggregate
 activate Aggregate
-Aggregate -> ValueObject : 1.6.1: Create/validate Value Objects\n(LegalName, AltName, TaxNumber, Address)
+Aggregate -> ValueObject : 1.7.1: Create or validate Value Objects\n(LegalName, TaxNumber, Address)
 activate ValueObject
-ValueObject --> Aggregate : 1.6.2: Value Objects valid
+ValueObject --> Aggregate : 1.7.2: Value Objects created/validated
 deactivate ValueObject
-Aggregate -> Entity : 1.6.3: Create Organization entity\n(+ attach Representatives if provided)
+Aggregate -> Entity : 1.7.3: Create or update Organization entity
 activate Entity
-Entity --> Aggregate : 1.6.4: Entity created
+Entity --> Aggregate : 1.7.4: Entity created/updated
 deactivate Entity
-Aggregate --> Service : 1.6.5: Aggregate ready
+Aggregate --> ServiceImpl : 1.7.5: Aggregate ready
 deactivate Aggregate
-Service -> Repository : 1.7: Persist aggregate (Organization)
-activate Repository
-Repository -> DataModel : 1.7.1: Map aggregate to data model\n(Organization [+ Representatives])
+ServiceImpl -> RepoInterface : 1.8: Call repository method
+activate RepoInterface
+RepoInterface -> RepoImpl : 1.9: Delegate to implementation
+activate RepoImpl
+RepoImpl -> DataModel : 1.9.1: Map aggregate to data model (EF Core)
 activate DataModel
-DataModel --> Repository : 1.7.2: Data model mapped
+DataModel --> RepoImpl : 1.9.2: Data model mapped
 deactivate DataModel
-Repository --> Service : 1.8: Data persisted
-deactivate Repository
-Service --> Controller : 1.9: Response data (OrganizationDto)
-deactivate Service
-Controller --> HttpRequest : 1.10: HTTP 201 Created (+ Location)
+RepoImpl --> RepoInterface : 1.10: Data persisted
+deactivate RepoImpl
+RepoInterface --> ServiceImpl : 1.11: Data persisted
+deactivate RepoInterface
+ServiceImpl --> ServiceInterface : 1.12: Return OrganizationDto
+deactivate ServiceImpl
+ServiceInterface --> Controller : 1.13: Return OrganizationDto
+deactivate ServiceInterface
+Controller --> HttpRequest : 1.14: HTTP 201 Created / 200 OK
 deactivate Controller
 deactivate Route
-HttpRequest --> : 1.11: HTTP Response
+HttpRequest --> : 1.15: HTTP Response
 deactivate HttpRequest
 
 @enduml
