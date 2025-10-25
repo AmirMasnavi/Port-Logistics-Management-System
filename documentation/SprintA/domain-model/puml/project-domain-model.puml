@@ -20,12 +20,14 @@ class Dock {
     name
     lengthCapacity
     numSTSFixedCranes
+    physicalCharacteristics
 }
 
 class StorageArea {
     ID
     type   'Yard or Warehouse
     capacity
+    location
 }
 
 class Vessel {
@@ -34,9 +36,11 @@ class Vessel {
     bays
     rows
     tiers
+    status
 }
 
 class VesselType {
+    ID
     name
     maxTEU
     length
@@ -46,6 +50,7 @@ class VesselType {
 }
 
 class VesselVisit {
+    ID
     ETA
     ETD
     cargoVolume
@@ -93,10 +98,12 @@ class HumanResource {
     name
     email
     phone
+    role
 }
 
 class Qualification {
     name
+    description
 }
 
 class OperationalTask {
@@ -110,13 +117,20 @@ class OperationalTask {
 class PortAuthority {
 }
 
-class ShippingAgent {
-    name
+class ShippingAgentOrganization {
+    ID
+    legalName
+    alternativeName
+    taxNumber
+    address
 }
 
 class ShippingAgentRepresentative {
+    ID
     name
     contact
+    email
+    phone
 }
 
 class UserAccount {
@@ -156,8 +170,8 @@ OperationalTask "*" -- "*" LogisticResource : allocates >
 OperationalTask "*" -- "1" VesselVisit : belongs >
 
 PortAuthority "1" -- "*" VesselVisit : approves/rejects >
-ShippingAgent "1" -- "*" Vessel : represents >
-ShippingAgent "1" -- "*" ShippingAgentRepresentative : employs >
+ShippingAgentOrganization "1" -- "*" Vessel : represents >
+ShippingAgentOrganization "1" -- "*" ShippingAgentRepresentative : employs >
 
 UserAccount "1" -- "1" Role : assigned >
 UserAccount "1" -- "1" ShippingAgentRepresentative : linked >
