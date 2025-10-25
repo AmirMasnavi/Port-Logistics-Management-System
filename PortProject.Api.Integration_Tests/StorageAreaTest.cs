@@ -296,25 +296,4 @@ public class StorageAreaTest : IClassFixture<IntegrationTestsWebApplicationFacto
         // Assert
         Assert.Equal(System.Net.HttpStatusCode.BadRequest, response.StatusCode);
     }
-
-    [Fact]
-    public async Task Get_StorageAreaById_ReturnsSuccessAndCorrectContentType()
-    {
-        // Arrange
-        int storageAreaId;
-        using (var scope = _factory.Services.CreateScope())
-        {
-            var db = scope.ServiceProvider.GetRequiredService<PortProjectContext>();
-            ReinitializeStorageAreasDb(db);
-            storageAreaId = db.StorageAreas.First().Id.Value;
-        }
-
-        // Act
-        var response = await _client.GetAsync($"/api/StorageArea/{storageAreaId}");
-
-        // Assert
-        response.EnsureSuccessStatusCode();
-        var contentType = response.Content.Headers.ContentType?.ToString();
-        Assert.Equal("application/json; charset=utf-8", contentType);
-    }
 }

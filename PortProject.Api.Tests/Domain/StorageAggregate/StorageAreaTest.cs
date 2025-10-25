@@ -119,9 +119,10 @@ public class StorageAreaTest
         var location = new StorageAreaLocation(5f, 7f);
         var type = StorageAreaType.Warehouse;
         var capacity = new StorageCapacity(100);
-        var storageArea = new StorageArea(location, type, capacity);
+        var currentOccupancy = new StorageAreaCurrentOccupancy(50);
+        var storageArea = new StorageArea(location, type, capacity, currentOccupancy);
 
-        var expected = $"Id:  | Location: {location} | Type: {type} | Capacity: {capacity}";
+        var expected = $"Id:  | Location: {location} | Type: {type} | Capacity: {capacity} | Current Occupancy: {currentOccupancy}";
 
         Assert.Equal(expected, storageArea.ToString());
     }

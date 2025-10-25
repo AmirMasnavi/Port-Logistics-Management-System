@@ -17,7 +17,7 @@ box "Backend System (Sistema AIT)" #LightBlue
     participant "Repository" as Repository
 end box
 
-HttpRequest -> Route : 1.1: POST /api/storagearea OR PUT /api/storagearea/{id}
+HttpRequest -> Route : 1.1: POST /api/resource OR PUT /api/resource/{id}
 activate HttpRequest
 Route -> Controller : 1.2: Invoke Create / Update
 activate Route

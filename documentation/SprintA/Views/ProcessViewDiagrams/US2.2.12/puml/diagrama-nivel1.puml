@@ -1,0 +1,13 @@
+@startuml
+!theme plain
+autonumber
+
+actor "Logistics Operator" as Operator
+participant "<<system (C4)>>\nPort System" as AIT
+
+Operator -> AIT : 1: create or update Resource data
+activate AIT
+AIT --> Operator : 1.1: Resource data confirmed
+deactivate AIT
+
+@enduml

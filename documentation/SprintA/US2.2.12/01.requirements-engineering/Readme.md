@@ -50,6 +50,7 @@ vessel and yard operations.
   *   Current availability status (active, inactive, under maintenance)
   *   Setup time (in minutes, if relevant)
   *   Qualification requirements (if any)
+  *   OtherUnit (averageContainersPerHour, averageSpeedKmh, etc...)
 
 **Output Data (Authentication):**
 

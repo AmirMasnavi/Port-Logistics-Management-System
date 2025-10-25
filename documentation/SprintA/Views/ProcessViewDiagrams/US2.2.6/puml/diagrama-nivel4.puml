@@ -1,0 +1,68 @@
+@startuml
+!theme plain
+autonumber
+
+box "Backend System (Sistema AIT)" #LightBlue
+    participant "HTTP Request" as HttpRequest
+    participant "Route" as Route
+    participant "RepresentativeController" as Controller
+    participant "Create/UpdateRepresentativeDto\n/ RepresentativeDto" as Dto
+    participant "IRepresentativeService" as ServiceInterface
+    participant "RepresentativeService" as ServiceImpl
+    box "Persistence" #LightGreen
+        participant "Data Model\n(EF Core)" as DataModel
+        participant "Aggregate\n(ShippingAgentRepresentative)" as Aggregate
+        participant "Value Object\n(CitizenId, Email, Phone, Nationality, Name)" as ValueObject
+        participant "Entity\n(Representative + OrgId)" as Entity
+        participant "IRepresentativeRepository" as RepoInterface
+        participant "RepresentativeRepository" as RepoImpl
+    end box
+end box
+
+HttpRequest -> Route : 1.1: POST /orgs/{orgId}/representatives\nOR PUT /orgs/{orgId}/representatives/{repId}\nOR PATCH /orgs/{orgId}/representatives/{repId}/deactivate
+activate HttpRequest
+Route -> Controller : 1.2: Invoke Create / Update / Deactivate Representative
+activate Route
+Controller -> Dto : 1.3: Map request body → Create/UpdateRepresentativeDto
+activate Controller
+Dto --> Controller : 1.4: DTO data mapped
+deactivate Dto
+Controller -> ServiceInterface : 1.5: Call service method
+activate ServiceInterface
+ServiceInterface -> ServiceImpl : 1.6: Delegate to implementation
+activate ServiceImpl
+ServiceImpl -> Aggregate : 1.7: Create, update or deactivate Representative aggregate (org scoped)
+activate Aggregate
+Aggregate -> ValueObject : 1.7.1: Create or validate Value Objects\n(Name, CitizenId, Nationality, Email, Phone)
+activate ValueObject
+ValueObject --> Aggregate : 1.7.2: Value Objects validated
+deactivate ValueObject
+Aggregate -> Entity : 1.7.3: Create or update Representative entity\n(attach OrganizationId)
+activate Entity
+Entity --> Aggregate : 1.7.4: Entity created/updated
+deactivate Entity
+Aggregate --> ServiceImpl : 1.7.5: Aggregate ready
+deactivate Aggregate
+ServiceImpl -> RepoInterface : 1.8: Call repository method
+activate RepoInterface
+RepoInterface -> RepoImpl : 1.9: Delegate to implementation
+activate RepoImpl
+RepoImpl -> DataModel : 1.9.1: Map aggregate to data model (EF Core)
+activate DataModel
+DataModel --> RepoImpl : 1.9.2: Data model mapped
+deactivate DataModel
+RepoImpl --> RepoInterface : 1.10: Data persisted
+deactivate RepoImpl
+RepoInterface --> ServiceImpl : 1.11: Data persisted
+deactivate RepoInterface
+ServiceImpl --> ServiceInterface : 1.12: Return RepresentativeDto / No Content
+deactivate ServiceImpl
+ServiceInterface --> Controller : 1.13: Return RepresentativeDto / No Content
+deactivate ServiceInterface
+Controller --> HttpRequest : 1.14: HTTP 201 Created / 200 OK / 204 No Content
+deactivate Controller
+deactivate Route
+HttpRequest --> : 1.15: HTTP Response
+deactivate HttpRequest
+
+@enduml
