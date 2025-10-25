@@ -1,0 +1,263 @@
+@startuml
+' US 2.2.12 — Manage Resources (Design) with Repository Layer
+
+title US 2.2.12: Manage Resources (Design)
+
+actor "Logistics Operator" as Admin
+participant ":ResourceController" as Controller
+participant "IResourceService" as IService
+participant ":ResourceService" as Service
+participant "IResourceRepository" as IRepo
+participant ":ResourceRepository" as Repo
+participant ":Resource" as Entity
+participant "PortProjectContext" as Db
+participant "ResourceDto" as Dto
+
+skinparam sequenceArrowThickness 2
+skinparam roundcorner 10
+skinparam maxmessagesize 200
+skinparam sequenceParticipant underline
+
+' --- Scenario 1: Create a new Resource ---
+group Scenario: Create Resource
+  Admin -> Controller : POST /api/Resource\n(CreateResource(dto))
+  activate Controller
+
+  Controller -> IService : CreateResourceAsync(dto)
+  activate IService
+  IService -> Service : delegation
+  activate Service
+
+
+  Service -> Entity ** : new Resource(...)
+  activate Entity
+  Entity --> Service : Resource instance
+  deactivate Entity
+
+  Service -> IRepo : AddAsync(resource)
+  activate IRepo
+  IRepo -> Repo : persist new Resource
+  activate Repo
+  Repo --> IRepo : entity tracked
+  deactivate Repo
+  IRepo --> Service : ok
+  deactivate IRepo
+
+  Service -> Db : SaveChangesAsync()
+  activate Db
+  Db --> Service : committed
+  deactivate Db
+
+  Service -> Dto : Map entity → ResourceDto\n(fill capacity fields per Kind)
+  activate Dto
+  Dto --> Service : ResourceDto
+  deactivate Dto
+
+  Service --> IService : ResourceDto
+  deactivate Service
+  IService --> Controller : 201 Created (ResourceDto)
+  deactivate IService
+  Controller --> Admin : 201 Created (Location: /api/Resource/{code})
+  deactivate Controller
+
+  alt Invalid input (ArgumentException)
+    Controller --> Admin : 400 Bad Request (message)
+  end
+end
+
+
+' --- Scenario 2: Search Resources with filters ---
+group Scenario: Search/List Resources
+  Admin -> Controller : GET /api/Resource?code=&description=&kind=&status=
+  activate Controller
+
+  Controller -> IService : GetAllAsync(code?, description?, kind?, status?)
+  activate IService
+  IService -> Service : delegation
+  activate Service
+
+  note right of Service
+    Use repository for base retrieval:
+    - IResourceRepository.GetAllAsync(kind) applies server-side Kind filter
+    - Then in Service apply remaining filters in-memory:
+      * status (enum)
+      * code contains (VO.ToString)
+      * description contains
+  end note
+
+  Service -> IRepo : GetAllAsync(kind)
+  activate IRepo
+  IRepo -> Repo : query database
+  activate Repo
+  Repo --> IRepo : IEnumerable<Resource>
+  deactivate Repo
+  IRepo --> Service : IEnumerable<Resource>
+  deactivate IRepo
+
+  Service -> Dto : Map each Resource → ResourceDto (after filtering)
+  Dto --> Service : IEnumerable<ResourceDto>
+
+  Service --> IService : 200 OK (list)
+  deactivate Service
+  IService --> Controller : 200 OK (list)
+  deactivate IService
+  Controller --> Admin : 200 OK (list)
+  deactivate Controller
+end
+
+
+' --- Scenario 3: Get Resource by Code ---
+group Scenario: Get Resource by Code
+  Admin -> Controller : GET /api/Resource/{code}\n(GetResourceByCode)
+  activate Controller
+
+  Controller -> IService : GetByCodeAsync(code)
+  activate IService
+  IService -> Service : delegation
+  activate Service
+
+  Service -> IRepo : GetByIdAsync(ResourceCode)
+  activate IRepo
+  IRepo -> Repo : Include Qualifications, fetch by Code
+  activate Repo
+  Repo --> IRepo : Resource | null
+  deactivate Repo
+  IRepo --> Service : Resource | null
+  deactivate IRepo
+
+  alt Resource found
+    Service -> Dto : Build ResourceDto (capacity fields per Kind)
+    Dto --> Service : ResourceDto
+
+    Service --> IService : ResourceDto
+    deactivate Service
+    IService --> Controller : 200 OK (ResourceDto)
+    deactivate IService
+    Controller --> Admin : 200 OK (ResourceDto)
+    deactivate Controller
+  else Not found
+    Service --> IService : null
+    deactivate Service
+    IService --> Controller : null
+    deactivate IService
+    Controller --> Admin : 404 Not Found
+    deactivate Controller
+  end
+end
+
+
+' --- Scenario 4: Edit Resource by Code ---
+group Scenario: Edit Resource
+  Admin -> Controller : PUT /api/Resource/{code}\n(EditResource)
+  activate Controller
+
+  Controller -> IService : EditResourceAsync(code, dto)
+  activate IService
+  IService -> Service : delegation
+  activate Service
+
+  Service -> IRepo : GetByIdAsync(ResourceCode)
+  activate IRepo
+  IRepo -> Repo : Include Qualifications, fetch by Code
+  activate Repo
+  Repo --> IRepo : Resource | null
+  deactivate Repo
+  IRepo --> Service : Resource | null
+  deactivate IRepo
+
+  alt Resource found
+    opt dto.Description provided
+      Service -> Entity : UpdateDescription(new ResourceDescription)
+    end
+    opt dto.AssignedArea provided
+      Service -> Entity : AssignArea(dto.AssignedArea)
+    end
+    opt dto.Status provided
+      Service -> Entity : UpdateStatus(parsed Status)
+    end
+    opt dto.QualificationRequirements provided
+      note right of Service
+        Resolve provided qualification codes to entities.\n        Remove missing, add new ones. Validate unknown codes.
+      end note
+      Service -> Db : Load Qualifications by codes
+      activate Db
+      Db --> Service : List<Qualification>
+      deactivate Db
+      Service -> Entity : Add/Remove qualifications
+    end
+
+    opt Update capacity according to Kind
+      Service -> Entity : UpdateOperationalCapacity(...)
+    end
+
+    Service -> Db : SaveChangesAsync()
+    activate Db
+    Db --> Service : committed
+    deactivate Db
+
+    Service -> Dto : Map entity → ResourceDto
+    Dto --> Service : ResourceDto
+
+    Service --> IService : ResourceDto
+    deactivate Service
+    IService --> Controller : 200 OK (ResourceDto)
+    deactivate IService
+    Controller --> Admin : 200 OK (ResourceDto)
+    deactivate Controller
+  else Not found
+    Service --> IService : null
+    deactivate Service
+    IService --> Controller : null
+    deactivate IService
+    Controller --> Admin : 404 Not Found
+    deactivate Controller
+  end
+end
+
+
+' --- Scenario 5: Update Resource Status ---
+group Scenario: Update Resource Status
+  Admin -> Controller : PATCH /api/Resource/{code}/status\n(UpdateResourceStatus)
+  activate Controller
+
+  Controller -> IService : UpdateStatusAsync(code, dto)
+  activate IService
+  IService -> Service : delegation
+  activate Service
+
+  Service -> IRepo : GetByIdAsync(ResourceCode)
+  activate IRepo
+  IRepo -> Repo : fetch by Code
+  activate Repo
+  Repo --> IRepo : Resource | null
+  deactivate Repo
+  IRepo --> Service : Resource | null
+  deactivate IRepo
+
+  alt Resource found
+    Service -> Entity : UpdateStatus(dto.NewStatus)
+    Service -> Db : SaveChangesAsync()
+    activate Db
+    Db --> Service : committed
+    deactivate Db
+
+    Service -> Dto : Map entity → ResourceDto
+    Dto --> Service : ResourceDto
+
+    Service --> IService : ResourceDto
+    deactivate Service
+    IService --> Controller : 200 OK (ResourceDto)
+    deactivate IService
+    Controller --> Admin : 200 OK (ResourceDto)
+    deactivate Controller
+  else Not found
+    Service --> IService : null
+    deactivate Service
+    IService --> Controller : null
+    deactivate IService
+    Controller --> Admin : 404 Not Found
+    deactivate Controller
+  end
+end
+
+@enduml

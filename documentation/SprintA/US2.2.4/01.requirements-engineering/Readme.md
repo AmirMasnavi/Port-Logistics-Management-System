@@ -40,9 +40,8 @@ manually recorded to support future logistics planning and optimization.
   *   ID
   *   Type
   *   Location
-  *   Maximum capacity
-  *   Current occupancy
-  *   Dock Association (optional)
+  *  Maximum Capacity (in TEUs)
+  *  Current Occupancy
 
 **Output Data (Authentication):**
 

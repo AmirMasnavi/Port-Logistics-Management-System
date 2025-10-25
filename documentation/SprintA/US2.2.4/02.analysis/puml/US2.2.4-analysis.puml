@@ -1,0 +1,25 @@
+@startuml
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+skinparam classAttributeIconSize 0
+hide circle
+hide methods
+
+title US2.2.4 - Create and UpdateStorage Area Management - Domain Model
+
+' Context: Port Authority Officer managing Storage Areas
+' This diagram focuses on the StorageArea aggregate and its direct value objects relevant to the user story.
+
+package "StorageArea Management" {
+
+    class StorageArea <<Root>> {
+        location
+        type 
+        capacity
+        currentOccupancy
+    }
+}
+
+@enduml

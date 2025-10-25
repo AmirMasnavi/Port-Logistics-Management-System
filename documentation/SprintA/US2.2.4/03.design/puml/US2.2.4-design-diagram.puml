@@ -1,0 +1,190 @@
+@startuml
+title US 2.2.4: Manage Storage Areas (Design)
+
+actor "Port Authority Officer" as Admin
+participant ":StorageAreaController" as Controller
+participant "IStorageAreaService" as IService
+participant ":StorageAreaService" as Service
+participant ":StorageArea" as Entity
+participant "IStorageAreaRepository" as IRepo
+participant ":StorageAreaRepository" as Repo
+participant "PortProjectContext" as Db
+participant "StorageAreaDto" as Dto
+
+skinparam sequenceArrowThickness 2
+skinparam roundcorner 10
+skinparam maxmessagesize 200
+skinparam sequenceParticipant underline
+
+
+' --- Scenario 1: Create a New Storage Area ---
+group Scenario: Create New Storage Area
+
+Admin -> Controller : POST /api/storagearea\n(CreateStorageArea(dto))
+activate Controller
+
+Controller -> IService : CreateStorageAreaAsync(dto)
+activate IService
+IService -> Service : delegation
+activate Service
+
+note right of Service
+  Build domain from DTO:
+  - location = BuildLocation(dto.Location)
+  - type = Enum.Parse(StorageAreaType)
+  - capacity = new StorageCapacity(dto.Capacity)
+  - occupancy = new StorageAreaCurrentOccupancy(dto.CurrentOccupancy)
+end note
+
+Service -> Entity ** : new StorageArea(location, type,\ncapacity, occupancy)
+activate Entity
+Entity --> Service : StorageArea instance
+deactivate Entity
+
+Service -> IRepo : AddAsync(storageArea)
+activate IRepo
+IRepo -> Repo : persistence logic
+activate Repo
+Repo --> IRepo : StorageArea saved
+deactivate Repo
+IRepo --> Service : StorageArea saved
+deactivate IRepo
+
+Service -> Db : SaveChangesAsync()
+activate Db
+Db --> Service : committed
+deactivate Db
+
+Service -> Dto : Map entity → StorageAreaDto
+activate Dto
+Dto --> Service : StorageAreaDto
+deactivate Dto
+
+Service --> IService : return StorageAreaDto
+deactivate Service
+IService --> Controller : StorageAreaDto
+deactivate IService
+
+Controller --> Admin : 201 Created (StorageAreaDto)
+deactivate Controller
+
+alt Invalid data (ArgumentException)
+  Controller --> Admin : 400 Bad Request (message)
+end
+
+Admin -> Admin : StorageArea created successfully!
+end
+
+
+' --- Scenario 2: Get Storage Area by Id ---
+group Scenario: Get Storage Area by Id
+
+Admin -> Controller : GET /api/storagearea/{id}\n(GetStorageAreaById(id))
+activate Controller
+
+Controller -> IService : GetByIdAsync(id)
+activate IService
+IService -> Service : delegation
+activate Service
+
+Service -> IRepo : GetByIdAsync(StorageAreaId)
+activate IRepo
+IRepo -> Repo : query database
+activate Repo
+Repo --> IRepo : StorageArea | null
+deactivate Repo
+IRepo --> Service : StorageArea | null
+deactivate IRepo
+
+alt StorageArea found
+  Service -> Dto : Map entity → StorageAreaDto
+  activate Dto
+  Dto --> Service : StorageAreaDto
+  deactivate Dto
+  Service --> IService : StorageAreaDto
+  deactivate Service
+  IService --> Controller : StorageAreaDto
+  deactivate IService
+  Controller --> Admin : 200 OK (StorageAreaDto)
+  deactivate Controller
+else Not found
+  Service --> IService : null
+  deactivate Service
+  IService --> Controller : null
+  deactivate IService
+  Controller --> Admin : 404 Not Found
+  deactivate Controller
+end
+
+end
+
+
+' --- Scenario 3: Update Existing Storage Area ---
+group Scenario: Update Storage Area
+
+Admin -> Controller : PUT /api/storagearea/{id}\n(UpdateStorageArea(id, dto))
+activate Controller
+
+Controller -> IService : UpdateStorageAreaAsync(id, dto)
+activate IService
+IService -> Service : delegation
+activate Service
+
+Service -> IRepo : GetByIdAsync(StorageAreaId)
+activate IRepo
+IRepo -> Repo : query database
+activate Repo
+Repo --> IRepo : StorageArea | null
+deactivate Repo
+IRepo --> Service : StorageArea | null
+deactivate IRepo
+
+alt StorageArea found
+  opt dto.Location provided
+    Service -> Entity : ChangeLocation(BuildLocation(dto.Location))
+  end
+  opt dto.Type provided
+    Service -> Entity : ChangeType(Enum.Parse(StorageAreaType))
+  end
+  opt dto.Capacity provided
+    Service -> Entity : ChangeCapacity(new StorageCapacity(dto.Capacity))
+  end
+  opt dto.CurrentOccupancy provided
+    Service -> Entity : ChangeCurrentOccupancy(new StorageAreaCurrentOccupancy(dto.CurrentOccupancy))
+  end
+
+  Service -> Db : SaveChangesAsync()
+  activate Db
+  Db --> Service : committed
+  deactivate Db
+
+  Service -> Dto : Map entity → StorageAreaDto
+  activate Dto
+  Dto --> Service : StorageAreaDto
+  deactivate Dto
+
+  Service --> IService : StorageAreaDto
+  deactivate Service
+  IService --> Controller : StorageAreaDto
+  deactivate IService
+
+  Controller --> Admin : 200 OK (StorageAreaDto)
+  deactivate Controller
+else Not found
+  Service --> IService : null
+  deactivate Service
+  IService --> Controller : null
+  deactivate IService
+  Controller --> Admin : 404 Not Found
+  deactivate Controller
+end
+
+note right of Controller
+  Note: Update endpoint currently does not catch
+  domain exceptions; validation errors may surface
+  as 500 Internal Server Error.
+end note
+
+end
+
+@enduml

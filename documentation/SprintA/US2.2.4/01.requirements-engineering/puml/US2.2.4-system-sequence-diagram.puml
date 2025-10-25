@@ -12,14 +12,14 @@ participant ":System" as System
 
 activate Authority
 '--- Register Scenario ---
-Authority -> System : attempts to register a new storage area with details (id, location, type, capacity, dockDistance)
+Authority -> System : attempts to register a new storage area with details (id, location, type, capacity, currentOccupancy)
 activate System
 System --> Authority : confirms successful registration of the storage area
 deactivate System
 
 '--- Update Scenario ---
 ... Authority selects an existing storage area to update ...
-Authority -> System : requests to update storage area details (id, newLocation, newType, newCapacity, newDockDistance)
+Authority -> System : requests to update storage area details (id, newLocation, newType, newCapacity, NewcurrentOccupancy)
 activate System
     System --> Authority : confirms successful update of the storage area
 deactivate System
