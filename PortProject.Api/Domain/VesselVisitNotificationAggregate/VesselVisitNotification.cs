@@ -119,7 +119,7 @@ public class VesselVisitNotification // We will add inheritance and interfaces l
         if (Status != NotificationStatus.Rejected)
             throw new InvalidOperationException("Only rejected notifications can be reopened.");
 
-        Status = NotificationStatus.InProgress;
+        Status = NotificationStatus.Submitted;
 
         _decisionLog.Add(new DecisionLogEntry(
             DateTime.UtcNow,
@@ -128,7 +128,8 @@ public class VesselVisitNotification // We will add inheritance and interfaces l
             "Notification reopened for revision by shipping agent."
         ));
     }
-    
-    
-    
+    public void AddDecisionLogEntry(DecisionLogEntry entry)
+    {
+        _decisionLog.Add(entry);
+    }
 }

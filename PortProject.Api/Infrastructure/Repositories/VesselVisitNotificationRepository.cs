@@ -20,15 +20,13 @@ public class VesselVisitNotificationRepository : IVesselVisitNotificationReposit
 
     public async Task<VesselVisitNotification?> GetByIdAsync(NotificationId id)
     {
-        // Use Include to load related owned entities
         return await _context.VesselVisitNotifications
-            .Include(vvn => vvn.Cargo)
-            .ThenInclude(c => c.Containers)
-            .Include(vvn => vvn.CrewMembers)
-            .Include(vvn => vvn.DecisionLog)
-            .FirstOrDefaultAsync(vvn => vvn.Id == id);
+            .Include(v => v.Cargo).ThenInclude(c => c.Containers)
+            .Include(v => v.CrewMembers)
+            .Include(v => v.DecisionLog)
+            .FirstOrDefaultAsync(v => v.Id == id);
     }
-    
+
     public Task UpdateAsync(VesselVisitNotification notification)
     {
         // EF Core's change tracker handles updates automatically

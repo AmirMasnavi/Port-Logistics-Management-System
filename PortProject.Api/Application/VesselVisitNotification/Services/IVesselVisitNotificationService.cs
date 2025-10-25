@@ -23,7 +23,7 @@ namespace PortProject.Api.Application.VesselVisitNotification.Services
         Task<VesselVisitNotificationDto> RejectAsync(string notificationId, RejectVvnDto dto);
 
         // ♻️ Reabrir notificação rejeitada
-        Task<VesselVisitNotificationDto?> ReopenAsync(string notificationId);
+        Task ReopenAsync(string notificationId);
 
         // 🔎 Pesquisa avançada de notificações
         Task<List<VesselVisitNotificationDto>> SearchAsync(

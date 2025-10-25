@@ -216,6 +216,101 @@ public class VesselVisitNotificationControllerTests
         Assert.IsInstanceOfType(result.Result, typeof(BadRequestObjectResult));
         // Verify service was NOT successfully called with the parsed Guid
     }
+    [TestMethod]
+    public async Task Reject_WhenServiceSucceeds_ShouldReturnNoContent()
+    {
+        var rejectDto = new RejectVvnDto { OfficerId = "OFFICER2", Reason = "Missing info" };
+        _mockService.Setup(s => s.RejectAsync(_validNotificationId, rejectDto))
+            .ReturnsAsync(_validResultDto);
 
-    // Add tests for Approve, Reject, Search similarly...
+        var result = await _controller.RejectVvn(_validNotificationId, rejectDto);
+
+        Assert.IsInstanceOfType(result, typeof(NoContentResult));
+    }
+
+    [TestMethod]
+    public async Task Reject_WhenNotFound_ShouldReturnNotFound()
+    {
+        var rejectDto = new RejectVvnDto { OfficerId = "OFFICER2", Reason = "Missing info" };
+        _mockService.Setup(s => s.RejectAsync(_validNotificationId, rejectDto))
+            .ThrowsAsync(new KeyNotFoundException());
+
+        var result = await _controller.RejectVvn(_validNotificationId, rejectDto);
+
+        Assert.IsInstanceOfType(result, typeof(NotFoundObjectResult));
+    }
+
+    [TestMethod]
+    public async Task Reject_WhenInvalidState_ShouldReturnBadRequest()
+    {
+        var rejectDto = new RejectVvnDto { OfficerId = "OFFICER2", Reason = "Missing info" };
+        _mockService.Setup(s => s.RejectAsync(_validNotificationId, rejectDto))
+            .ThrowsAsync(new InvalidOperationException("Cannot reject"));
+
+        var result = await _controller.RejectVvn(_validNotificationId, rejectDto);
+
+        Assert.IsInstanceOfType(result, typeof(BadRequestObjectResult));
+    }
+    [TestMethod]
+    public async Task Resubmit_WhenServiceSucceeds_ShouldReturnNoContent()
+    {
+        _mockService.Setup(s => s.ReopenAsync(_validNotificationId))
+            .Returns(Task.CompletedTask); 
+
+        var result = await _controller.ReopenVvn(_validNotificationId);
+
+        Assert.IsInstanceOfType(result, typeof(NoContentResult));
+    }
+
+
+    [TestMethod]
+    public async Task Resubmit_WhenNotFound_ShouldReturnNotFound()
+    {
+        _mockService.Setup(s => s.ReopenAsync(_validNotificationId))
+            .ThrowsAsync(new KeyNotFoundException());
+
+        var result = await _controller.ReopenVvn(_validNotificationId);
+
+        Assert.IsInstanceOfType(result, typeof(NotFoundObjectResult));
+    }
+
+    [TestMethod]
+    public async Task Resubmit_WhenInvalidState_ShouldReturnBadRequest()
+    {
+        _mockService.Setup(s => s.ReopenAsync(_validNotificationId))
+            .ThrowsAsync(new InvalidOperationException("Cannot resubmit"));
+
+        var result = await _controller.ReopenVvn(_validNotificationId);
+
+        Assert.IsInstanceOfType(result, typeof(BadRequestObjectResult));
+    }
+    
+    [TestMethod]
+    public async Task Search_WhenCalled_ShouldReturnOkWithResults()
+    {
+        var expectedList = new List<VesselVisitNotificationDto> { _validResultDto };
+        _mockService.Setup(s => s.SearchAsync(null, null, null, null, null))
+            .ReturnsAsync(expectedList);
+
+        var result = await _controller.Search(null, null, null, null, null, null);
+
+        Assert.IsInstanceOfType(result.Result, typeof(OkObjectResult));
+        var okResult = (OkObjectResult)result.Result!;
+        Assert.AreEqual(expectedList, okResult.Value);
+    }
+    
+    [TestMethod]
+    public async Task GetNotificationsForRepresentative_WhenCalled_ShouldReturnOkWithResults()
+    {
+        var filter = new VvnSearchFilterDto { RepresentativeId = Guid.NewGuid().ToString() };
+        var expectedList = new List<VesselVisitNotificationDto> { _validResultDto };
+        _mockService.Setup(s => s.GetNotificationsForRepresentativeAsync(filter))
+            .ReturnsAsync(expectedList);
+
+        var result = await _controller.GetNotificationsForRepresentative(filter);
+
+        Assert.IsInstanceOfType(result.Result, typeof(OkObjectResult));
+        var okResult = (OkObjectResult)result.Result!;
+        Assert.AreEqual(expectedList, okResult.Value);
+    }
 }

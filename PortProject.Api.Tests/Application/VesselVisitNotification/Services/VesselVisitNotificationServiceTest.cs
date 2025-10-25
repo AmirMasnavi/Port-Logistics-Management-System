@@ -5,7 +5,6 @@ using PortProject.Api.Application.VesselVisitNotification.Services;
 using PortProject.Api.Domain.VesselVisitNotificationAggregate;
 using PortProject.Api.Domain.VesselAggregate;
 using PortProject.Api.Domain.ShippingAgentRepresentativeAggregate;
-using PortProject.Api.Domain.DockAggregate;
 using PortProject.Api.Domain.StaffMemberAggregate;
 using PortProject.Api.Models; // For PortProjectContext (mocked)
 using Microsoft.EntityFrameworkCore;
@@ -253,18 +252,22 @@ public class VesselVisitNotificationServiceTests
         Assert.AreEqual(_existingNotification.VesselId.Value, result.VesselImo);
     }
 
-     [TestMethod]
+    [TestMethod]
     public async Task GetByIdAsync_WhenNotFound_ShouldReturnNull()
     {
-        // Arrange
-        _mockRepo.Setup(r => r.GetByIdAsync(It.IsAny<NotificationId>())).Returns(Task.FromResult<global::PortProject.Api.Domain.VesselVisitNotificationAggregate.VesselVisitNotification?>(null));
+        var mockRepo = new Mock<IVesselVisitNotificationRepository>();
+        mockRepo.Setup(r => r.GetByIdAsync(It.IsAny<NotificationId>()))
+            .ReturnsAsync((Api.Domain.VesselVisitNotificationAggregate.VesselVisitNotification?)null);
 
-        // Act
-        var result = await _service.GetByIdAsync(_validNotificationIdGuid.ToString());
+        var mockContext = new Mock<PortProjectContext>(); // não usado neste teste
 
-        // Assert
+        var service = new VesselVisitNotificationService(mockRepo.Object, mockContext.Object);
+
+        var result = await service.GetByIdAsync(Guid.NewGuid().ToString());
+
         Assert.IsNull(result);
     }
+
 
      [TestMethod]
     public async Task GetByIdAsync_WithInvalidGuidFormat_ShouldThrowFormatException()
@@ -304,4 +307,173 @@ public class VesselVisitNotificationServiceTests
         field.SetValue(obj, value);
     }
      private static string GetPropertyName(string fieldName) => char.ToUpperInvariant(fieldName[1]) + fieldName.Substring(2);
+     
+     [TestMethod]
+     public async Task ApproveAsync_WhenSubmitted_ShouldSetStatusToApprovedAndSave()
+     {
+         SetPrivateField(_existingNotification, "Status", NotificationStatus.Submitted);
+         _mockRepo.Setup(r => r.GetByIdAsync(_validNotificationId)).ReturnsAsync(_existingNotification);
+
+         var dto = new ApproveVvnDto { OfficerId = "OFFICER1", DockId = Guid.NewGuid().ToString() };
+
+         var result = await _service.ApproveAsync(_validNotificationIdGuid.ToString(), dto);
+
+         Assert.AreEqual(NotificationStatus.Approved, _existingNotification.Status);
+         Assert.IsNotNull(result);
+         _mockContext.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+     }
+
+     [TestMethod]
+     public async Task ApproveAsync_WhenNotSubmitted_ShouldThrowInvalidOperationException()
+     {
+         SetPrivateField(_existingNotification, "Status", NotificationStatus.InProgress);
+         _mockRepo.Setup(r => r.GetByIdAsync(_validNotificationId)).ReturnsAsync(_existingNotification);
+
+         var dto = new ApproveVvnDto { OfficerId = "OFFICER1", DockId = Guid.NewGuid().ToString() };
+
+         await Assert.ThrowsExceptionAsync<InvalidOperationException>(() =>
+             _service.ApproveAsync(_validNotificationIdGuid.ToString(), dto));
+     }
+
+     [TestMethod]
+     public async Task ApproveAsync_WhenNotFound_ShouldThrowKeyNotFoundException()
+     {
+         _mockRepo.Setup(r => r.GetByIdAsync(_validNotificationId)).ReturnsAsync((Api.Domain.VesselVisitNotificationAggregate.VesselVisitNotification?)null);
+
+         var dto = new ApproveVvnDto { OfficerId = "OFFICER1", DockId = Guid.NewGuid().ToString() };
+
+         await Assert.ThrowsExceptionAsync<KeyNotFoundException>(() =>
+             _service.ApproveAsync(_validNotificationIdGuid.ToString(), dto));
+     }
+     [TestMethod]
+     public async Task RejectAsync_WhenSubmitted_ShouldSetStatusToRejectedAndSave()
+     {
+         SetPrivateField(_existingNotification, "Status", NotificationStatus.Submitted);
+         _mockRepo.Setup(r => r.GetByIdAsync(_validNotificationId)).ReturnsAsync(_existingNotification);
+     
+         var dto = new RejectVvnDto { OfficerId = "OFFICER2", Reason = "Missing documents" };
+     
+         var result = await _service.RejectAsync(_validNotificationIdGuid.ToString(), dto);
+     
+         Assert.AreEqual(NotificationStatus.Rejected, _existingNotification.Status);
+         Assert.IsNotNull(result);
+         _mockContext.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+     }
+     
+     [TestMethod]
+     public async Task RejectAsync_WhenNotSubmitted_ShouldThrowInvalidOperationException()
+     {
+         SetPrivateField(_existingNotification, "Status", NotificationStatus.InProgress);
+         _mockRepo.Setup(r => r.GetByIdAsync(_validNotificationId)).ReturnsAsync(_existingNotification);
+     
+         var dto = new RejectVvnDto { OfficerId = "OFFICER2", Reason = "Invalid" };
+     
+         await Assert.ThrowsExceptionAsync<InvalidOperationException>(() =>
+             _service.RejectAsync(_validNotificationIdGuid.ToString(), dto));
+     }
+     
+     [TestMethod]
+     public async Task RejectAsync_WhenNotFound_ShouldThrowKeyNotFoundException()
+     {
+         _mockRepo.Setup(r => r.GetByIdAsync(_validNotificationId)).ReturnsAsync((Api.Domain.VesselVisitNotificationAggregate.VesselVisitNotification?)null);
+     
+         var dto = new RejectVvnDto { OfficerId = "OFFICER2", Reason = "Invalid" };
+     
+         await Assert.ThrowsExceptionAsync<KeyNotFoundException>(() =>
+             _service.RejectAsync(_validNotificationIdGuid.ToString(), dto));
+     }
+     
+     [TestMethod]
+     public async Task ReopenAsync_WhenRejected_ShouldSetStatusToSubmittedAndSave()
+     {
+         SetPrivateField(_existingNotification, "Status", NotificationStatus.Rejected);
+         _mockRepo.Setup(r => r.GetByIdAsync(_validNotificationId)).ReturnsAsync(_existingNotification);
+
+         await _service.ReopenAsync(_validNotificationIdGuid.ToString());
+
+         Assert.AreEqual(NotificationStatus.Submitted, _existingNotification.Status);
+         _mockContext.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+     }
+
+     [TestMethod]
+     public async Task ReopenAsync_WhenNotRejected_ShouldThrowInvalidOperationException()
+     {
+         SetPrivateField(_existingNotification, "Status", NotificationStatus.Approved);
+         _mockRepo.Setup(r => r.GetByIdAsync(_validNotificationId)).ReturnsAsync(_existingNotification);
+
+         await Assert.ThrowsExceptionAsync<InvalidOperationException>(() =>
+             _service.ReopenAsync(_validNotificationIdGuid.ToString()));
+     }
+
+     [TestMethod]
+     public async Task ReopenAsync_WhenNotFound_ShouldThrowKeyNotFoundException()
+     {
+         _mockRepo.Setup(r => r.GetByIdAsync(_validNotificationId)).ReturnsAsync((Api.Domain.VesselVisitNotificationAggregate.VesselVisitNotification?)null);
+
+         await Assert.ThrowsExceptionAsync<KeyNotFoundException>(() =>
+             _service.ReopenAsync(_validNotificationIdGuid.ToString()));
+     }
+     [TestMethod]
+     public async Task GetDecisionLogAsync_WhenFound_ShouldReturnLogEntries()
+     {
+         // Arrange
+         var logEntry = new DecisionLogEntry(
+             DateTime.UtcNow,
+             new MecanographicNumber("OFFICER1"),
+             DecisionOutcome.Approved,
+             "Approved for docking");
+
+         _existingNotification.AddDecisionLogEntry(logEntry); 
+
+         _mockRepo.Setup(r => r.GetByIdAsync(_validNotificationId)).ReturnsAsync(_existingNotification);
+
+         // Act
+         var result = await _service.GetDecisionLogAsync(_validNotificationIdGuid.ToString());
+
+         // Assert
+         Assert.AreEqual(1, result.Count);
+         Assert.AreEqual("Approved", result[0].Outcome);
+         Assert.AreEqual("Approved for docking", result[0].Reason);
+     }
+
+     [TestMethod]
+     public async Task GetDecisionLogAsync_WhenNotFound_ShouldThrowKeyNotFoundException()
+     {
+         _mockRepo.Setup(r => r.GetByIdAsync(_validNotificationId)).ReturnsAsync((Api.Domain.VesselVisitNotificationAggregate.VesselVisitNotification?)null);
+
+         await Assert.ThrowsExceptionAsync<KeyNotFoundException>(() =>
+             _service.GetDecisionLogAsync(_validNotificationIdGuid.ToString()));
+     }
+     
+     [TestMethod]
+     public async Task SearchAsync_WithInvalidStatus_ShouldReturnEmptyList()
+     {
+         // Arrange: usar SQLite em memória para evitar conflito de providers
+         var options = new DbContextOptionsBuilder<PortProjectContext>()
+             .UseSqlite("DataSource=:memory:")
+             .Options;
+     
+         using var context = new PortProjectContext(options);
+         context.Database.OpenConnection(); // necessário para SQLite in-memory
+         context.Database.EnsureCreated();  // cria schema
+     
+         var service = new VesselVisitNotificationService(null!, context);
+     
+         // Act
+         var result = await service.SearchAsync(null, "INVALID_STATUS", null, null, null);
+     
+         // Assert
+         Assert.IsNotNull(result);
+         Assert.AreEqual(0, result.Count);
+     }
+
+     [TestMethod]
+     public async Task GetNotificationsForRepresentativeAsync_WithInvalidRepresentativeId_ShouldThrowFormatException()
+     {
+         var filter = new VvnSearchFilterDto { RepresentativeId = "not-a-guid" };
+
+         await Assert.ThrowsExceptionAsync<FormatException>(() =>
+             _service.GetNotificationsForRepresentativeAsync(filter));
+     }
+
 }
