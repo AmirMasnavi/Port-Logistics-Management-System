@@ -229,15 +229,15 @@ namespace PortProject.Api.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("AssignedDockId")
+                    b.Property<string>("AssignedDockId");
 
                     b.Property<string>("Status")
-                        .IsRequired()
+                        .IsRequired();
 
-                    b.Property<Guid>("SubmittedBy")
+                    b.Property<Guid>("SubmittedBy");
 
                     b.Property<string>("VesselId")
-                        .IsRequired()
+                        .IsRequired();
 
                     b.HasKey("Id");
 
