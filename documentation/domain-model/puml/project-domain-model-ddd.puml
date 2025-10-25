@@ -28,7 +28,7 @@ package "VesselType" {
 ' Aggregate: Vessel
 package "Vessel" {
     class Vessel <<Root>> <<Entity>> #D1E5F4 {
-        
+
     }
     class IMONumber <<ValueObject>> {}
     class Name <<ValueObject>> {}
@@ -39,7 +39,7 @@ package "Vessel" {
         UnderMaintenance
     }
 
-    
+
 
     Vessel "1" *-- "1" IMONumber
     Vessel "1" *-- "1" Name
