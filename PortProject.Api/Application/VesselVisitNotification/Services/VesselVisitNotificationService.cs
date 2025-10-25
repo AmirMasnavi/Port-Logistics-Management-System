@@ -137,7 +137,6 @@ public class VesselVisitNotificationService : IVesselVisitNotificationService
         string? vesselImo,
         string? status,
         string? representativeId,
-        string? organizationId,
         DateTime? from,
         DateTime? to)
     {
@@ -149,21 +148,29 @@ public class VesselVisitNotificationService : IVesselVisitNotificationService
 
         if (!string.IsNullOrWhiteSpace(vesselImo))
             query = query.Where(v => v.VesselId == new ImoNumber(vesselImo));
-
+        
         if (!string.IsNullOrWhiteSpace(status))
-            query = query.Where(v => v.Status.ToString().Equals(status, StringComparison.OrdinalIgnoreCase));
+        {
+            // Convert to the Enum *before* the query
+            if (Enum.TryParse<NotificationStatus>(status, ignoreCase: true, out var statusEnum))
+            {
+                // Compare the enums directly. EF Core will use your converter.
+                query = query.Where(v => v.Status == statusEnum); // 
+            }
+            else
+            {
+                // If an invalid status string is passed, return no results
+                return new List<VesselVisitNotificationDto>();
+            }
+        }
 
         if (!string.IsNullOrWhiteSpace(representativeId))
-            query = query.Where(v => v.SubmittedBy.Value == Guid.Parse(representativeId));
-
-        if (!string.IsNullOrWhiteSpace(organizationId))
         {
-            var repIds = await _context.ShippingAgentRepresentatives
-                .Where(r => r.OrganizationId.Value == Guid.Parse(organizationId))
-                .Select(r => r.RepresentativeId.Value)
-                .ToListAsync();
-
-            query = query.Where(v => repIds.Contains(v.SubmittedBy.Value));
+            // Convert to the Value Object *before* the query
+            var repId = new RepresentativeId(Guid.Parse(representativeId));
+            
+            // Compare the Value Objects directly. EF Core will use your converter.
+            query = query.Where(v => v.SubmittedBy == repId); // 
         }
 
         if (from.HasValue)
