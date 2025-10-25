@@ -1,0 +1,64 @@
+@startuml
+' US 2.2.9 - Sequence Diagram (Update VVN)
+title US 2.2.9: Update "In Progress" Notification (SD)
+
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam sequenceParticipant underline
+
+autonumber
+
+actor "Shipping Agent Rep." as Actor
+participant ":VesselVisitNotificationController" as Controller
+participant ":IVesselVisitNotificationService" as IService
+participant ":VesselVisitNotificationService" as Service
+participant "dto:CreateVvnDto" as Dto
+participant ":VesselVisitNotification" as Aggregate
+participant ":IVesselVisitNotificationRepository" as IRepo
+
+activate Actor
+Actor -> Controller : **PUT** /api/notifications/{id}\n(Body: dto)
+activate Controller
+
+Controller -> IService : UpdateAsync(id, dto)
+activate IService
+IService -> Service : UpdateAsync(id, dto)
+activate Service
+
+' 1. Get the aggregate
+Service -> IRepo : GetByIdAsync(id)
+activate IRepo
+IRepo --> Service : vvn
+deactivate IRepo
+
+' 2. Execute domain logic
+Service -> Aggregate : UpdateDetails(newEta, newEtd, newCargo, ...)
+activate Aggregate
+' ** BUSINESS RULE CHECK **
+' if (this.Status != NotificationStatus.InProgress)
+'   throw InvalidOperationException
+' else
+'   this.ETA = newEta
+'   ...
+Aggregate --> Service
+deactivate Aggregate
+
+' 3. Persist changes
+Service -> IRepo : UpdateAsync(vvn)
+activate IRepo
+' (or just DbContext.SaveChangesAsync())
+IRepo --> Service
+deactivate IRepo
+
+' 4. Map response
+Service -> Service : MapToDto(vvn)
+Service --> IService : updatedDto
+deactivate Service
+IService --> Controller : updatedDto
+deactivate IService
+
+Controller --> Actor : **200 OK**\n(Body: updatedDto)
+deactivate Controller
+deactivate Actor
+@enduml

@@ -7,7 +7,7 @@ This documentation is divided into the following sections:
 ## 1. Requirements Engineering
 * [Requirements Engineering Documentation](01.requirements-engineering/Readme.md)
 
-  This section details the user story, acceptance criteria, dependencies, and illustrates the high-level system interactions via a System Sequence Diagram (SSD).
+  This section details the user story, acceptance criteria, dependencies, I/O data, and illustrates the high-level system interactions via a System Sequence Diagram (SSD).
 
 ## 2. Analysis
 * [Analysis Documentation](02.analysis/Readme.md)

@@ -1,0 +1,55 @@
+@startuml
+' US 2.2.9 - Class Diagram
+title US 2.2.9 - Update VVN - Class Diagram
+
+skinparam linetype ortho
+skinparam monochrome true
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+
+class VesselVisitNotificationController <<Controller>> {
+  + Create(dto): Task<ActionResult>
+  + Update(id, dto): Task<ActionResult>
+  + Submit(id): Task<IActionResult>
+  + GetById(id): Task<ActionResult>
+}
+
+interface IVesselVisitNotificationService <<Service>> {
+  + CreateAsync(dto, repId): Task<VesselVisitNotificationDto>
+  + UpdateAsync(id, dto): Task<VesselVisitNotificationDto>
+  + SubmitAsync(id): Task
+  + GetByIdAsync(id): Task<VesselVisitNotificationDto?>
+}
+
+class VesselVisitNotificationService <<Service>>
+
+interface IVesselVisitNotificationRepository <<Repository>> {
+  + AddAsync(notification): Task
+  + GetByIdAsync(id): Task<VesselVisitNotification?>
+  + UpdateAsync(notification): Task
+}
+
+class VesselVisitNotification <<(A,orchid) Aggregate>> {
+  + Id: NotificationId
+  + Status: NotificationStatus
+  ---
+  + VesselVisitNotification(...)
+  + UpdateDetails(...)
+  + Submit()
+  + Approve(...)
+  + Reject(...)
+}
+
+' Note: The same DTO is used for Create and Update
+class CreateVvnDto <<DTO>>
+class VesselVisitNotificationDto <<DTO>>
+
+VesselVisitNotificationController .> IVesselVisitNotificationService : uses
+VesselVisitNotificationService .up.|> IVesselVisitNotificationService
+VesselVisitNotificationService .> IVesselVisitNotificationRepository : uses
+IVesselVisitNotificationRepository ..> VesselVisitNotification : manages
+VesselVisitNotificationService ..> VesselVisitNotification : uses
+VesselVisitNotificationController ..> CreateVvnDto : receives
+VesselVisitNotificationController ..> VesselVisitNotificationDto : returns
+
+@enduml

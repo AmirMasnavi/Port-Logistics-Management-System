@@ -1,0 +1,79 @@
+@startuml
+' US 2.2.8 - Sequence Diagram (Create VVN)
+title US 2.2.8: Create Vessel Visit Notification (SD)
+
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam sequenceParticipant underline
+
+autonumber
+
+actor "Shipping Agent Rep." as Actor
+participant ":VesselVisitNotificationController" as Controller
+participant ":IVesselVisitNotificationService" as IService
+participant ":VesselVisitNotificationService" as Service
+participant "dto:CreateVvnDto" as Dto
+participant ":VesselVisitNotification" as Aggregate
+participant ":ContainerCode" as ContainerCode
+participant ":IVesselVisitNotificationRepository" as IRepo
+participant ":VesselVisitNotificationRepository" as Repo
+participant "respDto:VesselVisitNotificationDto" as RespDto
+
+activate Actor
+Actor -> Controller : **POST** /api/notifications\n(Body: dto)
+activate Controller
+
+Controller -> IService : CreateAsync(dto, dto.RepresentativeId)
+activate IService
+IService -> Service : CreateAsync(dto, dto.RepresentativeId)
+activate Service
+
+' Validation and Value Object creation
+Service -> Dto : get Cargo.Containers
+activate Dto
+Dto --> Service : List<CreateContainerDto>
+deactivate Dto
+
+loop for each container in DTO
+    Service -> ContainerCode ** : new ContainerCode(code)
+    activate ContainerCode
+    ' ISO 6346 validation (regex + check digit)
+    ' happens inside the constructor
+    ContainerCode --> Service : containerCode
+    deactivate ContainerCode
+end
+
+' Aggregate Root creation
+Service -> Aggregate ** : Create(eta, etd, vesselId, ..., cargo, crew)
+activate Aggregate
+' Constructor sets Status = NotificationStatus.InProgress
+Aggregate --> Service : vvn
+deactivate Aggregate
+
+' Persistence
+Service -> IRepo : AddAsync(vvn)
+activate IRepo
+IRepo -> Repo : AddAsync(vvn)
+activate Repo
+' EF Core generates SQL INSERT
+Repo --> IRepo
+deactivate Repo
+IRepo --> Service
+deactivate IRepo
+
+' Mapping to Response DTO
+Service -> RespDto ** : MapToDto(vvn)
+activate RespDto
+RespDto --> Service : respDto
+deactivate RespDto
+
+Service --> IService : respDto
+deactivate Service
+IService --> Controller : respDto
+deactivate IService
+
+Controller --> Actor : **201 Created**\n(Body: respDto)
+deactivate Controller
+deactivate Actor
+@enduml

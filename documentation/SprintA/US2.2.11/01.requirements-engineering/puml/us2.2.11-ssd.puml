@@ -1,37 +1,50 @@
 @startuml
-' US 2.2.11: Manage Staff Members - System Sequence Diagram (SSD)
+' US 2.2.11 - System Sequence Diagram (SSD)
 skinparam monochrome true
 skinparam packageStyle rectangle
 skinparam shadowing false
 
-title US 2.2.11: Manage Staff Members - SSD
+title US 2.2.11: Manage Staff Members (SSD)
 
 autonumber
-actor "Logistics Operator" as User
+actor "Logistics Operator" as Operator
 participant ":System" as System
 
-activate User
+activate Operator
 
-alt Create Staff Member
-    User -> System : requests to create staff member(data)
+group Create Staff Member
+    Operator -> System : **POST** /api/staffMembers\n(Body: CreateStaffMemberDto)
     activate System
-    System --> User : confirms creation and shows new staff member data
+    System --> Operator : **201 Created**\n(Body: StaffMemberDto { Status: "Available" })
     deactivate System
 end
 
-alt Update Staff Member Status (Deactivate/Reactivate)
-    User -> System : requests to update staff member status(id, newStatus)
+group Deactivate (Update Status)
+    Operator -> System : **PATCH** /api/staffMembers/{id}/status\n(Body: UpdateStaffStatusDto { NewStatus: "Unavailable" })
     activate System
-    System --> User : confirms status update
+    System --> Operator : **200 OK**\n(Body: StaffMemberDto { Status: "Unavailable" })
     deactivate System
 end
 
-alt List/Filter Staff Members
-    User -> System : requests to list staff members(filterCriteria)
+group Manage Qualifications
+    Operator -> System : **POST** /api/staffMembers/{id}/qualifications\n(Body: AddQualificationDto { Code: "QC1" })
     activate System
-    System --> User : shows list of matching staff members
+    System --> Operator : **200 OK**\n(Body: StaffMemberDto { Qualifications: ["QC1"] })
+    deactivate System
+
+    Operator -> System : **DELETE** /api/staffMembers/{id}/qualifications/QC1
+    activate System
+    System --> Operator : **200 OK**\n(Body: StaffMemberDto { Qualifications: [] })
     deactivate System
 end
 
-deactivate User
+group Search/Filter Staff Members
+    Operator -> System : **GET** /api/staffMembers?status=Available&qualificationCode=QC1
+    activate System
+    System --> Operator : **200 OK**\n(Body: List<StaffMemberDto>)
+    deactivate System
+end
+
+deactivate Operator
+
 @enduml

@@ -1,27 +1,30 @@
 ﻿<wpf:ResourceDictionary xml:space="preserve" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:s="clr-namespace:System;assembly=mscorlib" xmlns:ss="urn:shemas-jetbrains-com:settings-storage-xaml" xmlns:wpf="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+	<s:String x:Key="/Default/CodeInspection/ExcludedFiles/FilesAndFoldersToSkip2/=7020124F_002D9FFC_002D4AC3_002D8F3D_002DAAB8E0240759_002Ff_003AJsonConvert_002Ecs_002Fl_003A_002E_002E_003F_002E_002E_003FLibrary_003FApplication_0020Support_003FJetBrains_003FRider2025_002E2_003Fresharper_002Dhost_003FDecompilerCache_003Fdecompiler_003F7e62198beab24380bbac29171862d1d8adf10_003Fb0_003Fff337e6a_003FJsonConvert_002Ecs/@EntryIndexedValue">ForceIncluded</s:String>
 	<s:String x:Key="/Default/CodeInspection/ExcludedFiles/FilesAndFoldersToSkip2/=7020124F_002D9FFC_002D4AC3_002D8F3D_002DAAB8E0240759_002Ff_003AWebApplication_002Ecs_002Fl_003A_002E_002E_003F_002E_002E_003F_002E_002E_003F_002E_002E_003FAppData_003FRoaming_003FJetBrains_003FRider2025_002E2_003Fresharper_002Dhost_003FSourcesCache_003Ff16564c8c4b61e6ea398fe412680c6b795b266584ccf6a362aed712dc4d2b387_003FWebApplication_002Ecs/@EntryIndexedValue">ForceIncluded</s:String>
 	
 	<s:String x:Key="/Default/Environment/UnitTesting/CreateUnitTestDialog/TestProjectMapping/=0F2E08FE_002D7B5B_002D4453_002DA5B9_002DFEC4B18303CD/@EntryIndexedValue">FD418360-4188-4E62-8D8C-B5610A1B84E9</s:String>
 	<s:String x:Key="/Default/Environment/UnitTesting/CreateUnitTestDialog/TestTemplateMapping/=MSTest/@EntryIndexedValue">d6790ab7-33c2-4425-b2c9-51480cd1a852</s:String>
-	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=0ee111e0_002D804c_002D4e4a_002D8b41_002Da4790a014328/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="All tests from ResourceServiceTest.cs #3" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
-  &lt;Or&gt;&#xD;
-    &lt;ProjectFile&gt;FD418360-4188-4E62-8D8C-B5610A1B84E9/d:Application/d:Resource/d:Services/f:ResourceServiceTest.cs&lt;/ProjectFile&gt;&#xD;
-    &lt;TestAncestor&gt;&#xD;
-      &lt;TestId&gt;MSTest::FD418360-4188-4E62-8D8C-B5610A1B84E9::net9.0::PortProject.Api.Tests.Application.StaffMembers.Services.StaffMemberServiceTest&lt;/TestId&gt;&#xD;
-    &lt;/TestAncestor&gt;&#xD;
-    &lt;ProjectFolder&gt;FD418360-4188-4E62-8D8C-B5610A1B84E9/d:Domain&lt;/ProjectFolder&gt;&#xD;
-    &lt;ProjectFolder&gt;FD418360-4188-4E62-8D8C-B5610A1B84E9/d:Controllers&lt;/ProjectFolder&gt;&#xD;
-    &lt;ProjectFolder&gt;FD418360-4188-4E62-8D8C-B5610A1B84E9/d:Application&lt;/ProjectFolder&gt;&#xD;
-    &lt;Project Location="C:\Users\Pedro\Desktop\GitHub\SEM5\PortProject.Api.Integration_Tests" Presentation="&amp;lt;PortProject.Api.Integration_Tests&amp;gt;" /&gt;&#xD;
-  &lt;/Or&gt;&#xD;
+	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=6ff63162_002Db156_002D4af8_002D853b_002D294012f5db2e/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" Name="MecanographicNumberTest" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
+  &lt;Or&gt;
+    &lt;Project Location="/Users/arianmasnavi/RiderProjects/LEI-SEM5-PI-2025-26-3DL-02/PortProject.Api.Tests" Presentation="&amp;lt;PortProject.Api.Tests&amp;gt;" /&gt;
+    &lt;TestAncestor&gt;
+      &lt;TestId&gt;xUnit::D2876DF2-2CBE-4118-8E76-201443151001::net9.0::PortProject.Api.Integration_Tests.StaffMemberTests&lt;/TestId&gt;
+      &lt;TestId&gt;xUnit::D2876DF2-2CBE-4118-8E76-201443151001::net9.0::PortProject.Api.Integration_Tests.QualificationTests&lt;/TestId&gt;
+      &lt;TestId&gt;xUnit::D2876DF2-2CBE-4118-8E76-201443151001::net9.0::PortProject.Api.Integration_Tests.VesselVisitNotificationTests&lt;/TestId&gt;
+    &lt;/TestAncestor&gt;
+    &lt;Project Location="/Users/arianmasnavi/RiderProjects/LEI-SEM5-PI-2025-26-3DL-02/PortProject.Api.Integration_Tests" Presentation="&amp;lt;PortProject.Api.Integration_Tests&amp;gt;" /&gt;
+    &lt;Project Location="/Users/arianmasnavi/RiderProjects/LEI-SEM5-PI-2025-26-3DL-02/Port.Project.Api.System_Tests" Presentation="&amp;lt;Port.Project.Api.System_Tests&amp;gt;" /&gt;
+  &lt;/Or&gt;
 &lt;/SessionState&gt;</s:String>
-	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=110c1ab0_002Df9b1_002D4e36_002Db4f7_002D14ca4cb8b4dc/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" Name="All tests from ResourceServiceTest.cs" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
-  &lt;ProjectFile&gt;FD418360-4188-4E62-8D8C-B5610A1B84E9/d:Application/d:Resource/d:Services/f:ResourceServiceTest.cs&lt;/ProjectFile&gt;&#xD;
-&lt;/SessionState&gt;</s:String>
-	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=54668dcb_002Def41_002D44a4_002Dad86_002D8ec8ea68878e/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" Name="All tests from ResourceServiceTest.cs #2" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
-  &lt;ProjectFile&gt;FD418360-4188-4E62-8D8C-B5610A1B84E9/d:Application/d:Resource/d:Services/f:ResourceServiceTest.cs&lt;/ProjectFile&gt;&#xD;
-&lt;/SessionState&gt;</s:String>
-	
-	
-	
-	</wpf:ResourceDictionary>
+	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=b925e547_002Db8d3_002D433e_002Dae8f_002D25cee37897fe/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="System: Complete Port Operation Workflow" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
+  &lt;Or&gt;
+    &lt;TestAncestor&gt;
+      &lt;TestId&gt;xUnit::7B1FF5D9-9DC5-492C-A04D-153E7A9B71BA::net9.0::Port.Project.Api.System_Tests.PortOperationsSystemTests&lt;/TestId&gt;
+      &lt;TestId&gt;xUnit::7B1FF5D9-9DC5-492C-A04D-153E7A9B71BA::net9.0::Port.Project.Api.System_Tests.DataConsistencySystemTests&lt;/TestId&gt;
+    &lt;/TestAncestor&gt;
+    &lt;Project Location="/Users/arianmasnavi/RiderProjects/LEI-SEM5-PI-2025-26-3DL-02/PortProject.Api.Tests" Presentation="&amp;lt;PortProject.Api.Tests&amp;gt;" /&gt;
+    &lt;ProjectFile&gt;D2876DF2-2CBE-4118-8E76-201443151001/f:DockTest.cs&lt;/ProjectFile&gt;
+    &lt;ProjectFile&gt;D2876DF2-2CBE-4118-8E76-201443151001/f:ResourceTest.cs&lt;/ProjectFile&gt;
+    &lt;Project Location="/Users/arianmasnavi/RiderProjects/LEI-SEM5-PI-2025-26-3DL-02/PortProject.Api.Integration_Tests" Presentation="&amp;lt;PortProject.Api.Integration_Tests&amp;gt;" /&gt;
+  &lt;/Or&gt;
+&lt;/SessionState&gt;</s:String></wpf:ResourceDictionary>

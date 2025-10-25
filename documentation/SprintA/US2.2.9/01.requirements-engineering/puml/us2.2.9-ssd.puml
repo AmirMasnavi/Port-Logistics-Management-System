@@ -1,0 +1,37 @@
+@startuml
+' US 2.2.9 - System Sequence Diagram (SSD)
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+title US 2.2.9: Update "In Progress" VVN (SSD)
+
+autonumber
+actor "Shipping Agent\nRepresentative" as Rep
+participant ":System" as System
+
+activate Rep
+
+group Happy Path: Update "In Progress" Notification
+    Rep -> System : **PUT** /api/notifications/{id}\n(Body: CreateVvnDto with new details)
+    activate System
+    ' The system verifies the notification {id} exists
+    ' AND its status is "InProgress".
+    System --> Rep : **200 OK**\n(Body: VesselVisitNotificationDto { updated details })
+    deactivate System
+end
+
+... A separate notification {id_submitted} already has status "Submitted" ...
+
+group Alternate Flow: Update a Submitted Notification
+    Rep -> System : **PUT** /api/notifications/{id_submitted}\n(Body: CreateVvnDto)
+    activate System
+    ' The system finds the notification, but its status
+    ' is "Submitted", not "InProgress".
+    System --> Rep : **409 Conflict**\n(Body: { message: "Only 'In Progress' notifications can be updated." })
+    deactivate System
+end
+
+deactivate Rep
+
+@enduml
