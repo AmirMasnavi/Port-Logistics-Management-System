@@ -28,7 +28,7 @@ package "VesselType" {
 ' Aggregate: Vessel
 package "Vessel" {
     class Vessel <<Root>> <<Entity>> #D1E5F4 {
-        
+
     }
     class IMONumber <<ValueObject>> {}
     class Name <<ValueObject>> {}
@@ -39,7 +39,7 @@ package "Vessel" {
         UnderMaintenance
     }
 
-    
+
 
     Vessel "1" *-- "1" IMONumber
     Vessel "1" *-- "1" Name
@@ -218,6 +218,8 @@ package "VesselVisitNotification" {
     class ETA <<ValueObject>> {}
 
     class CrewMemberId <<ValueObject>> {}
+    class CrewMemberName <<ValueObject>> {}
+    class CrewMemberNationality <<ValueObject>> {}
 
     class DecisionLogEntry <<Entity>> {
 
@@ -244,9 +246,12 @@ package "VesselVisitNotification" {
     VesselVisitNotification "1" *-- "1" NotificationStatus
     VesselVisitNotification "1" *-- "*" CrewMember
     CrewMember "1" *-- "1" CrewMemberId
+    CrewMember "1" *-- "1" CrewMemberName
+    CrewMember "1" *-- "1" CrewMemberNationality
+
     VesselVisitNotification "1" *-- "1" ETD
     VesselVisitNotification "1" *-- "1" ETA
-    VesselVisitNotification "1" *-- "1" Cargo
+    VesselVisitNotification "1" *-- "0,1,2" Cargo
     Cargo "1" *-- "1" CargoDescription
     Cargo "1" *-- "1" CargoWeight
     Cargo "1" *-- "1" CargoStatus

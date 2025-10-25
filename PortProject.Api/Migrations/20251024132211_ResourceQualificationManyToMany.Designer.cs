@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using PortProject.Api.Models;
 
@@ -10,9 +11,11 @@ using PortProject.Api.Models;
 namespace PortProject.Api.Migrations
 {
     [DbContext(typeof(PortProjectContext))]
-    partial class PortProjectContextModelSnapshot : ModelSnapshot
+    [Migration("20251024132211_ResourceQualificationManyToMany")]
+    partial class ResourceQualificationManyToMany
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.10");
@@ -69,6 +72,10 @@ namespace PortProject.Api.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT")
                         .HasColumnName("Status");
+
+                    b.Property<string>("_qualificationRequirements")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("QualificationRequirements");
 
                     b.HasKey("Code");
 
@@ -230,14 +237,18 @@ namespace PortProject.Api.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("AssignedDockId")
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Status")
                         .IsRequired()
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("SubmittedBy")
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("VesselId")
                         .IsRequired()
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 

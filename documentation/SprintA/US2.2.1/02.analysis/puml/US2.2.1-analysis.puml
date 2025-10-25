@@ -1,0 +1,39 @@
+@startuml
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+skinparam classAttributeIconSize 0
+hide circle
+hide methods
+
+title US221 - Create and Update Vessel Types - Domain Model
+
+' Context: Port Authority Officer managing Vessel Types
+' This diagram focuses on the VesselType aggregate and its direct relationships/value objects relevant to the user story.
+
+package "VesselType Management" {
+
+    class VesselType <<Root>> {
+        name
+        description
+        capacity
+        operationalConstraints
+    }
+
+
+}
+
+' Reference for when Vessel Types are available
+package "Vessel References" {
+    class Vessel {
+        imoNumber
+        name
+        owner
+        status
+    }
+
+    Vessel "1" --> "1" VesselType : references >
+}
+
+@enduml

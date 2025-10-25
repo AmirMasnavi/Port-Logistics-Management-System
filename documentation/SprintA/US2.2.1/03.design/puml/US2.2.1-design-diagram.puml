@@ -1,0 +1,126 @@
+@startuml
+title US 2.2.2: Manage Vessel Types (Design)
+
+actor "Port Authority Officer" as Admin
+participant ":VesselTypeController" as Controller
+participant "IVesselTypeService" as IService
+participant ":VesselTypeService" as Service
+participant ":VesselType" as Entity
+participant "IVesselTypeRepository" as IRepo
+participant ":VesselTypeRepository" as Repo
+participant "VesselTypeDto" as Dto
+
+skinparam sequenceArrowThickness 2
+skinparam roundcorner 10
+skinparam maxmessagesize 200
+skinparam sequenceParticipant underline
+
+
+' --- Scenario 1: Create a New Vessel Type ---
+group Scenario: Create New Vessel Type
+
+Admin -> Controller : POST /api/vesseltype\n(CreateVesselType(dto))
+activate Controller
+
+Controller -> IService : CreateVesselTypeAsync(dto)
+activate IService
+IService -> Service : delegation
+activate Service
+
+Service -> Entity ** : VesselType.Create(id, name, description,\ncapacity, rows, bays, tiers)
+activate Entity
+Entity --> Service : new VesselType instance
+deactivate Entity
+
+Service -> IRepo : AddAsync(entity)
+activate IRepo
+IRepo -> Repo : persistence logic
+activate Repo
+Repo --> IRepo : VesselType saved
+deactivate Repo
+IRepo --> Service : VesselType saved
+deactivate IRepo
+
+Service -> Dto : Map entity → VesselTypeDto
+activate Dto
+Dto --> Service : VesselTypeDto
+deactivate Dto
+
+Service --> IService : return VesselTypeDto
+deactivate Service
+IService --> Controller : VesselTypeDto
+deactivate IService
+
+Controller --> Admin : 201 Created (VesselTypeDto)
+deactivate Controller
+
+Admin -> Admin : VesselType created successfully!
+end
+
+
+' --- Scenario 2: Update Existing Vessel Type ---
+group Scenario: Update Existing Vessel Type
+
+Admin -> Controller : PUT /api/vesseltype/{id}\n(UpdateVesselType(id, dto))
+activate Controller
+
+Controller -> IService : UpdateVesselTypeAsync(dto)
+activate IService
+IService -> Service : delegation
+activate Service
+
+Service -> IRepo : GetByIdAsync(VesselTypeId)
+activate IRepo
+IRepo -> Repo : query database
+activate Repo
+Repo --> IRepo : VesselType entity
+deactivate Repo
+IRepo --> Service : VesselType entity
+deactivate IRepo
+
+note right of Service: Checks existence and name uniqueness
+
+Service -> IRepo : GetByNameAsync(VesselTypeName)
+activate IRepo
+IRepo -> Repo : check duplicates
+activate Repo
+Repo --> IRepo : Optional<VesselType>
+deactivate Repo
+IRepo --> Service : Optional<VesselType>
+deactivate IRepo
+
+Service -> Entity : UpdateName(new VesselTypeName(dto.Name))
+activate Entity
+Entity --> Service
+deactivate Entity
+
+Service -> Entity : UpdateDescription(new VesselTypeDescription(dto.Description))
+Service -> Entity : UpdateCapacity(new VesselTypeCapacity(dto.Capacity))
+Service -> Entity : UpdateOperationalConstraints(new VesselTypeDimensions(...))
+
+Service -> IRepo : UpdateAsync(vesselType)
+activate IRepo
+IRepo -> Repo : persist updated entity
+activate Repo
+Repo --> IRepo : updated entity
+deactivate Repo
+IRepo --> Service : updated entity
+deactivate IRepo
+
+Service -> Dto : Map entity → VesselTypeDto
+activate Dto
+Dto --> Service : VesselTypeDto
+deactivate Dto
+
+Service --> IService : return VesselTypeDto
+deactivate Service
+IService --> Controller : VesselTypeDto
+deactivate IService
+
+Controller --> Admin : 200 OK (VesselTypeDto)
+deactivate Controller
+
+Admin -> Admin : VesselType updated successfully!
+end
+
+@enduml

@@ -1,4 +1,3 @@
-
 using PortProject.Api.Domain.ShippingAgentOrganizationAggregate;
 using PortProject.Api.Domain.ShippingAgentRepresentativeAggregate;
 using PortProject.Api.Models;
@@ -26,7 +25,11 @@ namespace PortProject.Api.Application.ShippingAgentsOrganization.Services
         {
             if (string.IsNullOrWhiteSpace(organizationId))
                 throw new ArgumentException("OrganizationId is required.");
-            var orgId = new OrganizationId(Guid.Parse(organizationId));
+            
+            if (!Guid.TryParse(organizationId, out var guidValue))
+                throw new ArgumentException($"Invalid OrganizationId format. Expected a valid GUID but received: '{organizationId}'");
+            
+            var orgId = new OrganizationId(guidValue);
             var org = await _repository.GetByIdAsync(orgId);
             if (org == null)
                 throw new KeyNotFoundException($"Organization with ID {organizationId} not found.");

@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using PortProject.Api.Models;
 
@@ -10,9 +11,11 @@ using PortProject.Api.Models;
 namespace PortProject.Api.Migrations
 {
     [DbContext(typeof(PortProjectContext))]
-    partial class PortProjectContextModelSnapshot : ModelSnapshot
+    [Migration("20251024130402_InitialCreate")]
+    partial class InitialCreate
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.10");
@@ -43,7 +46,12 @@ namespace PortProject.Api.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("ResourceCode")
+                        .HasColumnType("TEXT");
+
                     b.HasKey("Code");
+
+                    b.HasIndex("ResourceCode");
 
                     b.ToTable("Qualifications");
                 });
@@ -69,6 +77,10 @@ namespace PortProject.Api.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT")
                         .HasColumnName("Status");
+
+                    b.Property<string>("_qualificationRequirements")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("QualificationRequirements");
 
                     b.HasKey("Code");
 
@@ -230,14 +242,18 @@ namespace PortProject.Api.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("AssignedDockId")
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Status")
                         .IsRequired()
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("SubmittedBy")
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("VesselId")
                         .IsRequired()
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -248,21 +264,6 @@ namespace PortProject.Api.Migrations
                     b.HasIndex("VesselId");
 
                     b.ToTable("VesselVisitNotifications");
-                });
-
-            modelBuilder.Entity("QualificationResource", b =>
-                {
-                    b.Property<string>("QualificationsCode")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("ResourceCode")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("QualificationsCode", "ResourceCode");
-
-                    b.HasIndex("ResourceCode");
-
-                    b.ToTable("ResourceQualification", (string)null);
                 });
 
             modelBuilder.Entity("QualificationStaffMember", b =>
@@ -395,6 +396,13 @@ namespace PortProject.Api.Migrations
 
                     b.Navigation("STSCranes")
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("PortProject.Api.Domain.QualificationAggregate.Qualification", b =>
+                {
+                    b.HasOne("PortProject.Api.Domain.ResourceAggregate.Resource", null)
+                        .WithMany("Qualifications")
+                        .HasForeignKey("ResourceCode");
                 });
 
             modelBuilder.Entity("PortProject.Api.Domain.ResourceAggregate.Resource", b =>
@@ -954,21 +962,6 @@ namespace PortProject.Api.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("QualificationResource", b =>
-                {
-                    b.HasOne("PortProject.Api.Domain.QualificationAggregate.Qualification", null)
-                        .WithMany()
-                        .HasForeignKey("QualificationsCode")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("PortProject.Api.Domain.ResourceAggregate.Resource", null)
-                        .WithMany()
-                        .HasForeignKey("ResourceCode")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("QualificationStaffMember", b =>
                 {
                     b.HasOne("PortProject.Api.Domain.QualificationAggregate.Qualification", null)
@@ -982,6 +975,11 @@ namespace PortProject.Api.Migrations
                         .HasForeignKey("StaffMemberMecanographicNumber")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("PortProject.Api.Domain.ResourceAggregate.Resource", b =>
+                {
+                    b.Navigation("Qualifications");
                 });
 #pragma warning restore 612, 618
         }
