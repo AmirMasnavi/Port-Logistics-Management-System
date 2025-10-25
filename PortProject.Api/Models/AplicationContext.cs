@@ -258,6 +258,9 @@ public class PortProjectContext : DbContext
         storageAreaBuilder.OwnsOne(sa => sa.Capacity,
             cap => { cap.Property(p => p.Value).HasColumnName("Capacity").IsRequired(); });
 
+        storageAreaBuilder.OwnsOne(sa => sa.CurrentOccupancy,
+            occ => { occ.Property(p => p.Value).HasColumnName("CurrentOccupancy").IsRequired(); });
+
         // === DOCK CONFIGURATION ===
         var dockBuilder = modelBuilder.Entity<Dock>();
 

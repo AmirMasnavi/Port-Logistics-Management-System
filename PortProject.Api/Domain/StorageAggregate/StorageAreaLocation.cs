@@ -2,8 +2,8 @@
 {
     public class StorageAreaLocation
     {
-        public float X { get; }
-        public float Y { get; }
+        public float X { get; private set; }
+        public float Y { get; private set; }
         
         private StorageAreaLocation() { } // For EF Core
         

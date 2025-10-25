@@ -24,18 +24,20 @@ public class StorageAreaService : IStorageAreaService
         var location = BuildLocation(dto.Location);
         var type = Enum.Parse<StorageAreaType>(dto.Type, ignoreCase: true);
         var capacity = new StorageCapacity(dto.Capacity);
+        var currentOccupancy = new StorageAreaCurrentOccupancy(dto.CurrentOccupancy);
 
-        var storageArea = new StorageArea(location, type, capacity);
+        var storageArea = new StorageArea(location, type, capacity, currentOccupancy);
         
         await _repository.AddAsync(storageArea);
         await _context.SaveChangesAsync();
         
         return new StorageAreaDto
         {
-            Id = storageArea.Id.ToString(),
+            Id = storageArea.Id?.ToString() ?? "0",
             Type = storageArea.Type.ToString(),
-            Location = storageArea.Location.ToString(),
-            Capacity = storageArea.Capacity.Value
+            Location = storageArea.Location?.ToString() ?? string.Empty,
+            Capacity = storageArea.Capacity?.Value ?? 0,
+            CurrentOccupancy = storageArea.CurrentOccupancy?.Value ?? 0
         };
     }
     
@@ -52,17 +54,11 @@ public class StorageAreaService : IStorageAreaService
         return new StorageAreaDto
         {
             Id = storageArea.Id?.ToString() ?? "0",
-            Type = storageArea.Type.ToString()
+            Type = storageArea.Type.ToString(),
+            Location = storageArea.Location?.ToString() ?? string.Empty,
+            Capacity = storageArea.Capacity?.Value ?? 0,
+            CurrentOccupancy = storageArea.CurrentOccupancy?.Value ?? 0
         };
-    }
-    
-    
-
-    // PedroS42 is going to implement this in the future!
-    public Task<IEnumerable<StorageAreaDto>> GetAllAsync(string? nameFilter, StorageAreaType? typeFilter)
-    {
-        //TODO: Implement this method properly - PedroS42
-        throw new NotImplementedException();
     }
 
     
@@ -87,5 +83,52 @@ public class StorageAreaService : IStorageAreaService
             throw new ArgumentException("Coordinates must be valid numbers using '.' as decimal separator.");
 
         return new StorageAreaLocation(x, y);
+    }
+    
+    
+    public async Task<StorageAreaDto?> UpdateStorageAreaAsync(int id, UpdateStorageAreaDto dto)
+    {
+        var value = new StorageAreaId(id);
+        
+        var storageArea = await _repository.GetByIdAsync(value);
+        
+        if (storageArea == null)
+            return null;
+
+        // Update fields if provided
+        if (dto.Location != null)
+        {
+            var location = BuildLocation(dto.Location);
+            storageArea.ChangeLocation(location);
+        }
+
+        if (dto.Type != null)
+        {
+            var type = Enum.Parse<StorageAreaType>(dto.Type, ignoreCase: true);
+            storageArea.ChangeType(type);
+        }
+
+        if (dto.Capacity.HasValue)
+        {
+            var capacity = new StorageCapacity(dto.Capacity.Value);
+            storageArea.ChangeCapacity(capacity);
+        }
+
+        if (dto.CurrentOccupancy.HasValue)
+        {
+            var occupancy = new StorageAreaCurrentOccupancy(dto.CurrentOccupancy.Value);
+            storageArea.ChangeCurrentOccupancy(occupancy);
+        }
+
+        await _context.SaveChangesAsync();
+
+        return new StorageAreaDto
+        {
+            Id = storageArea.Id?.ToString() ?? "0",
+            Type = storageArea.Type.ToString(),
+            Location = storageArea.Location?.ToString() ?? string.Empty,
+            Capacity = storageArea.Capacity?.Value ?? 0,
+            CurrentOccupancy = storageArea.CurrentOccupancy?.Value ?? 0
+        };
     }
 }

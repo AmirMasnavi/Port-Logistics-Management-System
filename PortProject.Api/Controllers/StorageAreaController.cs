@@ -50,4 +50,20 @@ public class StorageAreaController : ControllerBase
 
         return Ok(resultDto);
     }
+
+
+    /// <summary>
+    /// Updates an existing Storage Area.
+    /// </summary>
+    [HttpPut("{id}")]
+    public async Task<ActionResult<StorageAreaDto>> UpdateStorageArea(int id, UpdateStorageAreaDto dto)
+    {
+        var resultDto = await _storageAreaService.UpdateStorageAreaAsync(id, dto);
+        if (resultDto == null)
+        {
+            return NotFound($"Storage area with ID {id} not found.");
+        }
+
+        return Ok(resultDto);
+    }
 }
