@@ -28,7 +28,7 @@ public class VesselVisitNotificationService : IVesselVisitNotificationService
             dto.Cargo.Weight,
             dto.Cargo.Containers.Select(c => new Container(new ContainerCode(c.ContainerCode), c.Position)).ToList()
         );
-        
+
         var crewMembers = dto.CrewMembers? // Check if the list is provided
             .Select(cmDto => new CrewMember(cmDto.Name, cmDto.Nationality, cmDto.IsSafetyOfficer))
             .ToList();
@@ -42,7 +42,7 @@ public class VesselVisitNotificationService : IVesselVisitNotificationService
             cargo,
             crewMembers
         );
-        
+
         if (newNotification.CrewMembers.Any())
         {
             _context.AddRange(newNotification.CrewMembers);
@@ -59,20 +59,21 @@ public class VesselVisitNotificationService : IVesselVisitNotificationService
     public async Task<VesselVisitNotificationDto> UpdateAsync(string notificationId, CreateVvnDto dto)
     {
         var notification = await _vvnRepo.GetByIdAsync(new NotificationId(Guid.Parse(notificationId)))
-            ?? throw new KeyNotFoundException($"Notification with ID '{notificationId}' not found.");
-            
+                           ?? throw new KeyNotFoundException($"Notification with ID '{notificationId}' not found.");
+
         var newCargo = new Cargo(
             dto.Cargo.Description,
             dto.Cargo.Weight,
             dto.Cargo.Containers.Select(c => new Container(new ContainerCode(c.ContainerCode), c.Position)).ToList()
         );
-        
+
         var newCrewMembers = dto.CrewMembers?
             .Select(cmDto => new CrewMember(cmDto.Name, cmDto.Nationality, cmDto.IsSafetyOfficer))
             .ToList();
 
         // Use the domain method to perform the update
-        notification.UpdateDetails(new ETA(dto.EstimatedArrival), new ETD(dto.EstimatedDeparture), newCargo, newCrewMembers);
+        notification.UpdateDetails(new ETA(dto.EstimatedArrival), new ETD(dto.EstimatedDeparture), newCargo,
+            newCrewMembers);
 
         await _context.SaveChangesAsync();
         return MapToDto(notification);
@@ -81,21 +82,21 @@ public class VesselVisitNotificationService : IVesselVisitNotificationService
     public async Task SubmitAsync(string notificationId)
     {
         var notification = await _vvnRepo.GetByIdAsync(new NotificationId(Guid.Parse(notificationId)))
-            ?? throw new KeyNotFoundException($"Notification with ID '{notificationId}' not found.");
+                           ?? throw new KeyNotFoundException($"Notification with ID '{notificationId}' not found.");
 
         // Use the domain method to change the status
         notification.Submit();
 
         await _context.SaveChangesAsync();
     }
-    
+
     public async Task<VesselVisitNotificationDto?> GetByIdAsync(string notificationId)
     {
         var notification = await _vvnRepo.GetByIdAsync(new NotificationId(Guid.Parse(notificationId)));
-        
+
         return notification == null ? null : MapToDto(notification);
     }
-    
+
     public async Task<VesselVisitNotificationDto> ApproveAsync(string notificationId, ApproveVvnDto dto)
     {
         var id = new NotificationId(Guid.Parse(notificationId));
@@ -132,12 +133,11 @@ public class VesselVisitNotificationService : IVesselVisitNotificationService
 
         return MapToDto(notification);
     }
-    
+
     public async Task<List<VesselVisitNotificationDto>> SearchAsync(
         string? vesselImo,
         string? status,
         string? representativeId,
-        string? organizationId,
         DateTime? from,
         DateTime? to)
     {
@@ -149,21 +149,29 @@ public class VesselVisitNotificationService : IVesselVisitNotificationService
 
         if (!string.IsNullOrWhiteSpace(vesselImo))
             query = query.Where(v => v.VesselId == new ImoNumber(vesselImo));
-
+        
         if (!string.IsNullOrWhiteSpace(status))
-            query = query.Where(v => v.Status.ToString().Equals(status, StringComparison.OrdinalIgnoreCase));
+        {
+            // Convert to the Enum *before* the query
+            if (Enum.TryParse<NotificationStatus>(status, ignoreCase: true, out var statusEnum))
+            {
+                // Compare the enums directly. EF Core will use your converter.
+                query = query.Where(v => v.Status == statusEnum); // 
+            }
+            else
+            {
+                // If an invalid status string is passed, return no results
+                return new List<VesselVisitNotificationDto>();
+            }
+        }
 
         if (!string.IsNullOrWhiteSpace(representativeId))
-            query = query.Where(v => v.SubmittedBy.Value == Guid.Parse(representativeId));
-
-        if (!string.IsNullOrWhiteSpace(organizationId))
         {
-            var repIds = await _context.ShippingAgentRepresentatives
-                .Where(r => r.OrganizationId.Value == Guid.Parse(organizationId))
-                .Select(r => r.RepresentativeId.Value)
-                .ToListAsync();
-
-            query = query.Where(v => repIds.Contains(v.SubmittedBy.Value));
+            // Convert to the Value Object *before* the query
+            var repId = new RepresentativeId(Guid.Parse(representativeId));
+            
+            // Compare the Value Objects directly. EF Core will use your converter.
+            query = query.Where(v => v.SubmittedBy == repId); // 
         }
 
         if (from.HasValue)
@@ -175,7 +183,7 @@ public class VesselVisitNotificationService : IVesselVisitNotificationService
         var results = await query.ToListAsync();
         return results.Select(MapToDto).ToList();
     }
-    
+
     public async Task<List<DecisionLogEntryDto>> GetDecisionLogAsync(string notificationId)
     {
         var id = new NotificationId(Guid.Parse(notificationId));
@@ -191,8 +199,47 @@ public class VesselVisitNotificationService : IVesselVisitNotificationService
         }).ToList();
     }
 
-    
-    
+    public async Task<List<VesselVisitNotificationDto>> GetNotificationsForRepresentativeAsync(
+        VvnSearchFilterDto filter)
+    {
+        var query = _context.VesselVisitNotifications
+            .Include(vvn => vvn.Cargo).ThenInclude(c => c.Containers)
+            .Include(vvn => vvn.CrewMembers)
+            .Include(vvn => vvn.DecisionLog)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(filter.VesselImo))
+            query = query.Where(v => v.VesselId.Value == filter.VesselImo);
+
+        if (!string.IsNullOrWhiteSpace(filter.Status))
+            query = query.Where(v => v.Status.ToString().Equals(filter.Status, StringComparison.OrdinalIgnoreCase));
+
+        if (!string.IsNullOrWhiteSpace(filter.RepresentativeId))
+        {
+            var repId = Guid.Parse(filter.RepresentativeId);
+            query = query.Where(v => v.SubmittedBy.Value == repId);
+        }
+        else if (!string.IsNullOrWhiteSpace(filter.OrganizationId))
+        {
+            var orgId = Guid.Parse(filter.OrganizationId);
+            var repIds = await _context.ShippingAgentRepresentatives
+                .Where(r => r.OrganizationId.Value == orgId)
+                .Select(r => r.RepresentativeId.Value)
+                .ToListAsync();
+
+            query = query.Where(v => repIds.Contains(v.SubmittedBy.Value));
+        }
+
+        if (filter.From.HasValue)
+            query = query.Where(v => v.EstimatedArrival.Value >= filter.From.Value);
+
+        if (filter.To.HasValue)
+            query = query.Where(v => v.EstimatedArrival.Value <= filter.To.Value);
+
+        var results = await query.ToListAsync();
+        return results.Select(MapToDto).ToList();
+    }
+
     // This private helper keeps our mapping logic in one place
     private VesselVisitNotificationDto MapToDto(Domain.VesselVisitNotificationAggregate.VesselVisitNotification entity)
     {
@@ -222,13 +269,15 @@ public class VesselVisitNotificationService : IVesselVisitNotificationService
                 Nationality = c.Nationality,
                 IsSafetyOfficer = c.IsSafetyOfficer
             }).ToList(),
-            DecisionLog = entity.DecisionLog.Select(dl => new DecisionLogEntryDto
-            {
-                Timestamp = dl.Timestamp,
-                OfficerId = dl.OfficerId.Value,
-                Outcome = dl.Outcome.ToString(),
-                Reason = dl.Reason
-            }).ToList()
+            DecisionLog = entity.DecisionLog?
+                .OrderByDescending(dl => dl.Timestamp)
+                .Select(dl => new DecisionLogEntryDto
+                {
+                    Timestamp = dl.Timestamp,
+                    OfficerId = dl.OfficerId.Value,
+                    Outcome = dl.Outcome.ToString(),
+                    Reason = dl.Reason
+                }).ToList() ?? new List<DecisionLogEntryDto>()
         };
     }
 }

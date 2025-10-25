@@ -2,51 +2,58 @@
 !theme plain
 autonumber
 
-actor "Port Authority Officer" as Officer
-participant "User Interface\n(UI)" as UI
 box "Backend System (Sistema AIT)" #LightBlue
     participant "HTTP Request" as HttpRequest
     participant "Route" as Route
-    participant "StorageAreaController" as Controller
-    participant "StorageAreaDto" as Dto
-    participant "IStorageAreaService\n(Service)" as Service
-    participant "IStorageAreaRepository\n(Repository)" as Repository
+    participant "Controller" as Controller
+    participant "Dto" as Dto
+    participant "Service" as Service
+    box "Persistence" #LightGreen
+        participant "Data Model" as DataModel
+        participant "Aggregate" as Aggregate
+        participant "Value Object" as ValueObject
+        participant "Entity" as Entity
+    end box
+    participant "Repository" as Repository
 end box
 
-Officer -> UI : 1: create or update Storage Area data
-activate UI
-
-UI -> HttpRequest : 1.1: POST /api/storagearea OR PUT /api/storagearea/{id} \n (StorageAreaCreateDto / StorageAreaDto)
+HttpRequest -> Route : 1.1: POST /api/storagearea OR PUT /api/storagearea/{id}
 activate HttpRequest
-HttpRequest -> Route : 1.2: Match Route
+Route -> Controller : 1.2: Invoke Create / Update
 activate Route
-Route -> Controller : 1.3: Invoke CreateStorageArea / UpdateStorageArea
+Controller -> Dto : 1.3: Map request body
 activate Controller
-
-Controller -> Dto : 1.3.1: Map DTO from request body
-activate Dto
-Dto --> Controller : 1.3.2: Mapped DTO
+Dto --> Controller : 1.4: Mapped data
 deactivate Dto
-
-Controller -> Service : 1.4: CreateStorageAreaAsync / UpdateStorageAreaAsync (StorageAreaDto)
+Controller -> Service : 1.5: Process data
 activate Service
-
-Service -> Repository : 1.4.1: AddAsync / UpdateAsync (StorageArea entity)
+Service -> Aggregate : 1.6: Create or update aggregate
+activate Aggregate
+Aggregate -> ValueObject : 1.6.1: Create or update value objects
+activate ValueObject
+ValueObject --> Aggregate : 1.6.2: Value objects created/updated
+deactivate ValueObject
+Aggregate -> Entity : 1.6.3: Create or update entity
+activate Entity
+Entity --> Aggregate : 1.6.4: Entity created/updated
+deactivate Entity
+Aggregate --> Service : 1.6.5: Aggregate created/updated
+deactivate Aggregate
+Service -> Repository : 1.7: Persist aggregate
 activate Repository
-Repository --> Service : 1.4.2: StorageArea entity persisted
+Repository -> DataModel : 1.7.1: Map aggregate to data model
+activate DataModel
+DataModel --> Repository : 1.7.2: Data model mapped
+deactivate DataModel
+Repository --> Service : 1.8: Data persisted
 deactivate Repository
-
-Service --> Controller : 1.5: StorageAreaDto (created/updated)
+Service --> Controller : 1.9: Response data
 deactivate Service
-
-Controller --> HttpRequest : 1.6: HTTP 201 Created / 200 OK (StorageAreaDto)
+Controller --> HttpRequest : 1.10: HTTP 201 Created / 200 OK
 deactivate Controller
 deactivate Route
+HttpRequest --> : 1.11: HTTP Response
 deactivate HttpRequest
 
-HttpRequest --> UI : 1.7: HTTP Response
-deactivate UI
-
-UI --> Officer : 1.8: Display confirmation / new data
 
 @enduml

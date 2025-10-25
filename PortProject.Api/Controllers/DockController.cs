@@ -1,9 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using PortProject.Api.Application.Dock.DTOs;
 using PortProject.Api.Application.Dock.Services;
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 
 namespace PortProject.Api.Controllers
 {
@@ -19,23 +16,51 @@ namespace PortProject.Api.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<DockDto>> CreateDock([FromBody] DockCreateDto dto)
+        public async Task<IActionResult> CreateDock([FromBody] DockCreateDto dto)
         {
-            if (dto == null)
-                return BadRequest(new { message = "Body inválido." });
-
-            var created = await _service.CreateDockAsync(dto);
-            return CreatedAtAction(nameof(GetDockById), new { id = created.Id }, created);
+            try
+            {
+                var result = await _service.CreateDockAsync(dto);
+                return CreatedAtAction(nameof(GetDockById), new { id = result.Id }, result);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Erro inesperado: {ex.Message}");
+            }
         }
 
         [HttpPut("{id}")]
-        public async Task<ActionResult<DockDto>> UpdateDock(string id, [FromBody] DockDto dto)
+        public async Task<IActionResult> UpdateDock(string id, [FromBody] DockDto dto)
         {
-            dto.Id = id; // força o ID do corpo a ser igual ao da URL
+            try
+            {
+                if (dto == null)
+                    return BadRequest("Dock data is required.");
 
-            var updated = await _service.UpdateDockAsync(dto);
-            return Ok(updated);
+                if (id != dto.Id)
+                    return BadRequest("ID mismatch between route and body.");
+
+                var updated = await _service.UpdateDockAsync(dto);
+                return Ok(updated);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Unexpected error: {ex.Message}");
+            }
         }
+
 
         [HttpGet("{id}")]
         public async Task<ActionResult<DockDto>> GetDockById(string id)
@@ -65,7 +90,8 @@ namespace PortProject.Api.Controllers
             [FromQuery] string? sortBy = "name",
             [FromQuery] string? sortOrder = "asc")
         {
-            var results = await _service.SearchDocksAsync(name, vesselTypeId, zone, section, page, pageSize, sortBy, sortOrder);
+            var results =
+                await _service.SearchDocksAsync(name, vesselTypeId, zone, section, page, pageSize, sortBy, sortOrder);
             return Ok(results);
         }
 
@@ -73,8 +99,23 @@ namespace PortProject.Api.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteDock(string id)
         {
-            await _service.DeleteDockAsync(id);
-            return NoContent();
+            try
+            {
+                await _service.DeleteDockAsync(id);
+                return NoContent();
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Unexpected error: {ex.Message}");
+            }
         }
     }
 }

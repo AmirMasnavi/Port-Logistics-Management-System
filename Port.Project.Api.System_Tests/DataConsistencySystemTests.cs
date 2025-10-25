@@ -13,6 +13,13 @@ using Xunit;
 using PortProject.Api.Models;
 using PortProject.Api.Domain.VesselAggregate;
 using PortProject.Api.Domain.VesselTypeAggregate;
+using PortProject.Api.Domain.ResourceAggregate;
+using PortProject.Api.Domain.QualificationAggregate;
+using PortProject.Api.Application.Resources.DTOs;
+using PortProject.Api.Application.Qualifications.DTOs;
+using PortProject.Api.Application.VesselVisitNotification.DTOs;
+using PortProject.Api.Domain.ShippingAgentOrganizationAggregate;
+using PortProject.Api.Domain.ShippingAgentRepresentativeAggregate;
 using src.Dto;
 
 namespace Port.Project.Api.System_Tests
@@ -41,6 +48,7 @@ namespace Port.Project.Api.System_Tests
                 int digit = core[i] - '0';
                 sum += digit * (7 - i);
             }
+
             int check = sum % 10;
             return core + check.ToString();
         }
@@ -75,14 +83,27 @@ namespace Port.Project.Api.System_Tests
             using var scope = _factory.Services.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<PortProjectContext>();
             // remove dependent data first
+            if (db.VesselVisitNotifications.Any()) db.VesselVisitNotifications.RemoveRange(db.VesselVisitNotifications);
+            if (db.Resources.Any()) db.Resources.RemoveRange(db.Resources);
+            if (db.Qualifications.Any()) db.Qualifications.RemoveRange(db.Qualifications);
             if (db.Vessels.Any()) db.Vessels.RemoveRange(db.Vessels);
             if (db.VesselTypes.Any()) db.VesselTypes.RemoveRange(db.VesselTypes);
             db.SaveChanges();
 
             // seed minimal vessel types
-            db.VesselTypes.AddRange(new[] {
+            db.VesselTypes.AddRange(new[]
+            {
                 VesselType.Create("1001", "Container Ship", "Seeded container ship", 5000, 10, 20, 8),
                 VesselType.Create("1002", "Bulk Carrier", "Seeded bulk carrier", 8000, 12, 25, 10),
+            });
+
+            // seed minimal qualifications
+            db.Qualifications.AddRange(new[]
+            {
+                new Qualification(new QualificationCode("QUAL001"), new QualificationName("Crane Operator"),
+                    new QualificationDescription("Certified crane operator")),
+                new Qualification(new QualificationCode("QUAL002"), new QualificationName("Truck Driver"),
+                    new QualificationDescription("Licensed truck driver")),
             });
 
             beforeSave?.Invoke(db);
@@ -120,19 +141,19 @@ namespace Port.Project.Api.System_Tests
             var createdV = await PostAndReadJsonAsync<VesselDto>("/api/Vessel", newVessel);
             Assert.NotNull(createdV);
 
-             // Act - try to delete vessel type
-             var deleteResp = await _client.DeleteAsync($"/api/VesselType/{createdVt.Id}");
+            // Act - try to delete vessel type
+            var deleteResp = await _client.DeleteAsync($"/api/VesselType/{createdVt.Id}");
 
-             // Assert - should not allow deletion (BadRequest/Conflict/InternalServerError depending on implementation)
-             Assert.True(deleteResp.StatusCode == HttpStatusCode.BadRequest ||
-                         deleteResp.StatusCode == HttpStatusCode.Conflict ||
-                         deleteResp.StatusCode == HttpStatusCode.InternalServerError,
-                         $"Unexpected status code: {deleteResp.StatusCode}");
+            // Assert - should not allow deletion (BadRequest/Conflict/InternalServerError depending on implementation)
+            Assert.True(deleteResp.StatusCode == HttpStatusCode.BadRequest ||
+                        deleteResp.StatusCode == HttpStatusCode.Conflict ||
+                        deleteResp.StatusCode == HttpStatusCode.InternalServerError,
+                $"Unexpected status code: {deleteResp.StatusCode}");
 
-             // Verify vessel type still exists
+            // Verify vessel type still exists
             var vtFetched = await GetAndReadJsonAsync<VesselTypeDto>($"/api/VesselType/{createdVt.Id}");
             Assert.NotNull(vtFetched);
-         }
+        }
 
         [Fact(DisplayName = "System: Update Vessel should not break existing Vessel records referenced by other flows")]
         public async Task VesselUpdate_ShouldNotBreakExistingReferences()
@@ -173,15 +194,16 @@ namespace Port.Project.Api.System_Tests
                 VesselTypeId = vtId,
                 Operator = "UpdatedOp"
             };
-            var putResp = await _client.PutAsync($"/api/Vessel/{imo}", new StringContent(JsonConvert.SerializeObject(updated), Encoding.UTF8, "application/json"));
+            var putResp = await _client.PutAsync($"/api/Vessel/{imo}",
+                new StringContent(JsonConvert.SerializeObject(updated), Encoding.UTF8, "application/json"));
             var putBody = await putResp.Content.ReadAsStringAsync();
             Assert.True(putResp.IsSuccessStatusCode, $"PUT /api/Vessel/{imo} failed: {putResp.StatusCode}\n{putBody}");
 
             // Verify vessel still retrievable and updated
             var got = await GetAndReadJsonAsync<VesselDto>($"/api/Vessel/{imo}");
-             Assert.NotNull(got);
-             Assert.Equal("Updated Vessel Name", got.Name);
-         }
+            Assert.NotNull(got);
+            Assert.Equal("Updated Vessel Name", got.Name);
+        }
 
         [Fact(DisplayName = "System: Complex query includes vessel types and returns expected results")]
         public async Task ComplexQueryScenario_MultipleFiltersAndIncludes_ShouldReturnCorrectData()
@@ -240,6 +262,263 @@ namespace Port.Project.Api.System_Tests
                 var vtGet = await _client.GetAsync($"/api/VesselType/{foundVessel.VesselTypeId}");
                 vtGet.EnsureSuccessStatusCode();
             }
+        }
+
+        [Fact(DisplayName = "System: Create Resource without Qualifications should succeed")]
+        public async Task CreateResource_WithoutQualifications_ShouldSucceed()
+        {
+            // Arrange
+            ReinitializeDb();
+
+            var newResource = new CreateResourceDto
+            {
+                Code = "RES001",
+                Description = "Test Resource Without Qualifications",
+                Kind = "Crane",
+                AssignedArea = "Area A",
+                Status = "Active",
+                SetupTimeMinutes = 30,
+                OperationalWindowStart = new TimeOnly(8, 0),
+                OperationalWindowEnd = new TimeOnly(18, 0),
+                QualificationRequirements = null, // No qualifications
+                AverageContainersPerHour = 50
+            };
+
+            // Act
+            var createdResource = await PostAndReadJsonAsync<ResourceDto>("/api/Resource", newResource);
+
+            // Assert
+            Assert.NotNull(createdResource);
+            Assert.Equal("RES001", createdResource.Code);
+            Assert.True(createdResource.QualificationRequirements == null ||
+                        createdResource.QualificationRequirements.Count == 0);
+        }
+
+        [Fact(DisplayName = "System: Create Resource with valid Qualification codes should succeed")]
+        public async Task CreateResource_WithValidQualifications_ShouldSucceed()
+        {
+            // Arrange
+            ReinitializeDb();
+
+            // Create a qualification via API
+            var qual = new CreateQualificationDto
+            {
+                Code = "CRANE_OP",
+                Name = "Crane Operator Certification",
+                Description = "Required for operating cranes"
+            };
+            var createdQual = await PostAndReadJsonAsync<QualificationDto>("/api/Qualifications", qual);
+
+            // Create resource referencing the qualification
+            var newResource = new CreateResourceDto
+            {
+                Code = "CRANE001",
+                Description = "Main Port Crane",
+                Kind = "Crane",
+                AssignedArea = "Dock A",
+                Status = "Active",
+                SetupTimeMinutes = 45,
+                OperationalWindowStart = new TimeOnly(6, 0),
+                OperationalWindowEnd = new TimeOnly(22, 0),
+                QualificationRequirements = new List<string> { createdQual.Code },
+                AverageContainersPerHour = 60
+            };
+
+            // Act
+            var createdResource = await PostAndReadJsonAsync<ResourceDto>("/api/Resource", newResource);
+
+            // Assert
+            Assert.NotNull(createdResource);
+            Assert.Equal("CRANE001", createdResource.Code);
+            Assert.NotNull(createdResource.QualificationRequirements);
+            Assert.Contains(createdQual.Code, createdResource.QualificationRequirements);
+        }
+
+        [Fact(DisplayName = "System: Create Resource with multiple Qualifications should maintain all references")]
+        public async Task CreateResource_WithMultipleQualifications_ShouldMaintainAllReferences()
+        {
+            // Arrange
+            ReinitializeDb();
+
+            // Create multiple qualifications
+            var qual1 = new CreateQualificationDto
+            {
+                Code = "SAFETY_CERT",
+                Name = "Safety Certification",
+                Description = "General safety training"
+            };
+            var qual2 = new CreateQualificationDto
+            {
+                Code = "HEAVY_LIFT",
+                Name = "Heavy Lifting License",
+                Description = "License for heavy equipment"
+            };
+
+            var createdQual1 = await PostAndReadJsonAsync<QualificationDto>("/api/Qualifications", qual1);
+            var createdQual2 = await PostAndReadJsonAsync<QualificationDto>("/api/Qualifications", qual2);
+
+            // Create resource with both qualifications
+            var newResource = new CreateResourceDto
+            {
+                Code = "TRUCK001",
+                Description = "Heavy Duty Truck",
+                Kind = "Truck",
+                AssignedArea = "Yard B",
+                Status = "Active",
+                SetupTimeMinutes = 15,
+                OperationalWindowStart = new TimeOnly(7, 0),
+                OperationalWindowEnd = new TimeOnly(19, 0),
+                QualificationRequirements = new List<string> { createdQual1.Code, createdQual2.Code },
+                ContainersPerTrip = 2,
+                AverageSpeedKmh = 30.0
+            };
+
+            // Act
+            var createdResource = await PostAndReadJsonAsync<ResourceDto>("/api/Resource", newResource);
+
+            // Assert
+            Assert.NotNull(createdResource);
+            Assert.Equal("TRUCK001", createdResource.Code);
+            Assert.NotNull(createdResource.QualificationRequirements);
+            Assert.Equal(2, createdResource.QualificationRequirements.Count);
+            Assert.Contains(createdQual1.Code, createdResource.QualificationRequirements);
+            Assert.Contains(createdQual2.Code, createdResource.QualificationRequirements);
+
+            // Verify both qualifications still exist
+            var qual1Fetched = await GetAndReadJsonAsync<QualificationDto>($"/api/Qualifications/{createdQual1.Code}");
+            var qual2Fetched = await GetAndReadJsonAsync<QualificationDto>($"/api/Qualifications/{createdQual2.Code}");
+            Assert.NotNull(qual1Fetched);
+            Assert.NotNull(qual2Fetched);
+        }
+
+
+        // Query resource with qualifications returns data
+        [Fact(DisplayName = "System: Query Resource with Qualifications should return correct data")]
+        public async Task QueryResource_WithQualifications_ShouldReturnCorrectData()
+        {
+            // Arrange
+            ReinitializeDb();
+            // Create a qualification via API
+            var qual = new CreateQualificationDto
+            {
+                Code = "FORKLIFT_OP",
+                Name = "Forklift Operator Certification",
+                Description = "Required for operating forklifts"
+            };
+
+            var createdQual = await PostAndReadJsonAsync<QualificationDto>("/api/Qualifications", qual);
+
+            // Create resource referencing the qualification
+            var newResource = new CreateResourceDto
+            {
+                Code = "crane001",
+                Description = "Warehouse Crane",
+                Kind = "Crane",
+                AssignedArea = "Warehouse 1",
+                Status = "Active",
+                SetupTimeMinutes = 20,
+                OperationalWindowStart = new TimeOnly(7, 0),
+                OperationalWindowEnd = new TimeOnly(17, 0),
+                QualificationRequirements = new List<string> { createdQual.Code },
+                AverageContainersPerHour = 40
+            };
+
+            var createdResource = await PostAndReadJsonAsync<ResourceDto>("/api/Resource", newResource);
+            // Act
+            var queriedResource = await GetAndReadJsonAsync<ResourceDto>($"/api/Resource/{createdResource.Code}");
+            // Assert
+            Assert.NotNull(queriedResource);
+            Assert.Equal("crane001", queriedResource.Code);
+            Assert.NotNull(queriedResource.QualificationRequirements);
+            Assert.Contains(createdQual.Code, queriedResource.QualificationRequirements);
+        }
+
+        [Fact(DisplayName = "System: Create VVN with Non-Existent Vessel IMO should fail")]
+        public async Task CreateVVN_WithNonExistentVessel_ShouldReturnBadRequest()
+        {
+            // Arrange
+            string? existingRepId = null; // Will be set after seeding Rep
+            ReinitializeDb(db =>
+            {
+                // Seed Org & Rep needed for VVN creation
+                var org = new ShippingAgentOrganization(OrganizationId.NewId(), new LegalName("FK Org"),
+                    new AlternativeName("FKO"), new Address("FK St", "FK City", "FK Land"),
+                    new TaxNumber("PT111222333"));
+                var rep = new ShippingAgentRepresentative(new CitizenId("11111111Z"), new RepresentativeName("FK Rep"),
+                    new RepresentativePhone("933444555"), new RepresentativeNationality("FKNat"),
+                    new RepresentativeEmail("fk@test.com"));
+                rep.AttachToOrganization(org.Id!);
+                db.ShippingAgentOrganizations.Add(org);
+                db.ShippingAgentRepresentatives.Add(rep);
+                // We need to save here to get the Rep ID back
+                db.SaveChanges();
+                existingRepId = rep.RepresentativeId.Value.ToString();
+            });
+            Assert.NotNull(existingRepId); // Ensure Rep was created
+
+            var nonExistentImo = GenerateValidImo(999999); // Use an IMO guaranteed not to exist
+            var createDto = new CreateVvnDto
+            {
+                EstimatedArrival = DateTime.UtcNow.AddDays(1),
+                EstimatedDeparture = DateTime.UtcNow.AddDays(2),
+                VesselImo = nonExistentImo, // This vessel doesn't exist
+                RepresentativeId = existingRepId,
+                Cargo = new CreateCargoDto
+                {
+                    Description = "Bad Vessel", Weight = 1,
+                    Containers = new List<CreateContainerDto>
+                        { new CreateContainerDto { ContainerCode = "CSQU3054383", Position = "BV1" } }
+                }
+            };
+
+            // Act
+            var response = await PostJsonAsync("/api/notifications", createDto);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            var body = await response.Content.ReadAsStringAsync();
+            // Check for FK constraint message (might vary slightly based on DB/EF version)
+            Assert.Contains("foreign key constraint failed", body, StringComparison.OrdinalIgnoreCase);
+        }
+
+
+        [Fact(DisplayName = "System: Create VVN with Non-Existent Representative ID should fail")]
+        public async Task CreateVVN_WithNonExistentRepresentative_ShouldReturnBadRequest()
+        {
+            // Arrange
+            string? existingVesselImo = null; // Will be set after seeding Vessel
+            ReinitializeDb(db =>
+            {
+                // Seed Vessel (needs a VesselType seeded by default ReinitializeDb)
+                var vessel = Vessel.Create(GenerateValidImo(888888), "FK Vessel", "1001", "FKOp");
+                db.Vessels.Add(vessel);
+                db.SaveChanges(); // Save to get the IMO
+                existingVesselImo = vessel.ImoNumber.Value;
+            });
+            Assert.NotNull(existingVesselImo);
+
+            var nonExistentRepId = Guid.NewGuid().ToString(); // Guaranteed not to exist
+            var createDto = new CreateVvnDto
+            {
+                EstimatedArrival = DateTime.UtcNow.AddDays(1),
+                EstimatedDeparture = DateTime.UtcNow.AddDays(2),
+                VesselImo = existingVesselImo,
+                RepresentativeId = nonExistentRepId, // This rep doesn't exist
+                Cargo = new CreateCargoDto
+                {
+                    Description = "Bad Rep", Weight = 1,
+                    Containers = new List<CreateContainerDto>
+                        { new CreateContainerDto { ContainerCode = "CSQU3054383", Position = "BR1" } }
+                }
+            };
+
+            // Act
+            var response = await PostJsonAsync("/api/notifications", createDto);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            var body = await response.Content.ReadAsStringAsync();
+            Assert.Contains("foreign key constraint failed", body, StringComparison.OrdinalIgnoreCase);
         }
     }
 }

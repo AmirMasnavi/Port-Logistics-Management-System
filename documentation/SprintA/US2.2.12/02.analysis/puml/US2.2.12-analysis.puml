@@ -1,0 +1,35 @@
+@startuml
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+skinparam classAttributeIconSize 0
+hide circle
+hide methods
+
+title US2.2.12 - Create and Update Resources - Domain Model
+
+' Context: Logistics Operator managing physical resources
+' This diagram focuses on Resource aggregate and direct value objects/associations relevant to the user story.
+
+package "Resource Management" {
+
+  class Resource <<Root>> {
+    code 
+    description 
+    kind 
+    assignedArea
+    operationalCapacity 
+    status 
+    setupTime
+    operationalWindow 
+  }
+}
+
+  class Qualification { 
+    code
+  }
+  
+Resource "*" --> "*" Qualification : has >
+
+@enduml

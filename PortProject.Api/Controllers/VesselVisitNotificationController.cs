@@ -154,10 +154,16 @@ public class VesselVisitNotificationController : ControllerBase
         [FromQuery] DateTime? from,
         [FromQuery] DateTime? to)
     {
-        var results = await _service.SearchAsync(vesselImo, status, representativeId, organizationId, from, to);
+        var results = await _service.SearchAsync(vesselImo, status, representativeId, from, to);
         return Ok(results);
     }
-
+    
+    [HttpPost("representative-notifications")]
+    public async Task<ActionResult<List<VesselVisitNotificationDto>>> GetNotificationsForRepresentative([FromBody] VvnSearchFilterDto filter)
+    {
+        var results = await _service.GetNotificationsForRepresentativeAsync(filter);
+        return Ok(results);
+    }
 
 
 // Helper endpoint to get a notification by its ID

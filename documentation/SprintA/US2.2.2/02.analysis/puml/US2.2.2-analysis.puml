@@ -1,0 +1,37 @@
+@startuml
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+skinparam classAttributeIconSize 0
+hide circle
+hide methods
+
+title US2.2.2 - Create and Update Vessels - Domain Model
+
+
+package "VesselType Management" {
+
+    class VesselType <<Root>> {
+        name
+        description
+        capacity
+        operationalConstraints
+    }
+
+
+}
+
+' Reference for when Vessel Types are available
+package "Vessel References" {
+    class Vessel {
+        imoNumber
+        name
+        owner
+        status
+    }
+
+    Vessel "1" --> "1" VesselType : references >
+}
+
+@enduml

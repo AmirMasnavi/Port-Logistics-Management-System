@@ -1,0 +1,180 @@
+@startuml
+!pragma layout smetana
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+hide circle
+hide methods
+title Domain Model - Port Logistics Management
+
+' ==== CORE ENTITIES ====
+
+class Port {
+    name
+    location
+}
+
+class Dock {
+    ID
+    name
+    lengthCapacity
+    numSTSFixedCranes
+    physicalCharacteristics
+}
+
+class StorageArea {
+    ID
+    type   'Yard or Warehouse
+    capacity
+    location
+}
+
+class Vessel {
+    IMO
+    capacityTEU
+    bays
+    rows
+    tiers
+    status
+}
+
+class VesselType {
+    ID
+    name
+    maxTEU
+    length
+    draft
+    numSTSMax
+    operationalConstraints
+}
+
+class VesselVisit {
+    ID
+    ETA
+    ETD
+    cargoVolume
+    specialRequirements
+    state  'Notified, Approved, Rejected, Rescheduled
+}
+
+class CargoManifest {
+    ID
+    type  'loading/unloading
+}
+
+class ContainerManifestEntry {
+    bay
+    row
+    tier
+    portPosition
+}
+
+class Container {
+    ID   'ISO 6346:2022
+    sizeTEU
+}
+
+class CargoType {
+    name
+    specialHandling
+}
+
+' ==== RESOURCES ====
+
+class LogisticResource {
+    operationalWindow
+    currentStatus
+}
+
+class PhysicalResource {
+    type   'STS Crane, Yard Crane, Truck
+    operationalCapacity
+    setupTime
+}
+
+class HumanResource {
+    mecanographicNumber
+    name
+    email
+    phone
+    role
+}
+
+class Qualification {
+    name
+    description
+}
+
+class OperationalTask {
+    type   'unloading, moving, loading
+    sequence
+    status
+}
+
+' ==== ORGANIZATIONS & USERS ====
+
+class PortAuthority {
+}
+
+class ShippingAgentOrganization {
+    ID
+    legalName
+    alternativeName
+    taxNumber
+    address
+}
+
+class ShippingAgentRepresentative {
+    ID
+    name
+    contact
+    email
+    phone
+}
+
+class UserAccount {
+    ID
+    username
+}
+
+class Role {
+    name   'Port Authority Officer, Shipping Agent Rep, Logistics Operator, Admin
+}
+
+
+' ==== RELATIONSHIPS ====
+
+Port "1" -- "*" Dock : has >
+Port "1" -- "*" StorageArea : has >
+
+Dock "1" -- "*" PhysicalResource : includes STS cranes >
+
+Vessel "1" -- "1" VesselType : categorized >
+Vessel "1" -- "*" VesselVisit : schedules >
+
+VesselVisit "*" -- "1" Dock : assigned >
+VesselVisit "1" -- "*" CargoManifest : includes >
+
+CargoManifest "1" -- "*" ContainerManifestEntry : lists >
+ContainerManifestEntry "1" -- "1" Container : refers >
+Container "1" -- "1" CargoType : carries >
+
+LogisticResource <|-- PhysicalResource
+LogisticResource <|-- HumanResource
+
+PhysicalResource "*" -- "*" HumanResource : requires >
+HumanResource "*" -- "*" Qualification : has >
+
+OperationalTask "*" -- "*" LogisticResource : allocates >
+OperationalTask "*" -- "1" VesselVisit : belongs >
+
+PortAuthority "1" -- "*" VesselVisit : approves/rejects >
+ShippingAgentOrganization "1" -- "*" Vessel : represents >
+ShippingAgentOrganization "1" -- "*" ShippingAgentRepresentative : employs >
+
+UserAccount "1" -- "1" Role : assigned >
+UserAccount "1" -- "1" ShippingAgentRepresentative : linked >
+UserAccount "1" -- "1" PortAuthority : linked >
+
+@enduml

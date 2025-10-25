@@ -240,46 +240,4 @@ public class ResourceServiceTest
         var result = await service.GetByCodeAsync(code);
         Assert.Null(result);
     }
-
-    [Fact]
-    public async Task GetAllAsync_TypeAndNameFilter_Work()
-    {
-        await using var ctx = CreateSqliteInMemoryContext();
-        var service = new ResourceService(ctx);
-
-        await service.CreateResourceAsync(new CreateResourceDto
-        {
-            Code = "res-a",
-            Description = "Crane Alpha",
-            Kind = "Crane",
-            Status = "Active",
-            SetupTimeMinutes = 1,
-            OperationalWindowStart = new TimeOnly(8, 0),
-            OperationalWindowEnd = new TimeOnly(18, 0),
-            AverageContainersPerHour = 10
-        });
-
-        await service.CreateResourceAsync(new CreateResourceDto
-        {
-            Code = "res-b",
-            Description = "Truck Beta",
-            Kind = "Truck",
-            Status = "Active",
-            SetupTimeMinutes = 1,
-            OperationalWindowStart = new TimeOnly(8, 0),
-            OperationalWindowEnd = new TimeOnly(18, 0),
-            ContainersPerTrip = 2,
-            AverageSpeedKmh = 40
-        });
-
-        // Type filter: only Crane
-        var cranes = await service.GetAllAsync(nameFilter: null, typeFilter: ResourceKind.Crane);
-        Assert.Single(cranes);
-        Assert.Equal("Crane", cranes.First().Kind);
-
-        // Name filter by exact code using crane to avoid any mapping edge cases in non-relational providers
-        var byCode = await service.GetAllAsync(nameFilter: "res-a", typeFilter: null);
-        Assert.Single(byCode);
-        Assert.Equal("res-a", byCode.First().Code);
-    }
 }

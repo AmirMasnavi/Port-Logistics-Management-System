@@ -69,7 +69,7 @@ public class StaffMembersController : ControllerBase
 
         return Ok(resultDto);
     }
-    
+
     /// <summary>
     /// Gets all Staff Members, with optional filtering by name and status.
     /// </summary>
@@ -80,5 +80,42 @@ public class StaffMembersController : ControllerBase
         var resultDtos = await _staffMemberService.GetAllAsync(name, status, qualificationCode);
         return Ok(resultDtos);
     }
-}
 
+    // --- NEW: Add a qualification to a staff member ---
+    [HttpPost("{id}/qualifications")]
+    public async Task<ActionResult<StaffMemberDto>> AddQualification(string id, [FromBody] PortProject.Api.Application.StaffMembers.DTOs.AddQualificationDto dto)
+    {
+        if (dto == null || string.IsNullOrWhiteSpace(dto.QualificationCode))
+            return BadRequest(new { message = "QualificationCode is required in the request body." });
+
+        try
+        {
+            var updated = await _staffMemberService.AddQualificationAsync(id, dto.QualificationCode);
+            if (updated == null) return NotFound($"Staff member with ID {id} not found.");
+            return Ok(updated);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    // --- NEW: Remove a qualification from a staff member ---
+    [HttpDelete("{id}/qualifications/{qualificationCode}")]
+    public async Task<ActionResult<StaffMemberDto>> RemoveQualification(string id, string qualificationCode)
+    {
+        if (string.IsNullOrWhiteSpace(qualificationCode))
+            return BadRequest(new { message = "qualificationCode is required in the route." });
+
+        try
+        {
+            var updated = await _staffMemberService.RemoveQualificationAsync(id, qualificationCode);
+            if (updated == null) return NotFound($"Staff member with ID {id} not found.");
+            return Ok(updated);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+}

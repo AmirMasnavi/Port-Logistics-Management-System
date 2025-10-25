@@ -7,5 +7,5 @@ public interface IStorageAreaService
 {
     Task<StorageAreaDto> CreateStorageAreaAsync(CreateStorageAreaDto dto);
     Task<StorageAreaDto?> GetByIdAsync(int id);
-    Task<IEnumerable<StorageAreaDto>> GetAllAsync(string? nameFilter, StorageAreaType? typeFilter);
+    Task<StorageAreaDto?> UpdateStorageAreaAsync(int id, UpdateStorageAreaDto dto);
 }

@@ -2,7 +2,9 @@
 {
     public class StorageCapacity
     {
-        public int Value { get; }
+        public int Value { get; private set; }
+        
+        private StorageCapacity() { } // For EF Core
         
         public StorageCapacity(int value)
         {
@@ -15,4 +17,3 @@
         public override string ToString() => Value.ToString();
     }    
 }
-

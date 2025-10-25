@@ -12,4 +12,8 @@ public interface IStaffMemberService
     Task<StaffMemberDto?> GetByIdAsync(string id);
     Task<StaffMemberDto?> UpdateStatusAsync(string id, UpdateStaffStatusDto dto);
     Task<IEnumerable<StaffMemberDto>> GetAllAsync(string? nameFilter, StaffStatus? statusFilter,string? qualificationCode);
+
+    // --- NEW: manage qualifications for a staff member by Qualification Code ---
+    Task<StaffMemberDto?> AddQualificationAsync(string mecanographicNumber, string qualificationCode);
+    Task<StaffMemberDto?> RemoveQualificationAsync(string mecanographicNumber, string qualificationCode);
 }

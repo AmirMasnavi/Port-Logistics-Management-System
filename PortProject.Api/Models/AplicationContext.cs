@@ -258,6 +258,9 @@ public class PortProjectContext : DbContext
         storageAreaBuilder.OwnsOne(sa => sa.Capacity,
             cap => { cap.Property(p => p.Value).HasColumnName("Capacity").IsRequired(); });
 
+        storageAreaBuilder.OwnsOne(sa => sa.CurrentOccupancy,
+            occ => { occ.Property(p => p.Value).HasColumnName("CurrentOccupancy").IsRequired(); });
+
         // === DOCK CONFIGURATION ===
         var dockBuilder = modelBuilder.Entity<Dock>();
 
@@ -387,21 +390,27 @@ public class PortProjectContext : DbContext
         // 2. Foreign Keys to other Aggregates
         vvnBuilder.Property(vvn => vvn.VesselId)
             .HasConversion(id => id.Value, val => new ImoNumber(val))
+            .HasColumnName("VesselId") 
             .IsRequired();
+        
+        vvnBuilder.Property(vvn => vvn.SubmittedBy)
+            .HasConversion(id => id.Value, val => new RepresentativeId(val))
+            .HasColumnName("SubmittedBy")
+            .IsRequired();
+        
         vvnBuilder.HasOne<Vessel>()
             .WithMany()
             .HasForeignKey(vvn => vvn.VesselId);
 
-        vvnBuilder.Property(vvn => vvn.SubmittedBy)
-            .HasConversion(id => id.Value, val => new RepresentativeId(val))
-            .IsRequired();
-        vvnBuilder.HasOne<ShippingAgentRepresentative>()
+       vvnBuilder.HasOne<ShippingAgentRepresentative>()
             .WithMany()
             .HasForeignKey(vvn => vvn.SubmittedBy);
 
         // 3. Simple Value Objects & Enums
         vvnBuilder.Property(vvn => vvn.Status)
-            .HasConversion(status => status.ToString(), str => Enum.Parse<NotificationStatus>(str));
+            .HasConversion(status => status.ToString(), str => Enum.Parse<NotificationStatus>(str))
+            .HasColumnName("Status")
+            .IsRequired();
 
         vvnBuilder.OwnsOne(vvn => vvn.EstimatedArrival, etaBuilder =>
         {
@@ -416,10 +425,12 @@ public class PortProjectContext : DbContext
                 .HasColumnName("ETD")
                 .IsRequired();
         });
+        
 
         // 4. Dock assignment
         vvnBuilder.Property(vvn => vvn.AssignedDockId)
             .HasConversion(id => id.Value, val => new DockId(val))
+            .HasColumnName("AssignedDockId")
             .IsRequired(false);
 
         vvnBuilder.HasOne<Dock>()
@@ -559,6 +570,11 @@ public class PortProjectContext : DbContext
             cb.Property(p => p.GenericValue)
                 .HasColumnName("CapacityValue");
         });
+        
+        resourceBuilder
+            .HasMany(r => r.Qualifications)
+            .WithMany()
+            .UsingEntity(j => j.ToTable("ResourceQualification"));
 
         // QualificationRequirements stored as CSV string in a single column using backing field
         var stringListConverter = new ValueConverter<List<string>, string>(
@@ -573,14 +589,6 @@ public class PortProjectContext : DbContext
             v => v == null ? 0 : v.OrderBy(x => x).Aggregate(0, (acc, s) => HashCode.Combine(acc, (s == null ? 0 : s.GetHashCode()))),
             v => v == null ? new List<string>() : v.ToList()
         );
-
-        resourceBuilder.Property<List<string>>("_qualificationRequirements")
-            .HasColumnName("QualificationRequirements")
-            .HasConversion(stringListConverter)
-            .Metadata.SetValueComparer(stringListComparer);
-
-        // Ignore the public read-only property to avoid EF trying to map it
-        resourceBuilder.Ignore(r => r.QualificationRequirements);
 
         // Optional: default table name
         resourceBuilder.ToTable("Resources");
