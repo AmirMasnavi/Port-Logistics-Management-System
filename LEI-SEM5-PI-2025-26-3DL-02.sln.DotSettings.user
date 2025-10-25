@@ -3,9 +3,25 @@
 	
 	<s:String x:Key="/Default/Environment/UnitTesting/CreateUnitTestDialog/TestProjectMapping/=0F2E08FE_002D7B5B_002D4453_002DA5B9_002DFEC4B18303CD/@EntryIndexedValue">FD418360-4188-4E62-8D8C-B5610A1B84E9</s:String>
 	<s:String x:Key="/Default/Environment/UnitTesting/CreateUnitTestDialog/TestTemplateMapping/=MSTest/@EntryIndexedValue">d6790ab7-33c2-4425-b2c9-51480cd1a852</s:String>
-	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=fe8832f8_002D6c1f_002D47be_002Db613_002D8d9c610588f3/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="All tests from ShippingAgentRepresentativeServiceTest.cs" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
-  &lt;ProjectFile&gt;FD418360-4188-4E62-8D8C-B5610A1B84E9/d:Application/d:ShippingAgentRepresentative/f:ShippingAgentRepresentativeServiceTest.cs&lt;/ProjectFile&gt;
+	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=0ee111e0_002D804c_002D4e4a_002D8b41_002Da4790a014328/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="All tests from ResourceServiceTest.cs #3" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
+  &lt;Or&gt;&#xD;
+    &lt;ProjectFile&gt;FD418360-4188-4E62-8D8C-B5610A1B84E9/d:Application/d:Resource/d:Services/f:ResourceServiceTest.cs&lt;/ProjectFile&gt;&#xD;
+    &lt;TestAncestor&gt;&#xD;
+      &lt;TestId&gt;MSTest::FD418360-4188-4E62-8D8C-B5610A1B84E9::net9.0::PortProject.Api.Tests.Application.StaffMembers.Services.StaffMemberServiceTest&lt;/TestId&gt;&#xD;
+    &lt;/TestAncestor&gt;&#xD;
+    &lt;ProjectFolder&gt;FD418360-4188-4E62-8D8C-B5610A1B84E9/d:Domain&lt;/ProjectFolder&gt;&#xD;
+    &lt;ProjectFolder&gt;FD418360-4188-4E62-8D8C-B5610A1B84E9/d:Controllers&lt;/ProjectFolder&gt;&#xD;
+    &lt;ProjectFolder&gt;FD418360-4188-4E62-8D8C-B5610A1B84E9/d:Application&lt;/ProjectFolder&gt;&#xD;
+    &lt;Project Location="C:\Users\Pedro\Desktop\GitHub\SEM5\PortProject.Api.Integration_Tests" Presentation="&amp;lt;PortProject.Api.Integration_Tests&amp;gt;" /&gt;&#xD;
+  &lt;/Or&gt;&#xD;
 &lt;/SessionState&gt;</s:String>
+	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=110c1ab0_002Df9b1_002D4e36_002Db4f7_002D14ca4cb8b4dc/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" Name="All tests from ResourceServiceTest.cs" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
+  &lt;ProjectFile&gt;FD418360-4188-4E62-8D8C-B5610A1B84E9/d:Application/d:Resource/d:Services/f:ResourceServiceTest.cs&lt;/ProjectFile&gt;&#xD;
+&lt;/SessionState&gt;</s:String>
+	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=54668dcb_002Def41_002D44a4_002Dad86_002D8ec8ea68878e/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" Name="All tests from ResourceServiceTest.cs #2" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
+  &lt;ProjectFile&gt;FD418360-4188-4E62-8D8C-B5610A1B84E9/d:Application/d:Resource/d:Services/f:ResourceServiceTest.cs&lt;/ProjectFile&gt;&#xD;
+&lt;/SessionState&gt;</s:String>
+	
 	
 	
 	</wpf:ResourceDictionary>

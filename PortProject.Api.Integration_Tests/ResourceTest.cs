@@ -78,7 +78,8 @@ public class ResourceTest : IClassFixture<IntegrationTestsWebApplicationFactory<
         {
             var db = scope.ServiceProvider.GetRequiredService<PortProjectContext>();
             ReinitializeResourcesDb(db);
-            resourceCode = db.Resources.First().Code.Value;
+            var firstResource = db.Resources.FirstOrDefault();
+            resourceCode = firstResource?.Code.Value ?? "crane001";
         }
 
         // Act
@@ -87,12 +88,12 @@ public class ResourceTest : IClassFixture<IntegrationTestsWebApplicationFactory<
         // Assert
         response.EnsureSuccessStatusCode();
         var responseBody = await response.Content.ReadAsStringAsync();
-        var resource = JsonConvert.DeserializeObject<ResourceDto>(responseBody);
+        var resourceDto = JsonConvert.DeserializeObject<ResourceDto>(responseBody);
 
-        Assert.NotNull(resource);
-        Assert.Equal(resourceCode, resource.Code);
-        Assert.NotNull(resource.Description);
-        Assert.NotNull(resource.Kind);
+        Assert.NotNull(resourceDto);
+        Assert.Equal(resourceCode, resourceDto.Code);
+        Assert.NotNull(resourceDto.Description);
+        Assert.NotNull(resourceDto.Kind);
     }
 
     [Fact]
@@ -116,12 +117,6 @@ public class ResourceTest : IClassFixture<IntegrationTestsWebApplicationFactory<
     public async Task Post_CreatesCraneResource()
     {
         // Arrange
-        using (var scope = _factory.Services.CreateScope())
-        {
-            var db = scope.ServiceProvider.GetRequiredService<PortProjectContext>();
-            ReinitializeResourcesDb(db);
-        }
-
         var newResource = new CreateResourceDto
         {
             Code = "crane002",
@@ -132,8 +127,7 @@ public class ResourceTest : IClassFixture<IntegrationTestsWebApplicationFactory<
             SetupTimeMinutes = 25,
             OperationalWindowStart = new TimeOnly(8, 0),
             OperationalWindowEnd = new TimeOnly(18, 0),
-            AverageContainersPerHour = 45,
-            QualificationRequirements = new List<string> { "CRANE_OPERATOR", "SAFETY_CERT" }
+            AverageContainersPerHour = 45
         };
 
         var jsonContent = JsonConvert.SerializeObject(newResource);
@@ -159,12 +153,6 @@ public class ResourceTest : IClassFixture<IntegrationTestsWebApplicationFactory<
     public async Task Post_CreatesTruckResource()
     {
         // Arrange
-        using (var scope = _factory.Services.CreateScope())
-        {
-            var db = scope.ServiceProvider.GetRequiredService<PortProjectContext>();
-            ReinitializeResourcesDb(db);
-        }
-
         var newResource = new CreateResourceDto
         {
             Code = "truck002",
@@ -176,8 +164,7 @@ public class ResourceTest : IClassFixture<IntegrationTestsWebApplicationFactory<
             OperationalWindowStart = new TimeOnly(7, 0),
             OperationalWindowEnd = new TimeOnly(19, 0),
             ContainersPerTrip = 8,
-            AverageSpeedKmh = 30.0,
-            QualificationRequirements = new List<string> { "TRUCK_DRIVER" }
+            AverageSpeedKmh = 30.0
         };
 
         var jsonContent = JsonConvert.SerializeObject(newResource);
@@ -203,12 +190,6 @@ public class ResourceTest : IClassFixture<IntegrationTestsWebApplicationFactory<
     public async Task Post_CreatesOtherResource()
     {
         // Arrange
-        using (var scope = _factory.Services.CreateScope())
-        {
-            var db = scope.ServiceProvider.GetRequiredService<PortProjectContext>();
-            ReinitializeResourcesDb(db);
-        }
-
         var newResource = new CreateResourceDto
         {
             Code = "loader001",
@@ -220,8 +201,7 @@ public class ResourceTest : IClassFixture<IntegrationTestsWebApplicationFactory<
             OperationalWindowStart = new TimeOnly(6, 0),
             OperationalWindowEnd = new TimeOnly(22, 0),
             OtherUnit = "pallets",
-            OtherGenericValue = 100.0,
-            QualificationRequirements = new List<string> { "LOADER_OPERATOR" }
+            OtherGenericValue = 100.0
         };
 
         var jsonContent = JsonConvert.SerializeObject(newResource);
@@ -287,7 +267,7 @@ public class ResourceTest : IClassFixture<IntegrationTestsWebApplicationFactory<
 
         var invalidResource = new CreateResourceDto
         {
-            Code = null,
+            Code = null!,
             Description = "Test Resource",
             Kind = "Crane",
             Status = "Active",
@@ -443,7 +423,8 @@ public class ResourceTest : IClassFixture<IntegrationTestsWebApplicationFactory<
         {
             var db = scope.ServiceProvider.GetRequiredService<PortProjectContext>();
             ReinitializeResourcesDb(db);
-            resourceCode = db.Resources.First().Code.Value;
+            var firstResource = db.Resources.FirstOrDefault();
+            resourceCode = firstResource?.Code.Value ?? "crane001";
         }
 
         // Act

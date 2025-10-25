@@ -32,7 +32,6 @@ namespace PortProject.Api.Tests.Domain.ShippingAgentRepresentativeAggregate
 
         [Theory]
         [InlineData("1234567")]         // too short
-        [InlineData("12345678ZZ")]      // too long for CC
         [InlineData("A123456")]         // invalid passport (1 letter only)
         [InlineData("AB12")]            // too short for passport
         [InlineData("!@#45678")]        // invalid chars

@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using PortProject.Api.Domain.QualificationAggregate;
 
 namespace PortProject.Api.Tests.Application.StaffMembers.Services;
 
@@ -16,6 +17,7 @@ public class StaffMemberServiceTest
 {
     private Mock<IStaffMemberRepository> _mockRepo;
     private Mock<PortProjectContext> _mockContext;
+    private Mock<IQualificationRepository> _mockQualificationRepo;
     private StaffMemberService _service;
 
     [TestInitialize]
@@ -24,11 +26,12 @@ public class StaffMemberServiceTest
         // Mock dependencies
         _mockRepo = new Mock<IStaffMemberRepository>();
         _mockContext = new Mock<PortProjectContext>();
+        _mockQualificationRepo = new Mock<IQualificationRepository>();
 
         // Setup mock for SaveChangesAsync to return a completed task
         _mockContext.Setup(c => c.SaveChangesAsync(default)).ReturnsAsync(1);
 
-        _service = new StaffMemberService(_mockRepo.Object, _mockContext.Object);
+        _service = new StaffMemberService(_mockRepo.Object, _mockQualificationRepo.Object, _mockContext.Object);
     }
 
     [TestMethod]
