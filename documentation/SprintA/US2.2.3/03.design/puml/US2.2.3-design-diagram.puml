@@ -1,5 +1,5 @@
 @startuml
-title US 2.2.3: Manage Vessel Types (Design)
+title US 2.2.3: Manage Docks (Design)
 
 actor "Port Authority Officer" as Admin
 participant ":DockController" as Controller

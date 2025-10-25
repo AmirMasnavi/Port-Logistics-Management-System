@@ -1,35 +1,36 @@
 @startuml
+' Use template styling (assuming monochrome, etc.)
 skinparam monochrome true
 skinparam packageStyle rectangle
 skinparam shadowing false
 
-title SSD - US 2.2.3 (Register/Update Dock)
+title US2.2.3: Register and Update Docks - System Sequence Diagram (SSD)
 
 autonumber
-
-actor "Port Authority Officer" as Officer
+actor "Port Authority Officer" as Authority
 participant ":System" as System
 
-activate Officer
+activate Authority
 
-Officer -> System: Request dock registration
+'--- Register Dock Scenario ---
+Authority -> System : submits new dock details (name, location, length, depth, max draft, allowed vessel types)
 activate System
-System -> Officer: Ask for dock details
-deactivate System
-Officer -> System: Provide dock data (DockID, DockName, DockLocation, DockCapacity, length, depth, maxDraft, vessel types)
-activate System
-System --> Officer: Confirmation of registration / Error message
+System --> Authority : confirms successful dock registration
 deactivate System
 
-Officer -> System: Request dock update
+'--- Update Dock Scenario ---
+... Authority selects an existing dock to update ...
+Authority -> System : submits updated dock details (id, newName, newLocation, newDimensions, newAllowedTypes)
 activate System
-System -> Officer: Ask for updated dock details
-deactivate System
-Officer -> System: Provide updated dock data
-activate System
-System --> Officer: Confirmation of update / Error message
+System --> Authority : confirms successful dock update
 deactivate System
 
-deactivate Officer
+'--- Search/Filter Dock Scenario ---
+... Authority wants to search/filter docks ...
+Authority -> System : searches docks by (name, location, vessel type)
+activate System
+System --> Authority : returns matching dock records
+deactivate System
 
+deactivate Authority
 @enduml

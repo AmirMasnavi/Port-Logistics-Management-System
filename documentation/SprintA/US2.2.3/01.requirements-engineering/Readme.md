@@ -31,31 +31,48 @@ As a Port Authority Officer, I want to register and update docks, so that the sy
 * **AC3:** Docks must be searchable and filterable by name, vessel type, and location.
 
 ### 1.4. Found out Dependencies
-
-* 
+* This user story depends on US2.2.1 (Vessel Types), since docks reference the types of vessels allowed to berth.
+* It is a prerequisite for US2.2.7 (Review Vessel Visit Notifications), as berth assignment depends on available docks.
+* The system requires a data persistence layer to store and manage dock information.
+* The user interface must include forms for dock creation and updating, and search/filter functionalities.
 
 ### 1.5 Input and Output Data
 
-**Input Data:**
-Officer-provided information:
-  * Dock unique identifier (text/code)
-  * Dock name/number (string)
-  * Location within the port (string/enum)
-  * Physical characteristics: length (m), depth (m), max draft (m)
-  * Allowed vessel types (list of references to Vessel Types)
-  * Dock status (active/inactive)
- 
-**Output Data:**
-  * Operation success confirmation (dock created/updated).
-  * Error messages in case of failure (e.g., duplicate identifier, invalid data, dock linked to active visits).
-  * Dock information available for queries and listings.
+**Input Data (Create Dock):**
+* `name` (string): Unique name or number of the dock.
+* `location` (string): Physical location within the port.
+* `length` (float): Total dock length (in meters).
+* `depth` (float): Water depth (in meters).
+* `maxDraft` (float): Maximum vessel draft allowed (in meters).
+* `allowedVesselTypes` (list): List of vessel type IDs permitted to berth at this dock.
+
+**Output Data (Create Dock):**
+* Successful creation: Confirmation message and newly created dock details.
+* Failed creation: Error message (e.g., “Dock with this name already exists”, “Invalid vessel type reference”).
+
+**Input Data (Update Dock):**
+* `id` (integer/string): Unique dock identifier.
+* `newName` (string, optional): Updated name.
+* `newLocation` (string, optional): Updated location.
+* `newLength` (float, optional): Updated dock length.
+* `newDepth` (float, optional): Updated dock depth.
+* `newMaxDraft` (float, optional): Updated maximum draft.
+* `newAllowedVesselTypes` (list, optional): Updated list of allowed vessel types.
+
+**Output Data (Update Dock):**
+* Successful update: Confirmation message and updated dock details.
+* Failed update: Error message (e.g., “Dock not found”, “Invalid update data”).
+
+**Input Data (Search/Filter Docks):**
+* `keyword` (string, optional): Text to search by name or location.
+* `filterCriteria` (string, optional): Criteria such as vessel type or location.
+
+**Output Data (Search/Filter Docks):**
+* `docks` (list of objects): Matching docks, each with id, name, location, length, depth, maxDraft, and allowedVesselTypes.
+* No matches: Empty list or message “No docks found.”
 
 ### 1.6. System Sequence Diagram (SSD)
+The following SSD illustrates the generic flow for creating, updating, and searching/filtering docks.
 
-![System Sequence Diagram - Alternative One](svg/US-2.2.3_system-sequence-diagram.svg)
+![System Sequence Diagram - Alternative One](svg/US2.2.3-system-sequence-diagram.svg)
 
-
-### 1.7 Other Relevant Remarks
-* Docks can be temporarily deactivated for maintenance, without deleting their historical data.
-* Updates must ensure consistency with scheduled or ongoing vessel visits.
-* All operations must be logged, including officer ID, timestamp, and performed action.  
