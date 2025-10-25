@@ -1,0 +1,45 @@
+@startuml
+' US 2.2.8 - System Sequence Diagram (SSD)
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+title US 2.2.8: Create and Submit Vessel Visit Notification (SSD)
+
+autonumber
+actor "Shipping Agent\nRepresentative" as Rep
+participant ":System" as System
+
+activate Rep
+
+group Create Notification (as "In Progress")
+    Rep -> System : **POST** /api/notifications\n(Body: CreateVvnDto)
+    activate System
+    ' The system validates all inputs, including the ISO 6346 container codes
+    ' and creates the entity with Status = "InProgress"
+    System --> Rep : **201 Created**\n(Header: Location = /api/notifications/{id})\n(Body: VesselVisitNotificationDto { Status: "InProgress" })
+    deactivate System
+end
+
+... Representative reviews the "In Progress" notification ...
+
+group Submit Notification (for Approval)
+    Rep -> System : **PATCH** /api/notifications/{id}/submit
+    activate System
+    ' The system verifies the notification exists and its
+    ' status is "InProgress", then changes it to "Submitted"
+    System --> Rep : **204 No Content**
+    deactivate System
+end
+
+group Alternate Flow: Validation Error
+    Rep -> System : **POST** /api/notifications\n(Body: CreateVvnDto with invalid data)
+    activate System
+    ' e.g., ContainerCode fails ISO check digit validation
+    System --> Rep : **400 Bad Request**\n(Body: { message: "Invalid container code..." })
+    deactivate System
+end
+
+deactivate Rep
+
+@enduml

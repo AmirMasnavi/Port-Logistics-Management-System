@@ -1,59 +1,62 @@
 @startuml
-' US 2.2.11: Manage Staff Members - Analysis Domain Model
-
-title US 2.2.11: Staff Member - Analysis
+' US 2.2.11 - Domain Model
+title US 2.2.11 - Manage Staff Members - Domain Model
 
 skinparam monochrome true
 skinparam packageStyle rectangle
 skinparam shadowing false
 skinparam classAttributeIconSize 0
 hide circle
+hide methods
 
-' Aggregate Root
-class StaffMember <<(E, #FFD700) Aggregate Root>> {
-  + mecanographicNumber: MecanographicNumber
-  + shortName: String
-  + contactDetails: ContactDetails
-  + operationalWindow: OperationalWindow
-  + currentStatus: StaffStatus
-  --
-  + updateStatus(newStatus)
-  + addQualification(id)
+package "Staff Member Aggregate" {
+    class StaffMember <<(A,orchid) Root>> {
+        +MecanographicNumber: MecanographicNumber
+        +ShortName: string
+        +CurrentStatus: StaffStatus
+        ---
+        + AddQualification(Qualification)
+        + RemoveQualification(Qualification)
+        + UpdateStatus(StaffStatus)
+    }
+
+    class MecanographicNumber <<(V,DarkSeaGreen)>> {
+        Value: string
+    }
+
+    class ContactDetails <<(V,DarkSeaGreen)>> {
+        Email: string
+        Phone: string
+    }
+
+    class OperationalWindow <<(V,DarkSeaGreen)>> {
+        StartTime: TimeOnly
+        EndTime: TimeOnly
+        WorkingDays: DayOfWeek[*]
+    }
+
+    enum StaffStatus {
+        Available
+        Unavailable
+    }
+
+    StaffMember "1" *-- "1" MecanographicNumber : identified by
+    StaffMember "1" *-- "1" ContactDetails : has
+    StaffMember "1" *-- "1" OperationalWindow : has
+    StaffMember "1" *-- "1" StaffStatus : has current
 }
 
-' Value Objects
-class MecanographicNumber <<(V, #ADD8E6)>> {
- - value: String
-}
-class ContactDetails <<(V, #ADD8E6)>> {
- - email: String
- - phone: String
-}
-class OperationalWindow <<(V, #ADD8E6)>> {
- - startTime: Time
- - endTime: Time
- - workingDays: List<DayOfWeek>
-}
-enum StaffStatus <<(V, #ADD8E6)>> {
-  Available
-  Unavailable
+package "Qualification Aggregate" {
+    class Qualification <<(A,orchid) Root>> {
+        +Code: QualificationCode
+        +Name: QualificationName
+        ..
+    }
+     class QualificationCode <<(V,DarkSeaGreen)>>
+     class QualificationName <<(V,DarkSeaGreen)>>
 }
 
-' External Aggregate (referenced by ID)
-class Qualification <<(E, #D3D3D3)>> {
-+ qualificationId: QualificationId
-}
+' Relationship: StaffMember holds references to Qualifications
+StaffMember "1" -- "*" Qualification : possesses >
 
-
-StaffMember "1" *-- "1" MecanographicNumber
-StaffMember "1" *-- "1" ContactDetails
-StaffMember "1" *-- "1" OperationalWindow
-StaffMember "1" *-- "1" StaffStatus
-StaffMember "1" --> "*" Qualification : "has"
-
-note right of StaffMember::updateStatus
-  Changes `currentStatus` from Available
-  to Unavailable, or vice-versa. This is a logical
-  deactivation, not a physical deletion.
-end note
 @enduml

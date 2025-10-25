@@ -1,0 +1,13 @@
+@startuml
+!theme plain
+autonumber
+
+actor "Shipping Agent Rep." as Actor
+participant "<<system (C4)>>\nPort System" as System
+
+Actor -> System : 1: update "in progress" notification
+activate System
+System --> Actor : 1.1: notification updated
+deactivate System
+
+@enduml

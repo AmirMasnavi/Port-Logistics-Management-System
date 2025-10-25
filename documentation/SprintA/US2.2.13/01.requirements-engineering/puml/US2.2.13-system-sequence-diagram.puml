@@ -1,30 +1,44 @@
 @startuml
-' Use template styling (assuming monochrome, etc.)
+' US 2.2.13 - System Sequence Diagram (SSD)
 skinparam monochrome true
 skinparam packageStyle rectangle
 skinparam shadowing false
 
-title US2.2.13: Register and manage qualifications - System Sequence Diagram (SSD)
+title US 2.2.13: Manage Qualifications (SSD)
 
 autonumber
-actor "Logistics Operator" as Logistics
+actor "Logistics Operator" as Operator
 participant ":System" as System
 
-Activate Logistics
-'--- Register Scenario ---
-Logistics -> System : attempts to register a new qualification with details.
-activate System
-System --> Logistics : confirms successful registration of the qualification
-deactivate System
+activate Operator
 
-'--- Manage Scenario ---~
-... Logistics selects an existing resource to manage ...
-Logistics -> System : selects a qualification to manage
-activate System
-System --> Logistics : displays the details of the selected qualification
-deactivate System
-Logistics -> System : manages the details of the qualification
-activate System
-System --> Logistics : confirms successful update of the qualification
-deactivate System
+group Create Qualification
+    Operator -> System : **POST** /api/qualifications\n(Body: CreateQualificationDto { Code, Name, Desc })
+    activate System
+    System --> Operator : **201 Created**\n(Body: QualificationDto)
+    deactivate System
+end
+
+group Update Qualification
+    Operator -> System : **PUT** /api/qualifications/{code}\n(Body: UpdateQualificationDto { Name, Desc })
+    activate System
+    System --> Operator : **200 OK**\n(Body: QualificationDto { updated })
+    deactivate System
+end
+
+group Retrieve Qualifications
+    Operator -> System : **GET** /api/qualifications/{code}
+    activate System
+    System --> Operator : **200 OK**\n(Body: QualificationDto)
+    deactivate System
+
+    Operator -> System : **GET** /api/qualifications
+    activate System
+    System --> Operator : **200 OK**\n(Body: List<QualificationDto>)
+    deactivate System
+end
+
+
+deactivate Operator
+
 @enduml

@@ -1,0 +1,91 @@
+@startuml
+' US 2.2.8 - Domain Model
+title US 2.2.8 - Create/Submit VVN - Domain Model
+
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+hide circle
+hide methods
+
+' The Aggregate Root for this US
+package "VesselVisitNotification Aggregate" {
+    class VesselVisitNotification <<(A,orchid) Root>> {
+        +Id: NotificationId
+        +Status: NotificationStatus
+        +EstimatedArrival: ETA
+        +EstimatedDeparture: ETD
+        ---
+        ' References to other aggregates
+        +VesselId: ImoNumber
+        +SubmittedBy: RepresentativeId
+    }
+
+    enum NotificationStatus {
+        InProgress
+        Submitted
+        Approved
+        Rejected
+    }
+
+    ' Owned Entities
+    class Cargo <<Entity>> {
+        Description: string
+        Weight: double
+    }
+
+    class Container <<Entity>> {
+        Position: string
+    }
+
+    class CrewMember <<Entity>> {
+        Name: string
+        Nationality: string
+        IsSafetyOfficer: bool
+    }
+
+    ' Value Objects
+    class NotificationId <<(V,DarkSeaGreen)>> {
+        Value: Guid
+    }
+    class ETA <<(V,DarkSeaGreen)>> {
+        Value: DateTime
+    }
+    class ETD <<(V,DarkSeaGreen)>> {
+        Value: DateTime
+    }
+    class ContainerCode <<(V,DarkSeaGreen)>> {
+        Value: string
+        ---
+        ' ISO 6346 validation
+        ' logic is in constructor
+    }
+}
+
+' External Aggregates referenced by ID
+package "Vessel Aggregate" {
+    class Vessel <<(A,orchid) Root>> {
+        +Id: ImoNumber
+        ..
+    }
+    class ImoNumber <<(V,DarkSeaGreen)>>
+}
+
+package "ShippingAgentRepresentative Aggregate" {
+    class ShippingAgentRepresentative <<(A,orchid) Root>> {
+        +Id: RepresentativeId
+        ..
+    }
+    class RepresentativeId <<(V,DarkSeaGreen)>>
+}
+
+' Relationships
+VesselVisitNotification "1" *-- "1" Cargo : owns
+VesselVisitNotification "1" *-- "*" CrewMember : owns
+Cargo "1" *-- "*" Container : owns
+Container "1" *-- "1" ContainerCode : identified by
+
+VesselVisitNotification ..> Vessel : "references by \nImoNumber"
+VesselVisitNotification ..> ShippingAgentRepresentative : "references by \nRepresentativeId"
+@enduml

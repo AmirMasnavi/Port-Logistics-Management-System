@@ -1,55 +1,89 @@
 @startuml
-' US 2.2.11: Create Staff Member - Sequence Diagram (Design)
+' US 2.2.11 - Sequence Diagram (Create Staff Member)
+title US 2.2.11: Create Staff Member (SD)
 
-title US 2.2.11: Create Staff Member - Application Flow
-
-actor "Logistics Operator" as User
-participant ":StaffMembersController" as Controller <<Application>>
-participant "service:IStaffMemberService" as Service <<Application>>
-participant "repo:IStaffMemberRepository" as Repo <<Repository>>
-participant "staffMember:StaffMember" as Domain <<Domain Entity>>
-database "Database" as DB
-
-skinparam sequenceArrowThickness 2
-skinparam roundcorner 10
-skinparam maxmessagesize 180
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
 skinparam sequenceParticipant underline
 
-activate User
-User -> Controller : POST /api/staffmembers (createDto)
+autonumber
+
+actor "Logistics Operator" as Actor
+participant ":StaffMembersController" as Controller
+participant ":IStaffMemberService" as IService
+participant ":StaffMemberService" as Service
+participant "dto:CreateStaffMemberDto" as Dto
+participant ":StaffMember" as Aggregate
+participant ":MecanographicNumber" as MecIdVO
+participant ":ContactDetails" as ContactVO
+participant ":OperationalWindow" as WindowVO
+participant ":IStaffMemberRepository" as IRepo
+participant ":StaffMemberRepository" as Repo
+participant "respDto:StaffMemberDto" as RespDto
+
+activate Actor
+Actor -> Controller : **POST** /api/staffMembers\n(Body: dto)
 activate Controller
 
-Controller -> Service : CreateStaffMemberAsync(createDto)
+Controller -> IService : CreateStaffMemberAsync(dto)
+activate IService
+IService -> Service : CreateStaffMemberAsync(dto)
 activate Service
 
-' The service can check if the ID already exists
-Service -> Repo : findByIdAsync(createDto.MecanographicNumber)
+' Value Object Creation & Validation
+Service -> MecIdVO ** : new MecanographicNumber(dto.MecNum)
+activate MecIdVO
+MecIdVO --> Service
+deactivate MecIdVO
+
+Service -> ContactVO ** : new ContactDetails(dto.Email, dto.Phone)
+activate ContactVO
+ContactVO --> Service
+deactivate ContactVO
+
+Service -> WindowVO ** : new OperationalWindow(dto.Start, dto.End, dto.Days)
+activate WindowVO
+WindowVO --> Service
+deactivate WindowVO
+
+' Aggregate Creation
+Service -> Aggregate ** : new StaffMember(mecId, dto.Name, contact, window)
+activate Aggregate
+' Constructor sets Status = Available
+Aggregate --> Service : staffMember
+deactivate Aggregate
+
+' Persistence
+Service -> IRepo : AddAsync(staffMember)
+activate IRepo
+IRepo -> Repo : AddAsync(staffMember)
 activate Repo
-Repo -> DB : SELECT ... WHERE MecanographicNumber = ?
-DB --> Repo : null (not found)
+' EF Core adds to DbContext
+Repo --> IRepo
+deactivate Repo
+IRepo --> Service
+deactivate IRepo
+
+' Save changes (often done after AddAsync in the service)
+Service -> Repo : SaveChangesAsync()
+activate Repo
+' EF Core generates SQL INSERT
+Repo --> Service
 deactivate Repo
 
-' Create the domain entity using its constructor
-Service -> Domain : staffMember = new StaffMember(createDto)
-activate Domain
-' The constructor validates data and sets the default status to 'Available'
-Domain --> Service
-deactivate Domain
+' Map Response
+Service -> RespDto ** : MapToDto(staffMember)
+activate RespDto
+RespDto --> Service : respDto
+deactivate RespDto
 
-' Persist the new entity
-Service -> Repo : addAsync(staffMember)
-activate Repo
-Repo -> DB : INSERT INTO StaffMembers (...) VALUES (...)
-DB --> Repo : success
-Repo --> Service : savedStaffMember
-deactivate Repo
-
-Service --> Controller : staffMemberDto
+Service --> IService : respDto
 deactivate Service
+IService --> Controller : respDto
+deactivate IService
 
-Controller -> User : 201 Created (staffMemberDto)
+Controller --> Actor : **201 Created**\n(Body: respDto)
 deactivate Controller
-
-deactivate User
-
+deactivate Actor
 @enduml
