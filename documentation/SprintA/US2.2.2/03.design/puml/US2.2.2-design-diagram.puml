@@ -1,0 +1,133 @@
+@startuml
+title US 2.2.3: Register and Update Vessel Records (Design)
+
+actor "Port Authority Officer" as Officer
+participant ":VesselController" as Controller
+participant "IVesselService" as IService
+participant ":VesselService" as Service
+participant ":Vessel" as Entity
+participant "IVesselRepository" as IRepo
+participant ":VesselRepository" as Repo
+participant "VesselDto" as Dto
+
+skinparam sequenceArrowThickness 2
+skinparam roundcorner 10
+skinparam maxmessagesize 200
+skinparam sequenceParticipant underline
+
+
+' --- Scenario 1: Register New Vessel ---
+group Scenario: Register New Vessel
+
+Officer -> Controller : POST /api/vessel\n(CreateVessel(dto))
+activate Controller
+
+Controller -> IService : CreateVesselAsync(dto)
+activate IService
+IService -> Service : delegation
+activate Service
+
+Service -> IRepo : GetByImoAsync(dto.ImoNumber)
+activate IRepo
+IRepo -> Repo : query database for existing IMO
+activate Repo
+Repo --> IRepo : Optional<Vessel>
+deactivate Repo
+IRepo --> Service : Optional<Vessel>
+deactivate IRepo
+
+note right of Service
+Validates:
+• Unique IMO number
+• Vessel type exists
+• IMO format (7 digits + check)
+end note
+
+Service -> Entity ** : Vessel.Create(imo, name, typeId, operator)
+activate Entity
+Entity --> Service : new Vessel instance
+deactivate Entity
+
+Service -> IRepo : AddAsync(vessel)
+activate IRepo
+IRepo -> Repo : persist new entity
+activate Repo
+Repo --> IRepo : Vessel saved
+deactivate Repo
+IRepo --> Service : Vessel saved
+deactivate IRepo
+
+Service -> Dto : Map entity → VesselDto
+activate Dto
+Dto --> Service : VesselDto
+deactivate Dto
+
+Service --> IService : return VesselDto
+deactivate Service
+IService --> Controller : VesselDto
+deactivate IService
+
+Controller --> Officer : 201 Created (VesselDto)
+deactivate Controller
+
+Officer -> Officer : Vessel registered successfully!
+end
+
+
+' --- Scenario 2: Update Existing Vessel ---
+group Scenario: Update Existing Vessel
+
+Officer -> Controller : PUT /api/vessel/{imo}\n(UpdateVessel(imo, dto))
+activate Controller
+
+Controller -> IService : UpdateVesselAsync(dto)
+activate IService
+IService -> Service : delegation
+activate Service
+
+Service -> IRepo : GetByImoAsync(dto.ImoNumber)
+activate IRepo
+IRepo -> Repo : query vessel by IMO
+activate Repo
+Repo --> IRepo : Vessel entity
+deactivate Repo
+IRepo --> Service : Vessel entity
+deactivate IRepo
+
+note right of Service
+Validates:
+• Vessel exists
+• VesselTypeId exists
+• IMO format and match
+end note
+
+Service -> Entity : UpdateName(dto.Name)
+Service -> Entity : UpdateVesselType(dto.VesselTypeId)
+Service -> Entity : UpdateOperator(dto.Operator)
+
+Service -> IRepo : UpdateAsync(vessel)
+activate IRepo
+IRepo -> Repo : persist updated entity
+activate Repo
+Repo --> IRepo : updated entity
+deactivate Repo
+IRepo --> Service : updated entity
+deactivate IRepo
+
+Service -> Dto : Map entity → VesselDto
+activate Dto
+Dto --> Service : VesselDto
+deactivate Dto
+
+Service --> IService : return VesselDto
+deactivate Service
+IService --> Controller : VesselDto
+deactivate IService
+
+Controller --> Officer : 200 OK (VesselDto)
+deactivate Controller
+
+Officer -> Officer : Vessel updated successfully!
+end
+
+@enduml
