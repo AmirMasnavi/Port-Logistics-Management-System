@@ -30,19 +30,6 @@ namespace PortProject.Api.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Qualifications",
-                columns: table => new
-                {
-                    Code = table.Column<string>(type: "TEXT", maxLength: 20, nullable: false),
-                    Name = table.Column<string>(type: "TEXT", maxLength: 100, nullable: false),
-                    Description = table.Column<string>(type: "TEXT", maxLength: 500, nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Qualifications", x => x.Code);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "Resources",
                 columns: table => new
                 {
@@ -60,7 +47,7 @@ namespace PortProject.Api.Migrations
                     SetupTimeMinutes = table.Column<int>(type: "INTEGER", nullable: false),
                     OperationalStart = table.Column<TimeSpan>(type: "TEXT", nullable: false),
                     OperationalEnd = table.Column<TimeSpan>(type: "TEXT", nullable: false),
-                    QualificationRequirements = table.Column<string>(type: "TEXT", nullable: false)
+                    QualificationRequirements = table.Column<string>(type: "TEXT", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -172,27 +159,22 @@ namespace PortProject.Api.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "StaffMemberQualification",
+                name: "Qualifications",
                 columns: table => new
                 {
-                    QualificationsCode = table.Column<string>(type: "TEXT", nullable: false),
-                    StaffMemberMecanographicNumber = table.Column<string>(type: "TEXT", nullable: false)
+                    Code = table.Column<string>(type: "TEXT", maxLength: 20, nullable: false),
+                    Name = table.Column<string>(type: "TEXT", maxLength: 100, nullable: false),
+                    Description = table.Column<string>(type: "TEXT", maxLength: 500, nullable: false),
+                    ResourceCode = table.Column<string>(type: "TEXT", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_StaffMemberQualification", x => new { x.QualificationsCode, x.StaffMemberMecanographicNumber });
+                    table.PrimaryKey("PK_Qualifications", x => x.Code);
                     table.ForeignKey(
-                        name: "FK_StaffMemberQualification_Qualifications_QualificationsCode",
-                        column: x => x.QualificationsCode,
-                        principalTable: "Qualifications",
-                        principalColumn: "Code",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_StaffMemberQualification_StaffMembers_StaffMemberMecanographicNumber",
-                        column: x => x.StaffMemberMecanographicNumber,
-                        principalTable: "StaffMembers",
-                        principalColumn: "MecanographicNumber",
-                        onDelete: ReferentialAction.Cascade);
+                        name: "FK_Qualifications_Resources_ResourceCode",
+                        column: x => x.ResourceCode,
+                        principalTable: "Resources",
+                        principalColumn: "Code");
                 });
 
             migrationBuilder.CreateTable(
@@ -215,6 +197,30 @@ namespace PortProject.Api.Migrations
                         principalTable: "VesselTypes",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "StaffMemberQualification",
+                columns: table => new
+                {
+                    QualificationsCode = table.Column<string>(type: "TEXT", nullable: false),
+                    StaffMemberMecanographicNumber = table.Column<string>(type: "TEXT", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_StaffMemberQualification", x => new { x.QualificationsCode, x.StaffMemberMecanographicNumber });
+                    table.ForeignKey(
+                        name: "FK_StaffMemberQualification_Qualifications_QualificationsCode",
+                        column: x => x.QualificationsCode,
+                        principalTable: "Qualifications",
+                        principalColumn: "Code",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_StaffMemberQualification_StaffMembers_StaffMemberMecanographicNumber",
+                        column: x => x.StaffMemberMecanographicNumber,
+                        principalTable: "StaffMembers",
+                        principalColumn: "MecanographicNumber",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -336,6 +342,11 @@ namespace PortProject.Api.Migrations
                 column: "VvnId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Qualifications_ResourceCode",
+                table: "Qualifications",
+                column: "ResourceCode");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_StaffMemberQualification_StaffMemberMecanographicNumber",
                 table: "StaffMemberQualification",
                 column: "StaffMemberMecanographicNumber");
@@ -383,9 +394,6 @@ namespace PortProject.Api.Migrations
                 name: "DockAllowedVesselTypes");
 
             migrationBuilder.DropTable(
-                name: "Resources");
-
-            migrationBuilder.DropTable(
                 name: "ShippingAgentOrganizations");
 
             migrationBuilder.DropTable(
@@ -411,6 +419,9 @@ namespace PortProject.Api.Migrations
 
             migrationBuilder.DropTable(
                 name: "Vessels");
+
+            migrationBuilder.DropTable(
+                name: "Resources");
 
             migrationBuilder.DropTable(
                 name: "VesselTypes");
