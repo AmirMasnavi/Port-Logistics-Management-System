@@ -27,9 +27,17 @@ namespace PortProject.Api.Application.Dock.Services
 
             var validTypes = await _vesselTypeRepository.GetByIdsAsync(allowedIds);
             var validIds = validTypes.Select(v => v.Id).ToList();
+            
+            var invalidIds = allowedIds
+                .Where(id => !validIds.Contains(id))
+                .Select(id => id.Value)
+                .ToList();
+
+            if (invalidIds.Any())
+                throw new ArgumentException($"Invalid VesselTypeIds: {string.Join(", ", invalidIds)}");
 
             var dock = Domain.DockAggregate.Dock.Create(
-                id: null,
+                id: dto.Id,
                 name: dto.Name,
                 locationZone: dto.LocationZone,
                 locationSection: dto.LocationSection,

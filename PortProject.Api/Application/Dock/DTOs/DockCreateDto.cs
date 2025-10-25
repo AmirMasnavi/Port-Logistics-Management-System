@@ -2,6 +2,7 @@
 
 public class DockCreateDto
 {
+    public string Id { get; set; } = default!;
     public string Name { get; set; } = default!;
     public string LocationZone { get; set; } = default!;
     public string LocationSection { get; set; } = default!;

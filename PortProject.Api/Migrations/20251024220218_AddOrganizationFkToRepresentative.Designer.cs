@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using PortProject.Api.Models;
 
@@ -10,9 +11,11 @@ using PortProject.Api.Models;
 namespace PortProject.Api.Migrations
 {
     [DbContext(typeof(PortProjectContext))]
-    partial class PortProjectContextModelSnapshot : ModelSnapshot
+    [Migration("20251024220218_AddOrganizationFkToRepresentative")]
+    partial class AddOrganizationFkToRepresentative
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.10");
@@ -135,6 +138,8 @@ namespace PortProject.Api.Migrations
 
                     b.HasKey("RepresentativeId");
 
+                    b.HasIndex("OrganizationId");
+
                     b.ToTable("ShippingAgentRepresentatives");
                 });
 
@@ -229,15 +234,23 @@ namespace PortProject.Api.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("AssignedDockId");
+                    b.Property<string>("AssignedDockId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("AssignedDockId");
 
                     b.Property<string>("Status")
-                        .IsRequired();
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("Status");
 
-                    b.Property<Guid>("SubmittedBy");
+                    b.Property<Guid>("SubmittedBy")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("SubmittedBy");
 
                     b.Property<string>("VesselId")
-                        .IsRequired();
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("VesselImo");
 
                     b.HasKey("Id");
 
@@ -539,6 +552,15 @@ namespace PortProject.Api.Migrations
                         });
 
                     b.Navigation("Address");
+                });
+
+            modelBuilder.Entity("PortProject.Api.Domain.ShippingAgentRepresentativeAggregate.ShippingAgentRepresentative", b =>
+                {
+                    b.HasOne("PortProject.Api.Domain.ShippingAgentOrganizationAggregate.ShippingAgentOrganization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("PortProject.Api.Domain.StaffMemberAggregate.StaffMember", b =>

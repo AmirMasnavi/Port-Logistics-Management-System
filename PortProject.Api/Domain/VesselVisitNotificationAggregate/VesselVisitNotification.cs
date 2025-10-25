@@ -25,6 +25,7 @@ public class VesselVisitNotification // We will add inheritance and interfaces l
     private readonly List<DecisionLogEntry> _decisionLog = new();
     public IReadOnlyCollection<DecisionLogEntry> DecisionLog => _decisionLog.AsReadOnly();
     // Private constructor for EF Core
+    
     private VesselVisitNotification() { }
 
     // Public constructor for creating a new notification

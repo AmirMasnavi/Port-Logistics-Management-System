@@ -30,9 +30,11 @@ namespace PortProject.Api.Application.VesselVisitNotification.Services
             string? vesselImo,
             string? status,
             string? representativeId,
-            string? organizationId,
             DateTime? from,
             DateTime? to
         );
+        
+        Task<List<VesselVisitNotificationDto>> GetNotificationsForRepresentativeAsync(VvnSearchFilterDto filter);
+
     }
 }
