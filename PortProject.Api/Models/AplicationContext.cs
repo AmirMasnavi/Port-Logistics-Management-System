@@ -390,7 +390,7 @@ public class PortProjectContext : DbContext
         // 2. Foreign Keys to other Aggregates
         vvnBuilder.Property(vvn => vvn.VesselId)
             .HasConversion(id => id.Value, val => new ImoNumber(val))
-            .HasColumnName("VesselId") 
+            .HasColumnName("VesselImo") // Changed from "VesselId" to match migration
             .IsRequired();
         
         vvnBuilder.Property(vvn => vvn.SubmittedBy)

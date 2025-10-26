@@ -7,6 +7,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Xunit;
@@ -21,6 +22,7 @@ using PortProject.Api.Application.VesselVisitNotification.DTOs;
 using PortProject.Api.Domain.ShippingAgentOrganizationAggregate;
 using PortProject.Api.Domain.ShippingAgentRepresentativeAggregate;
 using src.Dto;
+using PortProject.Api.Application.ShippingAgentsOrganization.DTOs;
 
 namespace Port.Project.Api.System_Tests
 {
@@ -87,6 +89,8 @@ namespace Port.Project.Api.System_Tests
             if (db.Resources.Any()) db.Resources.RemoveRange(db.Resources);
             if (db.Qualifications.Any()) db.Qualifications.RemoveRange(db.Qualifications);
             if (db.Vessels.Any()) db.Vessels.RemoveRange(db.Vessels);
+            if (db.ShippingAgentRepresentatives.Any()) db.ShippingAgentRepresentatives.RemoveRange(db.ShippingAgentRepresentatives);
+            if (db.ShippingAgentOrganizations.Any()) db.ShippingAgentOrganizations.RemoveRange(db.ShippingAgentOrganizations);
             if (db.VesselTypes.Any()) db.VesselTypes.RemoveRange(db.VesselTypes);
             db.SaveChanges();
 
@@ -519,6 +523,127 @@ namespace Port.Project.Api.System_Tests
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
             var body = await response.Content.ReadAsStringAsync();
             Assert.Contains("foreign key constraint failed", body, StringComparison.OrdinalIgnoreCase);
+        }
+
+        // -------------------- NEW TESTS: Organization <-> Representative dependencies --------------------
+
+        [Fact(DisplayName = "System: Create Representative with non-existent Organization should fail")]
+        public async Task CreateRepresentative_WithNonExistentOrganization_ShouldFail()
+        {
+            ReinitializeDb();
+
+            var bogusOrgId = Guid.NewGuid().ToString();
+            var repCreate = new CreateShippingAgentRepresentativeDto
+            {
+                OrganizationId = bogusOrgId,
+                RepresentativeName = "John Doe",
+                CitizenId = "12345678Z",
+                RepresentativeNationality = "PT",
+                RepresentativeEmail = "john.doe@example.com",
+                RepresentativePhone = "+351912345678"
+            };
+
+            var resp = await PostJsonAsync("/api/ShippingAgentRepresentatives", repCreate);
+            // Depending on service/controller flow this can surface as BadRequest, NotFound or InternalServerError
+            Assert.True(resp.StatusCode == HttpStatusCode.BadRequest ||
+                        resp.StatusCode == HttpStatusCode.NotFound ||
+                        resp.StatusCode == HttpStatusCode.InternalServerError,
+                        $"Unexpected status code: {resp.StatusCode}");
+            var body = await resp.Content.ReadAsStringAsync();
+            Assert.True(
+                body.Contains("not found", StringComparison.OrdinalIgnoreCase) ||
+                body.Contains("invalid", StringComparison.OrdinalIgnoreCase) ||
+                body.Contains("foreign key", StringComparison.OrdinalIgnoreCase) ||
+                string.IsNullOrWhiteSpace(body), // some pipelines may not return a message
+                $"Unexpected error body: {body}");
+        }
+
+        [Fact(DisplayName = "System: Create Organization with representatives should persist and link reps to org")]
+        public async Task CreateOrganization_WithRepresentatives_ShouldLinkRepresentatives()
+        {
+            ReinitializeDb();
+
+            var orgCreate = new CreateShippingAgentOrganizationDto
+            {
+                LegalName = "Oceanic Shipping SA",
+                AlternativeName = "Oceanic",
+                Street = "Harbor St 1",
+                City = "Porto",
+                Country = "PT",
+                TaxNumber = "PT999000111",
+                Representatives = new List<CreateShippingAgentRepresentativeDto>
+                {
+                    new CreateShippingAgentRepresentativeDto
+                    {
+                        RepresentativeName = "Alice Rep",
+                        CitizenId = "87654321X",
+                        RepresentativeNationality = "PT",
+                        RepresentativeEmail = "alice.rep@example.com",
+                        RepresentativePhone = "934567890",
+                        // OrganizationId is optional here; service assigns after creating the org
+                    }
+                }
+            };
+
+            var orgId = await PostAndReadJsonAsync<Guid>("/api/ShippingAgentOrganizations", orgCreate);
+            Assert.NotEqual(Guid.Empty, orgId);
+
+            // Verify the organization exists
+            var orgDto = await GetAndReadJsonAsync<ShippingAgentOrganizationDto>($"/api/ShippingAgentOrganizations/{orgId}");
+            Assert.NotNull(orgDto);
+            Assert.Equal("Oceanic Shipping SA", orgDto.LegalName);
+
+            // Verify there is at least one representative linked to this organization
+            var repsResp = await _client.GetAsync($"/api/ShippingAgentRepresentatives/by-organization/{orgId}");
+            Assert.True(repsResp.IsSuccessStatusCode, $"GET reps by organization failed: {repsResp.StatusCode}");
+            var repsBody = await repsResp.Content.ReadAsStringAsync();
+            var reps = JsonConvert.DeserializeObject<List<ShippingAgentRepresentativeDto>>(repsBody) ?? new List<ShippingAgentRepresentativeDto>();
+            Assert.NotEmpty(reps);
+            Assert.All(reps, r => Assert.Equal(orgId.ToString(), r.OrganizationId));
+        }
+
+        [Fact(DisplayName = "System: Delete Representative should not delete its Organization")]
+        public async Task DeleteRepresentative_ShouldNotDeleteOrganization()
+        {
+            ReinitializeDb();
+
+            // First create an organization with a representative
+            var createOrg = new CreateShippingAgentOrganizationDto
+            {
+                LegalName = "Harbor Co.",
+                AlternativeName = "Harbor",
+                Street = "Dock 5",
+                City = "Lisbon",
+                Country = "PT",
+                TaxNumber = "PT321654987",
+                Representatives = new List<CreateShippingAgentRepresentativeDto>
+                {
+                    new CreateShippingAgentRepresentativeDto
+                    {
+                        RepresentativeName = "Bob Rep",
+                        CitizenId = "99887766H",
+                        RepresentativeNationality = "PT",
+                        RepresentativeEmail = "bob.rep@example.com",
+                        RepresentativePhone = "911111111",
+                    }
+                }
+            };
+
+            var orgId = await PostAndReadJsonAsync<Guid>("/api/ShippingAgentOrganizations", createOrg);
+            Assert.NotEqual(Guid.Empty, orgId);
+
+            // Fetch representatives of that organization and pick one
+            var reps = await GetAndReadJsonAsync<List<ShippingAgentRepresentativeDto>>($"/api/ShippingAgentRepresentatives/by-organization/{orgId}");
+            Assert.NotEmpty(reps);
+            var repId = reps.First().RepresentativeId;
+
+            // Delete representative
+            var delResp = await _client.DeleteAsync($"/api/ShippingAgentRepresentatives/{repId}");
+            Assert.Equal(HttpStatusCode.NoContent, delResp.StatusCode);
+
+            // Organization should still exist
+            var orgGet = await _client.GetAsync($"/api/ShippingAgentOrganizations/{orgId}");
+            Assert.Equal(HttpStatusCode.OK, orgGet.StatusCode);
         }
     }
 }

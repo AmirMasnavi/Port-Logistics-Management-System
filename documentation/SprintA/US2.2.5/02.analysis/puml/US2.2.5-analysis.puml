@@ -1,0 +1,68 @@
+@startuml
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+skinparam classAttributeIconSize 0
+hide circle
+hide methods
+
+title US 2.2.5 - Register Shipping Agent Organization
+
+' Context: Port Authority Officer registers a new Shipping Agent Organization.
+' Focus: Organization aggregate root and its value objects directly relevant to the user story.
+
+package "Organization Management" {
+
+    class ShippingAgentOrganization <<Root>> {
+        legalName
+        altName
+        taxNumber
+        address
+    }
+
+    class OrganizationId <<ValueObject>> {
+        value
+    }
+
+    class LegalName <<ValueObject>> {
+        value
+    }
+
+    class AltName <<ValueObject>> {
+        value
+    }
+
+    class TaxNumber <<ValueObject>> {
+        value
+    }
+
+    class Address <<ValueObject>> {
+        street
+        city
+        country
+    }
+
+    ' Composition (aggregate with VOs)
+    ShippingAgentOrganization *-- OrganizationId
+    ShippingAgentOrganization *-- LegalName
+    ShippingAgentOrganization *-- AltName
+    ShippingAgentOrganization *-- TaxNumber
+    ShippingAgentOrganization *-- Address
+}
+
+' Reference to representatives only as context (not managed in this US)
+package "Organization References" {
+    class ShippingAgentRepresentative {
+        name
+        citizenId
+        email
+        phone
+        nationality
+        status
+    }
+
+    ' An organization may later have many representatives (managed in US 2.2.6)
+    ShippingAgentOrganization "1" <-- "0..*" ShippingAgentRepresentative : belongs to >
+}
+@enduml
