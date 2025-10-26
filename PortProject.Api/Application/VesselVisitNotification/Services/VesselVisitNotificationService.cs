@@ -20,6 +20,7 @@ public class VesselVisitNotificationService : IVesselVisitNotificationService
         _context = context;
     }
 
+
     public async Task<VesselVisitNotificationDto> CreateAsync(CreateVvnDto dto, string representativeId)
     {
         // 1. Convert DTOs to Domain Objects
@@ -90,11 +91,11 @@ public class VesselVisitNotificationService : IVesselVisitNotificationService
         await _context.SaveChangesAsync();
     }
 
-    public async Task<VesselVisitNotificationDto?> GetByIdAsync(string notificationId)
+    public async Task<VesselVisitNotificationDto?> GetByIdAsync(string id)
     {
-        var notification = await _vvnRepo.GetByIdAsync(new NotificationId(Guid.Parse(notificationId)));
-
-        return notification == null ? null : MapToDto(notification);
+        var guid = Guid.Parse(id);
+        var entity = await _vvnRepo.GetByIdAsync(new NotificationId(guid));
+        return entity is null ? null : MapToDto(entity);
     }
 
     public async Task<VesselVisitNotificationDto> ApproveAsync(string notificationId, ApproveVvnDto dto)
@@ -103,6 +104,9 @@ public class VesselVisitNotificationService : IVesselVisitNotificationService
         var notification = await _vvnRepo.GetByIdAsync(id)
                            ?? throw new KeyNotFoundException($"Notification {notificationId} not found.");
 
+        if (notification.Status != NotificationStatus.Submitted)
+            throw new InvalidOperationException("Only submitted notifications can be approved.");       
+        
         notification.Approve(new MecanographicNumber(dto.OfficerId), new DockId(dto.DockId));
         await _context.SaveChangesAsync();
 
@@ -115,24 +119,29 @@ public class VesselVisitNotificationService : IVesselVisitNotificationService
         var notification = await _vvnRepo.GetByIdAsync(id)
                            ?? throw new KeyNotFoundException($"Notification {notificationId} not found.");
 
+        if (notification.Status != NotificationStatus.Submitted)
+            throw new InvalidOperationException("Only submitted notifications can be rejected.");
+
         notification.Reject(new MecanographicNumber(dto.OfficerId), dto.Reason);
         await _context.SaveChangesAsync();
 
         return MapToDto(notification);
     }
 
-    public async Task<VesselVisitNotificationDto?> ReopenAsync(string notificationId)
+
+    public async Task ReopenAsync(string notificationId)
     {
         var id = new NotificationId(Guid.Parse(notificationId));
-        var notification = await _vvnRepo.GetByIdAsync(id);
-        if (notification == null || notification.Status != NotificationStatus.Rejected)
-            return null;
-
+        var notification = await _vvnRepo.GetByIdAsync(id)
+                           ?? throw new KeyNotFoundException($"Notification {notificationId} not found.");
+    
+        if (notification.Status != NotificationStatus.Rejected)
+            throw new InvalidOperationException("Cannot resubmit a notification that is not rejected.");
+    
         notification.Reopen();
         await _context.SaveChangesAsync();
-
-        return MapToDto(notification);
     }
+
 
     public async Task<List<VesselVisitNotificationDto>> SearchAsync(
         string? vesselImo,
@@ -199,46 +208,24 @@ public class VesselVisitNotificationService : IVesselVisitNotificationService
         }).ToList();
     }
 
-    public async Task<List<VesselVisitNotificationDto>> GetNotificationsForRepresentativeAsync(
-        VvnSearchFilterDto filter)
+    public async Task<List<VesselVisitNotificationDto>> GetNotificationsForRepresentativeAsync(VvnSearchFilterDto filter)
     {
+        if (filter == null || string.IsNullOrWhiteSpace(filter.RepresentativeId))
+            throw new FormatException("RepresentativeId is required and must be a valid GUID.");
+
+        if (!Guid.TryParse(filter.RepresentativeId, out var repGuid))
+            throw new FormatException("RepresentativeId is not a valid GUID.");
+
         var query = _context.VesselVisitNotifications
-            .Include(vvn => vvn.Cargo).ThenInclude(c => c.Containers)
-            .Include(vvn => vvn.CrewMembers)
-            .Include(vvn => vvn.DecisionLog)
-            .AsQueryable();
+            .Include(v => v.Cargo).ThenInclude(c => c.Containers)
+            .Include(v => v.CrewMembers)
+            .Include(v => v.DecisionLog)
+            .Where(v => v.SubmittedBy.Value == repGuid);
 
-        if (!string.IsNullOrWhiteSpace(filter.VesselImo))
-            query = query.Where(v => v.VesselId.Value == filter.VesselImo);
-
-        if (!string.IsNullOrWhiteSpace(filter.Status))
-            query = query.Where(v => v.Status.ToString().Equals(filter.Status, StringComparison.OrdinalIgnoreCase));
-
-        if (!string.IsNullOrWhiteSpace(filter.RepresentativeId))
-        {
-            var repId = Guid.Parse(filter.RepresentativeId);
-            query = query.Where(v => v.SubmittedBy.Value == repId);
-        }
-        else if (!string.IsNullOrWhiteSpace(filter.OrganizationId))
-        {
-            var orgId = Guid.Parse(filter.OrganizationId);
-            var repIds = await _context.ShippingAgentRepresentatives
-                .Where(r => r.OrganizationId.Value == orgId)
-                .Select(r => r.RepresentativeId.Value)
-                .ToListAsync();
-
-            query = query.Where(v => repIds.Contains(v.SubmittedBy.Value));
-        }
-
-        if (filter.From.HasValue)
-            query = query.Where(v => v.EstimatedArrival.Value >= filter.From.Value);
-
-        if (filter.To.HasValue)
-            query = query.Where(v => v.EstimatedArrival.Value <= filter.To.Value);
-
-        var results = await query.ToListAsync();
-        return results.Select(MapToDto).ToList();
+        var result = await query.ToListAsync();
+        return result.Select(MapToDto).ToList();
     }
+
 
     // This private helper keeps our mapping logic in one place
     private VesselVisitNotificationDto MapToDto(Domain.VesselVisitNotificationAggregate.VesselVisitNotification entity)

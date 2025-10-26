@@ -1,0 +1,56 @@
+@startuml
+' US 2.2.13 - Class Diagram
+title US 2.2.13 - Manage Qualifications - Class Diagram
+
+skinparam linetype ortho
+skinparam monochrome true
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+
+class QualificationsController <<Controller>> {
+  + CreateQualification(dto): Task<ActionResult>
+  + UpdateQualification(code, dto): Task<ActionResult>
+  + GetAllQualifications(): Task<ActionResult>
+  + GetQualificationByCode(code): Task<ActionResult>
+}
+
+interface IQualificationService <<Service>> {
+  + CreateAsync(dto): Task<QualificationDto>
+  + UpdateAsync(code, dto): Task<QualificationDto?>
+  + GetAllAsync(): Task<IEnumerable<QualificationDto>>
+  + GetByCodeAsync(code): Task<QualificationDto?>
+}
+
+class QualificationService <<Service>>
+
+interface IQualificationRepository <<Repository>> {
+  + AddAsync(qualification): Task
+  + GetByCodeAsync(code): Task<Qualification?>
+  + GetAllAsync(): Task<IEnumerable<Qualification>>
+  + UpdateAsync(qualification): Task
+}
+
+class Qualification <<(A,orchid) Aggregate>> {
+  + Code: QualificationCode
+  + Name: QualificationName
+  + Description: QualificationDescription
+  ---
+  + Qualification(...)
+  + UpdateName(...)
+  + UpdateDescription(...)
+}
+
+class CreateQualificationDto <<DTO>>
+class UpdateQualificationDto <<DTO>>
+class QualificationDto <<DTO>>
+
+QualificationsController .> IQualificationService : uses
+QualificationService .up.|> IQualificationService
+QualificationService .> IQualificationRepository : uses
+IQualificationRepository ..> Qualification : manages
+QualificationService ..> Qualification : creates & uses
+QualificationsController ..> CreateQualificationDto : receives
+QualificationsController ..> UpdateQualificationDto : receives
+QualificationsController ..> QualificationDto : returns
+
+@enduml

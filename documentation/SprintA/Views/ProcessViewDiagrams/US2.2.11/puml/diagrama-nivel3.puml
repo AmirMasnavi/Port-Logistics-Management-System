@@ -1,0 +1,50 @@
+@startuml
+!theme plain
+autonumber
+
+box "Backend System (REST API)" #LightBlue
+    participant "HTTP Request" as HttpRequest
+    participant "Route" as Route
+    participant "StaffMembers\nController" as Controller
+    participant "StaffMember\nService" as Service
+    box "Domain" #LightGreen
+        participant "StaffMember\nAggregate" as Aggregate
+        participant "Qualification\nAggregate" as QualAggregate
+    end box
+    participant "StaffMember\nRepository" as StaffRepo
+    participant "Qualification\nRepository" as QualRepo
+end box
+
+HttpRequest -> Route : 1.1: POST /api/staffMembers
+activate HttpRequest
+Route -> Controller : 1.2: Invoke CreateStaffMember(dto)
+activate Route
+Controller -> Service : 1.3: CreateStaffMemberAsync(dto)
+activate Controller
+activate Service
+
+' Optional: If creating with qualifications, service might check QualRepo first
+' Service -> QualRepo : [Optional check qualifications]
+' activate QualRepo
+' QualRepo --> Service
+' deactivate QualRepo
+
+Service -> Aggregate : 1.4: new StaffMember(...)
+activate Aggregate
+Aggregate --> Service : 1.5: staffMember
+deactivate Aggregate
+
+Service -> StaffRepo : 1.6: AddAsync(staffMember)
+activate StaffRepo
+StaffRepo --> Service : 1.7: (persisted)
+deactivate StaffRepo
+
+Service --> Controller : 1.8: StaffMemberDto
+deactivate Service
+Controller --> HttpRequest : 1.9: HTTP 201 Created
+deactivate Controller
+deactivate Route
+HttpRequest --> : 1.10: HTTP Response
+deactivate HttpRequest
+
+@enduml

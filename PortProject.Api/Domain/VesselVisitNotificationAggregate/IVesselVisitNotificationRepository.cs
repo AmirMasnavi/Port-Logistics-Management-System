@@ -16,5 +16,6 @@
         /// Atualiza uma notificação de visita de navio existente.
         /// </summary>
         Task UpdateAsync(VesselVisitNotification notification);
+        
     }
 }

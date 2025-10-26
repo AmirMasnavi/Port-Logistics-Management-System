@@ -1,0 +1,127 @@
+@startuml
+title US 2.2.3: Manage Docks (Design)
+
+actor "Port Authority Officer" as Admin
+participant ":DockController" as Controller
+participant "IDockService" as IService
+participant ":DockService" as Service
+participant ":Dock" as Entity
+participant "IDockRepository" as IRepo
+participant ":DockRepository" as Repo
+participant "DockDto" as Dto
+
+skinparam sequenceArrowThickness 2
+skinparam roundcorner 10
+skinparam maxmessagesize 200
+skinparam sequenceParticipant underline
+
+
+' --- Scenario 1: Create a New Dock ---
+group Scenario: Create New Dock
+
+Admin -> Controller : POST /api/dock\n(CreateDock(dto))
+activate Controller
+
+Controller -> IService : CreateDockAsync(dto)
+activate IService
+IService -> Service : delegation
+activate Service
+
+Service -> Entity ** : Dock.Create(id, name, locationZone, locationSection, lengthInMeters, depthInMeters, maxDraftInMeters, numberOfSTSCranes, allowedVesselTypeIds)
+activate Entity
+Entity --> Service : new Dock instance
+deactivate Entity
+
+Service -> IRepo : AddAsync(entity)
+activate IRepo
+IRepo -> Repo : persistence logic
+activate Repo
+Repo --> IRepo : Dock saved
+deactivate Repo
+IRepo --> Service : Dock saved
+deactivate IRepo
+
+Service -> Dto : Map entity → DockDto
+activate Dto
+Dto --> Service : DockDto
+deactivate Dto
+
+Service --> IService : return DockDto
+deactivate Service
+IService --> Controller : DockDto
+deactivate IService
+
+Controller --> Admin : 201 Created (DockDto)
+deactivate Controller
+
+Admin -> Admin : Dock created successfully!
+end
+
+
+' --- Scenario 2: Update Existing Dock ---
+group Scenario: Update Existing Dock
+
+Admin -> Controller : PUT /api/dock/{id}\n(UpdateDock(id, dto))
+activate Controller
+
+Controller -> IService : UpdateDockAsync(dto)
+activate IService
+IService -> Service : delegation
+activate Service
+
+Service -> IRepo : GetDockByIdAsync(DockId)
+activate IRepo
+IRepo -> Repo : query database
+activate Repo
+Repo --> IRepo : Dock entity
+deactivate Repo
+IRepo --> Service : Dock entity
+deactivate IRepo
+
+note right of Service: Checks existence and name uniqueness
+
+Service -> IRepo : GetByNameAsync(DockName)
+activate IRepo
+IRepo -> Repo : check duplicates
+activate Repo
+Repo --> IRepo : Optional<Dock>
+deactivate Repo
+IRepo --> Service : Optional<Dock>
+deactivate IRepo
+
+Service -> Entity : UpdateName(new DockName(dto.Name))
+activate Entity
+Entity --> Service
+deactivate Entity
+
+Service -> Entity : UpdateLocation(dto.LocationZone, dto.LocationSection)
+Service -> Entity : UpdatePhysicalCharacteristics(dto.LengthInMeters, dto.DepthInMeters, dto.MaxDraftInMeters)
+Service -> Entity : UpdateNumberOfSTSCranes(dto.NumberOfSTSCranes)
+Service -> Entity : UpdateAllowedVesselTypes(dto.AllowedVesselTypeIds)
+
+Service -> IRepo : UpdateAsync(Dock)
+activate IRepo
+IRepo -> Repo : persist updated entity
+activate Repo
+Repo --> IRepo : updated entity
+deactivate Repo
+IRepo --> Service : updated entity
+deactivate IRepo
+
+Service -> Dto : Map entity → DockDto
+activate Dto
+Dto --> Service : DockDto
+deactivate Dto
+
+Service --> IService : return DockDto
+deactivate Service
+IService --> Controller : DockDto
+deactivate IService
+
+Controller --> Admin : 200 OK (DockDto)
+deactivate Controller
+
+Admin -> Admin : Dock updated successfully!
+end
+
+@enduml

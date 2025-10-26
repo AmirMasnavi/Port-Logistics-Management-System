@@ -1,0 +1,53 @@
+@startuml
+' US 2.2.13 - Domain Model
+title US 2.2.13 - Manage Qualifications - Domain Model
+
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+hide circle
+hide methods
+
+package "Qualification Aggregate" {
+    class Qualification <<(A,orchid) Root>> {
+       +Code: QualificationCode <<ID>>
+       +Name: QualificationName
+       +Description: QualificationDescription
+       ---
+       + Qualification(code, name, description)
+       + UpdateName(newName)
+       + UpdateDescription(newDescription)
+    }
+
+    class QualificationCode <<(V,DarkSeaGreen)>> {
+        Value: string
+    }
+    class QualificationName <<(V,DarkSeaGreen)>> {
+        Value: string
+    }
+    class QualificationDescription <<(V,DarkSeaGreen)>> {
+        Value: string
+    }
+
+    Qualification "1" *-- "1" QualificationCode : identified by
+    Qualification "1" *-- "1" QualificationName : has
+    Qualification "1" *-- "1" QualificationDescription : has
+}
+
+' Show relationship context (how it's used)
+package "Staff Member Aggregate" {
+    class StaffMember <<(A,orchid) Root>> {
+       ' This class is shown for context, members are not detailed here
+    }
+}
+package "Resource Aggregate" {
+    class Resource <<(A,orchid) Root>> {
+       ' This class is shown for context, members are not detailed here
+    }
+}
+
+StaffMember ..> Qualification : references >
+Resource ..> Qualification : references >
+
+@enduml

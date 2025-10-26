@@ -1,0 +1,44 @@
+@startuml
+' Use template styling (monochrome, etc.)
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+title US2.2.7 – Review and Approve/Reject Vessel Visit Notifications – System Sequence Diagram (SSD)
+
+autonumber
+actor "Port Authority Officer" as Officer
+participant ":System" as System
+
+activate Officer
+
+== Review Pending Notifications ==
+Officer -> System : request list of Vessel Visit Notifications\nwith status = "Submitted" or "Approval Pending"
+activate System
+System --> Officer : return list of pending notifications
+deactivate System
+
+== Approve Notification ==
+... Officer selects a notification to approve ...
+Officer -> System : approve notification\n(notificationId, assignedDockId, officerId)
+activate System
+System -> System : validate assigned dock availability
+System -> System : update notification status to "Approved"
+System -> System : assign dock to vessel visit
+System -> System : log decision (timestamp, officerId, status = Approved)
+System --> Officer : confirm approval and dock assignment
+deactivate System
+
+== Reject Notification ==
+... Officer selects a notification to reject ...
+Officer -> System : reject notification\n(notificationId, rejectionReason, officerId)
+activate System
+System -> System : validate rejection reason
+System -> System : update notification status to "Rejected"
+System -> System : log decision (timestamp, officerId, status = Rejected)
+System -> System : notify shipping agent representative
+System --> Officer : confirm rejection
+deactivate System
+
+deactivate Officer
+@enduml

@@ -1,0 +1,40 @@
+@startuml
+' US 2.2.9 - Domain Model
+title US 2.2.9 - Update "In Progress" VVN - Domain Model
+
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+hide circle
+
+' The Aggregate Root for this US
+package "VesselVisitNotification Aggregate" {
+    class VesselVisitNotification <<(A,orchid) Root>> {
+        +Status: NotificationStatus
+        ..
+        ---
+        ' This method contains the business rule
+        + UpdateDetails(newEta, newEtd, newCargo, ...)
+    }
+
+    enum NotificationStatus {
+        InProgress
+        Submitted
+        Approved
+        Rejected
+    }
+}
+
+' The business rule logic
+note right of VesselVisitNotification::UpdateDetails
+  **Business Rule Logic:**
+  if (this.Status != NotificationStatus.InProgress) {
+    throw InvalidOperationException(...)
+  }
+  ' ..proceed with update..
+end note
+
+VesselVisitNotification "1" *-- "1" NotificationStatus
+
+@enduml

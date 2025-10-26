@@ -1,28 +1,31 @@
-# US 2.2.11 - Design
+# US 2.2.11: Manage Staff Members - Design
 
 ## 3.1. Rationale
 
-The design follows a standard layered architecture, consistent with the provided C# code. The responsibilities are clearly separated to promote high cohesion and low coupling.
+The design employs a standard layered architecture, separating concerns effectively. Controllers handle HTTP requests, Services orchestrate the use case, Repositories manage data persistence, and Domain entities encapsulate business logic and state.
 
-| Interaction ID | Question: Which class is responsible for... | Answer | Justification (with patterns) |
+| Interaction | Question: Which class is responsible for... | Answer | Justification (with patterns) |
 | :--- | :--- | :--- | :--- |
-| Step 1 (Receive Request) | ...handling the HTTP request and interacting with the actor? | `StaffMembersController` | **Controller (GRASP):** This class is the entry point for UI interactions. It translates HTTP requests into calls to the application service. |
-| | ...coordinating the use case steps? | `StaffMemberService` | **Service Layer / Pure Fabrication:** It orchestrates the business logic, coordinating between repositories and domain entities without containing business rules itself. |
-| Step 2 (Execute Logic) | ...finding the `StaffMember` aggregate or checking for duplicates? | `IStaffMemberRepository` | **Repository:** Abstracts data access, providing a clean interface for querying and persisting `StaffMember` aggregates. |
-| | ...creating a `StaffMember` and ensuring its internal consistency? | `StaffMember` | **Information Expert (GRASP):** The aggregate root is the expert on its own creation, validation, and state transitions. |
-| Step 3 (Persist State) | ...persisting the new or modified `StaffMember`? | `IStaffMemberRepository` | **Repository:** Responsible for saving the state of the `StaffMember` aggregate to the database. |
-| Step 4 (Send Response) | ...preparing the data (DTO) for the response? | `StaffMemberService` / `Controller` | **Controller:** The service returns a result, and the controller formats it into an HTTP response with the appropriate status code and DTO. |
+| **Step 1 (Receive Request)** | ...handling the HTTP request (`POST`, `PATCH`, `DELETE`, `GET`)? | `StaffMembersController` | **Controller (GRASP):** Acts as the entry point, receiving HTTP requests, validating DTOs, and delegating to the application service. |
+| **Step 2 (Orchestrate)** | ...coordinating the creation, status update, qualification management, or search? | `StaffMemberService` | **Service Layer / Pure Fabrication:** Orchestrates the use case flow. It uses the repository to fetch/save data and calls methods on the domain aggregate (`StaffMember`) to perform actions like status updates or qualification changes. |
+| | ...finding the `StaffMember` aggregate? | `IStaffMemberRepository` | **Repository:** Abstracts data access logic for `StaffMember` aggregates. Used by the service to retrieve staff members by ID or based on search criteria. |
+| | ...finding the `Qualification` aggregate (when adding/removing)? | `IQualificationRepository` | **Repository:** Used by the `StaffMemberService` to verify that a `Qualification` exists before adding it to a `StaffMember`. |
+| **Step 3 (Execute Logic)** | ...creating a `StaffMember` and ensuring its initial state is valid? | `StaffMember` (Aggregate) | **Information Expert (GRASP):** The aggregate root's constructor ensures required fields are provided and sets the initial `CurrentStatus` to `Available`. |
+| | ...validating and changing the `CurrentStatus`? | `StaffMember` (Aggregate) | **Information Expert (GRASP):** The `UpdateStatus` method within the aggregate enforces any rules about status transitions (though currently simple). |
+| | ...adding or removing a `Qualification` reference? | `StaffMember` (Aggregate) | **Information Expert (GRASP):** The `AddQualification` and `RemoveQualification` methods manage the internal list of qualifications, preventing duplicates if necessary. |
+| **Step 4 (Persist State)** | ...saving the new or modified `StaffMember` aggregate? | `IStaffMemberRepository` (via `DbContext`) | **Repository / Unit of Work:** Changes made to the aggregate fetched by the service are tracked by the `DbContext` and saved when `SaveChangesAsync` is called. |
+| **Step 5 (Send Response)** | ...transforming the domain entity/entities into DTOs for the response? | `StaffMemberService` | **Service Layer / DTO:** Maps the `StaffMember` aggregate(s) to `StaffMemberDto` before returning the result to the controller. |
 
 ## 3.2. Sequence Diagram (SD)
 
-This diagram shows the sequence of interactions for the **Create Staff Member** operation. This flow is representative of other operations like updating status.
+This diagram illustrates the **Create Staff Member** scenario, showing the collaboration between the layers. Other operations like updating status or managing qualifications follow similar patterns.
 
-![Sequence Diagram - Full](svg/us2.2.11-sequence-diagram.svg)
+![Sequence Diagram](svg/us2.2.11-sequence-diagram.svg)
 *(Diagram generated from [us2.2.11-sequence-diagram.puml](puml/us2.2.11-sequence-diagram.puml))*
 
 ## 3.3. Class Diagram (CD)
 
-This diagram shows the main classes involved in this use case and their relationships, directly reflecting the provided C# project structure.
+This diagram shows the main classes and interfaces involved in implementing this use case, reflecting the C# project structure.
 
 ![Class Diagram](svg/us2.2.11-class-diagram.svg)
 *(Diagram generated from [us2.2.11-class-diagram.puml](puml/us2.2.11-class-diagram.puml))*

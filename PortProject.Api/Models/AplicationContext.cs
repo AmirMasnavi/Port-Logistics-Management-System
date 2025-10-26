@@ -13,7 +13,6 @@ using PortProject.Api.Domain.ShippingAgentRepresentativeAggregate;
 using PortProject.Api.Domain.VesselTypeAggregate;
 using PortProject.Api.Domain.VesselVisitNotificationAggregate;
 using src.Domain.VesselTypeAggregate;
-using System.Text.Json;
 
 namespace PortProject.Api.Models;
 
@@ -49,6 +48,7 @@ public class PortProjectContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+
         // Compare by value (order‑insensitive) and snapshot as a List
         var workingDaysComparer = new ValueComparer<IReadOnlyCollection<DayOfWeek>>(
             (l, r) =>
@@ -390,7 +390,7 @@ public class PortProjectContext : DbContext
         // 2. Foreign Keys to other Aggregates
         vvnBuilder.Property(vvn => vvn.VesselId)
             .HasConversion(id => id.Value, val => new ImoNumber(val))
-            .HasColumnName("VesselImo") 
+            .HasColumnName("VesselId") 
             .IsRequired();
         
         vvnBuilder.Property(vvn => vvn.SubmittedBy)

@@ -1,0 +1,36 @@
+﻿@startuml
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+skinparam classAttributeIconSize 0
+hide circle
+hide methods
+
+title US2.2.3 - Register and Update Docks - Domain Model
+
+package "Dock Management" {
+
+    class Dock <<Root>> {
+        id
+        name
+        locationZone
+        locationSection
+        lengthInMeters
+        depthInMeters
+        maxDraftInMeters
+        numberOfSTSCranes
+    }
+}
+
+package "VesselType Management" {
+    class VesselType {
+        id
+        name
+        description
+    }
+
+    Dock "1" --> "*" VesselType : allows >
+}
+
+@enduml

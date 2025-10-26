@@ -10,41 +10,62 @@ skinparam classAttributeIconSize 0
 class StaffMembersController <<Controller>> {
   + CreateStaffMember(dto): Task<ActionResult>
   + UpdateStaffMemberStatus(id, dto): Task<ActionResult>
+  + AddQualification(id, dto): Task<ActionResult>
+  + RemoveQualification(id, code): Task<ActionResult>
   + GetAllStaffMembers(...): Task<ActionResult>
 }
 
 interface IStaffMemberService <<Service>> {
   + CreateStaffMemberAsync(dto): Task<StaffMemberDto>
   + UpdateStatusAsync(id, dto): Task<StaffMemberDto?>
+  + AddQualificationAsync(id, code): Task<StaffMemberDto?>
+  + RemoveQualificationAsync(id, code): Task<StaffMemberDto?>
   + GetAllAsync(...): Task<IEnumerable<StaffMemberDto>>
 }
 
 class StaffMemberService <<Service>>
 
 interface IStaffMemberRepository <<Repository>> {
-  + addAsync(staffMember): Task<StaffMember>
-  + findByIdAsync(id): Task<StaffMember?>
-  + saveAsync(staffMember): Task<StaffMember>
+  + AddAsync(staffMember): Task
+  + GetByIdAsync(id): Task<StaffMember?>
+  + GetAllAsync(...): Task<IEnumerable<StaffMember>>
 }
 
-class StaffMember <<(D,orchid) Domain>> {
+' Added for qualification dependency
+interface IQualificationRepository <<Repository>> {
+ + GetByCodeAsync(code): Task<Qualification?>
+}
+
+
+class StaffMember <<(A,orchid) Aggregate>> {
   + MecanographicNumber
   + ShortName
   + CurrentStatus
+  + Qualifications: IReadOnlyCollection<Qualification>
   ---
   + StaffMember(...)
   + UpdateStatus(newStatus)
+  + AddQualification(Qualification)
+  + RemoveQualification(Qualification)
 }
+
+class Qualification <<(A,orchid) Aggregate>>
 
 class CreateStaffMemberDto <<DTO>>
 class UpdateStaffStatusDto <<DTO>>
+class AddQualificationDto <<DTO>>
+class StaffMemberDto <<DTO>>
 
 StaffMembersController .> IStaffMemberService : uses
 StaffMemberService .up.|> IStaffMemberService
 StaffMemberService .> IStaffMemberRepository : uses
+StaffMemberService .> IQualificationRepository : uses ' Added
 IStaffMemberRepository ..> StaffMember : manages
 StaffMemberService ..> StaffMember : creates & uses
+StaffMember ..> Qualification : references
 StaffMembersController ..> CreateStaffMemberDto : receives
 StaffMembersController ..> UpdateStaffStatusDto : receives
+StaffMembersController ..> AddQualificationDto : receives
+StaffMembersController ..> StaffMemberDto : returns
 
 @enduml

@@ -1,0 +1,182 @@
+@startuml
+title US 2.2.7: Review and Approve/Reject Vessel Visit Notifications (Design)
+
+actor "Port Authority Officer" as Officer
+participant ":VesselVisitNotificationController" as Controller
+participant "IVesselVisitNotificationService" as IService
+participant ":VesselVisitNotificationService" as Service
+participant ":VesselVisitNotification" as Entity
+participant "IVesselVisitNotificationRepository" as IRepo
+participant ":VesselVisitNotificationRepository" as Repo
+participant "DecisionLogService" as LogService
+participant "DecisionLog" as Log
+participant "NotificationDto" as Dto
+
+skinparam sequenceArrowThickness 2
+skinparam roundcorner 10
+skinparam maxmessagesize 200
+skinparam sequenceParticipant underline
+
+' --- Scenario 1: Search Pending Notifications ---
+group Scenario: Search Pending Notifications
+
+Officer -> Controller : GET /api/vessel-visits/pending
+activate Controller
+
+Controller -> IService : GetPendingNotificationsAsync()
+activate IService
+IService -> Service : delegation
+activate Service
+
+Service -> IRepo : GetByStatusAsync("Submitted", "Approval Pending")
+activate IRepo
+IRepo -> Repo : query database
+activate Repo
+Repo --> IRepo : list of notifications
+deactivate Repo
+IRepo --> Service : list of notifications
+deactivate IRepo
+
+Service -> Dto : Map entities → NotificationDto[]
+activate Dto
+Dto --> Service : NotificationDto[]
+deactivate Dto
+
+Service --> IService : return NotificationDto[]
+deactivate Service
+IService --> Controller : NotificationDto[]
+deactivate IService
+
+Controller --> Officer : 200 OK (NotificationDto[])
+deactivate Controller
+
+Officer -> Officer : Notifications loaded
+end
+
+
+' --- Scenario 2: Approve Notification ---
+group Scenario: Approve Notification
+
+Officer -> Controller : POST /api/vessel-visits/{id}/approve\n(ApproveVisit(dto))
+activate Controller
+
+Controller -> IService : ApproveVisitAsync(dto)
+activate IService
+IService -> Service : delegation
+activate Service
+
+Service -> IRepo : GetByIdAsync(notificationId)
+activate IRepo
+IRepo -> Repo : query notification
+activate Repo
+Repo --> IRepo : VesselVisitNotification
+deactivate Repo
+IRepo --> Service : VesselVisitNotification
+deactivate IRepo
+
+note right of Service: Validates dock availability
+
+Service -> IRepo : GetDockByIdAsync(assignedDockId)
+activate IRepo
+IRepo -> Repo : query dock
+activate Repo
+Repo --> IRepo : Dock
+deactivate Repo
+IRepo --> Service : Dock
+deactivate IRepo
+
+Service -> Entity : AssignDock(dock)
+Service -> Entity : UpdateStatus("Approved")
+
+Service -> LogService : CreateLog(notificationId, officerId, "Approved", null)
+activate LogService
+LogService -> Log : construct DecisionLog
+activate Log
+Log --> LogService : DecisionLog
+deactivate Log
+LogService --> Service : DecisionLog saved
+deactivate LogService
+
+Service -> IRepo : UpdateAsync(notification)
+activate IRepo
+IRepo -> Repo : persist updated notification
+activate Repo
+Repo --> IRepo : updated entity
+deactivate Repo
+IRepo --> Service : updated entity
+deactivate IRepo
+
+Service -> Dto : Map entity → NotificationDto
+activate Dto
+Dto --> Service : NotificationDto
+deactivate Dto
+
+Service --> IService : return NotificationDto
+deactivate Service
+IService --> Controller : NotificationDto
+deactivate IService
+
+Controller --> Officer : 200 OK (NotificationDto)
+deactivate Controller
+
+Officer -> Officer : Notification approved
+end
+
+
+' --- Scenario 3: Reject Notification ---
+group Scenario: Reject Notification
+
+Officer -> Controller : POST /api/vessel-visits/{id}/reject\n(RejectVisit(dto))
+activate Controller
+
+Controller -> IService : RejectVisitAsync(dto)
+activate IService
+IService -> Service : delegation
+activate Service
+
+Service -> IRepo : GetByIdAsync(notificationId)
+activate IRepo
+IRepo -> Repo : query notification
+activate Repo
+Repo --> IRepo : VesselVisitNotification
+deactivate Repo
+IRepo --> Service : VesselVisitNotification
+deactivate IRepo
+
+Service -> Entity : UpdateStatus("Rejected")
+
+Service -> LogService : CreateLog(notificationId, officerId, "Rejected", rejectionReason)
+activate LogService
+LogService -> Log : construct DecisionLog
+activate Log
+Log --> LogService : DecisionLog
+deactivate Log
+LogService --> Service : DecisionLog saved
+deactivate LogService
+
+Service -> IRepo : UpdateAsync(notification)
+activate IRepo
+IRepo -> Repo : persist updated notification
+activate Repo
+Repo --> IRepo : updated entity
+deactivate Repo
+IRepo --> Service : updated entity
+deactivate IRepo
+
+Service -> Dto : Map entity → NotificationDto
+activate Dto
+Dto --> Service : NotificationDto
+deactivate Dto
+
+Service --> IService : return NotificationDto
+deactivate Service
+IService --> Controller : NotificationDto
+deactivate IService
+
+Controller --> Officer : 200 OK (NotificationDto)
+deactivate Controller
+
+Officer -> Officer : Notification rejected
+end
+
+@enduml

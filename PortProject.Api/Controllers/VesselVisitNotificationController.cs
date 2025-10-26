@@ -90,7 +90,7 @@ public class VesselVisitNotificationController : ControllerBase
             return Conflict(new { message = ex.Message }); // 409 Conflict
         }
     }
-    [HttpPost("{id}/approve")]
+    [HttpPatch("{id}/approve")]
     public async Task<IActionResult> ApproveVvn(string id, [FromBody] ApproveVvnDto dto)
     {
         try
@@ -108,13 +108,13 @@ public class VesselVisitNotificationController : ControllerBase
         }
     }
 
-    [HttpPost("{id}/reject")]
+    [HttpPatch("{id}/reject")]
     public async Task<IActionResult> RejectVvn(string id, [FromBody] RejectVvnDto dto)
     {
         try
         {
             var result = await _service.RejectAsync(id, dto);
-            return Ok(result);
+            return NoContent(); // ✅ devolve 204 como esperado no teste
         }
         catch (KeyNotFoundException ex)
         {
@@ -127,23 +127,23 @@ public class VesselVisitNotificationController : ControllerBase
     }
 
 
-    [HttpPatch("{id}/reopen")]
+    [HttpPatch("{id}/resubmit")]
     public async Task<IActionResult> ReopenVvn(string id)
     {
         try
         {
-            var result = await _service.ReopenAsync(id);
-            if (result == null)
-                return NotFound(new { message = $"Notification {id} not found or not rejected." });
-
-            return Ok(result);
+            await _service.ReopenAsync(id);
+            return NoContent();
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(new { message = $"Cannot reopen notification: {ex.Message}" });
+            return BadRequest(new { message = $"Cannot resubmit notification: {ex.Message}" });
         }
     }
-
     
     [HttpGet("search")]
     public async Task<ActionResult<List<VesselVisitNotificationDto>>> Search(
@@ -179,13 +179,13 @@ public class VesselVisitNotificationController : ControllerBase
             }
             return Ok(result);
         }
-        catch (FormatException) // Handle if the provided 'id' string is not a valid GUID
+        catch (FormatException)
         {
             return BadRequest("Invalid Notification ID format. Please provide a valid GUID.");
         }
-        catch (Exception ex) // Catch unexpected errors
+        catch (Exception ex)
         {
-            Console.WriteLine($"Unexpected Error in GetById: {ex}"); // Replace with proper logging
+            Console.WriteLine($"Unexpected Error in GetById: {ex}");
             return StatusCode(500, "An unexpected error occurred while retrieving the notification.");
         }
     }

@@ -68,11 +68,5 @@ As a Port Authority Officer, I want to review pending Vessel Visit Notifications
 ### 1.6. System Sequence Diagram (SSD)
 The following SSD illustrates the system interactions for reviewing, approving, and rejecting Vessel Visit Notifications.
 
-![System Sequence Diagram - Alternative One](svg/US-2.2.7_system-sequence-diagram.svg)
+![System Sequence Diagram - Alternative One](svg/US2.2.7-system-sequence-diagram.svg)
 
-### 1.7 Other Relevant Remarks
-* Every decision (approval or rejection) must be recorded in a Decision Log with timestamp, officer ID, and outcome.
-* Once approved, the assigned dock remains temporary until the vessel visit is scheduled and confirmed.
-* Rejected notifications can be edited and resubmitted by the shipping agent representative for further review.
-* The system must ensure that only authorized officers can perform approval/rejection operations.
-* Audit logs should be retrievable for inspection and compliance checks.

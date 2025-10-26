@@ -4,7 +4,7 @@
 
 ### 2.1. Relevant Domain Model Excerpt 
 
-![Domain Model](svg/US-2.2.3-domain-model.svg)
+![Domain Model](svg/US2.2.3-analysis.svg)
 
 ### 2.2. Other Remarks
 

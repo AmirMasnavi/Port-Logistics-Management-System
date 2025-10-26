@@ -1,55 +1,94 @@
-# US 2.2.11 - Requirements Engineering
+# US 2.2.11: Manage Staff Members - Requirements Engineering
 
-## 1.1. User Story Description
+## 1. Requirements Engineering
 
-[cite_start]As a Logistics Operator, I want to register and manage operating staff members (create, update, deactivate), so that the system can accurately reflect staff availability and ensure that only qualified personnel are assigned to resources during scheduling. [cite: 86]
+### 1.1. User Story Description
 
-## 1.2. Customer Specifications and Clarifications
+As a Logistics Operator, I want to register and manage operating staff members (create, update, deactivate), so that the system can accurately reflect staff availability and ensure that only qualified personnel are assigned to resources during scheduling.
 
-**From the specifications document:**
-> [cite_start]*Operating staff management information is necessary to support realistic scheduling and allocation.* [cite: 242]
-> [cite_start]*Each staff member is registered with the qualifications they hold.* [cite: 246]
-> [cite_start]*Staff may be marked as available, unavailable (on leave, training), or temporarily reassigned.* [cite: 248]
-> [cite_start]*Deactivation/reactivation must not delete staff data but preserve it for audit and historical planning purposes.* [cite: 90]
+### 1.2. Customer Specifications and Clarifications
 
-**From the client clarifications:**
-> *(No specific client clarifications were provided for this user story. Assume the specifications document is the primary source of truth.)*
+* **Purpose:** Efficient port operations depend on the availability and proper assignment of qualified staff.
+* **Required Data:** The system must capture identification (mecanographic number), contact details (short name, email, phone), weekly availability (operational window), held qualifications, and current status (e.g., available, unavailable).
+* **Deactivation:** Deactivating a staff member should mark them as unavailable but preserve their data for historical and auditing purposes.
+* **Scheduling Constraint:** The system should support future scheduling algorithms by ensuring resources are matched with qualified staff whose availability overlaps with the resource's operational window.
 
-## 1.3. Acceptance Criteria
+### 1.3. Acceptance Criteria
 
-* [cite_start]Each staff member must have a unique mecanographic number (ID), short name, contact details (email, phone), qualifications, operational window, and current status (e.g., available, unavailable). [cite: 89]
-* [cite_start]Deactivation/reactivation must not delete staff data but preserve it for audit and historical planning purposes. [cite: 90]
-* [cite_start]Staff members must be searchable and filterable by id, name, status, and qualifications. [cite: 91]
+* **AC1:** Each staff member must have a unique mecanographic number (ID), short name, contact details (email, phone), qualifications, operational window, and current status (e.g., available, unavailable).
+* **AC2:** The system must allow the Logistics Operator to create new staff member records.
+* **AC3:** The system must allow the Logistics Operator to update existing staff member records (e.g., contact details, operational window, status, qualifications).
+* **AC4:** Deactivation/reactivation must not delete staff data but preserve it for audit and historical planning purposes (Implemented via status change).
+* **AC5:** Staff members must be searchable and filterable by id, name, status, and qualifications.
 
-## 1.4. Found out Dependencies
+### 1.4. Found out Dependencies
 
-* The `Qualification` entity must exist before it can be assigned to a staff member.
-* The user performing this action must be authenticated and have the "Logistics Operator" role.
+* **US 2.2.13 (Manage Qualifications):** Qualifications must be defined in the system before they can be assigned to staff members. The system enforces this dependency.
+* **Scheduling Algorithms (Future):** The data captured (operational window, qualifications, status) is essential input for future resource allocation and task sequencing algorithms mentioned in the system description.
 
-## 1.5. Input and Output Data
+### 1.5. Input and Output Data
 
-**Input Data (Create):**
-* Typed data:
-    * Mecanographic Number (string)
-    * Short Name (string)
-    * Email (string)
-    * Phone (string)
-    * Operational Window (start time, end time, working days)
-    * List of Qualification IDs
+**Input Data (Create Staff Member):**
+
+* Corresponds to `CreateStaffMemberDto`.
+* `MecanographicNumber` (string)
+* `ShortName` (string)
+* `Email` (string)
+* `Phone` (string)
+* `StartTime` (TimeOnly)
+* `EndTime` (TimeOnly)
+* `WorkingDays` (DayOfWeek[]?, optional, defaults to Mon-Fri)
+
+**Output Data (Create Staff Member):**
+
+* **Success:** A `StaffMemberDto` with the new staff member's details (including `CurrentStatus = "Available"`) and an HTTP 201 Created status.
+* **Failure:** An HTTP 400 Bad Request if validation fails (e.g., invalid mecanographic number format, start time >= end time).
 
 **Input Data (Update Status / Deactivate):**
-* Typed data:
-    * Staff Member ID (Mecanographic Number)
-    * New Status (e.g., "Unavailable")
 
-**Output Data:**
-* The full data of the created or updated staff member.
-* A confirmation message upon success.
-* An error message upon failure (e.g., duplicate ID, invalid data).
+* Corresponds to `UpdateStaffStatusDto`.
+* `staffMemberId` (string, from URL path)
+* `NewStatus` (StaffStatus enum, e.g., "Unavailable")
 
-## 1.6. System Sequence Diagram (SSD)
+**Output Data (Update Status / Deactivate):**
 
-The following diagram illustrates the fundamental interactions between the actor (Logistics Operator) and the System for managing staff members.
+* **Success:** A `StaffMemberDto` with the updated status and an HTTP 200 OK status.
+* **Failure:** An HTTP 404 Not Found if the ID doesn't exist.
+
+**Input Data (Add Qualification):**
+
+* Corresponds to `AddQualificationDto`.
+* `staffMemberId` (string, from URL path)
+* `QualificationCode` (string)
+
+**Output Data (Add Qualification):**
+
+* **Success:** A `StaffMemberDto` including the added qualification code and an HTTP 200 OK status.
+* **Failure:** An HTTP 404 Not Found if the staff ID doesn't exist, or HTTP 400 Bad Request if the qualification code is invalid or doesn't exist.
+
+**Input Data (Remove Qualification):**
+
+* `staffMemberId` (string, from URL path)
+* `qualificationCode` (string, from URL path)
+
+**Output Data (Remove Qualification):**
+
+* **Success:** A `StaffMemberDto` without the removed qualification code and an HTTP 200 OK status.
+* **Failure:** An HTTP 404 Not Found if the staff ID doesn't exist, or HTTP 400 Bad Request if the qualification code is invalid or not assigned to the staff member.
+
+**Input Data (Search/Filter):**
+
+* `name` (string, optional)
+* `status` (StaffStatus enum, optional)
+* `qualificationCode` (string, optional)
+
+**Output Data (Search/Filter):**
+
+* **Success:** A list of `StaffMemberDto` objects matching the criteria and an HTTP 200 OK status.
+
+### 1.6. System Sequence Diagram (SSD)
+
+The following SSD illustrates the key interactions for managing staff members: creating, updating status (deactivating), managing qualifications, and searching.
 
 ![System Sequence Diagram](svg/us2.2.11-ssd.svg)
 *(Diagram generated from [us2.2.11-ssd.puml](puml/us2.2.11-ssd.puml))*
