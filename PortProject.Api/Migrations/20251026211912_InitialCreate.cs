@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace PortProject.Api.Migrations
 {
     /// <inheritdoc />
-    public partial class AddOrganizationFkToRepresentative : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -84,6 +84,23 @@ namespace PortProject.Api.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "ShippingAgentRepresentatives",
+                columns: table => new
+                {
+                    RepresentativeId = table.Column<Guid>(type: "TEXT", nullable: false),
+                    OrganizationId = table.Column<Guid>(type: "TEXT", nullable: false),
+                    CitizenId = table.Column<string>(type: "TEXT", nullable: false),
+                    RepresentativeName = table.Column<string>(type: "TEXT", nullable: false),
+                    RepresentativeEmail = table.Column<string>(type: "TEXT", nullable: false),
+                    RepresentativePhone = table.Column<string>(type: "TEXT", nullable: false),
+                    RepresentativeNationality = table.Column<string>(type: "TEXT", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ShippingAgentRepresentatives", x => x.RepresentativeId);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "StaffMembers",
                 columns: table => new
                 {
@@ -111,7 +128,8 @@ namespace PortProject.Api.Migrations
                     X = table.Column<float>(type: "REAL", nullable: false),
                     Y = table.Column<float>(type: "REAL", nullable: false),
                     Type = table.Column<string>(type: "TEXT", nullable: false),
-                    Capacity = table.Column<int>(type: "INTEGER", nullable: false)
+                    Capacity = table.Column<int>(type: "INTEGER", nullable: false),
+                    CurrentOccupancy = table.Column<int>(type: "INTEGER", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -178,29 +196,6 @@ namespace PortProject.Api.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "ShippingAgentRepresentatives",
-                columns: table => new
-                {
-                    RepresentativeId = table.Column<Guid>(type: "TEXT", nullable: false),
-                    OrganizationId = table.Column<Guid>(type: "TEXT", nullable: false),
-                    CitizenId = table.Column<string>(type: "TEXT", nullable: false),
-                    RepresentativeName = table.Column<string>(type: "TEXT", nullable: false),
-                    RepresentativeEmail = table.Column<string>(type: "TEXT", nullable: false),
-                    RepresentativePhone = table.Column<string>(type: "TEXT", nullable: false),
-                    RepresentativeNationality = table.Column<string>(type: "TEXT", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_ShippingAgentRepresentatives", x => x.RepresentativeId);
-                    table.ForeignKey(
-                        name: "FK_ShippingAgentRepresentatives_ShippingAgentOrganizations_OrganizationId",
-                        column: x => x.OrganizationId,
-                        principalTable: "ShippingAgentOrganizations",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "StaffMemberQualification",
                 columns: table => new
                 {
@@ -254,7 +249,7 @@ namespace PortProject.Api.Migrations
                     Status = table.Column<string>(type: "TEXT", nullable: false),
                     ETA = table.Column<DateTime>(type: "TEXT", nullable: false),
                     ETD = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    VesselImo = table.Column<string>(type: "TEXT", nullable: false),
+                    VesselId = table.Column<string>(type: "TEXT", nullable: false),
                     SubmittedBy = table.Column<Guid>(type: "TEXT", nullable: false),
                     AssignedDockId = table.Column<string>(type: "TEXT", nullable: true),
                     Cargo_Id = table.Column<int>(type: "INTEGER", nullable: false),
@@ -277,8 +272,8 @@ namespace PortProject.Api.Migrations
                         principalColumn: "RepresentativeId",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_VesselVisitNotifications_Vessels_VesselImo",
-                        column: x => x.VesselImo,
+                        name: "FK_VesselVisitNotifications_Vessels_VesselId",
+                        column: x => x.VesselId,
                         principalTable: "Vessels",
                         principalColumn: "IMO",
                         onDelete: ReferentialAction.Cascade);
@@ -370,11 +365,6 @@ namespace PortProject.Api.Migrations
                 column: "ResourceCode");
 
             migrationBuilder.CreateIndex(
-                name: "IX_ShippingAgentRepresentatives_OrganizationId",
-                table: "ShippingAgentRepresentatives",
-                column: "OrganizationId");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_StaffMemberQualification_StaffMemberMecanographicNumber",
                 table: "StaffMemberQualification",
                 column: "StaffMemberMecanographicNumber");
@@ -401,9 +391,9 @@ namespace PortProject.Api.Migrations
                 column: "SubmittedBy");
 
             migrationBuilder.CreateIndex(
-                name: "IX_VesselVisitNotifications_VesselImo",
+                name: "IX_VesselVisitNotifications_VesselId",
                 table: "VesselVisitNotifications",
-                column: "VesselImo");
+                column: "VesselId");
         }
 
         /// <inheritdoc />
@@ -423,6 +413,9 @@ namespace PortProject.Api.Migrations
 
             migrationBuilder.DropTable(
                 name: "ResourceQualification");
+
+            migrationBuilder.DropTable(
+                name: "ShippingAgentOrganizations");
 
             migrationBuilder.DropTable(
                 name: "StaffMemberQualification");
@@ -450,9 +443,6 @@ namespace PortProject.Api.Migrations
 
             migrationBuilder.DropTable(
                 name: "Vessels");
-
-            migrationBuilder.DropTable(
-                name: "ShippingAgentOrganizations");
 
             migrationBuilder.DropTable(
                 name: "VesselTypes");

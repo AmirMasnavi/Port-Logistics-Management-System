@@ -229,15 +229,23 @@ namespace PortProject.Api.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("AssignedDockId");
+                    b.Property<string>("AssignedDockId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("AssignedDockId");
 
                     b.Property<string>("Status")
-                        .IsRequired();
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("Status");
 
-                    b.Property<Guid>("SubmittedBy");
+                    b.Property<Guid>("SubmittedBy")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("SubmittedBy");
 
                     b.Property<string>("VesselId")
-                        .IsRequired();
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("VesselId");
 
                     b.HasKey("Id");
 
@@ -598,6 +606,23 @@ namespace PortProject.Api.Migrations
 
             modelBuilder.Entity("PortProject.Api.Domain.StorageAggregate.StorageArea", b =>
                 {
+                    b.OwnsOne("PortProject.Api.Domain.StorageAggregate.StorageAreaCurrentOccupancy", "CurrentOccupancy", b1 =>
+                        {
+                            b1.Property<int>("StorageAreaId")
+                                .HasColumnType("INTEGER");
+
+                            b1.Property<int>("Value")
+                                .HasColumnType("INTEGER")
+                                .HasColumnName("CurrentOccupancy");
+
+                            b1.HasKey("StorageAreaId");
+
+                            b1.ToTable("StorageAreas");
+
+                            b1.WithOwner()
+                                .HasForeignKey("StorageAreaId");
+                        });
+
                     b.OwnsOne("PortProject.Api.Domain.StorageAggregate.StorageAreaLocation", "Location", b1 =>
                         {
                             b1.Property<int>("StorageAreaId")
@@ -637,6 +662,9 @@ namespace PortProject.Api.Migrations
                         });
 
                     b.Navigation("Capacity")
+                        .IsRequired();
+
+                    b.Navigation("CurrentOccupancy")
                         .IsRequired();
 
                     b.Navigation("Location")

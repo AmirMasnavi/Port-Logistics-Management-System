@@ -11,8 +11,8 @@ using PortProject.Api.Models;
 namespace PortProject.Api.Migrations
 {
     [DbContext(typeof(PortProjectContext))]
-    [Migration("20251024220218_AddOrganizationFkToRepresentative")]
-    partial class AddOrganizationFkToRepresentative
+    [Migration("20251026211912_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -138,8 +138,6 @@ namespace PortProject.Api.Migrations
 
                     b.HasKey("RepresentativeId");
 
-                    b.HasIndex("OrganizationId");
-
                     b.ToTable("ShippingAgentRepresentatives");
                 });
 
@@ -250,7 +248,7 @@ namespace PortProject.Api.Migrations
                     b.Property<string>("VesselId")
                         .IsRequired()
                         .HasColumnType("TEXT")
-                        .HasColumnName("VesselImo");
+                        .HasColumnName("VesselId");
 
                     b.HasKey("Id");
 
@@ -554,15 +552,6 @@ namespace PortProject.Api.Migrations
                     b.Navigation("Address");
                 });
 
-            modelBuilder.Entity("PortProject.Api.Domain.ShippingAgentRepresentativeAggregate.ShippingAgentRepresentative", b =>
-                {
-                    b.HasOne("PortProject.Api.Domain.ShippingAgentOrganizationAggregate.ShippingAgentOrganization", null)
-                        .WithMany()
-                        .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("PortProject.Api.Domain.StaffMemberAggregate.StaffMember", b =>
                 {
                     b.OwnsOne("PortProject.Api.Domain.StaffMemberAggregate.ContactDetails", "ContactDetails", b1 =>
@@ -620,6 +609,23 @@ namespace PortProject.Api.Migrations
 
             modelBuilder.Entity("PortProject.Api.Domain.StorageAggregate.StorageArea", b =>
                 {
+                    b.OwnsOne("PortProject.Api.Domain.StorageAggregate.StorageAreaCurrentOccupancy", "CurrentOccupancy", b1 =>
+                        {
+                            b1.Property<int>("StorageAreaId")
+                                .HasColumnType("INTEGER");
+
+                            b1.Property<int>("Value")
+                                .HasColumnType("INTEGER")
+                                .HasColumnName("CurrentOccupancy");
+
+                            b1.HasKey("StorageAreaId");
+
+                            b1.ToTable("StorageAreas");
+
+                            b1.WithOwner()
+                                .HasForeignKey("StorageAreaId");
+                        });
+
                     b.OwnsOne("PortProject.Api.Domain.StorageAggregate.StorageAreaLocation", "Location", b1 =>
                         {
                             b1.Property<int>("StorageAreaId")
@@ -659,6 +665,9 @@ namespace PortProject.Api.Migrations
                         });
 
                     b.Navigation("Capacity")
+                        .IsRequired();
+
+                    b.Navigation("CurrentOccupancy")
                         .IsRequired();
 
                     b.Navigation("Location")
