@@ -2,7 +2,7 @@
 !theme plain
 autonumber
 
-box "Backend System (Port System)" #LightBlue
+box "Backend System (Sistema AIT)" #LightBlue
     participant "HTTP Request" as HttpRequest
     participant "Route" as Route
     participant "Controller" as Controller
@@ -19,31 +19,31 @@ box "Backend System (Port System)" #LightBlue
     end box
 end box
 
-HttpRequest -> Route : 1.1: POST /api/organizations\nOR PUT /api/organizations/{id}
+HttpRequest -> Route : 1.1: POST /api/organizations (register organization)
 activate HttpRequest
-Route -> Controller : 1.2: Invoke Create / Update
+Route -> Controller : 1.2: Invoke Register Organization
 activate Route
-Controller -> Dto : 1.3: Map request body
+Controller -> Dto : 1.3: Map request body → DTO
 activate Controller
-Dto --> Controller : 1.4: Mapped data
+Dto --> Controller : 1.4: Organization data mapped
 deactivate Dto
-Controller -> ServiceInterface : 1.5: Call service method
+Controller -> ServiceInterface : 1.5: Call register method
 activate ServiceInterface
 ServiceInterface -> ServiceImpl : 1.6: Delegate to implementation
 activate ServiceImpl
-ServiceImpl -> Aggregate : 1.7: Create or update aggregate
+ServiceImpl -> Aggregate : 1.7: Build organization aggregate
 activate Aggregate
-Aggregate -> ValueObject : 1.7.1: Create or update value objects
+Aggregate -> ValueObject : 1.7.1: Create organization value objects
 activate ValueObject
-ValueObject --> Aggregate : 1.7.2: Value objects created/updated
+ValueObject --> Aggregate : 1.7.2: Value objects ready
 deactivate ValueObject
-Aggregate -> Entity : 1.7.3: Create or update entity
+Aggregate -> Entity : 1.7.3: Create organization entity
 activate Entity
-Entity --> Aggregate : 1.7.4: Entity created/updated
+Entity --> Aggregate : 1.7.4: Entity ready
 deactivate Entity
-Aggregate --> ServiceImpl : 1.7.5: Aggregate created/updated
+Aggregate --> ServiceImpl : 1.7.5: Aggregate ready
 deactivate Aggregate
-ServiceImpl -> RepoInterface : 1.8: Call repository method
+ServiceImpl -> RepoInterface : 1.8: Persist organization
 activate RepoInterface
 RepoInterface -> RepoImpl : 1.9: Delegate to implementation
 activate RepoImpl
@@ -53,13 +53,13 @@ DataModel --> RepoImpl : 1.9.2: Data model mapped
 deactivate DataModel
 RepoImpl --> RepoInterface : 1.10: Data persisted
 deactivate RepoImpl
-RepoInterface --> ServiceImpl : 1.11: Data persisted
+RepoInterface --> ServiceImpl : 1.11: Persistence confirmed
 deactivate RepoInterface
-ServiceImpl --> ServiceInterface : 1.12: Response data
+ServiceImpl --> ServiceInterface : 1.12: Return result
 deactivate ServiceImpl
-ServiceInterface --> Controller : 1.13: Response data
+ServiceInterface --> Controller : 1.13: Return response
 deactivate ServiceInterface
-Controller --> HttpRequest : 1.14: HTTP 201 Created / 200 OK
+Controller --> HttpRequest : 1.14: HTTP 201 Created
 deactivate Controller
 deactivate Route
 HttpRequest --> : 1.15: HTTP Response
