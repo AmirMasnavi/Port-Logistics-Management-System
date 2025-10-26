@@ -24,6 +24,8 @@ namespace PortProject.Api.Domain.StorageAggregate
             // check if occupancy exceeds capacity
             if (occupancy.Value > capacity.Value)
                 throw new ArgumentOutOfRangeException(nameof(occupancy), "Current occupancy cannot exceed capacity");
+            if (capacity == null)
+                throw new ArgumentNullException(nameof(capacity));
             Location = location ?? throw new ArgumentNullException(nameof(location));
             Type = type;
             Capacity = capacity ?? throw new ArgumentNullException(nameof(capacity));
