@@ -5,17 +5,17 @@ autonumber
 box "Backend System (Sistema AIT)" #LightBlue
     participant "HTTP Request" as HttpRequest
     participant "Route" as Route
-    participant "VesselVisitNotificationController" as Controller
-    participant "VesselVisitNotificationFilterDto" as Dto
-    participant "IVesselVisitNotificationService" as ServiceInterface
-    participant "VesselVisitNotificationService" as ServiceImpl
+    participant "Controller" as Controller
+    participant "Filter DTO" as Dto
+    participant "Service Interface" as ServiceInterface
+    participant "Service Implementation" as ServiceImpl
     box "Persistence" #LightGreen
         participant "Data Model\n(EF Core)" as DataModel
-        participant "Aggregate\n(VesselVisitNotification)" as Aggregate
-        participant "Value Object\n(Status, Decision, Dock, RejectionReason)" as ValueObject
-        participant "Entity\n(VesselVisitNotification)" as Entity
-        participant "IVesselVisitNotificationRepository" as RepoInterface
-        participant "VesselVisitNotificationRepository" as RepoImpl
+        participant "Aggregate" as Aggregate
+        participant "Value Object" as ValueObject
+        participant "Entity" as Entity
+        participant "Persistence Interface" as PersistenceInterface
+        participant "Persistence Implementation" as PersistenceImpl
     end box
 end box
 
@@ -31,15 +31,15 @@ Controller -> ServiceInterface : 1.5: Call service method with filters
 activate ServiceInterface
 ServiceInterface -> ServiceImpl : 1.6: Delegate to implementation
 activate ServiceImpl
-ServiceImpl -> RepoInterface : 1.7: Query notifications by filters and organization
-activate RepoInterface
-RepoInterface -> RepoImpl : 1.8: Delegate to implementation
-activate RepoImpl
-RepoImpl -> DataModel : 1.8.1: Query and map data model (EF Core)
+ServiceImpl -> PersistenceInterface : 1.7: Query notifications by filters and organization
+activate PersistenceInterface
+PersistenceInterface -> PersistenceImpl : 1.8: Delegate to implementation
+activate PersistenceImpl
+PersistenceImpl -> DataModel : 1.8.1: Query and map data model (EF Core)
 activate DataModel
-DataModel --> RepoImpl : 1.8.2: Data model mapped
+DataModel --> PersistenceImpl : 1.8.2: Data model mapped
 deactivate DataModel
-RepoImpl -> Aggregate : 1.8.3: Rehydrate aggregate from data
+PersistenceImpl -> Aggregate : 1.8.3: Rehydrate aggregate from data
 activate Aggregate
 Aggregate -> ValueObject : 1.8.4: Extract value objects (status, decision, dock, reason)
 activate ValueObject
@@ -49,12 +49,12 @@ Aggregate -> Entity : 1.8.6: Build entity from aggregate
 activate Entity
 Entity --> Aggregate : 1.8.7: Entity ready
 deactivate Entity
-Aggregate --> RepoImpl : 1.8.8: Aggregates ready
+Aggregate --> PersistenceImpl : 1.8.8: Aggregates ready
 deactivate Aggregate
-RepoImpl --> RepoInterface : 1.9: Return list of entities
-deactivate RepoImpl
-RepoInterface --> ServiceImpl : 1.10: Entities returned
-deactivate RepoInterface
+PersistenceImpl --> PersistenceInterface : 1.9: Return list of entities
+deactivate PersistenceImpl
+PersistenceInterface --> ServiceImpl : 1.10: Entities returned
+deactivate PersistenceInterface
 ServiceImpl --> ServiceInterface : 1.11: Response DTOs
 deactivate ServiceImpl
 ServiceInterface --> Controller : 1.12: Response DTOs

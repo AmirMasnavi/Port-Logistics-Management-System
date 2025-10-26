@@ -5,16 +5,16 @@ autonumber
 box "Backend System (Sistema AIT)" #LightBlue
     participant "HTTP Request" as HttpRequest
     participant "Route" as Route
-    participant "VesselVisitNotificationController" as Controller
-    participant "ApproveVvnDto / RejectVvnDto" as Dto
-    participant "VesselVisitNotificationService" as Service
+    participant "Controller" as Controller
+    participant "DTO" as Dto
+    participant "Service" as Service
     box "Persistence" #LightGreen
         participant "Data Model" as DataModel
-        participant "Aggregate\n(VesselVisitNotification)" as Aggregate
-        participant "Value Object\n(Decision, Status, RejectionReason)" as ValueObject
-        participant "Entity\n(VesselVisitNotification)" as Entity
+        participant "Aggregate" as Aggregate
+        participant "Value Object" as ValueObject
+        participant "Entity" as Entity
     end box
-    participant "VesselVisitNotificationRepository" as Repository
+    participant "Persistence Layer" as Persistence
 end box
 
 HttpRequest -> Route : 1.1: POST /api/vessel-visits/{id}/approve OR /reject
@@ -27,7 +27,7 @@ Dto --> Controller : 1.4: Mapped data
 deactivate Dto
 Controller -> Service : 1.5: Process decision
 activate Service
-Service -> Aggregate : 1.6: Apply decision to aggregate
+Service -> Aggregate : 1.6: Load and update aggregate
 activate Aggregate
 Aggregate -> ValueObject : 1.6.1: Create or update value objects\n(Decision, Status, RejectionReason)
 activate ValueObject
@@ -39,15 +39,15 @@ Entity --> Aggregate : 1.6.4: Entity updated
 deactivate Entity
 Aggregate --> Service : 1.6.5: Aggregate updated
 deactivate Aggregate
-Service -> Repository : 1.7: Persist aggregate
-activate Repository
-Repository -> DataModel : 1.7.1: Map aggregate to data model
+Service -> Persistence : 1.7: Persist aggregate
+activate Persistence
+Persistence -> DataModel : 1.7.1: Map aggregate to data model
 activate DataModel
-DataModel --> Repository : 1.7.2: Data model mapped
+DataModel --> Persistence : 1.7.2: Data model mapped
 deactivate DataModel
-Repository --> Service : 1.8: Data persisted
-deactivate Repository
-Service --> Controller : 1.9: Response data (VesselVisitNotificationDto)
+Persistence --> Service : 1.8: Data persisted
+deactivate Persistence
+Service --> Controller : 1.9: Response data (DTO)
 deactivate Service
 Controller --> HttpRequest : 1.10: HTTP 200 OK
 deactivate Controller

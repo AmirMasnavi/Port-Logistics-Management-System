@@ -5,54 +5,54 @@ autonumber
 box "Backend System (Sistema AIT)" #LightBlue
     participant "HTTP Request" as HttpRequest
     participant "Route" as Route
-    participant "Controller" as Controller
-    participant "Filter DTO" as Dto
-    participant "Service" as Service
+    participant "Handler" as Handler
+    participant "Filter Model" as FilterModel
+    participant "Application Service" as AppService
     box "Persistence" #LightGreen
         participant "Data Model" as DataModel
         participant "Aggregate" as Aggregate
-        participant "Value Object\n(Status, Decision, Dock, RejectionReason)" as ValueObject
-        participant "Entity\n(VesselVisitNotification)" as Entity
+        participant "Value Object" as ValueObject
+        participant "Entity" as Entity
+        participant "Persistence Layer" as Persistence
     end box
-    participant "Repository" as Repository
 end box
 
 HttpRequest -> Route : 1.1: GET /api/vessel-visits?status=&vesselName=&dateRange=
 activate HttpRequest
-Route -> Controller : 1.2: Invoke GetNotifications
+Route -> Handler : 1.2: Invoke handler
 activate Route
-Controller -> Dto : 1.3: Map query parameters to Filter DTO
-activate Controller
-Dto --> Controller : 1.4: Filter DTO ready
-deactivate Dto
-Controller -> Service : 1.5: Process filter and fetch data
-activate Service
-Service -> Repository : 1.6: Query notifications by filters and organization
-activate Repository
-Repository -> DataModel : 1.6.1: Map results to domain model
+Handler -> FilterModel : 1.3: Map query parameters to filter model
+activate Handler
+FilterModel --> Handler : 1.4: Filter model ready
+deactivate FilterModel
+Handler -> AppService : 1.5: Call application service with filters
+activate AppService
+AppService -> Persistence : 1.6: Query notifications by filters and organization
+activate Persistence
+Persistence -> DataModel : 1.6.1: Query and map results to domain model
 activate DataModel
-DataModel --> Repository : 1.6.2: Domain model mapped
+DataModel --> Persistence : 1.6.2: Domain model mapped
 deactivate DataModel
-Repository -> Aggregate : 1.6.3: Rehydrate aggregate from data
+Persistence --> AppService : 1.7: Entities returned
+deactivate Persistence
+AppService -> Aggregate : 1.8: Rehydrate aggregate from data
 activate Aggregate
-Aggregate -> ValueObject : 1.6.4: Extract value objects (status, decision, dock, reason)
+Aggregate -> ValueObject : 1.8.1: Extract value objects (status, decision, dock, reason)
 activate ValueObject
-ValueObject --> Aggregate : 1.6.5: Value objects ready
+ValueObject --> Aggregate : 1.8.2: Value objects ready
 deactivate ValueObject
-Aggregate -> Entity : 1.6.6: Build entity from aggregate
+Aggregate -> Entity : 1.8.3: Build entity from aggregate
 activate Entity
-Entity --> Aggregate : 1.6.7: Entity ready
+Entity --> Aggregate : 1.8.4: Entity ready
 deactivate Entity
-Aggregate --> Repository : 1.6.8: Aggregates ready
+Aggregate --> AppService : 1.8.5: Aggregates ready
 deactivate Aggregate
-Repository --> Service : 1.7: Return list of entities
-deactivate Repository
-Service --> Controller : 1.8: Return list of DTOs
-deactivate Service
-Controller --> HttpRequest : 1.9: HTTP 200 OK (List of notifications)
-deactivate Controller
+AppService --> Handler : 1.9: Return list of DTOs
+deactivate AppService
+Handler --> HttpRequest : 1.10: HTTP 200 OK (List of notifications)
+deactivate Handler
 deactivate Route
-HttpRequest --> : 1.10: HTTP Response
+HttpRequest --> : 1.11: HTTP Response
 deactivate HttpRequest
 
 @enduml
