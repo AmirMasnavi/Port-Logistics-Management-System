@@ -292,7 +292,7 @@ public class VesselVisitNotificationControllerTests
         _mockService.Setup(s => s.SearchAsync(null, null, null, null, null))
             .ReturnsAsync(expectedList);
 
-        var result = await _controller.Search(null, null, null, null, null, null);
+        var result = await _controller.Search(null, null, null, null, null);
 
         Assert.IsInstanceOfType(result.Result, typeof(OkObjectResult));
         var okResult = (OkObjectResult)result.Result!;

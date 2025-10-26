@@ -150,7 +150,6 @@ public class VesselVisitNotificationController : ControllerBase
         [FromQuery] string? vesselImo,
         [FromQuery] string? status,
         [FromQuery] string? representativeId,
-        [FromQuery] string? organizationId,
         [FromQuery] DateTime? from,
         [FromQuery] DateTime? to)
     {

@@ -43,7 +43,7 @@ public class StorageAreaLocationTest
         // Act
         var result = location.ToString();
         // Assert
-        Assert.Equal("(12,5, 34,7)", result);
+        Assert.Equal("(12.5, 34.7)", result);
     }
     
     [Fact]

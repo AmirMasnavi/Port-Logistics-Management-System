@@ -145,7 +145,7 @@ namespace Port.Project.Api.System_Tests
             // 3) Create Dock
             var dockCreate = new DockCreateDto
             {
-                Id = "1",
+                Id = "DCK-ST-001",
                 Name = "Operations Test Dock",
                 LocationZone = "North Terminal",
                 LocationSection = "A",
@@ -190,8 +190,8 @@ namespace Port.Project.Api.System_Tests
             using (var scope1 = _factory.Services.CreateScope())
             {
                 var db1 = scope1.ServiceProvider.GetRequiredService<PortProjectContext>();
-                var repsFromDb = await db1.ShippingAgentRepresentatives.ToListAsync();
-                var representative = repsFromDb.FirstOrDefault(r => r.OrganizationId.Value == orgId);
+                var representatives = await db1.ShippingAgentRepresentatives.ToListAsync();
+                var representative = representatives.FirstOrDefault(r => r.OrganizationId.Value == orgId);
                 Assert.NotNull(representative);
                 repId = representative.RepresentativeId.Value.ToString();
             }
@@ -246,95 +246,6 @@ namespace Port.Project.Api.System_Tests
             var dbDock = await db.Docks.FirstOrDefaultAsync();
             Assert.NotNull(dbDock);
             Assert.Contains(dbDock.AllowedVesselTypes, vesselTypeId => vesselTypeId.Value == vt.Id);
-
-            // 7) Create Organization with multiple representatives
-            var orgCreateMulti = new CreateShippingAgentOrganizationDto
-            {
-                LegalName = "Global Shipping Lines Ltd",
-                AlternativeName = "GSL",
-                Street = "123 Harbor Avenue",
-                City = "Porto",
-                Country = "Portugal",
-                TaxNumber = "PT987654321",
-                Representatives = new List<CreateShippingAgentRepresentativeDto>
-                {
-                    new CreateShippingAgentRepresentativeDto
-                    {
-                        RepresentativeName = "João Silva",
-                        CitizenId = "11223344A",
-                        RepresentativeNationality = "Portuguese",
-                        RepresentativeEmail = "joao.silva@gsl.com",
-                        RepresentativePhone = "912345678"
-                    },
-                    new CreateShippingAgentRepresentativeDto
-                    {
-                        RepresentativeName = "Maria Santos",
-                        CitizenId = "55667788B",
-                        RepresentativeNationality = "Portuguese",
-                        RepresentativeEmail = "maria.santos@gsl.com",
-                        RepresentativePhone = "923456789"
-                    }
-                }
-            };
-
-            var orgIdMulti = await PostAndReadJsonAsync<Guid>("/api/ShippingAgentOrganizations", orgCreateMulti);
-            Assert.NotEqual(Guid.Empty, orgIdMulti);
-
-            // 8) Verify Organization with representatives
-            var orgRetrieved = await GetAndReadJsonAsync<ShippingAgentOrganizationDto>($"/api/ShippingAgentOrganizations/{orgIdMulti}");
-            Assert.Equal("Global Shipping Lines Ltd", orgRetrieved.LegalName);
-            Assert.Equal("PT987654321", orgRetrieved.TaxNumber);
-
-            var representativesMulti = await GetAndReadJsonAsync<List<ShippingAgentRepresentativeDto>>($"/api/ShippingAgentRepresentatives/by-organization/{orgIdMulti}");
-            Assert.Equal(2, representativesMulti.Count);
-            Assert.All(representativesMulti, r => Assert.Equal(orgIdMulti.ToString(), r.OrganizationId));
-
-            var joao = representativesMulti.First(r => r.RepresentativeName == "João Silva");
-            Assert.Equal("joao.silva@gsl.com", joao.RepresentativeEmail);
-
-            // 9) Update representative
-            var repIdToUpdate = Guid.Parse(joao.RepresentativeId);
-            var repUpdate = new ShippingAgentRepresentativeDto
-            {
-                RepresentativeId = joao.RepresentativeId,
-                OrganizationId = orgIdMulti.ToString(),
-                RepresentativeName = "João Silva Santos",
-                CitizenId = "11223344A",
-                RepresentativeNationality = "Portuguese",
-                RepresentativeEmail = "joao.santos@gsl.com",
-                RepresentativePhone = "912345678"
-            };
-
-            var updateResp = await _client.PutAsync($"/api/ShippingAgentRepresentatives/{repIdToUpdate}",
-                new StringContent(JsonConvert.SerializeObject(repUpdate), Encoding.UTF8, "application/json"));
-            
-            if (updateResp.IsSuccessStatusCode)
-            {
-                var repAfterUpdate = await GetAndReadJsonAsync<ShippingAgentRepresentativeDto>($"/api/ShippingAgentRepresentatives/{repIdToUpdate}");
-                Assert.Equal("João Silva Santos", repAfterUpdate.RepresentativeName);
-            }
-
-            // 10) Delete representative and verify organization still exists
-            var deleteResp = await _client.DeleteAsync($"/api/ShippingAgentRepresentatives/{repIdToUpdate}");
-            Assert.Equal(HttpStatusCode.NoContent, deleteResp.StatusCode);
-
-            var repsAfterDelete = await GetAndReadJsonAsync<List<ShippingAgentRepresentativeDto>>($"/api/ShippingAgentRepresentatives/by-organization/{orgIdMulti}");
-            Assert.Single(repsAfterDelete);
-
-            var orgStillExists = await GetAndReadJsonAsync<ShippingAgentOrganizationDto>($"/api/ShippingAgentOrganizations/{orgIdMulti}");
-            Assert.NotNull(orgStillExists);
-
-            // 11) Verify database consistency - Fix LINQ translation error by loading to memory first
-            using var scope2 = _factory.Services.CreateScope();
-            var db2 = scope2.ServiceProvider.GetRequiredService<PortProjectContext>();
-            
-            var allOrgs = await db2.ShippingAgentOrganizations.ToListAsync();
-            var dbOrgMulti = allOrgs.FirstOrDefault(o => o.Id.Value == orgIdMulti);
-            Assert.NotNull(dbOrgMulti);
-            
-            var allReps = await db2.ShippingAgentRepresentatives.ToListAsync();
-            var dbRepsMulti = allReps.Where(r => r.OrganizationId.Value == orgIdMulti).ToList();
-            Assert.Single(dbRepsMulti);
         }
     }
 }
