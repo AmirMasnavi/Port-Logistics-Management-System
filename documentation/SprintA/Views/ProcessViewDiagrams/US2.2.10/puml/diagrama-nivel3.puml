@@ -3,54 +3,56 @@
 autonumber
 
 box "Backend System (Sistema AIT)" #LightBlue
-    participant "HTTP Request" as HttpRequest
+    participant "HTTP Request (SAR)" as HttpRequest
     participant "Route" as Route
-    participant "Handler" as Handler
-    participant "Filter Model" as FilterModel
-    participant "Application Service" as AppService
+    participant "Controller" as Controller
+    participant "DTO" as Dto
+    participant "Service" as Service
     box "Persistence" #LightGreen
         participant "Data Model" as DataModel
         participant "Aggregate" as Aggregate
         participant "Value Object" as ValueObject
         participant "Entity" as Entity
-        participant "Persistence Layer" as Persistence
     end box
+    participant "Persistence Layer" as Persistence
 end box
 
-HttpRequest -> Route : 1.1: GET /api/vessel-visits?status=&vesselName=&dateRange=
+HttpRequest -> Route : 1.1: GET /api/vessel-visits?status=&vesselImo=&representativeId=&from=&to=&organizationId=&page=&pageSize=
 activate HttpRequest
-Route -> Handler : 1.2: Invoke handler
+Route -> Controller : 1.2: Invoke GetNotifications (apply filters)
 activate Route
-Handler -> FilterModel : 1.3: Map query parameters to filter model
-activate Handler
-FilterModel --> Handler : 1.4: Filter model ready
-deactivate FilterModel
-Handler -> AppService : 1.5: Call application service with filters
-activate AppService
-AppService -> Persistence : 1.6: Query notifications by filters and organization
+Controller -> Dto : 1.3: Map query params -> FilterDto (vesselImo, status, representativeId, from, to, organizationId, paging)
+activate Controller
+Dto --> Controller : 1.4: FilterDto ready
+deactivate Dto
+Controller -> Service : 1.5: GetNotificationsAsync(filterDto, callerOrgId)
+activate Service
+Service -> Persistence : 1.6: Query repository with filters and org-scope
 activate Persistence
-Persistence -> DataModel : 1.6.1: Query and map results to domain model
+Persistence -> DataModel : 1.6.1: Execute DB query (WHERE SubmittedBy IN orgMembers AND optional filters + paging)
 activate DataModel
-DataModel --> Persistence : 1.6.2: Domain model mapped
+DataModel --> Persistence : 1.6.2: Return raw entities (paged)
 deactivate DataModel
-Persistence --> AppService : 1.7: Entities returned
+Persistence --> Service : 1.7: Entities returned
 deactivate Persistence
-AppService -> Aggregate : 1.8: Rehydrate aggregate from data
+
+Service -> Aggregate : 1.8: Rehydrate or project entities (include DecisionLog and AssignedDock)
 activate Aggregate
-Aggregate -> ValueObject : 1.8.1: Extract value objects (status, decision, dock, reason)
+Aggregate -> ValueObject : 1.8.1: Extract DecisionLog entries (timestamp, officerId, outcome, reason)
 activate ValueObject
-ValueObject --> Aggregate : 1.8.2: Value objects ready
+ValueObject --> Aggregate : 1.8.2: DecisionLog ready
 deactivate ValueObject
-Aggregate -> Entity : 1.8.3: Build entity from aggregate
+Aggregate -> Entity : 1.8.3: Read AssignedDockId and status
 activate Entity
-Entity --> Aggregate : 1.8.4: Entity ready
+Entity --> Aggregate : 1.8.4: Entity data available
 deactivate Entity
-Aggregate --> AppService : 1.8.5: Aggregates ready
+Aggregate --> Service : 1.8.5: Map to VesselVisitNotificationDto (status, assignedDockId?, rejectionReason?)
 deactivate Aggregate
-AppService --> Handler : 1.9: Return list of DTOs
-deactivate AppService
-Handler --> HttpRequest : 1.10: HTTP 200 OK (List of notifications)
-deactivate Handler
+
+Service --> Controller : 1.9: Return paged List<VesselVisitNotificationDto>
+deactivate Service
+Controller --> HttpRequest : 1.10: HTTP 200 OK (filtered & paged list)
+deactivate Controller
 deactivate Route
 HttpRequest --> : 1.11: HTTP Response
 deactivate HttpRequest

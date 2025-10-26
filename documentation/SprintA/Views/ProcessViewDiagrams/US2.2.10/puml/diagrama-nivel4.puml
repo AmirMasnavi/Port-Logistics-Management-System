@@ -10,59 +10,60 @@ box "Backend System (Sistema AIT)" #LightBlue
     participant "Service Interface" as ServiceInterface
     participant "Service Implementation" as ServiceImpl
     box "Persistence" #LightGreen
-        participant "Data Model\n(EF Core)" as DataModel
-        participant "Aggregate" as Aggregate
+        participant "Data Model (PortProjectContext / EF Core)" as DataModel
+        participant "Aggregate / Entity" as Aggregate
         participant "Value Object" as ValueObject
-        participant "Entity" as Entity
-        participant "Persistence Interface" as PersistenceInterface
-        participant "Persistence Implementation" as PersistenceImpl
+        participant "DTO Mapper" as DtoMapper
     end box
 end box
 
-HttpRequest -> Route : 1.1: GET /api/vessel-visits?status=&vesselName=&dateRange=
+' Search / View notifications flow (US 2.2.10)
+HttpRequest -> Route : 1.1: GET /api/notifications/search?vesselImo=&status=&representativeId=&from=&to=&page=&pageSize=
 activate HttpRequest
-Route -> Controller : 1.2: Invoke GetNotifications
+Route -> Controller : 1.2: Invoke Search/GetNotificationsAsync
 activate Route
-Controller -> Dto : 1.3: Map query parameters to Filter DTO
+Controller -> Dto : 1.3: Map query params -> Filter DTO (vesselImo, status, representativeId, from, to, paging)
 activate Controller
 Dto --> Controller : 1.4: Filter DTO ready
 deactivate Dto
-Controller -> ServiceInterface : 1.5: Call service method with filters
+Controller -> ServiceInterface : 1.5: Call SearchAsync(filters)
 activate ServiceInterface
 ServiceInterface -> ServiceImpl : 1.6: Delegate to implementation
 activate ServiceImpl
-ServiceImpl -> PersistenceInterface : 1.7: Query notifications by filters and organization
-activate PersistenceInterface
-PersistenceInterface -> PersistenceImpl : 1.8: Delegate to implementation
-activate PersistenceImpl
-PersistenceImpl -> DataModel : 1.8.1: Query and map data model (EF Core)
+
+' ServiceImpl queries DbContext (DataModel) directly
+ServiceImpl -> DataModel : 1.7: Build IQueryable with Includes
 activate DataModel
-DataModel --> PersistenceImpl : 1.8.2: Data model mapped
+DataModel -> DataModel : 1.7.1: .Include(Cargo).ThenInclude(Containers)
+DataModel -> DataModel : 1.7.2: .Include(CrewMembers)
+DataModel -> DataModel : 1.7.3: .Include(DecisionLog)
+DataModel -> DataModel : 1.7.4: Apply filters (vesselImo, status, representativeId, from, to)
+DataModel -> DataModel : 1.7.5: Execute query (ToListAsync) -> returns entities
+DataModel --> ServiceImpl : 1.8: Entity list returned
 deactivate DataModel
-PersistenceImpl -> Aggregate : 1.8.3: Rehydrate aggregate from data
+
+' Map entities to DTOs
+ServiceImpl -> Aggregate : 1.9: For each entity, rehydrate / use aggregate mapping
 activate Aggregate
-Aggregate -> ValueObject : 1.8.4: Extract value objects (status, decision, dock, reason)
+Aggregate -> ValueObject : 1.9.1: Extract DecisionLog entries (timestamp, officerId, outcome, reason)
 activate ValueObject
-ValueObject --> Aggregate : 1.8.5: Value objects ready
+ValueObject --> Aggregate : 1.9.2: DecisionLog data available
 deactivate ValueObject
-Aggregate -> Entity : 1.8.6: Build entity from aggregate
-activate Entity
-Entity --> Aggregate : 1.8.7: Entity ready
-deactivate Entity
-Aggregate --> PersistenceImpl : 1.8.8: Aggregates ready
+Aggregate --> DtoMapper : 1.9.3: Map to VesselVisitNotificationDto (status, assignedDockId?, decisionLog[])
+activate DtoMapper
+DtoMapper --> ServiceImpl : 1.9.4: DTOs ready
+deactivate DtoMapper
 deactivate Aggregate
-PersistenceImpl --> PersistenceInterface : 1.9: Return list of entities
-deactivate PersistenceImpl
-PersistenceInterface --> ServiceImpl : 1.10: Entities returned
-deactivate PersistenceInterface
-ServiceImpl --> ServiceInterface : 1.11: Response DTOs
+
+ServiceImpl --> ServiceInterface : 1.10: Return List<VesselVisitNotificationDto>
 deactivate ServiceImpl
-ServiceInterface --> Controller : 1.12: Response DTOs
+ServiceInterface --> Controller : 1.11: Return DTO list
 deactivate ServiceInterface
-Controller --> HttpRequest : 1.13: HTTP 200 OK (List of notifications)
+Controller --> HttpRequest : 1.12: HTTP 200 OK (paged & filtered list)
 deactivate Controller
 deactivate Route
-HttpRequest --> : 1.14: HTTP Response
+HttpRequest --> : 1.13: HTTP Response
 deactivate HttpRequest
+
 
 @enduml
