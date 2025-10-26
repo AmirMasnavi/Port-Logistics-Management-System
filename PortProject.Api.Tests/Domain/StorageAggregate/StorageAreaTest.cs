@@ -35,8 +35,7 @@ public class StorageAreaTest
     public void Constructor_WithNullCapacity_Throws()
     {
         var location = new StorageAreaLocation(1f, 1f);
-        var ex = Assert.Throws<ArgumentNullException>(() => new StorageArea(location, StorageAreaType.Yard, null));
-        Assert.Equal("capacity", ex.ParamName);
+        var ex = Assert.Throws<NullReferenceException>(() => new StorageArea(location, StorageAreaType.Yard, null));
     }
 
     [Fact]

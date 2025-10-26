@@ -145,6 +145,7 @@ namespace Port.Project.Api.System_Tests
             // 3) Create Dock
             var dockCreate = new DockCreateDto
             {
+                Id = "1",
                 Name = "Operations Test Dock",
                 LocationZone = "North Terminal",
                 LocationSection = "A",
