@@ -1,0 +1,79 @@
+@startuml
+' US 2.2.10 - Domain Model
+title US 2.2.10 - View VVN Status - Domain Model
+
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+hide circle
+hide methods
+
+' Aggregate Root for this US
+package "VesselVisitNotification Aggregate" {
+    class VesselVisitNotification <<(A,orchid) Root>> {
+        +Id: NotificationId
+        +Status: NotificationStatus
+        +EstimatedArrival: ETA
+        +EstimatedDeparture: ETD
+        +SubmittedAt: DateTime
+        ---
+        ' References
+        +VesselId: ImoNumber
+        +SubmittedBy: RepresentativeId
+        +AssignedDockId: DockId
+        +RejectionReason: string
+    }
+
+    enum NotificationStatus {
+        InProgress
+        Submitted
+        Approved
+        Rejected
+    }
+
+    ' Value Objects
+    class NotificationId <<(V,DarkSeaGreen)>> {
+        Value: Guid
+    }
+    class ETA <<(V,DarkSeaGreen)>> {
+        Value: DateTime
+    }
+    class ETD <<(V,DarkSeaGreen)>> {
+        Value: DateTime
+    }
+    class DockId <<(V,DarkSeaGreen)>> {
+        Value: Guid
+    }
+}
+
+' External Aggregates referenced by ID
+package "Vessel Aggregate" {
+    class Vessel <<(A,orchid) Root>> {
+        +Id: ImoNumber
+        +Name: string
+    }
+    class ImoNumber <<(V,DarkSeaGreen)>>
+}
+
+package "ShippingAgentRepresentative Aggregate" {
+    class ShippingAgentRepresentative <<(A,orchid) Root>> {
+        +Id: RepresentativeId
+        +Name: string
+    }
+    class RepresentativeId <<(V,DarkSeaGreen)>>
+}
+
+package "Dock Aggregate" {
+    class Dock <<(A,orchid) Root>> {
+        +Id: DockId
+        +Name: string
+    }
+}
+
+' Relationships
+VesselVisitNotification ..> Vessel : "references by \nImoNumber"
+VesselVisitNotification ..> ShippingAgentRepresentative : "references by \nRepresentativeId"
+VesselVisitNotification ..> Dock : "references by \nDockId"
+
+@enduml

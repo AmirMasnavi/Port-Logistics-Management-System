@@ -1,0 +1,56 @@
+@startuml
+title US 2.2.10: View the Status of Vessel Visit Notifications (Design)
+
+actor "Shipping Agent Representative" as Agent
+participant ":VesselVisitNotificationController" as Controller
+participant "IVesselVisitNotificationService" as IService
+participant ":VesselVisitNotificationService" as Service
+participant ":VesselVisitNotification" as Entity
+participant "IVesselVisitNotificationRepository" as IRepo
+participant ":VesselVisitNotificationRepository" as Repo
+participant "VesselVisitNotificationDto" as Dto
+
+skinparam sequenceArrowThickness 2
+skinparam roundcorner 10
+skinparam maxmessagesize 200
+skinparam sequenceParticipant underline
+
+' --- Scenario: View and Filter Notifications ---
+group Scenario: View Submitted Notifications
+
+Agent -> Controller : GET /api/vessel-visits\n(GetNotifications(filterDto))
+activate Controller
+
+Controller -> IService : GetNotificationsAsync(filterDto)
+activate IService
+IService -> Service : delegation
+activate Service
+
+Service -> IRepo : QueryByFilters(filterDto, organizationId)
+activate IRepo
+IRepo -> Repo : query database with filters
+activate Repo
+Repo --> IRepo : list of VesselVisitNotification entities
+deactivate Repo
+IRepo --> Service : list of entities
+deactivate IRepo
+
+loop Map each entity to DTO
+    Service -> Dto : Map entity → VesselVisitNotificationDto
+    activate Dto
+    Dto --> Service : VesselVisitNotificationDto
+    deactivate Dto
+end
+
+Service --> IService : list of DTOs
+deactivate Service
+IService --> Controller : list of DTOs
+deactivate IService
+
+Controller --> Agent : 200 OK (List<VesselVisitNotificationDto>)
+deactivate Controller
+
+Agent -> Agent : Notifications displayed with status,\ndock (if approved), and rejection reason (if rejected)
+end
+
+@enduml
