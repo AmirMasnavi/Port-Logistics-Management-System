@@ -1,4 +1,4 @@
-﻿# Port Project - Testing Documentation
+# Port Project - Testing Documentation
 
 This document provides an overview of the testing strategy and organization for the Port Project API.
 
