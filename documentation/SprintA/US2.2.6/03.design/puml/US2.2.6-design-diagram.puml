@@ -1,0 +1,160 @@
+@startuml
+title US 2.2.6: Register & Manage Representatives
+
+actor "Port Authority Officer" as Admin
+participant ":RepresentativeController" as Controller
+participant "IRepresentativeService" as IService
+participant ":RepresentativeService" as Service
+participant ":ShippingAgentRepresentative" as Entity
+participant "IRepresentativeRepository" as IRepo
+participant ":RepresentativeRepository" as Repo
+participant "RepresentativeDto" as Dto
+
+skinparam sequenceArrowThickness 2
+skinparam roundcorner 10
+skinparam maxmessagesize 200
+skinparam sequenceParticipant underline
+
+
+' --- Scenario 1: Create Representative ---
+group Scenario: Create Representative
+
+Admin -> Controller : POST /orgs/{orgId}/representatives\n(CreateRepresentative(orgId, dto))
+activate Controller
+
+Controller -> IService : CreateRepresentativeAsync(orgId, dto)
+activate IService
+IService -> Service : delegation
+activate Service
+
+Service -> Entity ** : ShippingAgentRepresentative.Create(\n  name, citizenId, nationality, email, phone,\n  orgId, status=Active)
+activate Entity
+Entity --> Service : new Representative instance
+deactivate Entity
+
+Service -> IRepo : AddAsync(entity)
+activate IRepo
+IRepo -> Repo : persistence logic
+activate Repo
+Repo --> IRepo : Representative saved
+deactivate Repo
+IRepo --> Service : Representative saved
+deactivate IRepo
+
+Service -> Dto : Map entity → RepresentativeDto
+activate Dto
+Dto --> Service : RepresentativeDto
+deactivate Dto
+
+Service --> IService : return RepresentativeDto
+deactivate Service
+IService --> Controller : RepresentativeDto
+deactivate IService
+
+Controller --> Admin : 201 Created (RepresentativeDto)
+deactivate Controller
+
+Admin -> Admin : Representative created successfully!
+end
+
+
+' --- Scenario 2: Update Representative ---
+group Scenario: Update Representative
+
+Admin -> Controller : PUT /orgs/{orgId}/representatives/{repId}\n(UpdateRepresentative(orgId, repId, dto))
+activate Controller
+
+Controller -> IService : UpdateRepresentativeAsync(orgId, repId, dto)
+activate IService
+IService -> Service : delegation
+activate Service
+
+Service -> IRepo : GetByIdAsync(repId)
+activate IRepo
+IRepo -> Repo : query database
+activate Repo
+Repo --> IRepo : Representative entity
+deactivate Repo
+IRepo --> Service : Representative entity
+deactivate IRepo
+
+note right of Service
+Validations:
+- entity exists
+- email/phone format
+- citizenId format
+end note
+
+Service -> Entity : UpdateName(dto.name)
+Service -> Entity : UpdateEmail(dto.email)
+Service -> Entity : UpdatePhone(dto.phone)
+Service -> Entity : UpdateNationality(dto.nationality)
+
+Service -> IRepo : UpdateAsync(entity)
+activate IRepo
+IRepo -> Repo : persist updated entity
+activate Repo
+Repo --> IRepo : updated entity
+deactivate Repo
+IRepo --> Service : updated entity
+deactivate IRepo
+
+Service -> Dto : Map entity → RepresentativeDto
+activate Dto
+Dto --> Service : RepresentativeDto
+deactivate Dto
+
+Service --> IService : return RepresentativeDto
+deactivate Service
+IService --> Controller : RepresentativeDto
+deactivate IService
+
+Controller --> Admin : 200 OK (RepresentativeDto)
+deactivate Controller
+
+Admin -> Admin : Representative updated successfully!
+end
+
+
+' --- Scenario 3: Deactivate Representative ---
+group Scenario: Deactivate Representative
+
+Admin -> Controller : PATCH /orgs/{orgId}/representatives/{repId}/deactivate\n(DeactivateRepresentative(orgId, repId))
+activate Controller
+
+Controller -> IService : DeactivateRepresentativeAsync(orgId, repId)
+activate IService
+IService -> Service : delegation
+activate Service
+
+Service -> IRepo : GetByIdAsync(repId)
+activate IRepo
+IRepo -> Repo : query database
+activate Repo
+Repo --> IRepo : Representative entity
+deactivate Repo
+IRepo --> Service : Representative entity
+deactivate IRepo
+
+Service -> Entity : SetInactive()
+Service -> IRepo : UpdateAsync(entity)
+activate IRepo
+IRepo -> Repo : persist status change
+activate Repo
+Repo --> IRepo : status=Inactive
+deactivate Repo
+IRepo --> Service : status persisted
+deactivate IRepo
+
+Service --> IService : return success
+deactivate Service
+IService --> Controller : success
+deactivate IService
+
+Controller --> Admin : 200 OK (or 204 No Content)
+deactivate Controller
+
+Admin -> Admin : Representative deactivated successfully!
+end
+
+@enduml
