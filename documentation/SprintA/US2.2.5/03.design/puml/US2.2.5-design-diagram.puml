@@ -1,0 +1,59 @@
+@startuml
+title US 2.2.5: Register Shipping Agent Organization (Design)
+
+actor "Port Authority Officer" as Admin
+participant ":OrganizationController" as Controller
+participant "IOrganizationService" as IService
+participant ":OrganizationService" as Service
+participant ":ShippingAgentOrganization" as Entity
+participant "IOrganizationRepository" as IRepo
+participant ":OrganizationRepository" as Repo
+participant "OrganizationDto" as Dto
+
+skinparam sequenceArrowThickness 2
+skinparam roundcorner 10
+skinparam maxmessagesize 200
+skinparam sequenceParticipant underline
+
+' --- Scenario: Register New Shipping Agent Organization ---
+group Scenario: Register New Organization
+
+Admin -> Controller : POST /api/organizations\n(RegisterOrganization(dto))
+activate Controller
+
+Controller -> IService : RegisterOrganizationAsync(dto)
+activate IService
+IService -> Service : delegation
+activate Service
+
+Service -> Entity ** : ShippingAgentOrganization.Create(\n  legalName, altName, taxNumber, address)
+activate Entity
+Entity --> Service : new Organization instance
+deactivate Entity
+
+Service -> IRepo : AddAsync(entity)
+activate IRepo
+IRepo -> Repo : persistence logic
+activate Repo
+Repo --> IRepo : Organization saved
+deactivate Repo
+IRepo --> Service : Organization saved
+deactivate IRepo
+
+Service -> Dto : Map entity → OrganizationDto
+activate Dto
+Dto --> Service : OrganizationDto
+deactivate Dto
+
+Service --> IService : return OrganizationDto
+deactivate Service
+IService --> Controller : OrganizationDto
+deactivate IService
+
+Controller --> Admin : 201 Created (OrganizationDto)
+deactivate Controller
+
+Admin -> Admin : Organization registered successfully!
+end
+
+@enduml

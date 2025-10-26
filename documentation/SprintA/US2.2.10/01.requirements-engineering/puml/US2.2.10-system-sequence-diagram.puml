@@ -1,0 +1,27 @@
+@startuml
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+title US 2.2.10 – View the Status of Vessel Visit Notifications\nSystem Sequence Diagram (SSD)
+
+autonumber
+actor "Shipping Agent Representative" as Agent
+participant ":System" as System
+
+activate Agent
+
+'--- View All Notifications ---
+Agent -> System : 1: Request list of all Vessel Visit Notifications\n(submitted by self or same organization)
+activate System
+System --> Agent : 1.1: Return notifications with status,\ndock (if approved), and rejection reason (if rejected)
+deactivate System
+
+'--- Apply Filters ---
+Agent -> System : 2: Apply filters (vessel, status,\nrepresentative, date range)
+activate System
+System --> Agent : 2.1: Return filtered list of matching notifications
+deactivate System
+
+deactivate Agent
+@enduml

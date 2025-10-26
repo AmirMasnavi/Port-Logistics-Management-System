@@ -1,0 +1,58 @@
+@startuml
+!theme plain
+autonumber
+
+box "Backend System (Sistema AIT)" #LightBlue
+    participant "HTTP Request" as HttpRequest
+    participant "Route" as Route
+    participant "Controller" as Controller
+    participant "Filter DTO" as Dto
+    participant "Service" as Service
+    box "Persistence" #LightGreen
+        participant "Data Model" as DataModel
+        participant "Aggregate" as Aggregate
+        participant "Value Object\n(Status, Decision, Dock, RejectionReason)" as ValueObject
+        participant "Entity\n(VesselVisitNotification)" as Entity
+    end box
+    participant "Repository" as Repository
+end box
+
+HttpRequest -> Route : 1.1: GET /api/vessel-visits?status=&vesselName=&dateRange=
+activate HttpRequest
+Route -> Controller : 1.2: Invoke GetNotifications
+activate Route
+Controller -> Dto : 1.3: Map query parameters to Filter DTO
+activate Controller
+Dto --> Controller : 1.4: Filter DTO ready
+deactivate Dto
+Controller -> Service : 1.5: Process filter and fetch data
+activate Service
+Service -> Repository : 1.6: Query notifications by filters and organization
+activate Repository
+Repository -> DataModel : 1.6.1: Map results to domain model
+activate DataModel
+DataModel --> Repository : 1.6.2: Domain model mapped
+deactivate DataModel
+Repository -> Aggregate : 1.6.3: Rehydrate aggregate from data
+activate Aggregate
+Aggregate -> ValueObject : 1.6.4: Extract value objects (status, decision, dock, reason)
+activate ValueObject
+ValueObject --> Aggregate : 1.6.5: Value objects ready
+deactivate ValueObject
+Aggregate -> Entity : 1.6.6: Build entity from aggregate
+activate Entity
+Entity --> Aggregate : 1.6.7: Entity ready
+deactivate Entity
+Aggregate --> Repository : 1.6.8: Aggregates ready
+deactivate Aggregate
+Repository --> Service : 1.7: Return list of entities
+deactivate Repository
+Service --> Controller : 1.8: Return list of DTOs
+deactivate Service
+Controller --> HttpRequest : 1.9: HTTP 200 OK (List of notifications)
+deactivate Controller
+deactivate Route
+HttpRequest --> : 1.10: HTTP Response
+deactivate HttpRequest
+
+@enduml

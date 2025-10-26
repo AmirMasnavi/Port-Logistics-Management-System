@@ -1,0 +1,73 @@
+@startuml
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+skinparam classAttributeIconSize 0
+hide circle
+hide methods
+
+title US 2.2.6 - Register and Manage Representatives 
+
+' Context: Create, update, deactivate representatives for an existing organization.
+' Focus: Representative aggregate root, its VOs and the association to the organization.
+
+package "Representative Management" {
+
+    class ShippingAgentRepresentative <<Root>> {
+        name
+        citizenId
+        nationality
+        email
+        phone
+        status   
+    }
+
+    class RepresentativeId <<ValueObject>> {
+        value
+    }
+
+    class RepresentativeName <<ValueObject>> {
+        value
+    }
+
+    class CitizenId <<ValueObject>> {
+        value
+    }
+
+    class Nationality <<ValueObject>> {
+        value
+    }
+
+    class Email <<ValueObject>> {
+        value
+    }
+
+    class Phone <<ValueObject>> {
+        value
+    }
+
+    class RepresentativeStatus <<ValueObject>> {
+        status
+    }
+
+    ' Composition (aggregate with VOs)
+    ShippingAgentRepresentative *-- RepresentativeId
+    ShippingAgentRepresentative *-- RepresentativeName
+    ShippingAgentRepresentative *-- CitizenId
+    ShippingAgentRepresentative *-- Nationality
+    ShippingAgentRepresentative *-- Email
+    ShippingAgentRepresentative *-- Phone
+    ShippingAgentRepresentative *-- RepresentativeStatus
+}
+
+package "Organization Reference" {
+    class ShippingAgentOrganization {
+        organizationID
+        representativeID
+    }
+
+    ' Each representative belongs to exactly one organization
+    ShippingAgentRepresentative "0..*" --> "1" ShippingAgentOrganization : belongs to >
+}
+@enduml

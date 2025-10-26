@@ -69,11 +69,5 @@ As a Shipping Agent Representative, I want to view the status of all my submitte
 ### 1.6. System Sequence Diagram (SSD)
 
 The following SSD illustrates the system interactions for viewing and filtering Vessel Visit Notifications by a Shipping Agent Representative.
-![System Sequence Diagram - Alternative One](svg/US-2.2.10_system-sequence-diagram.svg)
 
-### 1.7 Other Relevant Remarks
-* Representatives can view only notifications from their own shipping agent organization.
-* Approved notifications must display the assigned dock; rejected ones must display the reason for rejection.
-* The system should highlight pending notifications for quick identification.
-* All search and filter actions must be auditable, recording the representative ID and timestamp.
-* This feature enhances transparency and communication between shipping agents and the Port Authority.
+![System Sequence Diagram - Alternative One](svg/US2.2.10-system-sequence-diagram.svg)

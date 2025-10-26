@@ -42,8 +42,8 @@ According to the rationale, the following conceptual classes were promoted to so
 
 ---
 
-### Full Diagram
+### Design
 
 The following diagram shows the complete design realization for the Review and Approve/Reject Vessel Visit Notifications user story (covering Search, Approve, and Reject scenarios).
 
-![Sequence Diagram - Full](svg/US2.2.7-design-diagram.svg)
+![Design - Full](svg/US2.2.7-design-diagram.svg)
