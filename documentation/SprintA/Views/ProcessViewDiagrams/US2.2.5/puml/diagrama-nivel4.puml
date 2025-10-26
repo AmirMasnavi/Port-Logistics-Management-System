@@ -2,52 +2,52 @@
 !theme plain
 autonumber
 
-box "Backend System (Sistema AIT)" #LightBlue
+box "Backend System (Port System)" #LightBlue
     participant "HTTP Request" as HttpRequest
     participant "Route" as Route
-    participant "OrganizationController" as Controller
-    participant "Create/UpdateOrganizationDto\n/ OrganizationDto" as Dto
-    participant "IOrganizationService" as ServiceInterface
-    participant "OrganizationService" as ServiceImpl
+    participant "Controller" as Controller
+    participant "DTO" as Dto
+    participant "Service Interface" as ServiceInterface
+    participant "Service Implementation" as ServiceImpl
     box "Persistence" #LightGreen
-        participant "Data Model\n(EF Core)" as DataModel
-        participant "Aggregate\n(ShippingAgentOrganization)" as Aggregate
-        participant "Value Object\n(OrgId, LegalName, AltName, TaxNumber, Address)" as ValueObject
-        participant "Entity\n(Organization + Representatives[])" as Entity
-        participant "IOrganizationRepository" as RepoInterface
-        participant "OrganizationRepository" as RepoImpl
+        participant "Data Model" as DataModel
+        participant "Aggregate" as Aggregate
+        participant "Value Object" as ValueObject
+        participant "Entity" as Entity
+        participant "Repository Interface" as RepoInterface
+        participant "Repository Implementation" as RepoImpl
     end box
 end box
 
 HttpRequest -> Route : 1.1: POST /api/organizations\nOR PUT /api/organizations/{id}
 activate HttpRequest
-Route -> Controller : 1.2: Invoke Create / Update Organization
+Route -> Controller : 1.2: Invoke Create / Update
 activate Route
-Controller -> Dto : 1.3: Map request body → Create/UpdateOrganizationDto
+Controller -> Dto : 1.3: Map request body
 activate Controller
-Dto --> Controller : 1.4: DTO data mapped
+Dto --> Controller : 1.4: Mapped data
 deactivate Dto
 Controller -> ServiceInterface : 1.5: Call service method
 activate ServiceInterface
 ServiceInterface -> ServiceImpl : 1.6: Delegate to implementation
 activate ServiceImpl
-ServiceImpl -> Aggregate : 1.7: Create or update Organization aggregate
+ServiceImpl -> Aggregate : 1.7: Create or update aggregate
 activate Aggregate
-Aggregate -> ValueObject : 1.7.1: Create or validate Value Objects\n(LegalName, TaxNumber, Address)
+Aggregate -> ValueObject : 1.7.1: Create or update value objects
 activate ValueObject
-ValueObject --> Aggregate : 1.7.2: Value Objects created/validated
+ValueObject --> Aggregate : 1.7.2: Value objects created/updated
 deactivate ValueObject
-Aggregate -> Entity : 1.7.3: Create or update Organization entity
+Aggregate -> Entity : 1.7.3: Create or update entity
 activate Entity
 Entity --> Aggregate : 1.7.4: Entity created/updated
 deactivate Entity
-Aggregate --> ServiceImpl : 1.7.5: Aggregate ready
+Aggregate --> ServiceImpl : 1.7.5: Aggregate created/updated
 deactivate Aggregate
 ServiceImpl -> RepoInterface : 1.8: Call repository method
 activate RepoInterface
 RepoInterface -> RepoImpl : 1.9: Delegate to implementation
 activate RepoImpl
-RepoImpl -> DataModel : 1.9.1: Map aggregate to data model (EF Core)
+RepoImpl -> DataModel : 1.9.1: Map aggregate to data model
 activate DataModel
 DataModel --> RepoImpl : 1.9.2: Data model mapped
 deactivate DataModel
@@ -55,9 +55,9 @@ RepoImpl --> RepoInterface : 1.10: Data persisted
 deactivate RepoImpl
 RepoInterface --> ServiceImpl : 1.11: Data persisted
 deactivate RepoInterface
-ServiceImpl --> ServiceInterface : 1.12: Return OrganizationDto
+ServiceImpl --> ServiceInterface : 1.12: Response data
 deactivate ServiceImpl
-ServiceInterface --> Controller : 1.13: Return OrganizationDto
+ServiceInterface --> Controller : 1.13: Response data
 deactivate ServiceInterface
 Controller --> HttpRequest : 1.14: HTTP 201 Created / 200 OK
 deactivate Controller
