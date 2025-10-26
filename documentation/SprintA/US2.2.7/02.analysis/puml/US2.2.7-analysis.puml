@@ -1,0 +1,62 @@
+﻿@startuml
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+skinparam classAttributeIconSize 0
+hide circle
+hide methods
+
+title US2.2.7 – Review and Approve/Reject Vessel Visit Notifications – Domain Model
+
+package "Vessel Visit Management" {
+
+    class VesselVisitNotification <<Root>> {
+        id
+        eta
+        etd
+        cargoSummary
+        crewSummary
+        status
+    }
+
+    class DecisionLog {
+        id
+        decisionType
+        timestamp
+        officerId
+        reason
+    }
+
+    VesselVisitNotification "1" --> "0..1" DecisionLog : has >
+}
+
+package "Dock Management" {
+    class Dock {
+        id
+        name
+        status
+    }
+
+    VesselVisitNotification "1" --> "1" Dock : assigned >
+}
+
+package "Vessel Management" {
+    class Vessel {
+        imoNumber
+        name
+    }
+
+    VesselVisitNotification "1" --> "1" Vessel : references >
+}
+
+package "User Management" {
+    class PortAuthorityOfficer {
+        id
+        name
+    }
+
+    DecisionLog "1" --> "1" PortAuthorityOfficer : madeBy >
+}
+
+@enduml

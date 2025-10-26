@@ -1,0 +1,76 @@
+@startuml
+!theme plain
+autonumber
+
+box "Backend System (Sistema AIT)" #LightBlue
+    participant "HTTP Request" as HttpRequest
+    participant "Route" as Route
+    participant "VesselVisitNotificationController" as Controller
+    participant "ApproveVvnDto / RejectVvnDto" as Dto
+    participant "IVesselVisitNotificationService" as ServiceInterface
+    participant "VesselVisitNotificationService" as ServiceImpl
+    box "Persistence" #LightGreen
+        participant "Data Model" as DataModel
+        participant "Aggregate\n(VesselVisitNotification)" as Aggregate
+        participant "Value Object\n(Decision, Status, RejectionReason)" as ValueObject
+        participant "Entity\n(VesselVisitNotification)" as Entity
+        participant "IVesselVisitNotificationRepository" as RepoInterface
+        participant "VesselVisitNotificationRepository" as RepoImpl
+    end box
+end box
+
+HttpRequest -> Route : 1.1: POST /api/vessel-visits/{id}/approve OR /reject
+activate HttpRequest
+Route -> Controller : 1.2: Invoke ApproveVisit / RejectVisit
+activate Route
+Controller -> Dto : 1.3: Map request body
+activate Controller
+Dto --> Controller : 1.4: Mapped data
+deactivate Dto
+Controller -> ServiceInterface : 1.5: Call service method
+activate ServiceInterface
+ServiceInterface -> ServiceImpl : 1.6: Delegate to implementation
+activate ServiceImpl
+ServiceImpl -> RepoInterface : 1.7: GetByIdAsync(id)
+activate RepoInterface
+RepoInterface -> RepoImpl : 1.8: Delegate to implementation
+activate RepoImpl
+RepoImpl --> RepoInterface : 1.9: Return existing entity
+deactivate RepoImpl
+RepoInterface --> ServiceImpl : 1.10: Entity loaded
+deactivate RepoInterface
+ServiceImpl -> Aggregate : 1.11: Apply decision to aggregate
+activate Aggregate
+Aggregate -> ValueObject : 1.11.1: Create or update value objects
+activate ValueObject
+ValueObject --> Aggregate : 1.11.2: Value objects created/updated
+deactivate ValueObject
+Aggregate -> Entity : 1.11.3: Update entity state
+activate Entity
+Entity --> Aggregate : 1.11.4: Entity updated
+deactivate Entity
+Aggregate --> ServiceImpl : 1.11.5: Aggregate updated
+deactivate Aggregate
+ServiceImpl -> RepoInterface : 1.12: Call UpdateAsync
+activate RepoInterface
+RepoInterface -> RepoImpl : 1.13: Delegate to implementation
+activate RepoImpl
+RepoImpl -> DataModel : 1.13.1: Map aggregate to data model
+activate DataModel
+DataModel --> RepoImpl : 1.13.2: Data model mapped
+deactivate DataModel
+RepoImpl --> RepoInterface : 1.14: Data persisted
+deactivate RepoImpl
+RepoInterface --> ServiceImpl : 1.15: Data persisted
+deactivate RepoInterface
+ServiceImpl --> ServiceInterface : 1.16: Response data (VesselVisitNotificationDto)
+deactivate ServiceImpl
+ServiceInterface --> Controller : 1.17: Response data
+deactivate ServiceInterface
+Controller --> HttpRequest : 1.18: HTTP 200 OK
+deactivate Controller
+deactivate Route
+HttpRequest --> : 1.19: HTTP Response
+deactivate HttpRequest
+
+@enduml
