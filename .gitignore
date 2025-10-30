@@ -9,3 +9,7 @@ obj/
 .idea/
 *.iml
 *.iws
+
+
+# Ignore Node-Modules
+node_modules/
