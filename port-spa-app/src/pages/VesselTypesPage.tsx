@@ -1,47 +1,125 @@
 import React, { useState, useEffect } from 'react';
 import { getAllVesselTypes } from '../services/apiService';
-import type {VesselType} from '../types'; // Import the type
-// Import the type
+import type { VesselType } from '../types';
+// --- 1. Import our new components ---
+import Modal from '../components/common/Modal';
+import CreateVesselTypeForm from './CreateVesselTypeForm';
+
+// A simple icon component for the actions menu
+const DotsIcon = () => (
+    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+        <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+    </svg>
+);
 
 const VesselTypesPage: React.FC = () => {
-    // State is now strongly-typed
     const [vesselTypes, setVesselTypes] = useState<VesselType[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
+    // --- 2. Add state to control the modal ---
+    const [isModalOpen, setIsModalOpen] = useState(false);
+
+    const fetchTypes = async () => {
+        try {
+            setLoading(true);
+            const data = await getAllVesselTypes();
+            setVesselTypes(data);
+        } catch (err) {
+            setError('Failed to fetch data. Please try again later.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const data = await getAllVesselTypes();
-                setVesselTypes(data);
-            } catch (err) {
-                setError('Failed to fetch data. Please try again later.');
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchData();
+        fetchTypes();
     }, []);
 
-    // Using Tailwind classes for styling
+    // --- 3. Handle successful creation ---
+    const handleSuccess = (newType: VesselType) => {
+        // Add the new type to our list to refresh the UI
+        setVesselTypes(prevTypes => [newType, ...prevTypes]);
+    };
+
+    // Tailwind classes for styling inspired by your mock-up
     return (
-        <div className="max-w-3xl mx-auto my-10 p-6 bg-gray-50 rounded-lg shadow-md">
-            <h1 className="text-3xl font-bold text-center mb-6">Vessel Types</h1>
-            {loading && <div className="text-center">Loading...</div>}
-            {error && <div className="text-center text-red-600">{error}</div>}
-            {!loading && !error && (
-                <ul className="list-none p-0">
-                    {vesselTypes.map(type => (
-                        <li key={type.id} className="bg-white mb-3 p-4 rounded-md shadow-sm border border-gray-200">
-                            <strong className="text-lg text-blue-700">{type.name}</strong>
-                            <div className="text-gray-600 mt-1">{type.description}</div>
-                            <div className="text-sm text-gray-500 mt-2">
-                                Capacity: {type.capacity} TEUs | Dims: {type.maxRows}r x {type.maxBays}b x {type.maxTiers}t
-                            </div>
-                        </li>
+        <div className="bg-white shadow-md rounded-lg p-6">
+
+            {/* 1. Page Header */}
+            <div className="flex justify-between items-center mb-4">
+                <h1 className="text-2xl font-semibold text-gray-800">Vessel Types</h1>
+                {/* --- 4. Wire up the button --- */}
+                <button
+                    onClick={() => setIsModalOpen(true)}
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg"
+                >
+                    + Create Type
+                </button>
+            </div>
+
+            {/* 2. Search & Filter Bar */}
+            <div className="flex mb-4">
+                <input
+                    type="text"
+                    placeholder="Search by name or description..."
+                    className="flex-1 p-2 border border-gray-300 rounded-lg"
+                />
+            </div>
+
+            {/* 3. Data Table */}
+            <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                    <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Capacity (TEU)</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dimensions (R/B/T)</th>
+                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                    {loading && (
+                        <tr>
+                            <td colSpan={5} className="text-center py-4">Loading...</td>
+                        </tr>
+                    )}
+                    {error && (
+                        <tr>
+                            <td colSpan={5} className="text-center py-4 text-red-600">{error}</td>
+                        </tr>
+                    )}
+                    {!loading && !error && vesselTypes.map(type => (
+                        <tr key={type.id}>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{type.name}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{type.description}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{type.capacity}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                {type.maxRows}r / {type.maxBays}b / {type.maxTiers}t
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <button className="text-gray-400 hover:text-gray-600">
+                                    <DotsIcon />
+                                </button>
+                            </td>
+                        </tr>
                     ))}
-                </ul>
-            )}
+                    </tbody>
+                </table>
+            </div>
+
+            {/* --- 5. Render the Modal --- */}
+            <Modal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                title="Create New Vessel Type"
+            >
+                <CreateVesselTypeForm
+                    onClose={() => setIsModalOpen(false)}
+                    onSuccess={handleSuccess}
+                />
+            </Modal>
         </div>
     );
 };
