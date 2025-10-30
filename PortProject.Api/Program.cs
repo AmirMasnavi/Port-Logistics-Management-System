@@ -79,7 +79,7 @@ builder.Services.AddScoped<IResourceRepository, ResourceRepository>();
 // Add CORS
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowFrontend", policy => policy.WithOrigins("http://localhost:3000")
+    options.AddPolicy("AllowFrontend", policy => policy.WithOrigins("http://localhost:5173")
         .AllowAnyHeader()
         .AllowAnyMethod());
 });
