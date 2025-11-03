@@ -44,84 +44,87 @@ const VesselTypesPage: React.FC = () => {
 
     // Tailwind classes for styling inspired by your mock-up
     return (
-        <div className="bg-white shadow-md rounded-lg p-6">
+        <div className="container mt-6">
+            <div className="panel">
 
-            {/* 1. Page Header */}
-            <div className="flex justify-between items-center mb-4">
-                <h1 className="text-2xl font-semibold text-gray-800">Vessel Types</h1>
-                {/* --- 4. Wire up the button --- */}
-                <button
-                    onClick={() => setIsModalOpen(true)}
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg"
-                >
-                    + Create Type
-                </button>
-            </div>
+                {/* 1. Page Header */}
+                <div className="flex justify-between items-center mb-4">
+                    <h1 className="text-2xl font-semibold text-gray-800">Vessel Types</h1>
+                    {/* --- 4. Wire up the button --- */}
+                    <button
+                        onClick={() => setIsModalOpen(true)}
+                        className="btn btn-primary"
+                    >
+                        + Create Type
+                    </button>
+                </div>
 
-            {/* 2. Search & Filter Bar */}
-            <div className="flex mb-4">
-                <input
-                    type="text"
-                    placeholder="Search by name or description..."
-                    className="flex-1 p-2 border border-gray-300 rounded-lg"
-                />
-            </div>
+                {/* 2. Search & Filter Bar */}
+                <div className="flex mb-4">
+                    <input
+                        type="text"
+                        placeholder="Search by name or description..."
+                        className="flex-1 p-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-maritime-500"
+                    />
+                </div>
 
-            {/* 3. Data Table */}
-            <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                    <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Capacity (TEU)</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dimensions (R/B/T)</th>
-                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                    </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                    {loading && (
+                {/* 3. Data Table */}
+                <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-maritime-100">
                         <tr>
-                            <td colSpan={5} className="text-center py-4">Loading...</td>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-maritime-700 uppercase tracking-wider">Name</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-maritime-700 uppercase tracking-wider">Description</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-maritime-700 uppercase tracking-wider">Capacity (TEU)</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-maritime-700 uppercase tracking-wider">Dimensions (R/B/T)</th>
+                            <th className="px-6 py-3 text-right text-xs font-medium text-maritime-700 uppercase tracking-wider">Actions</th>
                         </tr>
-                    )}
-                    {error && (
-                        <tr>
-                            <td colSpan={5} className="text-center py-4 text-red-600">{error}</td>
-                        </tr>
-                    )}
-                    {!loading && !error && vesselTypes.map(type => (
-                        <tr key={type.id}>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{type.name}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{type.description}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{type.capacity}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                {type.maxRows}r / {type.maxBays}b / {type.maxTiers}t
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                <button className="text-gray-400 hover:text-gray-600">
-                                    <DotsIcon />
-                                </button>
-                            </td>
-                        </tr>
-                    ))}
-                    </tbody>
-                </table>
-            </div>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                        {loading && (
+                            <tr>
+                                <td colSpan={5} className="text-center py-4">Loading...</td>
+                            </tr>
+                        )}
+                        {error && (
+                            <tr>
+                                <td colSpan={5} className="text-center py-4 text-red-600">{error}</td>
+                            </tr>
+                        )}
+                        {!loading && !error && vesselTypes.map(type => (
+                            <tr key={type.id} className="hover:bg-maritime-50">
+                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{type.name}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{type.description}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{type.capacity}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                    {type.maxRows}r / {type.maxBays}b / {type.maxTiers}t
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                    <button className="text-gray-400 hover:text-gray-600">
+                                        <DotsIcon />
+                                    </button>
+                                </td>
+                            </tr>
+                        ))}
+                        </tbody>
+                    </table>
+                </div>
 
-            {/* --- 5. Render the Modal --- */}
-            <Modal
-                isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                title="Create New Vessel Type"
-            >
-                <CreateVesselTypeForm
+                {/* --- 5. Render the Modal --- */}
+                <Modal
+                    isOpen={isModalOpen}
                     onClose={() => setIsModalOpen(false)}
-                    onSuccess={handleSuccess}
-                />
-            </Modal>
+                    title="Create New Vessel Type"
+                >
+                    <CreateVesselTypeForm
+                        onClose={() => setIsModalOpen(false)}
+                        onSuccess={handleSuccess}
+                    />
+                </Modal>
+            </div>
         </div>
     );
 };
 
 export default VesselTypesPage;
+

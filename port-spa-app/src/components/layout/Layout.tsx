@@ -1,6 +1,7 @@
 import React from 'react';
 import Header from './Header';
 import Sidebar from './Sidebar';
+import Footer from './Footer';
 
 // This component is designed to wrap any page component.
 // "children" will be the page (e.g., VesselTypesPage)
@@ -19,6 +20,9 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 <main className="flex-1 overflow-y-auto p-6">
                     {children}
                 </main>
+
+                {/* Footer */}
+                <Footer />
             </div>
         </div>
     );

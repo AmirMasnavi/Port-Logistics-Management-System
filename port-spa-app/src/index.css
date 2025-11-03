@@ -1,3 +1,47 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ...existing code... */
+
+@layer base {
+  :root {
+    --maritime-500: #1aa6b8;
+    --maritime-700: #116a73;
+    --sand-500: #ff9b33;
+  }
+
+  html, body, #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-maritime-50 font-sans text-gray-800;
+    background-image: linear-gradient(180deg, rgba(26,166,184,0.04) 0%, rgba(255,255,255,0.6) 100%);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+  }
+}
+
+@layer components {
+  .brand {
+    @apply flex items-center gap-3 text-maritime-800;
+  }
+
+  .brand-logo {
+    @apply w-10 h-10 rounded-md flex items-center justify-center bg-maritime-500 text-white font-bold shadow-md;
+  }
+
+  .btn {
+    @apply inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium shadow-sm;
+  }
+
+  .btn-primary {
+    @apply btn bg-maritime-500 text-white hover:bg-maritime-600;
+  }
+
+  .panel {
+    @apply bg-white rounded-lg shadow p-4;
+  }
+}
