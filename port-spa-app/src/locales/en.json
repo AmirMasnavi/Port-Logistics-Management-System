@@ -1,0 +1,28 @@
+{
+  "language": {
+    "english": "English",
+    "portuguese": "Portuguese"
+  },
+  "brand": {
+    "title": "Maritime Port Manager",
+    "subtitle": "Operational dashboard"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "vesselTypes": "Vessel types",
+    "vesselVisits": "Vessel visits"
+  },
+  "loading": "Loading...",
+  "search": {
+    "placeholder": "Search..."
+  },
+  "button": {
+    "new": "New",
+    "logout": "Logout",
+    "login": "Login"
+  },
+  "greeting": {
+    "hello": "Hello, {{name}}"
+  }
+}
+

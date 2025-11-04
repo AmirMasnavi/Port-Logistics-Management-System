@@ -1,0 +1,28 @@
+{
+  "language": {
+    "english": "Inglês",
+    "portuguese": "Português"
+  },
+  "brand": {
+    "title": "Gestor Portuário",
+    "subtitle": "Painel de operações"
+  },
+  "nav": {
+    "dashboard": "Painel",
+    "vesselTypes": "Tipos de navio",
+    "vesselVisits": "Visitas de navios"
+  },
+  "loading": "A carregar...",
+  "search": {
+    "placeholder": "Pesquisar..."
+  },
+  "button": {
+    "new": "Novo",
+    "logout": "Terminar sessão",
+    "login": "Iniciar sessão"
+  },
+  "greeting": {
+    "hello": "Olá, {{name}}"
+  }
+}
+

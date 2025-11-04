@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client';
 import { Auth0Provider } from '@auth0/auth0-react'; // Importe o provider
 import App from './App';
 import './index.css';
+import './i18n'; // initialize i18n
 
 const container = document.getElementById('root');
 if (!container) throw new Error('Root container not found');
