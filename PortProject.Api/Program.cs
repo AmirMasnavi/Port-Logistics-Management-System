@@ -31,9 +31,22 @@ using PortProject.Api.Domain.ResourceAggregate;
 using PortProject.Api.Domain.ShippingAgentOrganizationAggregate;
 using PortProject.Api.Domain.ShippingAgentRepresentativeAggregate;
 using PortProject.Api.Domain.VesselVisitNotificationAggregate;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 
 var builder = WebApplication.CreateBuilder(args);
+
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+}).AddJwtBearer(options =>
+{
+    options.Authority = builder.Configuration["Auth0:Authority"];
+    options.Audience = builder.Configuration["Auth0:Audience"];
+});
+// END: Configuração de Autenticação
 
 // Add services to the container.
 builder.Services.AddControllers()
@@ -84,7 +97,6 @@ builder.Services.AddCors(options =>
         .AllowAnyMethod());
 });
 
-
 var app = builder.Build();
 
 app.UseCors("AllowFrontend");
@@ -99,6 +111,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
