@@ -2,6 +2,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Layout from './components/layout/Layout';
 import VesselTypesPage from './pages/VesselTypesPage';
+import VisualizationPage from './pages/VisualizationPage';
 import {setupApiInterceptor} from "./services/apiService.ts";
 
 // We can create a simple placeholder for the dashboard page
@@ -27,6 +28,9 @@ function App() {
                     <Route path="/vessel-types" element={<VesselTypesPage />} />
                     <Route path="/vessel-visits" element={<VesselVisitsPage />} />
                     {/* We will add more routes here for Docks, Resources, etc. */}
+
+                    {/* Route for the 3D Visualization Page */}
+                    <Route path="/visualization" element={<VisualizationPage />} />
                 </Routes>
             </Layout>
         </BrowserRouter>
