@@ -32,21 +32,29 @@ using PortProject.Api.Domain.ShippingAgentOrganizationAggregate;
 using PortProject.Api.Domain.ShippingAgentRepresentativeAggregate;
 using PortProject.Api.Domain.VesselVisitNotificationAggregate;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
 
 
 var builder = WebApplication.CreateBuilder(args);
 
+var firebaseProjectId = "blueport-508e6";
 
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-}).AddJwtBearer(options =>
-{
-    options.Authority = builder.Configuration["Auth0:Authority"];
-    options.Audience = builder.Configuration["Auth0:Audience"];
-});
-// END: Configuração de Autenticação
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        // The "issuer" of Firebase tokens
+        options.Authority = "https://securetoken.google.com/" + firebaseProjectId;
+
+        // The "audience" is your project ID
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidAudience = firebaseProjectId,
+            ValidIssuer = "https://securetoken.google.com/" + firebaseProjectId,
+            ValidateLifetime = true
+        };
+    });
 
 // Add services to the container.
 builder.Services.AddControllers()
