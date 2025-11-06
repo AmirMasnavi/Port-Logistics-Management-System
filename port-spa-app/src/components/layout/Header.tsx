@@ -94,6 +94,7 @@ const Header: React.FC = () => {
                         <NavLink to="/" label={t('nav.dashboard')} />
                         <NavLink to="/vessel-types" label={t('nav.vesselTypes')} />
                         <NavLink to="/vessel-visits" label={t('nav.vesselVisits')} />
+                        <NavLink to="/visualization" label={t('nav.visualization', 'Visualization')} />
                     </nav>
                 )}
 
