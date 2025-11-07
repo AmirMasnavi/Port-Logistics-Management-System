@@ -1,7 +1,6 @@
+// port-spa-app/src/App.tsx
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Layout from './components/layout/Layout';
-import { useAuth0 } from '@auth0/auth0-react';
-import { useEffect } from 'react';
 import VesselTypesPage from './pages/VesselTypesPage';
 import VisualizationPage from './pages/VisualizationPage';
 import {setupApiInterceptor} from "./services/apiService.ts";
@@ -13,10 +12,11 @@ const DashboardPage = () => <div className="text-xl">Welcome to the Port Authori
 const VesselVisitsPage = () => <div className="text-xl">Vessel Visits Page (Coming Soon!)</div>;
 
 function App() {
-    const { getAccessTokenSilently } = useAuth0();
-    useEffect(() => {
-        setupApiInterceptor(getAccessTokenSilently);
-    }, [getAccessTokenSilently]);
+    // All the auth logic is removed from here.
+    // It's now handled by AuthProvider (in main.tsx) and apiService.ts.
+
+    // We just need to make sure the interceptor is called once
+    setupApiInterceptor();
 
     return (
         <BrowserRouter>
