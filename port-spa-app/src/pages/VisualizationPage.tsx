@@ -5,7 +5,8 @@ import {
     getApprovedVesselVisits,
     getResources,
     getAllVesselTypes,
-    getVesselByImo
+    getVesselByImo,
+    getDockById
 } from '../services/apiService';
 import type {
     PortLayout,
@@ -40,6 +41,9 @@ const VisualizationPage: React.FC = () => {
 
                 setLayout(layoutData);
 
+                console.debug('Port layout elements:', layoutData.elements);
+                console.debug('Approved vessel visits from API:', approvedVisits);
+
                 const layoutElementsMap = new Map<string, LayoutElement>(layoutData.elements.map((el: LayoutElement) => [el.id, el]));
                 const vesselTypesMap = new Map<string, VesselType>(vesselTypes.map((vt: VesselType) => [vt.id, vt]));
 
@@ -48,7 +52,25 @@ const VisualizationPage: React.FC = () => {
                 for (const visit of approvedVisits as VesselVisit[]) {
                     // Apenas visualizar navios que têm uma doca atribuída
                     if (visit.assignedDockId) {
-                        const dock = layoutElementsMap.get(visit.assignedDockId);
+                        // Primeiro tentamos encontrar a doca diretamente pelo ID retornado na layout
+                        let dock = layoutElementsMap.get(visit.assignedDockId);
+
+                        // Se não houver correspondência direta (por exemplo o backend devolve um GUID de Dock),
+                        // tentamos consultar o endpoint /api/Dock/{id} para obter o nome da doca e procurar pelo elemento do layout
+                        if (!dock) {
+                            try {
+                                const dockDto = await getDockById(visit.assignedDockId);
+                                // O layout usa ids textuais como "Dock A" — o backend devolve Id (GUID) e Name (ex. "Dock A").
+                                // Procuramos pelo elemento com id igual ao name ou com name igual ao name.
+                                if (dockDto?.name) {
+                                    dock = layoutElementsMap.get(dockDto.name) || layoutData.elements.find((el: LayoutElement) => el.name === dockDto.name);
+                                }
+                            } catch (err) {
+                                // Se o backend não encontrar a doca ou ocorrer erro, apenas ignoramos e não renderizamos este navio
+                                console.warn('Could not resolve assignedDockId to layout element:', visit.assignedDockId, err);
+                            }
+                        }
+
                         if (dock && dock.type === 'dock') {
                             const vesselDetails = await getVesselByImo(visit.vesselImo);
                             const vesselType = vesselTypesMap.get(vesselDetails.vesselTypeId ?? '');

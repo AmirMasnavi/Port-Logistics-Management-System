@@ -2,7 +2,6 @@
 import axios from 'axios';
 import { auth } from '../firebaseConfig';
 import { onAuthStateChanged, type User } from 'firebase/auth';
-import type { VesselType, VesselTypeCreateDto } from '../types';
 import type { VesselType, VesselTypeCreateDto, PortLayout, VesselVisit, Resource } from '../types';
 
 // 1. Crie uma instância central do Axios
@@ -107,6 +106,17 @@ export const getVesselByImo = async (imo: string): Promise<{ imo: string; name: 
         return response.data;
     } catch (error) {
         console.error('Error fetching vessel by IMO:', error);
+        throw error;
+    }
+};
+
+// Use the dock controller route that returns dock by ID at GET /api/Dock/{id}
+export const getDockById = async (id: string): Promise<{ id: string; name: string }> => {
+    try {
+        const response = await apiClient.get(`/Dock/${id}`);
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching dock by ID:', error);
         throw error;
     }
 };

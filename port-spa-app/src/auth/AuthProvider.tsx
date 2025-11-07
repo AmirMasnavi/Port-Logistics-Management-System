@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 // src/auth/AuthProvider.tsx
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, signOut, type User } from 'firebase/auth';
