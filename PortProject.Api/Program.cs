@@ -32,6 +32,7 @@ using PortProject.Api.Domain.ShippingAgentOrganizationAggregate;
 using PortProject.Api.Domain.ShippingAgentRepresentativeAggregate;
 using PortProject.Api.Domain.VesselVisitNotificationAggregate;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using PortProject.Api.Application.PortLayout;
 using Microsoft.IdentityModel.Tokens;
 
 
@@ -95,6 +96,7 @@ builder.Services.AddScoped<IDockRepository, DockRepository>();
 builder.Services.AddScoped<IDockService, DockService>();
 builder.Services.AddScoped<IResourceService, ResourceService>();
 builder.Services.AddScoped<IResourceRepository, ResourceRepository>();
+builder.Services.AddScoped<IPortLayoutService, PortLayoutService>();
 
 
 // Add CORS
