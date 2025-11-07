@@ -66,6 +66,16 @@ export const createVesselType = async (vesselTypeData: VesselTypeCreateDto): Pro
     }
 };
 
+export const assignUserRole = async (email: string, role: string) => {
+    try {
+        const response = await apiClient.post('/admin/assign-role', { email, role });
+        return response.data;
+    } catch (error) {
+        console.error('Error assigning role:', error);
+        throw error;
+    }
+};
+
 // --- New functions used by the visualization ---
 
 export const getPortLayout = async (layoutId: string): Promise<PortLayout> => {
