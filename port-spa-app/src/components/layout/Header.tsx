@@ -71,7 +71,7 @@ const LanguageSelector: React.FC = () => {
 
 const Header: React.FC = () => {
     // 2. Use our new Firebase auth hook
-    const { isAuthenticated, isLoading, user, logout } = useAuth();
+    const { isAuthenticated, isLoading, user, logout, internalRole } = useAuth();
     const { t } = useTranslation();
 
     // 3. Add state for the login modal
@@ -91,7 +91,7 @@ const Header: React.FC = () => {
                         </div>
                     </div>
 
-                    {isAuthenticated && (
+                    {isAuthenticated && internalRole && (
                         <nav className="hidden md:flex items-center gap-2">
                             <NavLink to="/" label={t('nav.dashboard')} />
                             <NavLink to="/vessel-types" label={t('nav.vesselTypes')} />

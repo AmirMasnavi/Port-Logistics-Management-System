@@ -75,3 +75,15 @@ export const assignUserRole = async (email: string, role: string) => {
         throw error;
     }
 };
+
+export const getMyRole = async (): Promise<{ role: string }> => {
+    try {
+        // This endpoint requires a valid Firebase token, which our
+        // apiClient interceptor automatically adds to the headers.
+        const response = await apiClient.get('/auth/my-role');
+        return response.data; // Will return { role: "Administrator" }
+    } catch (error) {
+        console.error('Error fetching user role:', error);
+        throw error;
+    }
+};

@@ -1,9 +1,11 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import BrandLogo from '../common/BrandLogo';
+import { useAuth } from '../../auth/AuthProvider';
 
 const Sidebar: React.FC = () => {
     const location = useLocation();
+    const { internalRole } = useAuth();
 
     const Item: React.FC<{ to: string; label: string }> = ({ to, label }) => {
         const active = location.pathname === to;
@@ -34,7 +36,16 @@ const Sidebar: React.FC = () => {
                 <Item to="/" label="Dashboard" />
                 <Item to="/vessel-types" label="Vessel Types" />
                 <Item to="/vessel-visits" label="Vessel Visits" />
-                {/* Add other nav items here */}
+                <Item to="/visualization" label="Visualization" />
+
+                {/* 3. ADD CONDITIONAL RENDERING FOR THE ADMIN LINK */}
+                {internalRole === 'Administrator' && (
+                    <>
+                        {/* Add a divider */}
+                        <hr className="my-2" />
+                        <Item to="/admin/users" label="User Admin" />
+                    </>
+                )}
             </nav>
 
             <div className="p-4 border-t">
