@@ -42,3 +42,25 @@ export const createVesselType = async (vesselTypeData: VesselTypeCreateDto): Pro
         throw error;
     }
 };
+
+
+
+export const getAllShippingAgentOrganizations = async (): Promise<any[]> => {
+    try {
+        const response = await apiClient.get<any[]>(`/ShippingAgentOrganization`);
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching shipping agent organizations:', error);
+        throw error;
+    }
+}
+
+export const getAllShippingAgentRepresentatives = async (): Promise<any[]> => {
+    try {
+        const response = await apiClient.get<any[]>(`/ShippingAgentRepresentative`);
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching shipping agent representatives:', error);
+        throw error;
+    }
+}
