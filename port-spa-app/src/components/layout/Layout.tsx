@@ -3,30 +3,55 @@ import React from 'react';
 import Header from './Header';
 import Sidebar from './Sidebar';
 import Footer from './Footer';
-import { useAuth0 } from '@auth0/auth0-react'; // Importe o hook
+import { useAuth } from '../../auth/AuthProvider'; // <-- IMPORT OUR NEW HOOK
+import { useLocation } from 'react-router-dom';
 
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const { isAuthenticated, isLoading } = useAuth0();
+    // Get state from our new hook
+    const { isAuthenticated, isLoading, isInternalLoading, internalRole } = useAuth();
+    const location = useLocation();
 
-    if (isLoading) {
+    if (isLoading || isInternalLoading) {
         return <div className="flex h-screen items-center justify-center">Loading...</div>;
     }
 
-    // Se não estiver autenticado, pode mostrar uma página de login ou simplesmente nada do layout principal
-    if (!isAuthenticated) {
-       
-        // Por agora, o Header vai mostrar "Login".
-    }
+    // This function decides what to show in the main content area
+    const renderContent = () => {
 
+        if (location.pathname === '/activate') {
+            return children;
+        }
+        
+        if (isAuthenticated) {
+            if (internalRole) {
+                return children; // Logged in AND authorized
+            }
+            // Logged in but NOT authorized
+            return (
+                <div className="text-center text-xl panel max-w-lg mx-auto">
+                    <h2 className="font-bold text-red-600 text-2xl">Access Denied</h2>
+                    <p className="mt-2">
+                        You have successfully logged in, but your account is not activated
+                        or does not have a role assigned in this system.
+                    </p>
+                    <p className="mt-2">Please contact your administrator.</p>
+                </div>
+            );
+        }
+        // Not logged in
+        return <div className="text-center text-xl">Please log in to continue.</div>;
+    };
+
+    // This logic remains almost identical
     return (
         <div className="flex h-screen bg-gray-100">
-            {isAuthenticated && <Sidebar />} {/* Mostra a sidebar só se estiver autenticado */}
+            {isAuthenticated && internalRole && <Sidebar />}
             <div className="flex-1 flex flex-col">
                 <Header />
                 <main className="flex-1 overflow-y-auto p-6">
-                    {isAuthenticated ? children : <div className="text-center text-xl">Por favor, faça login para continuar.</div>}
+                    {renderContent()}
                 </main>
-                {isAuthenticated && <Footer />}
+                {isAuthenticated && internalRole && <Footer />}
             </div>
         </div>
     );

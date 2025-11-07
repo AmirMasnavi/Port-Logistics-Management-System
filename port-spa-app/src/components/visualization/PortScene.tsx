@@ -1,29 +1,72 @@
 ﻿import React from 'react';
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls, Box } from '@react-three/drei';
+import { OrbitControls, Grid, Sky } from '@react-three/drei';
+import type { LayoutElement, RenderableVessel, RenderableResource } from '../../types';
+import {
+    DockModel, LandModel, WaterModel, YardModel, BuildingModel,
+    VesselModel, STSCraneModel, YardCraneModel
+} from './models';
 
-// React.FC is a type that represents a Functional Component in React.
-const PortScene: React.FC = () => {
+interface PortSceneProps {
+    layoutElements: LayoutElement[];
+    vessels: RenderableVessel[];
+    resources: RenderableResource[];
+}
+
+const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resources }) => {
     return (
-        // The Canvas component sets up the Three.js scene and renderer.
-        <Canvas camera={{ position: [0, 2, 5], fov: 75 }}>
-            {/* 1. Lighting */}
-            <ambientLight intensity={0.5} />
-            <directionalLight position={[10, 10, 5]} intensity={1} />
+        <Canvas shadows camera={{ position: [0, 40, 50], fov: 50 }}>
+            <Sky sunPosition={[100, 20, 100]} />
+            <ambientLight intensity={0.6} />
+            <directionalLight
+                position={[50, 50, 25]}
+                intensity={1.5}
+                castShadow
+                shadow-mapSize-width={2048}
+                shadow-mapSize-height={2048}
+            />
 
-            {/* 2. Objects - A placeholder box */}
-            <Box position={[0, 0.5, 0]}>
-                <meshStandardMaterial color="royalblue" />
-            </Box>
+            <Grid infiniteGrid sectionColor="gray" fadeDistance={100} />
 
-            {/* A simple plane to act as the ground */}
-            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
-                <planeGeometry args={[10, 10]} />
-                <meshStandardMaterial color="gray" />
-            </mesh>
+            {/* 1. Renderizar Elementos do Layout Estático */}
+            {layoutElements.map(el => {
+                switch (el.type) {
+                    case 'dock':
+                        return <DockModel key={el.id} position={el.position} size={el.size} label={el.name} />;
+                    case 'yard':
+                        return <YardModel key={el.id} position={el.position} size={el.size} label={el.name} />;
+                    case 'land':
+                        return <LandModel key={el.id} position={el.position} size={el.size} />;
+                    case 'water':
+                        return <WaterModel key={el.id} position={el.position} size={el.size} />;
+                    case 'building':
+                        return <BuildingModel key={el.id} position={el.position} size={el.size} label={el.name} />;
+                    default:
+                        return null;
+                }
+            })}
 
-            {/* 3. Controls - Allows mouse navigation */}
-            <OrbitControls />
+            {/* 2. Renderizar Navios nos seus locais */}
+            {vessels.map(v => (
+                <VesselModel key={v.id} position={v.position} size={v.size} label={v.name} />
+            ))}
+
+            {/* 3. Renderizar Recursos (Gruas) nos seus locais */}
+            {resources.map(r => {
+                if(r.kind.toLowerCase().includes('crane')){
+                    // Simplificação: assumimos que gruas em docas são STS, e em pátios são de pátio
+                    const area = layoutElements.find(el => el.id === r.id); // area.id = resource.assignedArea
+                    if(area?.type === 'dock') {
+                        return <STSCraneModel key={r.id} position={r.position} size={r.size} label={r.code} />;
+                    }
+                    if(area?.type === 'yard') {
+                        return <YardCraneModel key={r.id} position={r.position} size={r.size} label={r.code} />;
+                    }
+                }
+                return null;
+            })}
+
+            <OrbitControls makeDefault />
         </Canvas>
     );
 };
