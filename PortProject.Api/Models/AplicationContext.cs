@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using PortProject.Api.Domain.AppUserAggregate;
 using PortProject.Api.Domain.QualificationAggregate;
 using PortProject.Api.Domain.StaffMemberAggregate;
 using PortProject.Api.Domain.VesselAggregate;
@@ -35,6 +36,7 @@ public class PortProjectContext : DbContext
     public DbSet<ShippingAgentOrganization> ShippingAgentOrganizations { get; set; }
     public DbSet<ShippingAgentRepresentative> ShippingAgentRepresentatives { get; set; }
     public DbSet<VesselVisitNotification> VesselVisitNotifications { get; set; }
+    public DbSet<AppUser> AppUsers { get; set; }
     
     public DbSet<Resource> Resources { get; set; }
 
@@ -589,6 +591,13 @@ public class PortProjectContext : DbContext
             v => v == null ? 0 : v.OrderBy(x => x).Aggregate(0, (acc, s) => HashCode.Combine(acc, (s == null ? 0 : s.GetHashCode()))),
             v => v == null ? new List<string>() : v.ToList()
         );
+        
+        // === APP USER CONFIGURATION ===
+        var appUserBuilder = modelBuilder.Entity<AppUser>();
+        appUserBuilder.HasKey(u => u.Email); // Use Email as the Primary Key
+        appUserBuilder.Property(u => u.Role).HasConversion<string>();
+        appUserBuilder.Property(u => u.Status).HasConversion<string>();
+        appUserBuilder.Property(u => u.ActivationToken).IsRequired(false);
 
         // Optional: default table name
         resourceBuilder.ToTable("Resources");

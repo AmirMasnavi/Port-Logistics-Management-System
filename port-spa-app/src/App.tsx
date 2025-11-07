@@ -4,6 +4,7 @@ import Layout from './components/layout/Layout';
 import VesselTypesPage from './pages/VesselTypesPage';
 import VisualizationPage from './pages/VisualizationPage';
 import {setupApiInterceptor} from "./services/apiService.ts";
+import AdminPage from './pages/AdminPage';
 
 // We can create a simple placeholder for the dashboard page
 const DashboardPage = () => <div className="text-xl">Welcome to the Port Authority Dashboard!</div>;
@@ -31,6 +32,7 @@ function App() {
 
                     {/* Route for the 3D Visualization Page */}
                     <Route path="/visualization" element={<VisualizationPage />} />
+                    <Route path="/admin/users" element={<AdminPage />} />
                 </Routes>
             </Layout>
         </BrowserRouter>

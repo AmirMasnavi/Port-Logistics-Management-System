@@ -65,3 +65,13 @@ export const createVesselType = async (vesselTypeData: VesselTypeCreateDto): Pro
         throw error;
     }
 };
+
+export const assignUserRole = async (email: string, role: string) => {
+    try {
+        const response = await apiClient.post('/admin/assign-role', { email, role });
+        return response.data;
+    } catch (error) {
+        console.error('Error assigning role:', error);
+        throw error;
+    }
+};
