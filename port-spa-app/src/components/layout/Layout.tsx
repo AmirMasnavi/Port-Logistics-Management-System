@@ -4,10 +4,12 @@ import Header from './Header';
 import Sidebar from './Sidebar';
 import Footer from './Footer';
 import { useAuth } from '../../auth/AuthProvider'; // <-- IMPORT OUR NEW HOOK
+import { useLocation } from 'react-router-dom';
 
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     // Get state from our new hook
     const { isAuthenticated, isLoading, isInternalLoading, internalRole } = useAuth();
+    const location = useLocation();
 
     if (isLoading || isInternalLoading) {
         return <div className="flex h-screen items-center justify-center">Loading...</div>;
@@ -15,6 +17,11 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
     // This function decides what to show in the main content area
     const renderContent = () => {
+
+        if (location.pathname === '/activate') {
+            return children;
+        }
+        
         if (isAuthenticated) {
             if (internalRole) {
                 return children; // Logged in AND authorized

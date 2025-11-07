@@ -87,3 +87,14 @@ export const getMyRole = async (): Promise<{ role: string }> => {
         throw error;
     }
 };
+
+export const activateUserAccount = async (token: string) => {
+    try {
+        // This is an anonymous endpoint, no token is needed
+        const response = await apiClient.get(`/auth/activate?token=${token}`);
+        return response.data; // Will return { message: "Account activated..." }
+    } catch (error) {
+        console.error('Error activating account:', error);
+        throw error;
+    }
+};
