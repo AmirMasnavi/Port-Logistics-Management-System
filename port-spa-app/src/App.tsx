@@ -14,6 +14,8 @@ const DashboardPage = () => <div className="text-xl">Welcome to the Port Authori
 // Placeholder for the page we will build in US 3.1.5
 const VesselVisitsPage = () => <div className="text-xl">Vessel Visits Page (Coming Soon!)</div>;
 
+const PortFacilitiesPage = () => <div className="text-xl">Port Facilities Page (Coming Soon!)</div>;
+
 function App() {
     // All the auth logic is removed from here.
     // It's now handled by AuthProvider (in main.tsx) and apiService.ts.
@@ -32,6 +34,7 @@ function App() {
                     <Route path="/vessel-visits" element={<VesselVisitsPage />} />
                     <Route path="/shippingagentorganization" element={<ShippingAgentOrganization />} />
                     {/* We will add more routes here for Docks, Resources, etc. */}
+                    <Route path="/port-facilities" element={<PortFacilitiesPage />} />
 
                     {/* Route for the 3D Visualization Page */}
                     <Route path="/visualization" element={<VisualizationPage />} />

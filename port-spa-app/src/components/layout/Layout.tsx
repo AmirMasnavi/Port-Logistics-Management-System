@@ -1,32 +1,38 @@
 // port-spa-app/src/components/layout/Layout.tsx
-import React from 'react';
+import React, { useState } from 'react';
 import Header from './Header';
 import Sidebar from './Sidebar';
 import Footer from './Footer';
-import { useAuth } from '../../auth/AuthProvider'; // <-- IMPORT OUR NEW HOOK
+import { useAuth } from '../../auth/AuthProvider';
 import { useLocation } from 'react-router-dom';
 
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    // Get state from our new hook
     const { isAuthenticated, isLoading, isInternalLoading, internalRole } = useAuth();
     const location = useLocation();
+
+    // This is the state we added in the last step
+    const [isSidebarHovered, setIsSidebarHovered] = useState(false);
+    const [isSidebarPinned, setIsSidebarPinned] = useState(false);
+    const isExpanded = isSidebarPinned || isSidebarHovered;
+
+    // --- THIS IS NEW ---
+    // We need a simple boolean to tell the header if the sidebar is visible at all.
+    const isSidebarVisible = !!(isAuthenticated && internalRole);
+    // -------------------
 
     if (isLoading || isInternalLoading) {
         return <div className="flex h-screen items-center justify-center">Loading...</div>;
     }
 
-    // This function decides what to show in the main content area
     const renderContent = () => {
-
+        // (This function is unchanged)
         if (location.pathname === '/activate') {
             return children;
         }
-        
         if (isAuthenticated) {
             if (internalRole) {
-                return children; // Logged in AND authorized
+                return children;
             }
-            // Logged in but NOT authorized
             return (
                 <div className="text-center text-xl panel max-w-lg mx-auto">
                     <h2 className="font-bold text-red-600 text-2xl">Access Denied</h2>
@@ -38,20 +44,40 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 </div>
             );
         }
-        // Not logged in
         return <div className="text-center text-xl">Please log in to continue.</div>;
     };
 
-    // This logic remains almost identical
     return (
         <div className="flex h-screen bg-gray-100">
-            {isAuthenticated && internalRole && <Sidebar />}
+            {isSidebarVisible && (
+                <Sidebar
+                    isExpanded={isExpanded}
+                    isPinned={isSidebarPinned}
+                    setIsHovered={setIsSidebarHovered}
+                    setIsPinned={setIsSidebarPinned}
+                />
+            )}
+
             <div className="flex-1 flex flex-col">
-                <Header />
-                <main className="flex-1 overflow-y-auto p-6">
+                {/* --- THIS IS THE MAIN CHANGE ---
+                  We now pass the sidebar's state to the Header.
+                */}
+                <Header
+                    isSidebarVisible={isSidebarVisible}
+                    isExpanded={isExpanded}
+                />
+
+                {/* This main tag is already correct from our last step */}
+                <main className={`flex-1 overflow-y-auto p-6 transition-all duration-300 ${
+                    isSidebarVisible ? (isExpanded ? 'md:ml-64' : 'md:ml-20') : ''
+                }`}>
                     {renderContent()}
                 </main>
-                {isAuthenticated && internalRole && <Footer />}
+                {isSidebarVisible && 
+                    <Footer
+                        isSidebarVisible={isSidebarVisible}
+                        isExpanded={isExpanded}
+                    />}
             </div>
         </div>
     );
