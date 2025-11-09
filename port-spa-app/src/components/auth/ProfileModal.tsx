@@ -50,7 +50,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) => {
     };
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title="Edit Profile">
+        <Modal isOpen={isOpen} onClose={onClose} title="Edit Profile" showFooter={false}>
             <form onSubmit={handleSubmit} className="space-y-4">
                 {/* --- Messages --- */}
                 {error && (

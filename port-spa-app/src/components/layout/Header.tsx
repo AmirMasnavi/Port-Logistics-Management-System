@@ -5,7 +5,10 @@ import { useAuth } from '../../auth/AuthProvider';
 import { useTranslation } from 'react-i18next';
 import LoginModal from '../auth/LoginModal';
 import ProfileModal from '../auth/ProfileModal';
-import { User, ChevronDown, LogOut, Edit } from 'lucide-react';
+import { User, ChevronDown, LogOut, Edit, KeyRound } from 'lucide-react';
+// 1. IMPORT FIREBASE FUNCTIONS
+import { auth } from '../../firebaseConfig';
+import { sendPasswordResetEmail } from 'firebase/auth';
 
 // --- We need to pass new props to our dropdowns to manage their state ---
 interface DropdownProps {
@@ -68,30 +71,43 @@ const LanguageSelector: React.FC<DropdownProps> = ({ isOpen, setIsOpen }) => {
     );
 };
 
-// 2. ProfileDropdown Component (UPDATED)
 const ProfileDropdown: React.FC<DropdownProps> = ({ isOpen, setIsOpen }) => {
     const { user, logout } = useAuth();
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+    // 4. NEW STATE for password reset message
+    const [resetMessage, setResetMessage] = useState<{type: 'success' | 'error', text: string} | null>(null);
 
-    // --- UPDATED This logic for the name (Point 4) ---
-    const displayName = user?.displayName; // Just the display name
-    const buttonText = displayName || "Profile"; // Show name, or "Profile" as fallback
-
-    // --- UPDATED This logic (Point 3) ---
-    // We removed the photoURL, so we just show the User icon
+    const displayName = user?.displayName;
+    const buttonText = displayName || "Profile";
     const photo = <User className="w-5 h-5 text-gray-600" />;
+
+    const handleChangePassword = async () => {
+        if (user && user.email) {
+            try {
+                await sendPasswordResetEmail(auth, user.email);
+                // 2. SET SUCCESS MESSAGE
+                setResetMessage({type: 'success', text: 'Password reset email sent!'});
+                setTimeout(() => setResetMessage(null), 3000); // 3-second delay
+            } catch (error) {
+                console.error("Error sending password reset email:", error);
+                // 3. SET ERROR MESSAGE
+                setResetMessage({type: 'error', text: 'Failed to send email.'});
+                setTimeout(() => setResetMessage(null), 3000); // 3-second delay
+            }
+        }
+    };
 
     return (
         <>
             <div className="relative">
                 <button
-                    onClick={setIsOpen} // Use prop to set state
+                    onClick={setIsOpen}
                     className="flex items-center gap-2 p-2 rounded-lg hover:bg-maritime-250"
                     title="Profile"
                 >
                     {photo}
                     <span className="text-sm font-medium hidden sm:block">
-                        {buttonText} {/* --- UPDATED (Point 4) --- */}
+                        {buttonText}
                     </span>
                     <ChevronDown className="w-4 h-4 text-gray-500" />
                 </button>
@@ -117,6 +133,14 @@ const ProfileDropdown: React.FC<DropdownProps> = ({ isOpen, setIsOpen }) => {
                                 <Edit className="w-4 h-4" />
                                 Edit Profile
                             </button>
+                            {/* --- 6. NEW BUTTON --- */}
+                            <button
+                                onClick={handleChangePassword}
+                                className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                            >
+                                <KeyRound className="w-4 h-4" />
+                                Change Password
+                            </button>
                             <button
                                 onClick={logout}
                                 className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
@@ -125,6 +149,14 @@ const ProfileDropdown: React.FC<DropdownProps> = ({ isOpen, setIsOpen }) => {
                                 Logout
                             </button>
                         </div>
+                        {/* --- 7. NEW MESSAGE AREA --- */}
+                        {resetMessage && (
+                            <div className={`px-4 py-2 text-xs text-center border-t ${
+                                resetMessage.type === 'success' ? 'text-green-600' : 'text-red-600'
+                            }`}>
+                                {resetMessage.text}
+                            </div>
+                        )}
                     </div>
                 )}
             </div>
@@ -137,7 +169,6 @@ const ProfileDropdown: React.FC<DropdownProps> = ({ isOpen, setIsOpen }) => {
         </>
     );
 };
-
 
 // 3. Main Header Component (UPDATED)
 interface HeaderProps {

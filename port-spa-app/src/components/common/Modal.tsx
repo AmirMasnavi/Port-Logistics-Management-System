@@ -7,9 +7,10 @@ interface ModalProps {
     onClose: () => void;
     title: string;
     children: React.ReactNode;
+    showFooter?: boolean;
 }
 
-const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
+const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, showFooter = true }) => {
     // Close on ESC
     useEffect(() => {
         const onKey = (e: KeyboardEvent) => {
@@ -30,7 +31,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
     return (
         // Backdrop
         <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 p-4"
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-40 p-4"
             aria-modal="true"
             role="dialog"
             onClick={onClose} // click on backdrop closes
@@ -66,9 +67,11 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
                 </div>
 
                 {/* Footer (optional space for actions) */}
-                <div className="p-4 border-t flex justify-end gap-2">
-                    <button onClick={onClose} className="btn btn-primary">Close</button>
-                </div>
+                {showFooter && (
+                    <div className="p-4 border-t flex justify-end gap-2">
+                        <button onClick={onClose} className="btn btn-primary">Close</button>
+                    </div>
+                )}
             </div>
         </div>
     );
