@@ -26,6 +26,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [internalRole, setInternalRole] = useState<string | null>(null);
 
     useEffect(() => {
+        // ✅ Track Firebase authentication state
+        // (onAuthStateChanged listens for login/logout and sets user state)
         // This is the core of Firebase auth: it listens for changes
         const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
             setUser(firebaseUser);
@@ -40,11 +42,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const fetchRole = async () => {
             if (user) {
                 try {
+                    // ✅ Call getMyRole() after Firebase authentication is confirmed
                     const data = await getMyRole(); // Call our new API
+                    // ✅ Store internal role in context (internalRole)
                     setInternalRole(data.role); // e.g., "Administrator"
                 } catch (error: any) {
                     // This happens if the user is 403 Forbidden (not in DB or deactivated)
                     console.error("Internal role check failed:", error.message);
+                    // ✅ Handle 403 Forbidden by triggering logout and redirecting to /login
                     setInternalRole(null);
                     // 🔐 Logout automático se receber 403
                     if (error?.response?.status === 403) {
@@ -56,6 +61,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 // No Firebase user, so no internal role
                 setInternalRole(null);
             }
+            // ✅ Expose isInternalLoading to block UI until role is resolved
             setIsInternalLoading(false);
         };
 
@@ -70,10 +76,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     useEffect(() => {
         let interval: ReturnType<typeof setInterval> | undefined;
 
+        // ✅ Periodic silent token refresh to avoid session expiration
         const setupTokenRefresh = (user: User) => {
             interval = setInterval(() => {
                 user.getIdToken(true).catch((err) => {
-                    console.error('Erro ao forçar refresh do token:', err);
+                    console.error('Error when forcing token refresh:', err);
                 });
             }, 50 * 60 * 1000); // 50 minutos
         };
@@ -86,7 +93,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (interval !== undefined) clearInterval(interval);
         };
     }, [user]);
-        
+
+    // ✅ Ensure logout clears both Firebase session and internal role state        
     const logout = async () => {
         await signOut(auth);
         setInternalRole(null);
@@ -96,8 +104,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         user,
         isAuthenticated: !!user,
         isLoading,
-        isInternalLoading,
-        internalRole,
+        isInternalLoading, // exposed to consumers
+        internalRole,      // exposed to consumers
         logout,
     };
 
