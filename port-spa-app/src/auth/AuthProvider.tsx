@@ -46,6 +46,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     // This happens if the user is 403 Forbidden (not in DB or deactivated)
                     console.error("Internal role check failed:", error.message);
                     setInternalRole(null);
+                    // 🔐 Logout automático se receber 403
+                    if (error?.response?.status === 403) {
+                        await logout();
+                        window.location.href = '/login';
+                    }
                 }
             } else {
                 // No Firebase user, so no internal role
@@ -61,6 +66,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     }, [user, isLoading]);
 
+    // 🔄 Refresh automático do token a cada 50 minutos
+    useEffect(() => {
+        let interval: ReturnType<typeof setInterval> | undefined;
+
+        const setupTokenRefresh = (user: User) => {
+            interval = setInterval(() => {
+                user.getIdToken(true).catch((err) => {
+                    console.error('Erro ao forçar refresh do token:', err);
+                });
+            }, 50 * 60 * 1000); // 50 minutos
+        };
+
+        if (user) {
+            setupTokenRefresh(user);
+        }
+
+        return () => {
+            if (interval !== undefined) clearInterval(interval);
+        };
+    }, [user]);
+        
     const logout = async () => {
         await signOut(auth);
         setInternalRole(null);

@@ -1,49 +1,139 @@
 // port-spa-app/src/services/apiService.ts
-import axios from 'axios';
+import axios, {type AxiosResponse, type InternalAxiosRequestConfig} from 'axios';
 import { auth } from '../firebaseConfig';
-import { onAuthStateChanged, type User } from 'firebase/auth';
+import {onAuthStateChanged, signOut, type User} from 'firebase/auth';
 import type { VesselType, VesselTypeCreateDto, PortLayout, VesselVisit, Resource } from '../types';
 
-// 1. Crie uma instância central do Axios
+// 1. Create a central instance of Axios
 const apiClient = axios.create({
     baseURL: 'http://localhost:5273/api',
+    timeout: 15000,
 });
 
-// Helper to get the current user's token
+// Helper para obter o token do utilizador atual (usa SDK do Firebase)
 const getAccessToken = (): Promise<string | null> => {
     return new Promise((resolve) => {
         const currentUser = auth.currentUser;
         if (currentUser) {
-            currentUser.getIdToken().then(resolve);
+            currentUser.getIdToken().then(resolve).catch(() => resolve(null));
         } else {
-            // Wait for auth state to be initialized
             const unsubscribe = onAuthStateChanged(auth, (user: User | null) => {
-                unsubscribe(); // Stop listening
+                unsubscribe();
                 if (user) {
-                    user.getIdToken().then(resolve);
+                    user.getIdToken().then(resolve).catch(() => resolve(null));
                 } else {
-                    resolve(null); // No user logged in
+                    resolve(null);
                 }
             });
         }
     });
 };
+// Mechanism to prevent multiple simultaneous refreshes
+let isRefreshing = false;
+let refreshPromise: Promise<string | null> | null = null;
+const queuedRequests: Array<(token: string | null) => void> = [];
 
-// This function can now be called inside App.tsx or directly here
-export const setupApiInterceptor = () => {
-    apiClient.interceptors.request.use(async (config) => {
-        try {
-            const token = await getAccessToken();
-            config.headers.Authorization = `Bearer ${token}`;
-        } catch (e) {
-            console.error("Could not get access token", e);
-        }
-        return config;
-    });
+const processQueue = (token: string | null) => {
+    while (queuedRequests.length) {
+        const cb = queuedRequests.shift();
+        if (cb) cb(token);
+    }
 };
 
 
-// 3. Atualize as suas funções para usarem a instância `apiClient`
+// Initialise interceptors: request (attach token) and response (refresh on 401 + retry)
+export const initializeApi = () => {
+    // Request interceptor: uses the internal type for compatibility with Axios
+    apiClient.interceptors.request.use(
+        async (config: InternalAxiosRequestConfig) => {
+            try {
+                const token = await getAccessToken();
+                if (token) {
+                    if (!config.headers) config.headers = {} as any;
+                    (config.headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
+                }
+            } catch (e) {
+                console.error('Não foi possível obter o token de acesso', e);
+            }
+            return config;
+        },
+        (error: any) => Promise.reject(error)
+    );
+
+    // Response interceptor: attempts to refresh on 401 and re-executes the request once
+    apiClient.interceptors.response.use(
+        (response: AxiosResponse) => response,
+        async (error: any) => {
+            const originalRequest = (error?.config ?? {}) as any;
+            const status = error?.response?.status;
+
+            if (status === 401 && !originalRequest._retry) {
+                // If a refresh is already in progress, queue the request.
+                if (isRefreshing) {
+                    return new Promise((resolve, reject) => {
+                        queuedRequests.push(async (token) => {
+                            if (token) {
+                                originalRequest.headers = originalRequest.headers || {};
+                                (originalRequest.headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
+                                try {
+                                    const res = await apiClient(originalRequest);
+                                    resolve(res);
+                                } catch (err) {
+                                    reject(err);
+                                }
+                            } else {
+                                reject(error);
+                            }
+                        });
+                    });
+                }
+                // Start a refresh
+                originalRequest._retry = true;
+                isRefreshing = true;
+                refreshPromise = (async () => {
+                    try {
+                        const user = auth.currentUser;
+                        if (!user) return null;
+                        const freshToken = await user.getIdToken(true);
+                        return freshToken;
+                    } catch (refreshError) {
+                        console.error('Refresh de token falhou', refreshError);
+                        return null;
+                    }
+                })();
+                const freshToken = await refreshPromise;
+                isRefreshing = false;
+                refreshPromise = null;
+
+                if (freshToken) {
+                    // Process queue with new token and re-execute the original request
+                    processQueue(freshToken);
+                    if (!originalRequest.headers) originalRequest.headers = {};
+                    (originalRequest.headers as Record<string, string>)['Authorization'] = `Bearer ${freshToken}`;
+                    return apiClient(originalRequest);
+                }
+
+                // If the refresh fails, it signs you out and redirects you to the login page.
+                processQueue(null);
+                try {
+                    await signOut(auth);
+                } catch (signOutErr) {
+                    console.error('Falha ao fazer sign out', signOutErr);
+                }
+                window.location.href = '/login';
+            }
+
+            return Promise.reject(error);
+        }
+    );
+};           
+            
+export { apiClient };
+
+export const setupApiInterceptor = initializeApi;
+              
+
+// 3. Update your functions to use the `apiClient` instance.
 export const getAllVesselTypes = async (): Promise<VesselType[]> => {
     try {
         const response = await apiClient.get<VesselType[]>(`/VesselType`);
@@ -53,6 +143,7 @@ export const getAllVesselTypes = async (): Promise<VesselType[]> => {
         throw error;
     }
 };
+
 
 export const createVesselType = async (vesselTypeData: VesselTypeCreateDto): Promise<VesselType> => {
     try {
