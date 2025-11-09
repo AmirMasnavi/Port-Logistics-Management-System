@@ -28,6 +28,7 @@ const getAccessToken = (): Promise<string | null> => {
         }
     });
 };
+// Topic: Axios response interceptor handling 401, performing silent token refresh and retry (with queue)
 // Mechanism to prevent multiple simultaneous refreshes
 let isRefreshing = false;
 let refreshPromise: Promise<string | null> | null = null;
@@ -53,7 +54,7 @@ export const initializeApi = () => {
                     (config.headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
                 }
             } catch (e) {
-                console.error('Não foi possível obter o token de acesso', e);
+                console.error('Unable to obtain access token', e);
             }
             return config;
         },
@@ -113,12 +114,13 @@ export const initializeApi = () => {
                     return apiClient(originalRequest);
                 }
 
+                // Topic: Sign-out and redirect to /login when token refresh fails.
                 // If the refresh fails, it signs you out and redirects you to the login page.
                 processQueue(null);
                 try {
                     await signOut(auth);
                 } catch (signOutErr) {
-                    console.error('Falha ao fazer sign out', signOutErr);
+                    console.error('Failure to sign out', signOutErr);
                 }
                 window.location.href = '/login';
             }
