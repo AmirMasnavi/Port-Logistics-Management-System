@@ -2,7 +2,14 @@
 import axios, {type AxiosResponse, type InternalAxiosRequestConfig} from 'axios';
 import { auth } from '../firebaseConfig';
 import {onAuthStateChanged, signOut, type User} from 'firebase/auth';
-import type { VesselType, VesselTypeCreateDto, PortLayout, VesselVisit, Resource } from '../types';
+import type {
+    VesselType,
+    VesselTypeCreateDto,
+    PortLayout,
+    VesselVisit,
+    Resource,
+    VesselVisitNotification, CreateVvnDto, ApproveVvnDto, RejectVvnDto
+} from '../types';
 
 // 1. Create a central instance of Axios
 const apiClient = axios.create({
@@ -261,6 +268,89 @@ export const getDockById = async (id: string): Promise<{ id: string; name: strin
         return response.data;
     } catch (error) {
         console.error('Error fetching dock by ID:', error);
+        throw error;
+    }
+};
+
+// --- Vessel Visit Notification Service (FIXED) ---
+
+// GET /api/notifications/search
+export const getAllVvns = async (): Promise<VesselVisitNotification[]> => {
+    try {
+        // --- FIX: Used apiClient and correct endpoint ---
+        const response = await apiClient.get<VesselVisitNotification[]>('/notifications/search');
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching VVNs:', error);
+        throw error;
+    }
+};
+
+// GET /api/notifications/{id}
+export const getVvnById = async (id: string): Promise<VesselVisitNotification> => {
+    try {
+        // --- FIX: Used apiClient and correct endpoint ---
+        const response = await apiClient.get<VesselVisitNotification>(`/notifications/${id}`);
+        return response.data;
+    } catch (error) {
+        console.error(`Error fetching VVN ${id}:`, error);
+        throw error;
+    }
+};
+
+// POST /api/notifications
+export const createVvn = async (dto: CreateVvnDto): Promise<VesselVisitNotification> => {
+    try {
+        // --- FIX: Used apiClient and correct endpoint ---
+        const response = await apiClient.post<VesselVisitNotification>('/notifications', dto);
+        return response.data;
+    } catch (error) {
+        console.error('Error creating VVN:', error);
+        throw error;
+    }
+};
+
+// PUT /api/notifications/{id}
+export const updateVvn = async (id: string, dto: CreateVvnDto): Promise<VesselVisitNotification> => {
+    try {
+        // --- FIX: Used apiClient and correct endpoint ---
+        const response = await apiClient.put<VesselVisitNotification>(`/notifications/${id}`, dto);
+        return response.data;
+    } catch (error) {
+        console.error(`Error updating VVN ${id}:`, error);
+        throw error;
+    }
+};
+
+// PATCH /api/notifications/{id}/submit
+export const submitVvn = async (id: string): Promise<void> => {
+    try {
+        // --- FIX: Used apiClient and correct endpoint ---
+        await apiClient.patch(`/notifications/${id}/submit`);
+    } catch (error) {
+        console.error(`Error submitting VVN ${id}:`, error);
+        throw error;
+    }
+};
+
+// PATCH /api/notifications/{id}/approve
+export const approveVvn = async (id: string, dto: ApproveVvnDto): Promise<void> => {
+    try {
+        // --- FIX: Used apiClient and correct endpoint ---
+        await apiClient.patch(`/notifications/${id}/approve`, dto);
+    } catch (error) {
+        console.error(`Error approving VVN ${id}:`, error);
+        throw error;
+    }
+};
+
+// PATCH /api/notifications/{id}/reject
+export const rejectVvn = async (id: string, dto: RejectVvnDto): Promise<void> => {
+    try {
+        // --- FIX: Used apiClient and correct endpoint ---
+        await apiClient.patch(`/notifications/${id}/reject`, dto);
+    } catch (error) {
+        console.error(`Error rejecting VVN ${id}:`, error);
         throw error;
     }
 };

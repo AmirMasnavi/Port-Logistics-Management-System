@@ -7,12 +7,13 @@ import ShippingAgentOrganization from "./pages/ShippingAgentOrganization.tsx";
 import {setupApiInterceptor} from "./services/apiService.ts";
 import AdminPage from './pages/AdminPage';
 import ActivationPage from './pages/ActivationPage';
+import VesselVisitsPage from './pages/VesselVisitsPage';
 
 // We can create a simple placeholder for the dashboard page
 const DashboardPage = () => <div className="text-xl">Welcome to the Port Authority Dashboard!</div>;
 
 // Placeholder for the page we will build in US 3.1.5
-const VesselVisitsPage = () => <div className="text-xl">Vessel Visits Page (Coming Soon!)</div>;
+// const VesselVisitsPage = () => <div className="text-xl">Vessel Visits Page (Coming Soon!)</div>;
 
 const PortFacilitiesPage = () => <div className="text-xl">Port Facilities Page (Coming Soon!)</div>;
 
