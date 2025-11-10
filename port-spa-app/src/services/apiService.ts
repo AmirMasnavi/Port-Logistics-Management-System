@@ -168,7 +168,8 @@ export const createVesselType = async (vesselTypeData: VesselTypeCreateDto): Pro
 
 export const getAllShippingAgentOrganizations = async (): Promise<any[]> => {
     try {
-        const response = await apiClient.get<any[]>(`/ShippingAgentOrganization`);
+        // Server tests use /api/ShippingAgentOrganizations (plural). baseURL already has /api.
+        const response = await apiClient.get<any[]>(`/ShippingAgentOrganizations`);
         return response.data;
     } catch (error) {
         console.error('Error fetching shipping agent organizations:', error);
@@ -178,7 +179,8 @@ export const getAllShippingAgentOrganizations = async (): Promise<any[]> => {
 
 export const getAllShippingAgentRepresentatives = async (): Promise<any[]> => {
     try {
-        const response = await apiClient.get<any[]>(`/ShippingAgentRepresentative`);
+        // Server tests use /api/ShippingAgentRepresentatives (plural)
+        const response = await apiClient.get<any[]>(`/ShippingAgentRepresentatives`);
         return response.data;
     } catch (error) {
         console.error('Error fetching shipping agent representatives:', error);
@@ -186,10 +188,10 @@ export const getAllShippingAgentRepresentatives = async (): Promise<any[]> => {
     }
 }
 
-// POST /api/ShippingAgentOrganization - cria uma organização com representante inicial
+// POST /api/ShippingAgentOrganizations - cria uma organização com representante inicial
 export const createShippingAgentOrganization = async (dto: any): Promise<any> => {
     try {
-        const response = await apiClient.post<any>(`/ShippingAgentOrganization`, dto);
+        const response = await apiClient.post<any>(`/ShippingAgentOrganizations`, dto);
         return response.data;
     } catch (error) {
         console.error('Error creating shipping agent organization:', error);
@@ -197,10 +199,10 @@ export const createShippingAgentOrganization = async (dto: any): Promise<any> =>
     }
 }
 
-// POST /api/ShippingAgentRepresentative - cria um representante ligado por nome de organização
+// POST /api/ShippingAgentRepresentatives - cria um representante ligado por nome de organização
 export const createShippingAgentRepresentative = async (dto: any): Promise<any> => {
     try {
-        const response = await apiClient.post<any>(`/ShippingAgentRepresentative`, dto);
+        const response = await apiClient.post<any>(`/ShippingAgentRepresentatives`, dto);
         return response.data;
     } catch (error) {
         console.error('Error creating shipping agent representative:', error);
