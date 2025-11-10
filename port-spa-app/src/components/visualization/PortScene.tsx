@@ -66,7 +66,8 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
                 return null;
             })}
 
-
+            <OrbitControls makeDefault /> // Permitir controle orbital da câmera
+        </Canvas> 
     );
 };
 
