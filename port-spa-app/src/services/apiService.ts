@@ -186,6 +186,28 @@ export const getAllShippingAgentRepresentatives = async (): Promise<any[]> => {
     }
 }
 
+// POST /api/ShippingAgentOrganization - cria uma organização com representante inicial
+export const createShippingAgentOrganization = async (dto: any): Promise<any> => {
+    try {
+        const response = await apiClient.post<any>(`/ShippingAgentOrganization`, dto);
+        return response.data;
+    } catch (error) {
+        console.error('Error creating shipping agent organization:', error);
+        throw error;
+    }
+}
+
+// POST /api/ShippingAgentRepresentative - cria um representante ligado por nome de organização
+export const createShippingAgentRepresentative = async (dto: any): Promise<any> => {
+    try {
+        const response = await apiClient.post<any>(`/ShippingAgentRepresentative`, dto);
+        return response.data;
+    } catch (error) {
+        console.error('Error creating shipping agent representative:', error);
+        throw error;
+    }
+}
+
 export const assignUserRole = async (email: string, role: string) => {
     try {
         const response = await apiClient.post('/admin/assign-role', { email, role });
