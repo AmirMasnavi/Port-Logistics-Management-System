@@ -168,12 +168,20 @@ export const createVesselType = async (vesselTypeData: VesselTypeCreateDto): Pro
 
 export const getAllShippingAgentOrganizations = async (): Promise<any[]> => {
     try {
-        // Server tests use /api/ShippingAgentOrganizations (plural). baseURL already has /api.
+        // Prefer the plural route used by the controllers/tests
         const response = await apiClient.get<any[]>(`/ShippingAgentOrganizations`);
         return response.data;
-    } catch (error) {
-        console.error('Error fetching shipping agent organizations:', error);
-        throw error;
+    } catch (error: any) {
+        console.error('Error fetching shipping agent organizations (plural):', error?.message ?? error);
+        // Fallback: try a singular variant in case the backend exposes the route with a slightly different name
+        try {
+            const fallbackResp = await apiClient.get<any[]>(`/ShippingAgentOrganization`);
+            console.warn('Fetched shipping agent organizations using singular fallback route.');
+            return fallbackResp.data;
+        } catch (fallbackError) {
+            console.error('Error fetching shipping agent organizations (singular fallback):', fallbackError);
+            throw error; // rethrow original to preserve behaviour
+        }
     }
 }
 

@@ -59,23 +59,79 @@ const ShippingAgentsPage: React.FC = () => {
     const [repCitizen, setRepCitizen] = useState('');
     const [repEmail, setRepEmail] = useState('');
     const [repPhone, setRepPhone] = useState('');
+    const [repNationality, setRepNationality] = useState('');
     const [repOrgName, setRepOrgName] = useState('');
     const [submittingRep, setSubmittingRep] = useState(false);
 
-    const normalize = (s?: string) =>
-        (s ?? '').toString().normalize('NFD').replace(/\p{Diacritic}/gu, '').trim().toLowerCase();
+    const normalize = (s?: string) => {
+        const str = (s ?? '').toString().normalize('NFD');
+        // Try to use Unicode property escape for diacritics; if not supported, fall back to the common combining mark range.
+        try {
+            return str.replace(/\p{Diacritic}/gu, '').trim().toLowerCase();
+        } catch (e) {
+            return str.replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
+        }
+    };
 
     // lista inicial
     const fetchAll = async () => {
         try {
             setLoading(true);
             setError(null);
-            const [orgsData, repsData] = await Promise.all([
-                apiService.getAllShippingAgentOrganizations(),
-                apiService.getAllShippingAgentRepresentatives().catch(() => []), // se ainda não existir endpoint, não quebra a página
-            ]);
-            setOrgs(Array.isArray(orgsData) ? orgsData : []);
-            setReps(Array.isArray(repsData) ? repsData : []);
+            // Fetch organizations and representatives separately so one failing call
+            // doesn't prevent the other from loading. Keep the page usable even if
+            // the backend endpoint is temporarily unavailable or returns 401.
+            let orgsData: any[] = [];
+            try {
+                orgsData = await apiService.getAllShippingAgentOrganizations();
+            } catch (orgErr) {
+                console.error('Error fetching shipping agent organizations:', orgErr);
+                orgsData = [];
+                // We avoid setting a fatal error here so the UI can still show reps or allow creation.
+            }
+
+            let repsData: any[] = [];
+            try {
+                repsData = await apiService.getAllShippingAgentRepresentatives().catch(() => []);
+            } catch (repErr) {
+                console.error('Error fetching shipping agent representatives:', repErr);
+                repsData = [];
+            }
+
+            // Normalize backend DTOs to the frontend shape expected by the UI.
+            // Backend ShippingAgentOrganizationDto has: LegalName, AlternativeName, Street, City, Country, TaxNumber
+            const normalizedOrgs: ShippingAgentOrganization[] = Array.isArray(orgsData)
+                ? orgsData.map((o: any) => ({
+                      id: o.id ?? o.organizationId ?? o.OrganizationId ?? '',
+                      name: o.legalName ?? o.LegalName ?? o.legalname ?? o.LegalName ?? o.name ?? '',
+                      address: [o.street ?? o.Street, o.city ?? o.City, o.country ?? o.Country]
+                          .filter(Boolean)
+                          .join(', ') || undefined,
+                      email: o.email ?? o.Email ?? undefined,
+                      phone: o.phone ?? o.Phone ?? undefined,
+                  }))
+                : [];
+
+            // Representatives DTOs may include CitizenId or TaxNumber depending on the API.
+            // We normalize to use 'citizenId' in the frontend but display it as 'Tax number' in the UI.
+            const normalizedReps: Representative[] = Array.isArray(repsData)
+                ? repsData.map((r: any) => ({
+                      id: r.id ?? r.representativeId ?? r.RepresentativeId ?? '',
+                      name: r.name ?? r.RepresentativeName ?? r.RepresentativeName ?? '',
+                      // Prefer TaxNumber if present on the representative; otherwise fallback to CitizenId
+                      citizenId: r.taxNumber ?? r.TaxNumber ?? r.citizenId ?? r.CitizenId ?? '',
+                      email: r.email ?? r.RepresentativeEmail ?? r.RepresentativeEmail ?? undefined,
+                      phone: r.phone ?? r.RepresentativePhone ?? r.RepresentativePhone ?? undefined,
+                      organizationId: r.organizationId ?? r.OrganizationId ?? r.organizationID ?? undefined,
+                      organizationName: r.organizationName ?? r.OrganizationName ?? r.organizationName ?? undefined,
+                  }))
+                : [];
+
+            setOrgs(normalizedOrgs);
+            setReps(normalizedReps);
+            // Quick debug logs requested
+            console.log('orgs:', normalizedOrgs);
+            console.log('reps:', normalizedReps);
         } catch (e: any) {
             setError('Failed to fetch data. Please try again later.');
         } finally {
@@ -125,19 +181,30 @@ const ShippingAgentsPage: React.FC = () => {
         setSubmittingOrg(true);
         setError(null);
         try {
-            // função exportada é `createShippingAgentOrganization` (singular)
-            await apiService.createShippingAgentOrganization({
-                name: orgName.trim(),
-                address: orgAddress.trim() || undefined,
-                email: orgEmail.trim() || undefined,
-                phone: orgPhone.trim() || undefined,
-                initialRepresentative: {
-                    name: repInitName.trim(),
-                    citizenId: repInitCitizen.trim(),
-                    email: repInitEmail.trim() || undefined,
-                    phone: repInitPhone.trim() || undefined,
-                },
-            });
+            // Build payload matching backend CreateShippingAgentOrganizationDto
+            const payload: any = {
+                LegalName: orgName.trim(),
+                AlternativeName: '',
+                // The server expects Street, City, Country individually; we only have a single address field
+                // so put it into Street and leave City/Country empty. This can be improved later with separate inputs.
+                Street: orgAddress.trim() || '',
+                City: '',
+                Country: '',
+                // Organization tax number is optional on the form; leave empty so backend default or validations apply
+                TaxNumber: '',
+                Representatives: [
+                    {
+                        RepresentativeName: repInitName.trim(),
+                        CitizenId: repInitCitizen.trim(),
+                        // The DTO requires RepresentativeNationality; use a reasonable default so model validation passes
+                        RepresentativeNationality: 'PT',
+                        RepresentativeEmail: repInitEmail.trim() || '',
+                        RepresentativePhone: repInitPhone.trim() || '',
+                    },
+                ],
+            };
+
+            await apiService.createShippingAgentOrganization(payload);
             // limpar
             setOrgName('');
             setOrgAddress('');
@@ -158,20 +225,44 @@ const ShippingAgentsPage: React.FC = () => {
 
     // submit: criar representante isolado (obrigatório organizationName)
     // coerção para booleano — evita strings em atributos `disabled`
+    // Backend DTO requires RepresentativeName, CitizenId, RepresentativeNationality, RepresentativeEmail, RepresentativePhone, OrganizationName
     const canSubmitRep: boolean = !!(
-        repName.trim() && repCitizen.trim() && repOrgName.trim() && !submittingRep
+        repName.trim() && repCitizen.trim() && repNationality.trim() && repEmail.trim() && repPhone.trim() && repOrgName.trim() && !submittingRep
     );
 
     // Resolve o nome fornecido pelo utilizador para um nome canónico (se houver exactamente 1 match).
     // Retorna `resolvedOrgName` (string | null) e `orgNameError` (string | null).
     const { resolvedOrgName, orgNameError } = useMemo(() => {
-        if (!repOrgName.trim()) return { resolvedOrgName: null as string | null, orgNameError: null as string | null };
-        const matches = orgs.filter((o) => normalize(o.name) === normalize(repOrgName));
-        if (matches.length === 1) return { resolvedOrgName: matches[0].name, orgNameError: null };
-        if (matches.length === 0)
-            return { resolvedOrgName: null, orgNameError: 'Organization name not found. Please pick an existing one.' };
-        return { resolvedOrgName: null, orgNameError: 'Organization name is ambiguous. Please select an exact match.' };
-    }, [repOrgName, orgs]);
+        const input = repOrgName.trim();
+        if (!input) return { resolvedOrgName: null as string | null, orgNameError: null as string | null };
+        const normalizedInput = normalize(input);
+
+        // 1) Try exact matches in orgs by normalized name
+        const orgMatches = orgs.filter((o) => normalize(o.name) === normalizedInput);
+        if (orgMatches.length === 1) return { resolvedOrgName: orgMatches[0].name, orgNameError: null };
+        if (orgMatches.length > 1) return { resolvedOrgName: null, orgNameError: 'Organization name is ambiguous. Please select an exact match.' };
+
+        // 2) Fallback: try distinct organizationName values from existing representatives
+        const repOrgNames = Array.from(new Set(reps.map((r) => r.organizationName).filter(Boolean))) as string[];
+        const repMatches = repOrgNames.filter((n) => normalize(n) === normalizedInput);
+        if (repMatches.length === 1) return { resolvedOrgName: repMatches[0], orgNameError: null };
+        if (repMatches.length > 1) return { resolvedOrgName: null, orgNameError: 'Organization name is ambiguous. Please select an exact match.' };
+
+        // No matches found
+        return { resolvedOrgName: null, orgNameError: 'Organization name not found. Please pick an existing one.' };
+    }, [repOrgName, orgs, reps]);
+
+    const validateRepresentativeBeforeSubmit = (): string | null => {
+        // Basic client-side checks mirroring server expectations to avoid 400 responses
+        if (repCitizen.trim().length < 8) return 'Tax number must be at least 8 characters.';
+        // Phone validation: server's tests expect Portuguese mobile numbers starting with '9'
+        const phone = repPhone.trim();
+        if (!/^\d{8,}$/.test(phone)) return 'Phone must contain at least 8 digits.';
+        if (!phone.startsWith('9')) return 'Phone number must start with 9.';
+        // Email basic check (HTML input also enforces, but double-check)
+        if (repEmail.trim() && !/.+@.+\..+/.test(repEmail.trim())) return 'Email format looks invalid.';
+        return null;
+    };
 
     const handleCreateRepresentative = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -180,26 +271,78 @@ const ShippingAgentsPage: React.FC = () => {
             setError(orgNameError);
             return;
         }
+
+        const clientValidationError = validateRepresentativeBeforeSubmit();
+        if (clientValidationError) {
+            setError(clientValidationError);
+            return;
+        }
+
         setSubmittingRep(true);
         setError(null);
         try {
-            await apiService.createShippingAgentRepresentative({
-                name: repName.trim(),
-                citizenId: repCitizen.trim(),
-                email: repEmail.trim() || undefined,
-                phone: repPhone.trim() || undefined,
-                organizationName: resolvedOrgName as string, // backend liga por NAME e resolve FK
-            });
+            // Debug: log payload about to be sent
+            const payload: any = {
+                RepresentativeName: repName.trim(),
+                CitizenId: repCitizen.trim(),
+                RepresentativeNationality: repNationality.trim(),
+                RepresentativeEmail: repEmail.trim(),
+                RepresentativePhone: repPhone.trim(),
+            };
+
+            // If we have the organization present in `orgs`, include OrganizationId (prefer id)
+            const matchedOrg = orgs.find((o) => normalize(o.name) === normalize(resolvedOrgName as string));
+            if (matchedOrg && matchedOrg.id) {
+                payload.OrganizationId = matchedOrg.id;
+            } else {
+                // fallback: send OrganizationName so backend can resolve it
+                payload.OrganizationName = resolvedOrgName as string;
+            }
+
+            console.log('Creating representative payload:', payload);
+
+            // Send payload using the backend DTO property names
+            await apiService.createShippingAgentRepresentative(payload);
             // limpar
             setRepName('');
             setRepCitizen('');
             setRepEmail('');
             setRepPhone('');
+            setRepNationality('');
             setRepOrgName('');
             await fetchAll();
             setView('representatives');
         } catch (e: any) {
-            setError(e?.message ?? 'Failed to create representative');
+            // Try to show server-provided message when available (axios style)
+            console.error('Representative create error:', e);
+            const respData = e?.response?.data;
+            let serverMsg = e?.message ?? 'Failed to create representative';
+            if (respData) {
+                console.error('Server response data:', respData);
+                // ASP.NET ProblemDetails often have 'errors' dictionary
+                if (respData.errors && typeof respData.errors === 'object') {
+                    const parts: string[] = [];
+                    for (const key of Object.keys(respData.errors)) {
+                        const val = respData.errors[key];
+                        if (Array.isArray(val)) parts.push(...val.map((v) => `${key}: ${v}`));
+                        else parts.push(`${key}: ${String(val)}`);
+                    }
+                    serverMsg = parts.join(' | ');
+                } else if (respData.title || respData.detail) {
+                    serverMsg = `${respData.title ?? ''}${respData.detail ? ' - ' + respData.detail : ''}`.trim();
+                } else if (respData.message) {
+                    serverMsg = respData.message;
+                } else if (typeof respData === 'string') {
+                    serverMsg = respData;
+                } else {
+                    try {
+                        serverMsg = JSON.stringify(respData);
+                    } catch (jsonErr) {
+                        serverMsg = String(respData);
+                    }
+                }
+            }
+            setError(serverMsg);
         } finally {
             setSubmittingRep(false);
         }
@@ -244,7 +387,7 @@ const ShippingAgentsPage: React.FC = () => {
                         placeholder={
                             view === 'organizations'
                                 ? 'Search by name, address, contact…'
-                                : 'Search by name, citizen ID, organization…'
+                                : 'Search by name, tax number, organization…'
                         }
                         className="flex-1 p-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-maritime-500"
                     />
@@ -301,7 +444,7 @@ const ShippingAgentsPage: React.FC = () => {
                             />
                             <input
                                 className="p-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-maritime-500"
-                                placeholder="Citizen ID *"
+                                placeholder="Tax number *"
                                 value={repInitCitizen}
                                 onChange={(e) => setRepInitCitizen(e.target.value)}
                                 required
@@ -349,6 +492,11 @@ const ShippingAgentsPage: React.FC = () => {
                             <p className="text-xs text-gray-500 mt-1">
                                 Select an existing organization. The backend links by name and resolves the FK.
                             </p>
+                            {orgNameError && (
+                                <p className="text-xs text-red-500 mt-1">
+                                    {orgNameError}
+                                </p>
+                            )}
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -361,9 +509,16 @@ const ShippingAgentsPage: React.FC = () => {
                             />
                             <input
                                 className="p-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-maritime-500"
-                                placeholder="Citizen ID *"
+                                placeholder="Tax number *"
                                 value={repCitizen}
                                 onChange={(e) => setRepCitizen(e.target.value)}
+                                required
+                            />
+                            <input
+                                className="p-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-maritime-500"
+                                placeholder="Nationality *"
+                                value={repNationality}
+                                onChange={(e) => setRepNationality(e.target.value)}
                                 required
                             />
                             <input
@@ -415,7 +570,7 @@ const ShippingAgentsPage: React.FC = () => {
                                     Name
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-maritime-700 uppercase tracking-wider">
-                                    Citizen ID
+                                    Tax number
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-maritime-700 uppercase tracking-wider">
                                     Organization

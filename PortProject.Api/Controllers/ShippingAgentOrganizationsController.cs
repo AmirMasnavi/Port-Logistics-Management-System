@@ -30,6 +30,16 @@ namespace PortProject.Api.Controllers
             {
                 return BadRequest(new { message = ex.Message });
             }
+            catch (InvalidOperationException ex)
+            {
+                // Known domain/service validation errors -> 400 Bad Request with message
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                // Unexpected errors -> return 500 with message to help debugging (can be removed in production)
+                return StatusCode(500, new { message = ex.Message });
+            }
         }
 
         /// <summary>
