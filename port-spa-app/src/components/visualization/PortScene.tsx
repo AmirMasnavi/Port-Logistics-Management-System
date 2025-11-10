@@ -66,8 +66,7 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
                 return null;
             })}
 
-            <OrbitControls makeDefault />
-        </Canvas>
+
     );
 };
 
