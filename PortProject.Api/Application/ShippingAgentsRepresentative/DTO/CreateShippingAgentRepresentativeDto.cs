@@ -24,9 +24,8 @@ namespace PortProject.Api.Application.ShippingAgentsOrganization.DTOs
         [DefaultValue("+351912345678")]
         public string RepresentativePhone { get; set; } = string.Empty;
 
-        // OrganizationId is optional here - required only for direct POST to representatives endpoint
-        // When creating reps as part of organization registration, it's set automatically
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
-        public string OrganizationId { get; set; } = string.Empty;
+        // OrganizationName is required here - backend will look up the ID
+        [Required, StringLength(200, MinimumLength = 1)]
+        public string OrganizationName { get; set; } = string.Empty;
     }
 }

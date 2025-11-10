@@ -12,10 +12,12 @@ namespace PortProject.Api.Application.ShippingAgentsRepresentative.Services
     public class ShippingAgentRepresentativeService : IShippingAgentRepresentativeService
     {
         private readonly IShippingAgentRepresentativeRepository _representativeRepository;
+        private readonly IShippingAgentOrganizationRepository _organizationRepository;
 
-        public ShippingAgentRepresentativeService(IShippingAgentRepresentativeRepository representativeRepository)
+        public ShippingAgentRepresentativeService(IShippingAgentRepresentativeRepository representativeRepository, IShippingAgentOrganizationRepository organizationRepository)
         {
             _representativeRepository = representativeRepository;
+            _organizationRepository = organizationRepository;
         }
 
 
@@ -29,10 +31,13 @@ namespace PortProject.Api.Application.ShippingAgentsRepresentative.Services
                 new RepresentativeEmail(dto.RepresentativeEmail)
             );
             
-            // Only attach organization if OrganizationId is provided
-            if (!string.IsNullOrWhiteSpace(dto.OrganizationId))
+            // If OrganizationName is provided, look up the organization by name and attach
+            if (!string.IsNullOrWhiteSpace(dto.OrganizationName))
             {
-                representative.AttachToOrganization(new OrganizationId(Guid.Parse(dto.OrganizationId)));
+                var org = await _organizationRepository.GetByLegalNameAsync(new LegalName(dto.OrganizationName));
+                if (org == null)
+                    throw new KeyNotFoundException($"Organization with name '{dto.OrganizationName}' not found.");
+                representative.AttachToOrganization(org.Id!);
             }
             
             await _representativeRepository.AddAsync(representative);
@@ -123,6 +128,53 @@ namespace PortProject.Api.Application.ShippingAgentsRepresentative.Services
                 RepresentativeNationality = r.RepresentativeNationality?.Value ?? string.Empty,
                 RepresentativeEmail = r.RepresentativeEmail?.Value ?? string.Empty,
                 RepresentativePhone = r.RepresentativePhone?.Value ?? string.Empty
+            });
+        }
+
+        public async Task<IEnumerable<RepresentativeSimpleDto>> GetAllSimplifiedAsync()
+        {
+            var reps = await _representativeRepository.GetAllAsync();
+            var simplifiedList = new List<RepresentativeSimpleDto>();
+
+            foreach (var rep in reps)
+            {
+                var organizationName = string.Empty;
+                if (rep.OrganizationId != null)
+                {
+                    var org = await _organizationRepository.GetByIdAsync(rep.OrganizationId);
+                    organizationName = org?.LegalName?.Value ?? string.Empty;
+                }
+
+                simplifiedList.Add(new RepresentativeSimpleDto
+                {
+                    Name = rep.RepresentativeName?.Value ?? string.Empty,
+                    CitizenId = rep.CitizenId?.Value ?? string.Empty,
+                    Nationality = rep.RepresentativeNationality?.Value ?? string.Empty,
+                    Email = rep.RepresentativeEmail?.Value ?? string.Empty,
+                    Phone = rep.RepresentativePhone?.Value ?? string.Empty,
+                    OrganizationName = organizationName
+                });
+            }
+
+            return simplifiedList;
+        }
+
+        public async Task<IEnumerable<RepresentativeSimpleDto>> GetSimplifiedByOrganizationIdAsync(string organizationId)
+        {
+            var orgId = new OrganizationId(Guid.Parse(organizationId));
+            var reps = await _representativeRepository.GetByOrganizationIdAsync(orgId);
+            
+            var org = await _organizationRepository.GetByIdAsync(orgId);
+            var organizationName = org?.LegalName?.Value ?? string.Empty;
+
+            return reps.Select(r => new RepresentativeSimpleDto
+            {
+                Name = r.RepresentativeName?.Value ?? string.Empty,
+                CitizenId = r.CitizenId?.Value ?? string.Empty,
+                Nationality = r.RepresentativeNationality?.Value ?? string.Empty,
+                Email = r.RepresentativeEmail?.Value ?? string.Empty,
+                Phone = r.RepresentativePhone?.Value ?? string.Empty,
+                OrganizationName = organizationName
             });
         }
         }

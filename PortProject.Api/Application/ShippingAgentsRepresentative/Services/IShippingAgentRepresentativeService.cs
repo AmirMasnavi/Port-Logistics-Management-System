@@ -11,6 +11,8 @@ namespace PortProject.Api.Application.ShippingAgentsRepresentative.Services
     Task<ShippingAgentRepresentativeDto?> UpdateRepresentativeAsync(string id, CreateShippingAgentRepresentativeDto dto);
         Task<bool> DeleteRepresentativeAsync(string id);
     Task<IEnumerable<ShippingAgentRepresentativeDto>> GetByOrganizationIdAsync(string organizationId);
+    Task<IEnumerable<RepresentativeSimpleDto>> GetAllSimplifiedAsync();
+    Task<IEnumerable<RepresentativeSimpleDto>> GetSimplifiedByOrganizationIdAsync(string organizationId);
     }
 }
 
