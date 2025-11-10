@@ -24,6 +24,11 @@ namespace PortProject.Api.Domain.ShippingAgentOrganizationAggregate
         /// </summary>
         Task<ShippingAgentOrganization?> GetByIdAsync(OrganizationId id);
 
+        /// <summary>
+        /// Obtém uma organização pelo seu nome legal.
+        /// </summary>
+        Task<ShippingAgentOrganization?> GetByLegalNameAsync(LegalName legalName);
+
         Task<IEnumerable<ShippingAgentOrganization>> GetAllAsync(CancellationToken ct = default);
 
     }

@@ -19,12 +19,12 @@ namespace PortProject.Api.Controllers
         /// Creates a new Shipping Agent Organization.
         /// </summary>
         [HttpPost]
-        public async Task<ActionResult<Guid>> CreateOrganization(CreateShippingAgentOrganizationDto dto)
+        public async Task<ActionResult<string>> CreateOrganization(CreateShippingAgentOrganizationDto dto)
         {
             try
             {
                 var id = await _service.RegisterOrganizationAsync(dto);
-                return CreatedAtAction(nameof(GetOrganizationById), new { id }, id);
+                return CreatedAtAction(nameof(GetOrganizationById), new { id }, $"{dto.LegalName} created successfully!");
             }
             catch (ArgumentException ex)
             {

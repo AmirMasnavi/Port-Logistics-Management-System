@@ -2,7 +2,6 @@ namespace PortProject.Api.Application.ShippingAgentsOrganization.DTOs
 {
     public sealed class ShippingAgentOrganizationDto
     {
-    public string Id { get; set; } = string.Empty;
         public string LegalName { get; set; } = string.Empty;
         public string AlternativeName { get; set; } = string.Empty;
         public string Street { get; set; } = string.Empty;

@@ -19,17 +19,27 @@ namespace PortProject.Api.Controllers
         }
 
         /// <summary>
-    /// Creates a new Shipping Agent Representative. Requires OrganizationId in the request body.
+    /// Creates a new Shipping Agent Representative. Requires OrganizationName in the request body.
         /// </summary>
         [HttpPost]
-        public async Task<ActionResult<ShippingAgentRepresentativeDto>> CreateRepresentative(CreateShippingAgentRepresentativeDto dto)
+        public async Task<ActionResult<string>> CreateRepresentative(CreateShippingAgentRepresentativeDto dto)
         {
-            if (string.IsNullOrWhiteSpace(dto.OrganizationId))
-                return BadRequest(new { message = "OrganizationId is required to create a representative." });
+            if (string.IsNullOrWhiteSpace(dto.OrganizationName))
+                return BadRequest(new { message = "OrganizationName is required to create a representative." });
 
-            // Delegate to org service to ensure FK is set and representative attached to organization
-            var repDto = await _orgService.AddRepresentativeToOrganizationAsync(dto.OrganizationId, dto);
-            return CreatedAtAction(nameof(GetRepresentativeById), new { id = repDto.RepresentativeId }, repDto);
+            try
+            {
+                var representative = await _service.CreateRepresentativeAsync(dto);
+                return CreatedAtAction(nameof(GetRepresentativeById), new { id = representative.RepresentativeId?.Value.ToString() }, $"{representative.RepresentativeName?.Value} registered successfully!");
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         /// <summary>
@@ -74,9 +84,9 @@ namespace PortProject.Api.Controllers
         /// Gets all Shipping Agent Representatives.
         /// </summary>
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<ShippingAgentRepresentativeDto>>> GetAllRepresentatives()
+        public async Task<ActionResult<IEnumerable<RepresentativeSimpleDto>>> GetAllRepresentatives()
         {
-            var resultDtos = await _service.GetAllAsync();
+            var resultDtos = await _service.GetAllSimplifiedAsync();
             return Ok(resultDtos);
         }
 
@@ -84,9 +94,9 @@ namespace PortProject.Api.Controllers
         // Gets all Shipping Agent Representatives by OrganizationId.
         // </summary>
         [HttpGet("by-organization/{organizationId}")]
-        public async Task<ActionResult<IEnumerable<ShippingAgentRepresentativeDto>>> GetRepresentativesByOrganizationId(string organizationId)
+        public async Task<ActionResult<IEnumerable<RepresentativeSimpleDto>>> GetRepresentativesByOrganizationId(string organizationId)
         {
-            var resultDtos = await _service.GetByOrganizationIdAsync(organizationId);
+            var resultDtos = await _service.GetSimplifiedByOrganizationIdAsync(organizationId);
             return Ok(resultDtos);
         }
     }

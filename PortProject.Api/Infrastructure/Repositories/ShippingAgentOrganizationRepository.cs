@@ -32,6 +32,12 @@ namespace PortProject.Api.Infrastructure.Repositories
                 .FirstOrDefaultAsync(o => o.Id == id);
         }
 
+        public async Task<ShippingAgentOrganization?> GetByLegalNameAsync(LegalName legalName)
+        {
+            return await _context.Set<ShippingAgentOrganization>()
+                .FirstOrDefaultAsync(o => o.LegalName == legalName);
+        }
+
         public async Task<IEnumerable<ShippingAgentOrganization>> GetAllAsync(CancellationToken ct = default)
         {
             return await _context.Set<ShippingAgentOrganization>().ToListAsync(ct);
