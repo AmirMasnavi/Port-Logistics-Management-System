@@ -140,9 +140,9 @@ public class ShippingAgentOrganizationTest : IClassFixture<IntegrationTestsWebAp
             City = "Faro",
             Country = "Portugal",
             TaxNumber = uniqueTaxNumber,
-            Representatives = new List<CreateShippingAgentRepresentativeDto>
+            Representatives = new List<CreateShippingAgentRepresentativeForOrganizationDto>
             {
-                new CreateShippingAgentRepresentativeDto
+                new CreateShippingAgentRepresentativeForOrganizationDto
                 {
                     RepresentativeName = "John Smith",
                     CitizenId = "12345678",
@@ -201,9 +201,9 @@ public class ShippingAgentOrganizationTest : IClassFixture<IntegrationTestsWebAp
             City = "Test City",
             Country = "Test Country",
             TaxNumber = "444555666", // Unique tax number
-            Representatives = new List<CreateShippingAgentRepresentativeDto>
+            Representatives = new List<CreateShippingAgentRepresentativeForOrganizationDto>
             {
-                new CreateShippingAgentRepresentativeDto
+                new CreateShippingAgentRepresentativeForOrganizationDto
                 {
                     RepresentativeName = "Test Representative",
                     CitizenId = "12345678",
@@ -242,9 +242,9 @@ public class ShippingAgentOrganizationTest : IClassFixture<IntegrationTestsWebAp
             City = "Test City",
             Country = "Test Country",
             TaxNumber = "333444555", // Unique tax number
-            Representatives = new List<CreateShippingAgentRepresentativeDto>
+            Representatives = new List<CreateShippingAgentRepresentativeForOrganizationDto>
             {
-                new CreateShippingAgentRepresentativeDto
+                new CreateShippingAgentRepresentativeForOrganizationDto
                 {
                     RepresentativeName = "Test Representative",
                     CitizenId = "12345678",
@@ -283,9 +283,9 @@ public class ShippingAgentOrganizationTest : IClassFixture<IntegrationTestsWebAp
             City = "Test City",
             Country = "Test Country",
             TaxNumber = "INVALID", // Invalid tax number format
-            Representatives = new List<CreateShippingAgentRepresentativeDto>
+            Representatives = new List<CreateShippingAgentRepresentativeForOrganizationDto>
             {
-                new CreateShippingAgentRepresentativeDto
+                new CreateShippingAgentRepresentativeForOrganizationDto
                 {
                     RepresentativeName = "Test Representative",
                     CitizenId = "12345678",
@@ -324,9 +324,9 @@ public class ShippingAgentOrganizationTest : IClassFixture<IntegrationTestsWebAp
             City = "Test City",
             Country = "Test Country",
             TaxNumber = "123456789", // Same as existing organization from seed data
-            Representatives = new List<CreateShippingAgentRepresentativeDto>
+            Representatives = new List<CreateShippingAgentRepresentativeForOrganizationDto>
             {
-                new CreateShippingAgentRepresentativeDto
+                new CreateShippingAgentRepresentativeForOrganizationDto
                 {
                     RepresentativeName = "Test Representative",
                     CitizenId = "12345678",

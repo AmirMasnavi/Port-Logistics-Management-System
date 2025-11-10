@@ -13,11 +13,16 @@ namespace PortProject.Api.Application.ShippingAgentsRepresentative.Services
     {
         private readonly IShippingAgentRepresentativeRepository _representativeRepository;
         private readonly IShippingAgentOrganizationRepository _organizationRepository;
+        private readonly PortProjectContext _context;
 
-        public ShippingAgentRepresentativeService(IShippingAgentRepresentativeRepository representativeRepository, IShippingAgentOrganizationRepository organizationRepository)
+        public ShippingAgentRepresentativeService(
+            IShippingAgentRepresentativeRepository representativeRepository, 
+            IShippingAgentOrganizationRepository organizationRepository,
+            PortProjectContext context)
         {
             _representativeRepository = representativeRepository;
             _organizationRepository = organizationRepository;
+            _context = context;
         }
 
 
@@ -39,8 +44,13 @@ namespace PortProject.Api.Application.ShippingAgentsRepresentative.Services
                     throw new KeyNotFoundException($"Organization with name '{dto.OrganizationName}' not found.");
                 representative.AttachToOrganization(org.Id!);
             }
+            else
+            {
+                throw new ArgumentException("OrganizationName is required to create a representative.");
+            }
             
             await _representativeRepository.AddAsync(representative);
+            await _context.SaveChangesAsync();
             return representative;
         }
 

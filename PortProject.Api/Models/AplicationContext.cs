@@ -377,9 +377,11 @@ public class PortProjectContext : DbContext
 
         // Explicitly map the OrganizationId value object as the FK column
         repBuilder.Property(r => r.OrganizationId)
-            .HasConversion(id => id.Value, val => new OrganizationId(val))
+            .HasConversion(
+                id => id != null ? id.Value : (Guid?)null, 
+                val => val.HasValue ? new OrganizationId(val.Value) : null)
             .HasColumnName("OrganizationId")
-            .IsRequired();
+            .IsRequired(false);
 
         // === VESSEL VISIT NOTIFICATION CONFIGURATION ===
         var vvnBuilder = modelBuilder.Entity<VesselVisitNotification>();

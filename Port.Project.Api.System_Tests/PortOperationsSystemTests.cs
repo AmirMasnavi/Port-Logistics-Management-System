@@ -169,9 +169,9 @@ namespace Port.Project.Api.System_Tests
                 City = "Test City",
                 Country = "TestLand",
                 TaxNumber = "PT123456789", // Valid Portuguese NIF format
-                Representatives = new List<CreateShippingAgentRepresentativeDto>
+                Representatives = new List<CreateShippingAgentRepresentativeForOrganizationDto>
                 {
-                    new CreateShippingAgentRepresentativeDto
+                    new CreateShippingAgentRepresentativeForOrganizationDto
                     {
                         RepresentativeName = "Operations Representative",
                         CitizenId = "12345678Z", // Valid Portuguese CC format (8 digits + 1 letter)

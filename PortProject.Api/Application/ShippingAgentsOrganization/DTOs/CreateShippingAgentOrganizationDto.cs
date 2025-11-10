@@ -13,7 +13,7 @@ namespace PortProject.Api.Application.ShippingAgentsOrganization.DTOs
         
         [DefaultValue("351123456789")]
         public string TaxNumber { get; set; } = string.Empty;
-        public List<CreateShippingAgentRepresentativeDto> Representatives { get; set; } = new();
+        public List<CreateShippingAgentRepresentativeForOrganizationDto> Representatives { get; set; } = new();
     }
 
 }
