@@ -15,13 +15,9 @@ namespace PortProject.Api.Domain.ShippingAgentOrganizationAggregate
             if (string.IsNullOrWhiteSpace(street))
                 throw new ArgumentException("Address is required.", nameof(street));
             
-            // City and Country are optional; default to 'Unknown' when not provided
-            var safeCity = string.IsNullOrWhiteSpace(city) ? "Unknown" : city.Trim();
-            var safeCountry = string.IsNullOrWhiteSpace(country) ? "Unknown" : country.Trim();
-
             Street  = street.Trim();
-            City    = safeCity;
-            Country = safeCountry;
+            City    = (city ?? string.Empty).Trim();
+            Country = (country ?? string.Empty).Trim();
         }
 
         public static Address Parse(string fullAddress)
@@ -33,30 +29,30 @@ namespace PortProject.Api.Domain.ShippingAgentOrganizationAggregate
             return parts.Length switch
             {
                 >= 3 => new Address(parts[0].Trim(), parts[1].Trim(), parts[2].Trim()),
-                2    => new Address(parts[0].Trim(), parts[1].Trim(), "Unknown"),
-                _    => new Address(fullAddress.Trim(), "Unknown", "Unknown")
+                2    => new Address(parts[0].Trim(), parts[1].Trim(), string.Empty),
+                _    => new Address(fullAddress.Trim(), string.Empty, string.Empty)
             };
         }
 
-        public static Address Empty => new Address("N/A", "N/A", "N/A");
+        public static Address Empty => new Address(string.Empty, string.Empty, string.Empty);
 
         public bool Equals(Address? other)
         {
             if (ReferenceEquals(null, other)) return false;
             if (ReferenceEquals(this, other)) return true;
 
-            return Street.Equals(other.Street, StringComparison.OrdinalIgnoreCase)
-                && City.Equals(other.City, StringComparison.OrdinalIgnoreCase)
-                && Country.Equals(other.Country, StringComparison.OrdinalIgnoreCase);
+            return string.Equals(Street, other.Street, StringComparison.OrdinalIgnoreCase)
+                && string.Equals(City, other.City, StringComparison.OrdinalIgnoreCase)
+                && string.Equals(Country, other.Country, StringComparison.OrdinalIgnoreCase);
         }
 
         public override bool Equals(object? obj) => Equals(obj as Address);
 
         public override int GetHashCode() =>
             HashCode.Combine(
-                StringComparer.OrdinalIgnoreCase.GetHashCode(Street),
-                StringComparer.OrdinalIgnoreCase.GetHashCode(City),
-                StringComparer.OrdinalIgnoreCase.GetHashCode(Country));
+                StringComparer.OrdinalIgnoreCase.GetHashCode(Street ?? string.Empty),
+                StringComparer.OrdinalIgnoreCase.GetHashCode(City ?? string.Empty),
+                StringComparer.OrdinalIgnoreCase.GetHashCode(Country ?? string.Empty));
 
         public static bool operator ==(Address? left, Address? right) =>
             Equals(left, right);
@@ -64,6 +60,11 @@ namespace PortProject.Api.Domain.ShippingAgentOrganizationAggregate
         public static bool operator !=(Address? left, Address? right) =>
             !Equals(left, right);
 
-        public override string ToString() => $"{Street}, {City}, {Country}";
+        public override string ToString()
+        {
+            // Join only non-empty parts
+            var parts = new[] { Street, City, Country };
+            return string.Join(", ", Array.FindAll(parts, p => !string.IsNullOrWhiteSpace(p)));
+        }
     }
 }
