@@ -8,6 +8,7 @@ import {setupApiInterceptor} from "./services/apiService.ts";
 import AdminPage from './pages/AdminPage';
 import ActivationPage from './pages/ActivationPage';
 import VesselVisitsPage from './pages/VesselVisitsPage';
+import DockPage from './pages/DockPage';
 
 // We can create a simple placeholder for the dashboard page
 const DashboardPage = () => <div className="text-xl">Welcome to the Port Authority Dashboard!</div>;
@@ -33,6 +34,7 @@ function App() {
                     <Route path="/" element={<DashboardPage />} />
                     <Route path="/vessel-types" element={<VesselTypesPage />} />
                     <Route path="/vessel-visits" element={<VesselVisitsPage />} />
+                    <Route path="/docks" element={<DockPage />} />
                     <Route path="/shippingagentorganization" element={<ShippingAgentOrganization />} />
                     {/* We will add more routes here for Docks, Resources, etc. */}
                     <Route path="/port-facilities" element={<PortFacilitiesPage />} />

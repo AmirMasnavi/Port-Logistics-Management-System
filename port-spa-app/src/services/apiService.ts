@@ -8,7 +8,8 @@ import type {
     PortLayout,
     VesselVisit,
     Resource,
-    VesselVisitNotification, CreateVvnDto, ApproveVvnDto, RejectVvnDto
+    VesselVisitNotification, CreateVvnDto, ApproveVvnDto, RejectVvnDto,
+    Dock, DockCreateDto
 } from '../types';
 
 // 1. Create a central instance of Axios
@@ -163,6 +164,27 @@ export const createVesselType = async (vesselTypeData: VesselTypeCreateDto): Pro
         throw error;
     }
 };
+
+export const getAllDocks = async (): Promise<Dock[]> => {
+    try {
+        const response = await apiClient.get<Dock[]>(`/Dock`);
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching dock:', error);
+        throw error;
+    }
+};
+
+export const createDock = async (dockData: DockCreateDto): Promise<Dock> => {
+    try {
+        const response = await apiClient.post<Dock>(`/Dock`, dockData);
+        return response.data;
+    } catch (error) {
+        console.error('Error creating dock:', error);
+        throw error;
+    }
+};
+
 
 
 
