@@ -26,6 +26,18 @@ namespace PortProject.Api.Infrastructure.Repositories
             return await _context.Set<ShippingAgentRepresentative>().FindAsync(id);
         }
 
+        public async Task<ShippingAgentRepresentative?> GetByCitizenIdAsync(CitizenId citizenId)
+        {
+            return await _context.Set<ShippingAgentRepresentative>()
+                .FirstOrDefaultAsync(r => r.CitizenId == citizenId);
+        }
+
+        public async Task<bool> ExistsByCitizenIdAsync(CitizenId citizenId)
+        {
+            return await _context.Set<ShippingAgentRepresentative>()
+                .AnyAsync(r => r.CitizenId == citizenId);
+        }
+
         public async Task<IEnumerable<ShippingAgentRepresentative>> GetAllAsync()
         {
             return await _context.Set<ShippingAgentRepresentative>().ToListAsync();
