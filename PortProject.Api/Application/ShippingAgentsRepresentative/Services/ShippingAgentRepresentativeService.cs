@@ -28,8 +28,14 @@ namespace PortProject.Api.Application.ShippingAgentsRepresentative.Services
 
         public async Task<ShippingAgentRepresentative> CreateRepresentativeAsync(CreateShippingAgentRepresentativeDto dto)
         {
+            var citizenId = new CitizenId(dto.CitizenId);
+            
+            // Check if a representative with this citizen ID already exists
+            if (await _representativeRepository.ExistsByCitizenIdAsync(citizenId))
+                throw new InvalidOperationException($"A representative with citizen ID '{dto.CitizenId}' already exists.");
+            
             var representative = new ShippingAgentRepresentative(
-                new CitizenId(dto.CitizenId),
+                citizenId,
                 new RepresentativeName(dto.RepresentativeName),
                 new RepresentativePhone(dto.RepresentativePhone),
                 new RepresentativeNationality(dto.RepresentativeNationality),
@@ -114,10 +120,53 @@ namespace PortProject.Api.Application.ShippingAgentsRepresentative.Services
             };
         }
 
+        public async Task<ShippingAgentRepresentativeDto?> UpdateRepresentativeByCitizenIdAsync(string citizenId, CreateShippingAgentRepresentativeDto dto)
+        {
+            var citizen = new CitizenId(citizenId);
+            var representative = await _representativeRepository.GetByCitizenIdAsync(citizen);
+            if (representative == null)
+                return null;
+
+            // Prevent changing the citizen ID
+            if (!dto.CitizenId.Equals(citizenId, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("Cannot change the Citizen ID of an existing representative.");
+
+            representative.UpdateDetails(
+                new CitizenId(dto.CitizenId),
+                new RepresentativeName(dto.RepresentativeName),
+                new RepresentativePhone(dto.RepresentativePhone),
+                new RepresentativeNationality(dto.RepresentativeNationality),
+                new RepresentativeEmail(dto.RepresentativeEmail)
+            );
+            
+            await _representativeRepository.UpdateAsync(representative);
+            return new ShippingAgentRepresentativeDto
+            {
+                RepresentativeId = representative.RepresentativeId?.Value.ToString() ?? string.Empty,
+                OrganizationId = representative.OrganizationId?.Value.ToString() ?? string.Empty,
+                RepresentativeName = representative.RepresentativeName?.Value ?? string.Empty,
+                CitizenId = representative.CitizenId?.Value ?? string.Empty,
+                RepresentativeNationality = representative.RepresentativeNationality?.Value ?? string.Empty,
+                RepresentativeEmail = representative.RepresentativeEmail?.Value ?? string.Empty,
+                RepresentativePhone = representative.RepresentativePhone?.Value ?? string.Empty
+            };
+        }
+
         public async Task<bool> DeleteRepresentativeAsync(string id)
         {
             var repId = new RepresentativeId(Guid.Parse(id));
             var representative = await _representativeRepository.GetByIdAsync(repId);
+            if (representative == null)
+                return false;
+            
+            await _representativeRepository.DeleteAsync(representative);
+            return true;
+        }
+
+        public async Task<bool> DeleteRepresentativeByCitizenIdAsync(string citizenId)
+        {
+            var citizen = new CitizenId(citizenId);
+            var representative = await _representativeRepository.GetByCitizenIdAsync(citizen);
             if (representative == null)
                 return false;
             

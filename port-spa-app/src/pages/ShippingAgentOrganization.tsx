@@ -79,16 +79,11 @@ const ShippingAgentsPage: React.FC = () => {
     // Helper to split a free-form address into Street / City / Country
     const parseAddress = (input: string): { street: string; city: string; country: string } => {
         const raw = (input || '').split(',').map((p) => p.trim()).filter(Boolean);
-        if (raw.length >= 3) {
-            return { street: raw[0], city: raw[1], country: raw[2] };
-        }
-        if (raw.length === 2) {
-            return { street: raw[0], city: raw[1], country: 'Unknown' };
-        }
-        if (raw.length === 1 && raw[0]) {
-            return { street: raw[0], city: 'Unknown', country: 'Unknown' };
-        }
-        return { street: 'Unknown', city: 'Unknown', country: 'Unknown' };
+        // Never inject placeholder words like 'Unknown' into the payload/UI
+        if (raw.length >= 3) return { street: raw[0], city: raw[1], country: raw[2] };
+        if (raw.length === 2) return { street: raw[0], city: raw[1], country: '' };
+        if (raw.length === 1 && raw[0]) return { street: raw[0], city: '', country: '' };
+        return { street: '', city: '', country: '' };
     };
 
     // Basic validators mirroring backend rules
@@ -364,10 +359,11 @@ const ShippingAgentsPage: React.FC = () => {
                 RepresentativePhone: repPhone.trim(),
             };
 
-            // If we have the organization present in `orgs`, include OrganizationId (prefer id)
+            // If we have the organization present in `orgs`, include OrganizationId and OrganizationName (controller requires OrganizationName)
             const matchedOrg = orgs.find((o) => normalize(o.name) === normalize(resolvedOrgName as string));
-            if (matchedOrg && matchedOrg.id) {
+            if (matchedOrg) {
                 payload.OrganizationId = matchedOrg.id;
+                payload.OrganizationName = matchedOrg.name;
             } else {
                 // fallback: send OrganizationName so backend can resolve it
                 payload.OrganizationName = resolvedOrgName as string;

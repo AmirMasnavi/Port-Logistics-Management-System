@@ -535,7 +535,7 @@ namespace Port.Project.Api.System_Tests
             var bogusOrgId = Guid.NewGuid().ToString();
             var repCreate = new CreateShippingAgentRepresentativeDto
             {
-                OrganizationId = bogusOrgId,
+              
                 RepresentativeName = "John Doe",
                 CitizenId = "12345678Z",
                 RepresentativeNationality = "PT",

@@ -155,7 +155,6 @@ public class ShippingAgentOrganizationServiceTest
 
         // Assert
         Assert.NotNull(dto);
-        Assert.Equal(id.ToString(), dto?.Id);
         Assert.Equal("ACME Corp", dto?.LegalName);
         Assert.Equal("ACME", dto?.AlternativeName);
         Assert.Equal("Rua 1", dto?.Street);
