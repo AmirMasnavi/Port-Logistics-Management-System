@@ -21,14 +21,13 @@ namespace PortProject.Api.Tests.Application.ShippingAgentRepresentative
         public void Setup()
         {
             _repoMock = new Mock<RepAgg.IShippingAgentRepresentativeRepository>(MockBehavior.Strict);
-            _service = new ShippingAgentRepresentativeService(_repoMock.Object);
+            
         }
 
         private static CreateShippingAgentRepresentativeDto ValidCreateDto(string? orgId = null)
         {
             return new CreateShippingAgentRepresentativeDto
             {
-                OrganizationId = orgId ?? string.Empty,
                 CitizenId = "12345678Z",
                 RepresentativeName = "Ana Silva",
                 RepresentativeEmail = "ana.silva@example.com",

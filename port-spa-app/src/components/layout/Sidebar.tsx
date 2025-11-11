@@ -15,6 +15,7 @@ import {
     PanelLeftClose, // Icon for "unpinned"
     PanelRightClose, // Icon for "pinned"
     Shield,
+    Box // For 3D Visualization
 } from 'lucide-react';
 
 // 2. Create a new, reusable component for our icon-links
@@ -126,6 +127,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 <NavItem to="/vessel-types" label="Vessel Types" icon={Anchor} isExpanded={isExpanded} />
                 <NavItem to="/port-facilities" label="Port Facilities" icon={Building} isExpanded={isExpanded} />
                 <NavItem to="/shippingagentorganization" label="Shipping Agents" icon={ClipboardList} isExpanded={isExpanded} />
+                <NavItem to="/visualization" label="3D Visualization" icon={Box} isExpanded={isExpanded} />
 
                 {internalRole === 'Administrator' && (
                     <>

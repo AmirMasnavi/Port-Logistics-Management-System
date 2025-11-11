@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import LoginModal from '../auth/LoginModal';
 import ProfileModal from '../auth/ProfileModal';
 import { User, ChevronDown, LogOut, Edit, KeyRound } from 'lucide-react';
+import Menu from '../Menu'; // <-- import the Menu component
 // 1. IMPORT FIREBASE FUNCTIONS
 import { auth } from '../../firebaseConfig';
 import { sendPasswordResetEmail } from 'firebase/auth';
@@ -199,6 +200,9 @@ const Header: React.FC<HeaderProps> = ({ isSidebarVisible, isExpanded }) => {
                     <BrandLogo />
                     <span className="text-lg font-bold text-maritime-800">BluePORT</span>
                 </div>
+
+                {/* Render the compact top menu when the sidebar is not visible (mobile view) */}
+                {!isSidebarVisible && <Menu />}
 
                 <div className="flex items-center gap-3">
                     {isAuthenticated ? (

@@ -19,16 +19,26 @@ namespace PortProject.Api.Controllers
         /// Creates a new Shipping Agent Organization.
         /// </summary>
         [HttpPost]
-        public async Task<ActionResult<Guid>> CreateOrganization(CreateShippingAgentOrganizationDto dto)
+        public async Task<ActionResult<string>> CreateOrganization(CreateShippingAgentOrganizationDto dto)
         {
             try
             {
                 var id = await _service.RegisterOrganizationAsync(dto);
-                return CreatedAtAction(nameof(GetOrganizationById), new { id }, id);
+                return CreatedAtAction(nameof(GetOrganizationById), new { id }, $"{dto.LegalName} created successfully!");
             }
             catch (ArgumentException ex)
             {
                 return BadRequest(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                // Known domain/service validation errors -> 400 Bad Request with message
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                // Unexpected errors -> return 500 with message to help debugging (can be removed in production)
+                return StatusCode(500, new { message = ex.Message });
             }
         }
 

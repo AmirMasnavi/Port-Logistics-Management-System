@@ -68,7 +68,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 />
 
                 {/* This main tag is already correct from our last step */}
-                <main className={`flex-1 overflow-y-auto p-6 transition-all duration-300 ${
+                <main className={`flex-1 overflow-y-auto overflow-x-hidden p-6 transition-all duration-300 ${
                     isSidebarVisible ? (isExpanded ? 'md:ml-64' : 'md:ml-20') : ''
                 }`}>
                     {renderContent()}

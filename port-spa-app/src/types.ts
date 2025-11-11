@@ -7,6 +7,7 @@ export interface VesselType {
     maxRows: number;
     maxBays: number;
     maxTiers: number;
+    modelPath?: string;
 }
 
 // This is the data we send when creating a new one
@@ -59,7 +60,9 @@ export interface RenderableVessel {
     imo: string;
     name: string;
     position: [number, number, number];
-    size: [number, number, number];
+    size: [number, number, number];  
+    modelUrl?: string; // Optional GLTF/OBJ model path
+    
 }
 
 export interface RenderableResource {
@@ -68,6 +71,7 @@ export interface RenderableResource {
     kind: string;
     position: [number, number, number];
     size: [number, number, number];
+    modelUrl?: string; //  Optional GLTF/OBJ model path
 }
 
 // --- Vessel Visit Notification (New) ---
@@ -153,4 +157,29 @@ export interface ApproveVvnDto {
 export interface RejectVvnDto {
     officerId: string;
     reason: string;
+}
+
+
+export interface Dock {
+    id: string;
+    name: string;
+    locationZone: string;
+    locationSection: string;
+    lengthInMeters: number;
+    depthInMeters: number;
+    maxDraftInMeters: number;
+    numberOfSTSCranes: number;
+    allowedVesselTypeIds?: string[];
+}
+        
+export interface DockCreateDto {
+    id: string;
+    name: string;
+    locationZone: string;
+    locationSection: string;
+    lengthInMeters: number;
+    depthInMeters: number;
+    maxDraftInMeters: number;
+    numberOfSTSCranes: number;
+    allowedVesselTypeIds?: string[];
 }

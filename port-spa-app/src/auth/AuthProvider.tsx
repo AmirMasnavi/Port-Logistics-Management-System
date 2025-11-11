@@ -12,6 +12,8 @@ interface AuthContextType {
     isLoading: boolean;
     isInternalLoading: boolean;
     internalRole: string | null;
+    roleStatus: 'unknown' | 'active' | 'inactive' | 'none';
+    accessDeniedReason: string | null;
     logout: () => Promise<void>;
 }
 
@@ -22,8 +24,10 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [isInternalLoading, setIsInternalLoading] = useState(true); 
+    const [isInternalLoading, setIsInternalLoading] = useState(true);
     const [internalRole, setInternalRole] = useState<string | null>(null);
+    const [roleStatus, setRoleStatus] = useState<'unknown' | 'active' | 'inactive' | 'none'>('unknown');
+    const [accessDeniedReason, setAccessDeniedReason] = useState<string | null>(null);
 
     useEffect(() => {
         // ✅ Track Firebase authentication state
@@ -43,23 +47,50 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (user) {
                 try {
                     // ✅ Call getMyRole() after Firebase authentication is confirmed
-                    const data = await getMyRole(); // Call our new API
-                    // ✅ Store internal role in context (internalRole)
-                    setInternalRole(data.role); // e.g., "Administrator"
+                    const data: any = await getMyRole(); // Call our new API
+
+                    // Flexible handling because backend may return different shapes
+                    // If backend returns { role: null | '' } -> deny access
+                    if (!data || !data.role) {
+                        setInternalRole(null);
+                        setRoleStatus('none');
+                        setAccessDeniedReason('Nenhuma role atribuída. Contacte o administrador.');
+                    } else if (data.active === false) {
+                        // If backend provides an "active" flag and it's false -> inactive
+                        setInternalRole(data.role);
+                        setRoleStatus('inactive');
+                        setAccessDeniedReason('A sua role está inativa. Contacte o administrador.');
+                    } else {
+                        // role válida e ativa
+                        setInternalRole(data.role);
+                        setRoleStatus('active');
+                        setAccessDeniedReason(null);
+                    }
                 } catch (error: any) {
-                    // This happens if the user is 403 Forbidden (not in DB or deactivated)
-                    console.error("Internal role check failed:", error.message);
-                    // ✅ Handle 403 Forbidden by triggering logout and redirecting to /login
+                    console.error('Internal role check failed:', error?.message ?? error);
+
+                    // Default deny case
                     setInternalRole(null);
-                    // 🔐 Logout automático se receber 403
-                    if (error?.response?.status === 403) {
-                        await logout();
+                    setRoleStatus('none');
+                    setAccessDeniedReason('Erro ao verificar role interna.');
+
+                    // If backend returned 403 (forbidden) treat as access denied and force logout
+                    const status = (error?.response as any)?.status ?? (error?.status ?? null);
+                    if (status === 403) {
+                        try {
+                            await logout();
+                        } catch (e) {
+                            console.error('Logout after 403 failed', e);
+                        }
+                        // Redirect to login (keeps UX consistent)
                         window.location.href = '/login';
                     }
                 }
             } else {
                 // No Firebase user, so no internal role
                 setInternalRole(null);
+                setRoleStatus('none');
+                setAccessDeniedReason(null);
             }
             // ✅ Expose isInternalLoading to block UI until role is resolved
             setIsInternalLoading(false);
@@ -68,7 +99,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Only fetch role *after* Firebase loading is done
         if (!isLoading) {
             setIsInternalLoading(true);
-            fetchRole();
+            void fetchRole();
         }
     }, [user, isLoading]);
 
@@ -98,14 +129,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const logout = async () => {
         await signOut(auth);
         setInternalRole(null);
+        setRoleStatus('none');
+        setAccessDeniedReason(null);
     };
 
-    const value = {
+    const value: AuthContextType = {
         user,
         isAuthenticated: !!user,
         isLoading,
         isInternalLoading, // exposed to consumers
         internalRole,      // exposed to consumers
+        roleStatus,
+        accessDeniedReason,
         logout,
     };
 

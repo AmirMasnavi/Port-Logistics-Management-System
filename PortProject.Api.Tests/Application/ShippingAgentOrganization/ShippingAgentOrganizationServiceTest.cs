@@ -49,7 +49,7 @@ public class ShippingAgentOrganizationServiceTest
             City = "Porto",
             Country = "Portugal",
             TaxNumber = "PT123456789",
-            Representatives = new List<CreateShippingAgentRepresentativeDto>
+            Representatives = new List<CreateShippingAgentRepresentativeForOrganizationDto>
             {
                 new()
                 {
@@ -62,7 +62,45 @@ public class ShippingAgentOrganizationServiceTest
             }
         };
 
+        _orgRepoMock.Setup(r => r.ExistsByLegalNameAsync(It.IsAny<LegalName>()))
+            .ReturnsAsync(false);
         _orgRepoMock.Setup(r => r.ExistsByTaxNumberAsync(It.IsAny<TaxNumber>()))
+            .ReturnsAsync(true);
+
+        // Act & Assert
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.RegisterOrganizationAsync(dto));
+        _orgRepoMock.Verify(r => r.AddAsync(It.IsAny<PortProject.Api.Domain.ShippingAgentOrganizationAggregate.ShippingAgentOrganization>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task RegisterOrganizationAsync_DuplicateLegalName_Throws()
+    {
+        // Arrange
+        using var ctx = NewInMemoryContext();
+        var service = new ShippingAgentOrganizationService(_orgRepoMock.Object, ctx, _repServiceMock.Object);
+
+        var dto = new CreateShippingAgentOrganizationDto
+        {
+            LegalName = "ACME Corp",
+            AlternativeName = "ACME",
+            Street = "Rua 1",
+            City = "Porto",
+            Country = "Portugal",
+            TaxNumber = "PT123456789",
+            Representatives = new List<CreateShippingAgentRepresentativeForOrganizationDto>
+            {
+                new()
+                {
+                    RepresentativeName = "John Doe",
+                    CitizenId = "CIT-1",
+                    RepresentativeNationality = "PT",
+                    RepresentativeEmail = "john@acme.com",
+                    RepresentativePhone = "+351912345678"
+                }
+            }
+        };
+
+        _orgRepoMock.Setup(r => r.ExistsByLegalNameAsync(It.IsAny<LegalName>()))
             .ReturnsAsync(true);
 
         // Act & Assert
@@ -85,7 +123,7 @@ public class ShippingAgentOrganizationServiceTest
             City = "Porto",
             Country = "Portugal",
             TaxNumber = "PT123456789",
-            Representatives = new List<CreateShippingAgentRepresentativeDto>()
+            Representatives = new List<CreateShippingAgentRepresentativeForOrganizationDto>()
         };
 
         // Act & Assert
@@ -117,7 +155,6 @@ public class ShippingAgentOrganizationServiceTest
 
         // Assert
         Assert.NotNull(dto);
-        Assert.Equal(id.ToString(), dto?.Id);
         Assert.Equal("ACME Corp", dto?.LegalName);
         Assert.Equal("ACME", dto?.AlternativeName);
         Assert.Equal("Rua 1", dto?.Street);

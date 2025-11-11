@@ -535,7 +535,7 @@ namespace Port.Project.Api.System_Tests
             var bogusOrgId = Guid.NewGuid().ToString();
             var repCreate = new CreateShippingAgentRepresentativeDto
             {
-                OrganizationId = bogusOrgId,
+              
                 RepresentativeName = "John Doe",
                 CitizenId = "12345678Z",
                 RepresentativeNationality = "PT",
@@ -571,16 +571,15 @@ namespace Port.Project.Api.System_Tests
                 City = "Porto",
                 Country = "PT",
                 TaxNumber = "PT999000111",
-                Representatives = new List<CreateShippingAgentRepresentativeDto>
+                Representatives = new List<CreateShippingAgentRepresentativeForOrganizationDto>
                 {
-                    new CreateShippingAgentRepresentativeDto
+                    new CreateShippingAgentRepresentativeForOrganizationDto
                     {
                         RepresentativeName = "Alice Rep",
                         CitizenId = "87654321X",
                         RepresentativeNationality = "PT",
                         RepresentativeEmail = "alice.rep@example.com",
-                        RepresentativePhone = "934567890",
-                        // OrganizationId is optional here; service assigns after creating the org
+                        RepresentativePhone = "934567890"
                     }
                 }
             };
@@ -616,15 +615,15 @@ namespace Port.Project.Api.System_Tests
                 City = "Lisbon",
                 Country = "PT",
                 TaxNumber = "PT321654987",
-                Representatives = new List<CreateShippingAgentRepresentativeDto>
+                Representatives = new List<CreateShippingAgentRepresentativeForOrganizationDto>
                 {
-                    new CreateShippingAgentRepresentativeDto
+                    new CreateShippingAgentRepresentativeForOrganizationDto
                     {
                         RepresentativeName = "Bob Rep",
                         CitizenId = "99887766H",
                         RepresentativeNationality = "PT",
                         RepresentativeEmail = "bob.rep@example.com",
-                        RepresentativePhone = "911111111",
+                        RepresentativePhone = "911111111"
                     }
                 }
             };

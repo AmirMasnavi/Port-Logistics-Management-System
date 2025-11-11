@@ -34,7 +34,7 @@ namespace PortProject.Api.Tests.Controllers
             // Arrange
             var dto = new CreateShippingAgentRepresentativeDto
             {
-                OrganizationId = Guid.NewGuid().ToString(),
+                
                 CitizenId = "12345678Z",
                 RepresentativeName = "Ana Silva",
                 RepresentativeEmail = "ana@example.com",
@@ -49,9 +49,7 @@ namespace PortProject.Api.Tests.Controllers
                 RepresentativeEmail = dto.RepresentativeEmail
             };
 
-            _orgServiceMock
-                .Setup(s => s.AddRepresentativeToOrganizationAsync(dto.OrganizationId, dto))
-                .ReturnsAsync(expected);
+          
 
             // Act
             var result = await _controller.CreateRepresentative(dto);
@@ -63,8 +61,6 @@ namespace PortProject.Api.Tests.Controllers
             Assert.AreEqual(expected, created.Value);
             Assert.IsTrue(created.RouteValues!.ContainsKey("id"));
             Assert.AreEqual(expected.RepresentativeId, created.RouteValues["id"]);
-
-            _orgServiceMock.Verify(s => s.AddRepresentativeToOrganizationAsync(dto.OrganizationId, dto), Times.Once);
         }
 
 

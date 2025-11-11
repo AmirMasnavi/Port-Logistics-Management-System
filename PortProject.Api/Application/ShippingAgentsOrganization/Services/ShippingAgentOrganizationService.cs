@@ -55,14 +55,18 @@ namespace PortProject.Api.Application.ShippingAgentsOrganization.Services
             if (dto.Representatives == null || dto.Representatives.Count == 0)
                 throw new InvalidOperationException("At least one representative must be provided.");
 
+            var legalName = new LegalName(dto.LegalName);
             var tax = new TaxNumber(dto.TaxNumber);
+
+            if (await _repository.ExistsByLegalNameAsync(legalName))
+                throw new InvalidOperationException($"An organization with legal name '{dto.LegalName}' already exists.");
 
             if (await _repository.ExistsByTaxNumberAsync(tax))
                 throw new InvalidOperationException($"An organization with tax number '{dto.TaxNumber}' already exists.");
 
             var org = new ShippingAgentOrganization(
                 OrganizationId.NewId(),
-                new LegalName(dto.LegalName),
+                legalName,
                 new AlternativeName(dto.AlternativeName),
                 new Address(dto.Street, dto.City, dto.Country),
                 tax
@@ -70,7 +74,15 @@ namespace PortProject.Api.Application.ShippingAgentsOrganization.Services
 
             foreach (var rep in dto.Representatives)
             {
-                var representative = await _repService.CreateRepresentativeAsync(rep);
+                // Create representative directly without OrganizationName
+                var representative = new ShippingAgentRepresentative(
+                    new CitizenId(rep.CitizenId),
+                    new RepresentativeName(rep.RepresentativeName),
+                    new RepresentativePhone(rep.RepresentativePhone),
+                    new RepresentativeNationality(rep.RepresentativeNationality),
+                    new RepresentativeEmail(rep.RepresentativeEmail)
+                );
+                
                 // Set the organizationId for the representative
                 representative.AttachToOrganization(org.Id!);
                 await _context.ShippingAgentRepresentatives.AddAsync(representative);
@@ -98,7 +110,6 @@ namespace PortProject.Api.Application.ShippingAgentsOrganization.Services
         {
             return new ShippingAgentOrganizationDto
             {
-                Id = org.Id?.ToString() ?? string.Empty,
                 LegalName = org.LegalName?.Value ?? string.Empty,
                 AlternativeName = org.AlternativeName?.Value ?? string.Empty,
                 Street = org.Address?.Street ?? string.Empty,

@@ -13,22 +13,21 @@ using Microsoft.AspNetCore.Authorization; // We need this!
 public class UserAdminController : ControllerBase
 {
     private readonly PortProjectContext _context;
-
+    
     public UserAdminController(PortProjectContext context)
     {
         _context = context;
     }
 
-    // 2. This endpoint assigns a role
     [HttpPost("assign-role")]
-    // [Authorize(Roles = "Administrator")] // 3. TODO: Add this once we can get roles
+    // [Authorize(Roles = "Administrator")] // We will add this in the NEXT step
     public async Task<IActionResult> AssignRole([FromBody] AssignRoleDto dto)
     {
         if (!Enum.TryParse<Role>(dto.Role, true, out var role))
             return BadRequest(new { message = "Invalid role specified." });
 
         var user = await _context.AppUsers.FindAsync(dto.Email.ToLowerInvariant());
-
+        
         if (user != null)
         {
             // User exists, just update their role
@@ -42,7 +41,7 @@ public class UserAdminController : ControllerBase
         }
 
         await _context.SaveChangesAsync();
-
+        
         // 4. TODO: We would send the activation email here
         // We can skip the email logic for now.
 

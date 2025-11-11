@@ -1,5 +1,23 @@
-import React from 'react';
-import { Text } from '@react-three/drei';
+import React, { useEffect, useRef } from 'react';
+import { useTexture, Text } from '@react-three/drei';
+import { RepeatWrapping, BufferAttribute, SRGBColorSpace, DoubleSide, Mesh } from 'three';
+import { useFrame } from '@react-three/fiber';
+
+
+// Import texture assets from the local textures folder so Vite resolves them correctly
+import concreteBaseUrl from './textures/Concrete_Base_Color.png';
+import concreteNormalUrl from './textures/Concrete_Normal.png';
+import concreteRoughnessUrl from './textures/Concrete_Roughness.png';
+import concreteHeightUrl from './textures/Concrete_Height.png';
+import concreteAoUrl from './textures/Concrete_AO.png';
+import waterColorUrl from './textures/Water_002_COLOR.jpg';
+import waterNormalUrl from './textures/Water_002_NORM.jpg';
+import waterRoughnessUrl from './textures/Water_002_ROUGH.jpg';
+import waterDisplacementUrl from './textures/Water_002_DISP.png';
+import waterOccUrl from './textures/Water_002_OCC.jpg';
+
+
+
 
 // Props base para qualquer modelo
 type ModelProps = {
@@ -99,24 +117,259 @@ export const YardModel: React.FC<Omit<ModelProps, 'color'>> = ({ position, size,
 };
 
 // Land: grama / chão
-export const LandModel: React.FC<Omit<ModelProps, 'color'>> = ({ position, size }) => (
-    <group position={position}>
-        <mesh receiveShadow>
-            <boxGeometry args={[size[0], Math.max(0.1, size[1]), size[2]]} />
-            <meshStandardMaterial color="limegreen" metalness={0.05} roughness={0.9} />
-        </mesh>
-    </group>
-);
+export const LandModel: React.FC<Omit<ModelProps, 'color'>> = ({ position, size }) => {
+    // Load all available PBR maps (AO optional)
+    const [base, normal, roughness, height, ao] = useTexture([
+        concreteBaseUrl,
+        concreteNormalUrl,
+        concreteRoughnessUrl,
+        concreteHeightUrl,
+        concreteAoUrl,
+    ]);
+
+    // IMPORTANT: clone textures per instance so repeat/wrap changes don't leak to other tiles
+    const cloned = React.useMemo(() => {
+        return {
+            base: base?.clone() ?? null,
+            normal: normal?.clone() ?? null,
+            roughness: roughness?.clone() ?? null,
+            height: height?.clone() ?? null,
+            ao: ao?.clone() ?? null,
+        };
+    }, [base, normal, roughness, height, ao]);
+    // Dispose cloned textures on unmount to avoid memory leaks when many LandModel tiles exist
+    useEffect(() => {
+        return () => {
+            Object.values(cloned).forEach(tex => tex?.dispose());
+        };
+    }, [cloned]);
+
+    
+    
+    // Tiling configuration
+    const TILE_SCALE = 4; // adjust (smaller -> more repeats)
+    const repeatX = Math.max(1, size[0] / TILE_SCALE);
+    const repeatZ = Math.max(1, size[2] / TILE_SCALE);
+
+    useEffect(() => {
+        const list = [cloned.base, cloned.normal, cloned.roughness, cloned.height, cloned.ao];
+        list.forEach(tex => {
+            if (!tex) return;
+            tex.wrapS = tex.wrapT = RepeatWrapping;
+            tex.repeat.set(repeatX, repeatZ);
+            tex.anisotropy = Math.max(tex.anisotropy ?? 0, 8);
+            tex.needsUpdate = true;
+        });
+        // Set sRGB color space where supported (Three r152+)
+        if (cloned.base && 'colorSpace' in cloned.base) (cloned.base as any).colorSpace = SRGBColorSpace;
+    }, [cloned.base, cloned.normal, cloned.roughness, cloned.height, cloned.ao, repeatX, repeatZ]);
+
+    // Subdivisions for displacement (cap to avoid huge geometries)
+    const segX = Math.min(100, Math.ceil(size[0] / 2));
+    const segZ = Math.min(100, Math.ceil(size[2] / 2));
+
+    const meshRef = React.useRef<Mesh | null>(null);
+    useEffect(() => {
+        // Provide uv2 for AO
+        const geom: any = meshRef.current?.geometry;
+        if (geom?.attributes?.uv && !geom.attributes.uv2) {
+            geom.setAttribute('uv2', new BufferAttribute(geom.attributes.uv.array, 2));
+        }
+    }, [meshRef]);
+
+    return (
+        <group position={position}>
+            {/* Use a flat plane rotated to horizontal for proper UV tiling */}
+            <mesh ref={meshRef} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+                <planeGeometry args={[size[0], size[2], segX, segZ]} />
+                <meshStandardMaterial
+                    side={DoubleSide}
+                    color="#f5f5f5" // brighten base
+                    map={cloned.base as any}
+                    normalMap={cloned.normal as any}
+                    roughnessMap={cloned.roughness as any}
+                    displacementMap={cloned.height as any}
+                    displacementScale={0.01}
+                    aoMap={cloned.ao as any}
+                    aoMapIntensity={0.15}
+                    metalness={0.03}
+                    roughness={0.85}
+                    emissive="#f0f0f0"
+                    emissiveIntensity={0.2}
+                />
+            </mesh>
+        </group>
+    );
+};
 
 // Water: plano azul com leve brilho
-export const WaterModel: React.FC<Omit<ModelProps, 'color'>> = ({ position, size }) => (
-    <group position={position}>
-        <mesh receiveShadow>
-            <boxGeometry args={[size[0], Math.max(0.05, size[1]), size[2]]} />
-            <meshStandardMaterial color="deepskyblue" metalness={0.1} roughness={0.2} transparent opacity={0.95} />
-        </mesh>
-    </group>
-);
+export const WaterModel: React.FC<Omit<ModelProps, 'color'>> = ({ position, size }) => {
+    const meshRef = useRef<Mesh | null>(null);
+    const originalPositionsRef = useRef<Float32Array | null>(null);
+
+    // Load Water_002 PBR maps (color, normal, roughness, displacement, occlusion)
+    const [wColor, wNormal, wRough, wDisp, wOcc] = useTexture([
+        waterColorUrl,
+        waterNormalUrl,
+        waterRoughnessUrl,
+        waterDisplacementUrl,
+        waterOccUrl,
+    ]);
+
+    // Clone per-instance to isolate repeat/wrap
+    const water = React.useMemo(() => ({
+        base: wColor?.clone() ?? null,
+        normal: wNormal?.clone() ?? null,
+        roughness: wRough?.clone() ?? null,
+        disp: wDisp?.clone() ?? null,
+        occ: wOcc?.clone() ?? null,
+    }), [wColor, wNormal, wRough, wDisp, wOcc]);
+
+    // Dispose on unmount
+    useEffect(() => {
+        return () => {
+            Object.values(water).forEach(t => t?.dispose());
+        };
+    }, [water]);
+
+    // Configure tiling
+    const TILE_SCALE = 6; // slightly larger tiles for water
+    const repeatX = Math.max(1, size[0] / TILE_SCALE);
+    const repeatZ = Math.max(1, size[2] / TILE_SCALE);
+
+    useEffect(() => {
+        const list = [water.base, water.normal, water.roughness, water.disp, water.occ];
+        list.forEach(tex => {
+            if (!tex) return;
+            tex.wrapS = tex.wrapT = RepeatWrapping;
+            tex.repeat.set(repeatX, repeatZ);
+            tex.anisotropy = Math.max(tex.anisotropy ?? 0, 8);
+            tex.needsUpdate = true;
+        });
+        if (water.base && 'colorSpace' in water.base) (water.base as any).colorSpace = SRGBColorSpace;
+    }, [water.base, water.normal, water.roughness, water.disp, water.occ, repeatX, repeatZ]);
+
+    // Subtle UV scroll to animate water
+    useFrame((_, delta) => {
+        const list = [water.base, water.normal, water.roughness, water.disp, water.occ];
+        list.forEach(tex => {
+            if (!tex) return;
+            tex.offset.x = (tex.offset.x + delta * 0.02) % 1; // slow x drift
+            tex.offset.y = (tex.offset.y + delta * 0.01) % 1; // slower y drift
+        });
+    });
+
+    useEffect(() => { originalPositionsRef.current = null; }, [size[0], size[2]]);
+
+    useFrame(({ clock }) => {
+        const mesh = meshRef.current;
+        if (!mesh) return;
+        const geom: any = mesh.geometry;
+        const posAttr = geom.attributes?.position;
+        if (!posAttr) return;
+        if (!originalPositionsRef.current) {
+            originalPositionsRef.current = new Float32Array(posAttr.array.length);
+            originalPositionsRef.current.set(posAttr.array);
+        }
+        const uvAttr = geom.attributes?.uv; // for edge stop/fade based on UVs
+        const orig = originalPositionsRef.current;
+        const time = clock.getElapsedTime();
+        const count = posAttr.count;
+        // Calmer wave parameters
+        const amp1 = 1.00;
+        const amp2 = 0.5;
+        const freq1 = 0.18;
+        const freq2 = 0.12;
+        const speed1 = 0.3;
+        const speed2 = 0.2;
+        // Edge stop/fade settings (UV-based primary)
+        const stopUV = 0.31; // outer 40% band: waves fully stopped
+        const fadeUV = 0.33; // next 10%: smooth fade-in to full amplitude
+        const w = size[0];
+        const h = size[2];
+        const stopWorld = Math.min(w, h) * 0.02; // ~2% of shortest side fully stopped
+        const fadeWorld = Math.min(w, h) * 0.10; // ~10% smooth fade-in
+        for (let i = 0; i < count; i++) {
+            const ix = i * 3;
+            const x = orig[ix];
+            const y = orig[ix + 1];
+            const wave1 = Math.sin(x * freq1 + time * speed1);
+            const wave2 = Math.sin((y + x * 0.25) * freq2 + time * speed2 + 1.2);
+            let height = wave1 * amp1 + wave2 * amp2;
+            // Attenuation near borders with hard stop band + smooth fade
+            let atten = 1;
+            if (uvAttr) {
+                const iu = i * 2;
+                const u = uvAttr.array[iu];
+                const v = uvAttr.array[iu + 1];
+                const edgeDist = Math.min(u, 1 - u, v, 1 - v); // distance to nearest edge in UV space
+                if (edgeDist <= stopUV) {
+                    atten = 0;
+                } else if (edgeDist <= stopUV + fadeUV) {
+                    const t = Math.min(1, Math.max(0, (edgeDist - stopUV) / fadeUV));
+                    // smoothstep 0->1 over fade band
+                    atten = t * t * (3 - 2 * t);
+                } else {
+                    atten = 1;
+                }
+            } else {
+                // Fallback: world pos-based stop/fade
+                const dx = w * 0.5 - Math.abs(x);
+                const dy = h * 0.5 - Math.abs(y);
+                const minEdge = Math.max(0, Math.min(dx, dy));
+                if (minEdge <= stopWorld) {
+                    atten = 0;
+                } else if (minEdge <= stopWorld + fadeWorld) {
+                    const t = Math.min(1, Math.max(0, (minEdge - stopWorld) / fadeWorld));
+                    atten = t * t * (3 - 2 * t);
+                } else {
+                    atten = 1;
+                }
+            }
+            height *= atten;
+            posAttr.array[ix + 2] = height; // Z becomes vertical after rotation
+        }
+        posAttr.needsUpdate = true;
+        geom.computeVertexNormals();
+    });
+
+    // Geometry segments to support displacement
+    const segX = Math.min(100, Math.ceil(size[0] / 2));
+    const segZ = Math.min(100, Math.ceil(size[2] / 2));
+
+    // Provide uv2 for AO on water geometry
+    useEffect(() => {
+        const g: any = meshRef.current?.geometry;
+        if (g?.attributes?.uv && !g.attributes.uv2) {
+            g.setAttribute('uv2', new BufferAttribute(g.attributes.uv.array, 2));
+        }
+    }, [meshRef, size[0], size[2]]);
+
+    return (
+        <group position={position}>
+            {/* Lift slightly to avoid z-fighting with ground */}
+            <mesh ref={meshRef} position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+                <planeGeometry args={[size[0], size[2], segX, segZ]} />
+                <meshStandardMaterial
+                    side={DoubleSide}
+                    color="#ffffff"
+                    map={water.base as any}
+                    normalMap={water.normal as any}
+                    roughnessMap={water.roughness as any}
+                    displacementMap={water.disp as any}
+                    aoMap={water.occ as any}
+                    aoMapIntensity={0.2}
+                    displacementScale={0.01}
+                    metalness={0.05}
+                    roughness={0.4}
+                    emissive="#0e1b2a"
+                    emissiveIntensity={0.05}
+                    opacity={0.15}
+                />
+            </mesh>
+        </group>
+    );
+};
 
 // Building: simples com janelas (material diferente)
 export const BuildingModel: React.FC<Omit<ModelProps, 'color'>> = ({ position, size, label }) => (
@@ -285,4 +538,3 @@ export const YardCraneModel: React.FC<Omit<ModelProps, 'color'>> = ({ position, 
         </group>
     );
 };
-

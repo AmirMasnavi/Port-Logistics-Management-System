@@ -20,9 +20,19 @@ namespace PortProject.Api.Domain.ShippingAgentOrganizationAggregate
         Task<bool> ExistsByTaxNumberAsync(TaxNumber taxNumber);
 
         /// <summary>
+        /// Verifica se já existe uma organização com o mesmo nome legal.
+        /// </summary>
+        Task<bool> ExistsByLegalNameAsync(LegalName legalName);
+
+        /// <summary>
         /// Obtém uma organização pelo seu identificador.
         /// </summary>
         Task<ShippingAgentOrganization?> GetByIdAsync(OrganizationId id);
+
+        /// <summary>
+        /// Obtém uma organização pelo seu nome legal.
+        /// </summary>
+        Task<ShippingAgentOrganization?> GetByLegalNameAsync(LegalName legalName);
 
         Task<IEnumerable<ShippingAgentOrganization>> GetAllAsync(CancellationToken ct = default);
 
