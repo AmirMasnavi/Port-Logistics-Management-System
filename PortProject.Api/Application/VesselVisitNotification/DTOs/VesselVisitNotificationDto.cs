@@ -15,4 +15,6 @@ public class VesselVisitNotificationDto
     public List<CrewMemberDto> CrewMembers { get; set; }
     public List<DecisionLogEntryDto> DecisionLog { get; set; }
     public RepresentativeId RepresentativeId { get; set; }
+    public double UnloadingTime => Cargo?.Weight / 1000 ?? 0; // Exemplo: 1 hora por cada 1000kg
+    public double LoadingTime => Cargo?.Weight / 1000 ?? 0; // Exemplo: o mesmo tempo para carregar
 }
