@@ -70,7 +70,7 @@ namespace PortProject.Api.Tests.Controllers
             var id = Guid.NewGuid();
             var dto = new ShippingAgentOrganizationDto
             {
-                Id = id.ToString(),
+             
                 LegalName = "ACME Shipping",
                 TaxNumber = "123456789",
                 Street = "Rua A, 123",
@@ -123,8 +123,8 @@ namespace PortProject.Api.Tests.Controllers
             // Arrange
             var list = new List<ShippingAgentOrganizationDto>
             {
-                new ShippingAgentOrganizationDto { Id = Guid.NewGuid().ToString(), LegalName = "Org1", TaxNumber = "123456789", Street = "A", City = "X", Country = "PT" },
-                new ShippingAgentOrganizationDto { Id = Guid.NewGuid().ToString(), LegalName = "Org2", TaxNumber = "987654321", Street = "B", City = "Y", Country = "PT" }
+                new ShippingAgentOrganizationDto { LegalName = "Org1", TaxNumber = "123456789", Street = "A", City = "X", Country = "PT" },
+                new ShippingAgentOrganizationDto { LegalName = "Org2", TaxNumber = "987654321", Street = "B", City = "Y", Country = "PT" }
             };
 
             _serviceMock
