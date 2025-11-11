@@ -3,7 +3,6 @@ using PortProject.Api.Domain.ShippingAgentRepresentativeAggregate;
 using PortProject.Api.Models;
 
 using PortProject.Api.Application.ShippingAgentsOrganization.DTOs;
-using src.Domain.Shared;
 using PortProject.Api.Application.ShippingAgentsRepresentative.Services;
 
 namespace PortProject.Api.Application.ShippingAgentsOrganization.Services
@@ -69,7 +68,9 @@ namespace PortProject.Api.Application.ShippingAgentsOrganization.Services
                 legalName,
                 new AlternativeName(dto.AlternativeName),
                 new Address(dto.Street, dto.City, dto.Country),
-                tax
+                tax,
+                dto.Email,
+                dto.Phone
             );
 
             foreach (var rep in dto.Representatives)
@@ -115,6 +116,8 @@ namespace PortProject.Api.Application.ShippingAgentsOrganization.Services
                 Street = org.Address?.Street ?? string.Empty,
                 City = org.Address?.City ?? string.Empty,
                 Country = org.Address?.Country ?? string.Empty,
+                Email = org.Email ?? string.Empty,
+                Phone = org.Phone ?? string.Empty,
                 TaxNumber = org.TaxNumber?.Value ?? string.Empty
             };
         }

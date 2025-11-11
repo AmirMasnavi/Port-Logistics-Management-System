@@ -11,12 +11,14 @@ interface ShippingAgentOrganization {
     address?: string;
     email?: string;
     phone?: string;
+    taxNumber?: string;
 }
 
 interface Representative {
     id: string;
     name: string;
     citizenId: string;
+    nationality?: string;
     email?: string;
     phone?: string;
     organizationId?: string;
@@ -65,6 +67,12 @@ const ShippingAgentsPage: React.FC = () => {
     const [repNationality, setRepNationality] = useState('');
     const [repOrgName, setRepOrgName] = useState('');
     const [submittingRep, setSubmittingRep] = useState(false);
+    const [deletingRepId, setDeletingRepId] = useState<string | null>(null);
+    const [successMsg, setSuccessMsg] = useState<string | null>(null);
+    // Edit states for representatives
+    const [editingCitizenId, setEditingCitizenId] = useState<string | null>(null);
+    const [editingValues, setEditingValues] = useState<{ name: string; email?: string; phone?: string; nationality?: string; organizationName?: string } | null>(null);
+    const [submittingEdit, setSubmittingEdit] = useState(false);
 
     const normalize = (s?: string) => {
         const str = (s ?? '').toString().normalize('NFD');
@@ -131,6 +139,7 @@ const ShippingAgentsPage: React.FC = () => {
                           .join(', ') || undefined,
                       email: o.email ?? o.Email ?? undefined,
                       phone: o.phone ?? o.Phone ?? undefined,
+                      taxNumber: o.taxNumber ?? o.TaxNumber ?? o.Tax_Number ?? undefined,
                   }))
                 : [];
 
@@ -141,6 +150,7 @@ const ShippingAgentsPage: React.FC = () => {
                       name: r.name ?? r.RepresentativeName ?? r.RepresentativeName ?? '',
                       // Prefer TaxNumber if present on the representative; otherwise fallback to CitizenId
                       citizenId: r.taxNumber ?? r.TaxNumber ?? r.citizenId ?? r.CitizenId ?? '',
+                      nationality: r.nationality ?? r.RepresentativeNationality ?? r.RepresentativeNationality ?? '',
                       email: r.email ?? r.RepresentativeEmail ?? r.RepresentativeEmail ?? undefined,
                       phone: r.phone ?? r.RepresentativePhone ?? r.RepresentativePhone ?? undefined,
                       organizationId: r.organizationId ?? r.OrganizationId ?? r.organizationID ?? undefined,
@@ -150,15 +160,14 @@ const ShippingAgentsPage: React.FC = () => {
 
             setOrgs(normalizedOrgs);
             setReps(normalizedReps);
-            // Quick debug logs requested
-            console.log('orgs:', normalizedOrgs);
-            console.log('reps:', normalizedReps);
-        } catch (e: any) {
-            setError('Failed to fetch data. Please try again later.');
-        } finally {
-            setLoading(false);
-        }
-    };
+            // Keep minimal logging
+            console.debug('Loaded representatives:', normalizedReps.length);
+         } catch (e: any) {
+             setError('Failed to fetch data. Please try again later.');
+         } finally {
+             setLoading(false);
+         }
+     };
 
     useEffect(() => {
         fetchAll();
@@ -192,9 +201,12 @@ const ShippingAgentsPage: React.FC = () => {
 
     // submit: criar organization + representative obrigatório (sem precisar nome da org no rep)
     // coerção para booleano — evita strings em atributos `disabled`
+    // Organization email and phone are required per request
     const canSubmitOrg: boolean = !!(
         orgName.trim() &&
         orgTaxNumber.trim() &&
+        orgEmail.trim() &&
+        orgPhone.trim() &&
         repInitName.trim() &&
         repInitCitizen.trim() &&
         repInitEmail.trim() &&
@@ -204,6 +216,8 @@ const ShippingAgentsPage: React.FC = () => {
 
     const validateOrganizationBeforeSubmit = (): string | null => {
         if (!isValidOrgTaxNumber(orgTaxNumber)) return 'Organization tax number is invalid.';
+        if (!isValidEmail(orgEmail)) return 'Organization email is invalid.';
+        if (!isValidPtMobile(orgPhone)) return 'Organization phone must start with 9 and have 9 digits.';
         if (!isValidEmail(repInitEmail)) return 'Initial representative email is invalid.';
         if (!isValidPtMobile(repInitPhone)) return 'Initial representative phone must start with 9 and have 9 digits.';
         return null;
@@ -231,6 +245,8 @@ const ShippingAgentsPage: React.FC = () => {
                 Street: addr.street,
                 City: addr.city,
                 Country: addr.country,
+                Email: orgEmail.trim(),
+                Phone: orgPhone.trim(),
                 // REQUIRED by backend
                 TaxNumber: orgTaxNumber.trim().toUpperCase(),
                 Representatives: [
@@ -259,38 +275,15 @@ const ShippingAgentsPage: React.FC = () => {
             await fetchAll();
             setView('organizations');
         } catch (e: any) {
-            // Better error extraction (ProblemDetails or { message })
             console.error('Organization create error:', e);
             const respData = e?.response?.data;
-            let serverMsg = e?.message ?? 'Failed to create organization';
-            if (respData) {
-                if (respData.errors && typeof respData.errors === 'object') {
-                    const parts: string[] = [];
-                    for (const key of Object.keys(respData.errors)) {
-                        const val = respData.errors[key];
-                        if (Array.isArray(val)) parts.push(...val.map((v) => `${key}: ${v}`));
-                        else parts.push(`${key}: ${String(val)}`);
-                    }
-                    serverMsg = parts.join(' | ');
-                } else if (respData.title || respData.detail) {
-                    serverMsg = `${respData.title ?? ''}${respData.detail ? ' - ' + respData.detail : ''}`.trim();
-                } else if (respData.message) {
-                    serverMsg = respData.message;
-                } else if (typeof respData === 'string') {
-                    serverMsg = respData;
-                } else {
-                    try {
-                        serverMsg = JSON.stringify(respData);
-                    } catch {
-                        serverMsg = String(respData);
-                    }
-                }
-            }
+            const friendly = formatServerValidationError(respData);
+            const serverMsg = friendly || e?.message || 'Falha ao criar organização. Verifique os dados e tente novamente.';
             setError(serverMsg);
-        } finally {
-            setSubmittingOrg(false);
-        }
-    };
+         } finally {
+             setSubmittingOrg(false);
+         }
+     };
 
     // submit: criar representante isolado (obrigatório organizationName)
     // coerção para booleano — evita strings em atributos `disabled`
@@ -383,38 +376,189 @@ const ShippingAgentsPage: React.FC = () => {
             await fetchAll();
             setView('representatives');
         } catch (e: any) {
-            // Try to show server-provided message when available (axios style)
+            // Try to show server-provided message when available (axios style), friendly Portuguese
             console.error('Representative create error:', e);
             const respData = e?.response?.data;
-            let serverMsg = e?.message ?? 'Failed to create representative';
-            if (respData) {
-                console.error('Server response data:', respData);
-                // ASP.NET ProblemDetails often have 'errors' dictionary
-                if (respData.errors && typeof respData.errors === 'object') {
-                    const parts: string[] = [];
-                    for (const key of Object.keys(respData.errors)) {
-                        const val = respData.errors[key];
-                        if (Array.isArray(val)) parts.push(...val.map((v) => `${key}: ${v}`));
-                        else parts.push(`${key}: ${String(val)}`);
-                    }
-                    serverMsg = parts.join(' | ');
-                } else if (respData.title || respData.detail) {
-                    serverMsg = `${respData.title ?? ''}${respData.detail ? ' - ' + respData.detail : ''}`.trim();
-                } else if (respData.message) {
-                    serverMsg = respData.message;
-                } else if (typeof respData === 'string') {
-                    serverMsg = respData;
-                } else {
-                    try {
-                        serverMsg = JSON.stringify(respData);
-                    } catch (jsonErr) {
-                        serverMsg = String(respData);
-                    }
-                }
-            }
+            const friendly = formatServerValidationError(respData);
+            const serverMsg = friendly || e?.message || 'Falha ao criar representante. Por favor verifique os dados e tente novamente.';
             setError(serverMsg);
         } finally {
             setSubmittingRep(false);
+        }
+    };
+
+    // Delete representative by citizenId (shown in UI as `rep.citizenId`)
+    const handleDeleteRepresentative = async (citizenId: string) => {
+        if (!citizenId) {
+            setError('Este representante não tem um Citizen ID associado — não é possível apagá-lo. Por favor verifique os dados.');
+            return;
+        }
+        // Confirm with the user
+        const ok = window.confirm(`Are you sure you want to delete representative with Citizen ID ${citizenId}? This action cannot be undone.`);
+        if (!ok) return;
+
+        try {
+            console.debug('Attempting delete for citizenId:', citizenId);
+            // Backend DELETE expects the CitizenId string in the route
+            const identifierToUse = citizenId;
+            setDeletingRepId(citizenId);
+            const resp = await apiService.deleteShippingAgentRepresentativeByCitizenId(identifierToUse);
+            // If the server responded with a non-success code, show it
+            if (!resp || typeof resp.status !== 'number' || resp.status < 200 || resp.status >= 300) {
+                const msg = `Unexpected server response: ${JSON.stringify(resp)}`;
+                console.warn(msg);
+                setError(msg);
+                return;
+            }
+            // Optimistically remove the representative from local state so UI updates immediately
+            const target = normalize(citizenId?.toString().trim());
+            setReps((prev) => prev.filter((r) => normalize(r.citizenId) !== target));
+            // Ensure we're on the representatives view so the user sees the updated list
+            setView('representatives');
+            // Prefer server-provided message when available; format ProblemDetails into friendly text
+            const serverFriendly = formatServerValidationError(resp.data);
+            const serverMsg = serverFriendly || (resp.data && (resp.data.message || resp.data) ? (resp.data.message ?? String(resp.data)) : `Representante com Citizen ID ${identifierToUse} eliminado.`);
+            setSuccessMsg(serverMsg as string);
+            // Refresh from server to stay in sync (no full reload)
+            await fetchAll();
+            // Clear success message after a short delay
+            window.setTimeout(() => setSuccessMsg(null), 3500);
+         } catch (e: any) {
+            console.error('Delete representative error caught in UI:', e);
+            // If axios error, include response status and data
+            if (e?.response) {
+                const { status, data } = e.response;
+                console.error('Server response on delete error:', status, data);
+                const friendly = formatServerValidationError(data);
+                setError(friendly || `Falha ao apagar representante (status ${status}).`);
+            } else {
+                setError(e?.message ?? 'Falha ao apagar representante');
+            }
+         } finally {
+             setDeletingRepId(null);
+         }
+    };
+
+    const validateEditValues = (): string | null => {
+        if (!editingValues) return 'No data to save.';
+        if (!editingValues.name.trim()) return 'Representative name is required.';
+        const phone = (editingValues.phone ?? '').trim();
+        if (phone && !/^\d{8,}$/.test(phone)) return 'Phone must contain at least 8 digits.';
+        if (phone && !phone.startsWith('9')) return 'Phone number must start with 9.';
+        if (editingValues.email && editingValues.email.trim() && !/.+@.+\..+/.test(editingValues.email.trim())) return 'Email format looks invalid.';
+        return null;
+    };
+
+    const startEdit = (rep: Representative) => {
+        setEditingCitizenId(rep.citizenId);
+        setEditingValues({ name: rep.name ?? '', email: rep.email ?? '', phone: rep.phone ?? '', nationality: rep.nationality ?? '', organizationName: rep.organizationName ?? '' });
+        setError(null);
+    };
+
+    const cancelEdit = () => {
+        setEditingCitizenId(null);
+        setEditingValues(null);
+        setError(null);
+    };
+
+    const handleEditChange = (field: string, value: string) => {
+        setEditingValues((prev) => (prev ? { ...prev, [field]: value } : prev));
+    };
+
+    const saveEdit = async (citizenId: string) => {
+         if (!editingValues) return;
+         const validationError = validateEditValues();
+         if (validationError) {
+             setError(validationError);
+             return;
+         }
+
+        // Ensure OrganizationName is provided: the backend requires it and it's a common UX mistake to clear it.
+        const orgNameTrimmed = (editingValues.organizationName ?? '').toString().trim();
+        if (!orgNameTrimmed) {
+            setError('Por favor selecione uma organização existente antes de guardar. Se a organização não existir, crie-a primeiro.');
+            return;
+        }
+
+         setSubmittingEdit(true);
+         setError(null);
+         try {
+             // Build DTO matching backend CreateShippingAgentRepresentativeDto used by update
+             const dto: any = {
+                 RepresentativeName: editingValues.name.trim(),
+                 CitizenId: citizenId, // must remain the same
+                 RepresentativeNationality: (editingValues.nationality ?? '').trim() || 'PT',
+                 RepresentativeEmail: (editingValues.email ?? '').trim(),
+                 RepresentativePhone: (editingValues.phone ?? '').trim(),
+                 OrganizationName: orgNameTrimmed,
+             };
+
+             const resp = await apiService.updateShippingAgentRepresentativeByCitizenId(citizenId, dto);
+             if (!resp || typeof resp.status !== 'number' || resp.status < 200 || resp.status >= 300) {
+                 setError(`Unexpected server response: ${JSON.stringify(resp)}`);
+                 return;
+             }
+
+             // Optimistically update local state
+             setReps((prev) => prev.map((r) => (normalize(r.citizenId) === normalize(citizenId) ? { ...r, name: dto.RepresentativeName, email: dto.RepresentativeEmail, phone: dto.RepresentativePhone, nationality: dto.RepresentativeNationality, organizationName: dto.OrganizationName } : r)));
+             // Prefer server-provided message when available. Support both string payloads and { message }
+             let serverMsg = '';
+             try {
+                 if (resp && typeof resp.data === 'string') serverMsg = resp.data as string;
+                 else if (resp && resp.data && (resp.data.message || resp.data.title)) serverMsg = resp.data.message ?? resp.data.title;
+             } catch { serverMsg = ''; }
+             if (!serverMsg) serverMsg = `Representante com Citizen ID ${citizenId} atualizado.`;
+             setSuccessMsg(serverMsg as string);
+             // Sync with server
+             await fetchAll();
+             cancelEdit();
+             window.setTimeout(() => setSuccessMsg(null), 3500);
+         } catch (e: any) {
+             console.error('Edit save error:', e);
+             const respData = e?.response?.data;
+             const friendly = formatServerValidationError(respData);
+             const serverMsg = friendly || e?.message || 'Falha ao atualizar representante. Por favor verifique os dados e tente novamente.';
+             setError(serverMsg);
+         } finally {
+             setSubmittingEdit(false);
+         }
+    };
+
+    // Format server-side validation (ProblemDetails) into friendly Portuguese messages
+    const formatServerValidationError = (respData: any): string => {
+        if (!respData) return '';
+        // ASP.NET ProblemDetails shape: { type, title, status, traceId, errors: { Field: ["msg"] } }
+        if (respData.errors && typeof respData.errors === 'object') {
+            const parts: string[] = [];
+            // Friendly mapping for common fields
+            if (respData.errors.OrganizationName) {
+                parts.push('Por favor selecione uma organização existente antes de submeter.');
+            }
+            if (respData.errors.CitizenId) {
+                parts.push('O Citizen ID fornecido é inválido.');
+            }
+            if (respData.errors.RepresentativePhone) {
+                parts.push('O número de telefone é inválido. Deve começar por 9 e ter 9 dígitos.');
+            }
+            if (respData.errors.RepresentativeEmail) {
+                parts.push('O email fornecido parece inválido.');
+            }
+            // Append any remaining messages (generic fallback)
+            for (const key of Object.keys(respData.errors)) {
+                if (['OrganizationName', 'CitizenId', 'RepresentativePhone', 'RepresentativeEmail'].includes(key)) continue;
+                const val = respData.errors[key];
+                if (Array.isArray(val)) parts.push(...val.map((v: any) => String(v)));
+                else parts.push(String(val));
+            }
+            if (parts.length) return parts.join(' ');
+        }
+
+        if (respData.message) return String(respData.message);
+        if (respData.title) return String(respData.title);
+        try {
+            return typeof respData === 'string' ? respData : JSON.stringify(respData);
+        } catch {
+            return String(respData);
         }
     };
 
@@ -469,6 +613,12 @@ const ShippingAgentsPage: React.FC = () => {
                         {error}
                     </div>
                 )}
+                {/* Mensagem de sucesso */}
+                {successMsg && (
+                    <div className="mb-4 p-3 rounded border border-green-200 text-green-700 bg-green-50">
+                        {successMsg}
+                    </div>
+                )}
 
                 {/* Área de criação */}
                 {view === 'organizations' ? (
@@ -488,19 +638,20 @@ const ShippingAgentsPage: React.FC = () => {
                                 value={orgAddress}
                                 onChange={(e) => setOrgAddress(e.target.value)}
                             />
-                            {/* Not used by backend but kept for display purposes */}
                             <input
                                 className="p-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-maritime-500"
-                                placeholder="Email (optional)"
+                                placeholder="Email *"
                                 value={orgEmail}
                                 onChange={(e) => setOrgEmail(e.target.value)}
                                 type="email"
+                                required
                             />
                             <input
                                 className="p-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-maritime-500"
-                                placeholder="Phone (optional)"
+                                placeholder="Phone *"
                                 value={orgPhone}
                                 onChange={(e) => setOrgPhone(e.target.value)}
+                                required
                             />
                             {/* NEW: required by backend */}
                             <input
@@ -545,7 +696,7 @@ const ShippingAgentsPage: React.FC = () => {
                                 required
                             />
                         </div>
-                        <p className="text-xs text-gray-500">Email and phone are required for the initial representative. Phone must start with 9 and have 9 digits.</p>
+                        <p className="text-xs text-gray-500">Organization email and phone are required and will appear in the list; the initial representative also requires email and phone. Phone must start with 9 and have 9 digits.</p>
 
                         <button
                             disabled={!canSubmitOrg}
@@ -641,6 +792,9 @@ const ShippingAgentsPage: React.FC = () => {
                                     Address
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-maritime-700 uppercase tracking-wider">
+                                    Tax Number
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-maritime-700 uppercase tracking-wider">
                                     Contact
                                 </th>
                                 <th className="px-6 py-3 text-right text-xs font-medium text-maritime-700 uppercase tracking-wider">
@@ -648,30 +802,33 @@ const ShippingAgentsPage: React.FC = () => {
                                 </th>
                             </tr>
                         ) : (
-                            <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-maritime-700 uppercase tracking-wider">
-                                    Name
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-maritime-700 uppercase tracking-wider">
-                                    Citizen ID
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-maritime-700 uppercase tracking-wider">
-                                    Organization
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-maritime-700 uppercase tracking-wider">
-                                    Contact
-                                </th>
-                                <th className="px-6 py-3 text-right text-xs font-medium text-maritime-700 uppercase tracking-wider">
-                                    Actions
-                                </th>
-                            </tr>
+                             <tr>
+                                 <th className="px-6 py-3 text-left text-xs font-medium text-maritime-700 uppercase tracking-wider">
+                                     Name
+                                 </th>
+                                 <th className="px-6 py-3 text-left text-xs font-medium text-maritime-700 uppercase tracking-wider">
+                                     Citizen ID
+                                 </th>
+                                 <th className="px-6 py-3 text-left text-xs font-medium text-maritime-700 uppercase tracking-wider">
+                                     Organization
+                                 </th>
+                                 <th className="px-6 py-3 text-left text-xs font-medium text-maritime-700 uppercase tracking-wider">
+                                     Nationality
+                                 </th>
+                                 <th className="px-6 py-3 text-left text-xs font-medium text-maritime-700 uppercase tracking-wider">
+                                     Contact
+                                 </th>
+                                 <th className="px-6 py-3 text-right text-xs font-medium text-maritime-700 uppercase tracking-wider">
+                                     Actions
+                                 </th>
+                             </tr>
                         )}
                         </thead>
 
                         <tbody className="bg-white divide-y divide-gray-200">
                         {loading && (
                             <tr>
-                                <td colSpan={view === 'organizations' ? 4 : 5} className="text-center py-4">
+                                <td colSpan={view === 'organizations' ? 5 : 6} className="text-center py-4">
                                     Loading...
                                 </td>
                             </tr>
@@ -680,7 +837,7 @@ const ShippingAgentsPage: React.FC = () => {
                         {!loading && view === 'organizations' && (
                             filteredOrgs.length === 0 ? (
                                 <tr>
-                                    <td colSpan={4} className="text-center py-4">
+                                    <td colSpan={5} className="text-center py-4">
                                         No organizations found.
                                     </td>
                                 </tr>
@@ -692,6 +849,9 @@ const ShippingAgentsPage: React.FC = () => {
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                                             {org.address ?? '-'}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                            {org.taxNumber ?? '-'}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                                             {org.phone ? `${org.phone}${org.email ? ' • ' + org.email : ''}` : org.email ?? '-'}
@@ -709,34 +869,59 @@ const ShippingAgentsPage: React.FC = () => {
                         {!loading && view === 'representatives' && (
                             filteredReps.length === 0 ? (
                                 <tr>
-                                    <td colSpan={5} className="text-center py-4">
+                                    <td colSpan={6} className="text-center py-4">
                                         No representatives found.
                                     </td>
                                 </tr>
                             ) : (
                                 filteredReps.map((rep) => (
-                                    <tr key={rep.id} className="hover:bg-maritime-50">
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                            {rep.name}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                            {rep.citizenId}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                            {rep.organizationName ?? rep.organizationId ?? '-'}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                            {rep.phone ? `${rep.phone}${rep.email ? ' • ' + rep.email : ''}` : rep.email ?? '-'}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                            <button className="text-gray-400 hover:text-gray-600" aria-label="Open actions">
-                                                <DotsIcon />
-                                            </button>
-                                        </td>
-                                    </tr>
+                                     <tr key={rep.id} className="hover:bg-maritime-50">
+                                        {editingCitizenId === rep.citizenId ? (
+                                             <>
+                                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                                     <input value={editingValues?.name ?? ''} onChange={(e) => handleEditChange('name', e.target.value)} className="p-1 border rounded w-48" />
+                                                 </td>
+                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                                     <input disabled value={rep.citizenId} className="p-1 border rounded w-36 bg-gray-100" />
+                                                 </td>
+                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                                    <input value={editingValues?.organizationName ?? ''} onChange={(e) => handleEditChange('organizationName', e.target.value)} className="p-1 border rounded w-40" />
+                                                 </td>
+                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                                    <input value={editingValues?.nationality ?? ''} onChange={(e) => handleEditChange('nationality', e.target.value)} className="p-1 border rounded w-28" />
+                                                 </td>
+                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                                     <input value={editingValues?.phone ?? ''} onChange={(e) => handleEditChange('phone', e.target.value)} className="p-1 border rounded w-36" />
+                                                     <input value={editingValues?.email ?? ''} onChange={(e) => handleEditChange('email', e.target.value)} className="p-1 border rounded w-48 ml-2" />
+                                                 </td>
+                                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                                     <div className="flex items-center justify-end gap-2">
+                                                         <button onClick={() => saveEdit(rep.citizenId)} disabled={submittingEdit} className="px-2 py-1 bg-maritime-600 text-white rounded">
+                                                             {submittingEdit ? 'Saving…' : 'Save'}
+                                                         </button>
+                                                         <button onClick={cancelEdit} className="px-2 py-1 border rounded">Cancel</button>
+                                                     </div>
+                                                 </td>
+                                             </>
+                                         ) : (
+                                             <>
+                                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{rep.name}</td>
+                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{rep.citizenId}</td>
+                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{rep.organizationName ?? rep.organizationId ?? '-'}</td>
+                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{rep.nationality ?? '-'}</td>
+                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{rep.phone ? `${rep.phone}${rep.email ? ' • ' + rep.email : ''}` : rep.email ?? '-'}</td>
+                                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                                     <div className="flex items-center justify-end gap-2">
+                                                         <button onClick={() => startEdit(rep)} className="px-2 py-1 border rounded text-sm">Edit</button>
+                                                         <button onClick={() => handleDeleteRepresentative(rep.citizenId)} disabled={deletingRepId !== null && deletingRepId !== rep.citizenId} className="text-red-500 hover:text-red-700 disabled:opacity-50">{deletingRepId === rep.citizenId ? 'Deleting…' : 'Delete'}</button>
+                                                     </div>
+                                                 </td>
+                                             </>
+                                         )}
+                                     </tr>
                                 ))
-                            )
-                        )}
+                             )
+                         )}
                         </tbody>
                     </table>
                 </div>
