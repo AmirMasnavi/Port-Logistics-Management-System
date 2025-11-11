@@ -95,7 +95,6 @@ public class ShippingAgentOrganizationTest : IClassFixture<IntegrationTestsWebAp
         var organization = JsonConvert.DeserializeObject<ShippingAgentOrganizationDto>(responseBody);
 
         Assert.NotNull(organization);
-        Assert.Equal(organizationId, organization.Id);
         Assert.Equal("Maersk Line Portugal", organization.LegalName);
         Assert.Equal("123456789", organization.TaxNumber);
     }

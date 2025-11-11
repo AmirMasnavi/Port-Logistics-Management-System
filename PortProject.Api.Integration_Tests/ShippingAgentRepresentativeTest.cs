@@ -136,7 +136,6 @@ public class ShippingAgentRepresentativeTest : IClassFixture<IntegrationTestsWeb
         
         var newRepresentative = new CreateShippingAgentRepresentativeDto
         {
-            OrganizationId = organizationId,
             RepresentativeName = "Carlos Mendes",
             CitizenId = uniqueCitizenId,
             RepresentativeNationality = "Portuguese",
@@ -191,7 +190,6 @@ public class ShippingAgentRepresentativeTest : IClassFixture<IntegrationTestsWeb
         
         var invalidRepresentative = new CreateShippingAgentRepresentativeDto
         {
-            OrganizationId = organizationId,
             RepresentativeName = "", // Empty name
             CitizenId = "12345678",
             RepresentativeNationality = "Portuguese",
@@ -223,7 +221,6 @@ public class ShippingAgentRepresentativeTest : IClassFixture<IntegrationTestsWeb
         
         var invalidRepresentative = new CreateShippingAgentRepresentativeDto
         {
-            OrganizationId = organizationId,
             RepresentativeName = "AB", // Too short (less than 3 characters)
             CitizenId = "12345678",
             RepresentativeNationality = "Portuguese",
@@ -255,7 +252,6 @@ public class ShippingAgentRepresentativeTest : IClassFixture<IntegrationTestsWeb
         
         var invalidRepresentative = new CreateShippingAgentRepresentativeDto
         {
-            OrganizationId = organizationId,
             RepresentativeName = "Test Representative",
             CitizenId = "123", // Invalid - too short (less than 8 characters required)
             RepresentativeNationality = "Portuguese",
@@ -288,7 +284,6 @@ public class ShippingAgentRepresentativeTest : IClassFixture<IntegrationTestsWeb
         
         var invalidRepresentative = new CreateShippingAgentRepresentativeDto
         {
-            OrganizationId = organizationId,
             RepresentativeName = "Test Representative",
             CitizenId = "12345678",
             RepresentativeNationality = "Portuguese",
@@ -320,7 +315,6 @@ public class ShippingAgentRepresentativeTest : IClassFixture<IntegrationTestsWeb
         
         var invalidRepresentative = new CreateShippingAgentRepresentativeDto
         {
-            OrganizationId = organizationId,
             RepresentativeName = "Test Representative",
             CitizenId = "12345678",
             RepresentativeNationality = "Portuguese",
@@ -410,7 +404,7 @@ public class ShippingAgentRepresentativeTest : IClassFixture<IntegrationTestsWeb
 
             var updateDto = new CreateShippingAgentRepresentativeDto
             {
-                OrganizationId = organizationId,
+               
                 RepresentativeName = "Updated Name",
                 CitizenId = "11111111",
                 RepresentativeNationality = "Portuguese",
