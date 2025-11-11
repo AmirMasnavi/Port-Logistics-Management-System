@@ -48,6 +48,9 @@ const ShippingAgentsPage: React.FC = () => {
     const [orgAddress, setOrgAddress] = useState('');
     const [orgEmail, setOrgEmail] = useState('');
     const [orgPhone, setOrgPhone] = useState('');
+    // NEW: required by backend
+    const [orgTaxNumber, setOrgTaxNumber] = useState('');
+
     const [repInitName, setRepInitName] = useState('');
     const [repInitCitizen, setRepInitCitizen] = useState('');
     const [repInitEmail, setRepInitEmail] = useState('');
@@ -72,6 +75,25 @@ const ShippingAgentsPage: React.FC = () => {
             return str.replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
         }
     };
+
+    // Helper to split a free-form address into Street / City / Country
+    const parseAddress = (input: string): { street: string; city: string; country: string } => {
+        const raw = (input || '').split(',').map((p) => p.trim()).filter(Boolean);
+        // Never inject placeholder words like 'Unknown' into the payload/UI
+        if (raw.length >= 3) return { street: raw[0], city: raw[1], country: raw[2] };
+        if (raw.length === 2) return { street: raw[0], city: raw[1], country: '' };
+        if (raw.length === 1 && raw[0]) return { street: raw[0], city: '', country: '' };
+        return { street: '', city: '', country: '' };
+    };
+
+    // Basic validators mirroring backend rules
+    const isValidOrgTaxNumber = (v: string) => {
+        const val = v.trim().toUpperCase();
+        // Backend accepts: 9-digit NIF starting 1-9, or 2-letter prefix + 8-12 alnum, or 8-15 alnum
+        return (/^[1-9][0-9]{8}$/.test(val) || /^[A-Z]{2}[0-9A-Z]{8,12}$/.test(val) || /^[A-Z0-9]{8,15}$/.test(val));
+    };
+    const isValidPtMobile = (v: string) => /^9\d{8}$/.test(v.trim());
+    const isValidEmail = (v: string) => /.+@.+\..+/.test(v.trim());
 
     // lista inicial
     const fetchAll = async () => {
@@ -112,8 +134,7 @@ const ShippingAgentsPage: React.FC = () => {
                   }))
                 : [];
 
-            // Representatives DTOs may include CitizenId or TaxNumber depending on the API.
-            // We normalize to use 'citizenId' in the frontend but display it as 'Tax number' in the UI.
+            // Representatives DTOs expose CitizenId. We use 'citizenId' consistently in the UI.
             const normalizedReps: Representative[] = Array.isArray(repsData)
                 ? repsData.map((r: any) => ({
                       id: r.id ?? r.representativeId ?? r.RepresentativeId ?? '',
@@ -172,34 +193,54 @@ const ShippingAgentsPage: React.FC = () => {
     // submit: criar organization + representative obrigatório (sem precisar nome da org no rep)
     // coerção para booleano — evita strings em atributos `disabled`
     const canSubmitOrg: boolean = !!(
-        orgName.trim() && repInitName.trim() && repInitCitizen.trim() && !submittingOrg
+        orgName.trim() &&
+        orgTaxNumber.trim() &&
+        repInitName.trim() &&
+        repInitCitizen.trim() &&
+        repInitEmail.trim() &&
+        repInitPhone.trim() &&
+        !submittingOrg
     );
+
+    const validateOrganizationBeforeSubmit = (): string | null => {
+        if (!isValidOrgTaxNumber(orgTaxNumber)) return 'Organization tax number is invalid.';
+        if (!isValidEmail(repInitEmail)) return 'Initial representative email is invalid.';
+        if (!isValidPtMobile(repInitPhone)) return 'Initial representative phone must start with 9 and have 9 digits.';
+        return null;
+    };
 
     const handleCreateOrganization = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!canSubmitOrg) return;
+
+        const clientValidationError = validateOrganizationBeforeSubmit();
+        if (clientValidationError) {
+            setError(clientValidationError);
+            return;
+        }
+
         setSubmittingOrg(true);
         setError(null);
         try {
+            const addr = parseAddress(orgAddress);
             // Build payload matching backend CreateShippingAgentOrganizationDto
             const payload: any = {
                 LegalName: orgName.trim(),
-                AlternativeName: '',
-                // The server expects Street, City, Country individually; we only have a single address field
-                // so put it into Street and leave City/Country empty. This can be improved later with separate inputs.
-                Street: orgAddress.trim() || '',
-                City: '',
-                Country: '',
-                // Organization tax number is optional on the form; leave empty so backend default or validations apply
-                TaxNumber: '',
+                // AlternativeName is required by the domain; use the same as legal name if not provided
+                AlternativeName: orgName.trim(),
+                Street: addr.street,
+                City: addr.city,
+                Country: addr.country,
+                // REQUIRED by backend
+                TaxNumber: orgTaxNumber.trim().toUpperCase(),
                 Representatives: [
                     {
                         RepresentativeName: repInitName.trim(),
                         CitizenId: repInitCitizen.trim(),
-                        // The DTO requires RepresentativeNationality; use a reasonable default so model validation passes
+                        // The DTO requires RepresentativeNationality
                         RepresentativeNationality: 'PT',
-                        RepresentativeEmail: repInitEmail.trim() || '',
-                        RepresentativePhone: repInitPhone.trim() || '',
+                        RepresentativeEmail: repInitEmail.trim(),
+                        RepresentativePhone: repInitPhone.trim(),
                     },
                 ],
             };
@@ -210,6 +251,7 @@ const ShippingAgentsPage: React.FC = () => {
             setOrgAddress('');
             setOrgEmail('');
             setOrgPhone('');
+            setOrgTaxNumber('');
             setRepInitName('');
             setRepInitCitizen('');
             setRepInitEmail('');
@@ -217,7 +259,34 @@ const ShippingAgentsPage: React.FC = () => {
             await fetchAll();
             setView('organizations');
         } catch (e: any) {
-            setError(e?.message ?? 'Failed to create organization');
+            // Better error extraction (ProblemDetails or { message })
+            console.error('Organization create error:', e);
+            const respData = e?.response?.data;
+            let serverMsg = e?.message ?? 'Failed to create organization';
+            if (respData) {
+                if (respData.errors && typeof respData.errors === 'object') {
+                    const parts: string[] = [];
+                    for (const key of Object.keys(respData.errors)) {
+                        const val = respData.errors[key];
+                        if (Array.isArray(val)) parts.push(...val.map((v) => `${key}: ${v}`));
+                        else parts.push(`${key}: ${String(val)}`);
+                    }
+                    serverMsg = parts.join(' | ');
+                } else if (respData.title || respData.detail) {
+                    serverMsg = `${respData.title ?? ''}${respData.detail ? ' - ' + respData.detail : ''}`.trim();
+                } else if (respData.message) {
+                    serverMsg = respData.message;
+                } else if (typeof respData === 'string') {
+                    serverMsg = respData;
+                } else {
+                    try {
+                        serverMsg = JSON.stringify(respData);
+                    } catch {
+                        serverMsg = String(respData);
+                    }
+                }
+            }
+            setError(serverMsg);
         } finally {
             setSubmittingOrg(false);
         }
@@ -254,7 +323,7 @@ const ShippingAgentsPage: React.FC = () => {
 
     const validateRepresentativeBeforeSubmit = (): string | null => {
         // Basic client-side checks mirroring server expectations to avoid 400 responses
-        if (repCitizen.trim().length < 8) return 'Tax number must be at least 8 characters.';
+        if (repCitizen.trim().length < 8) return 'Citizen ID must be at least 8 characters.';
         // Phone validation: server's tests expect Portuguese mobile numbers starting with '9'
         const phone = repPhone.trim();
         if (!/^\d{8,}$/.test(phone)) return 'Phone must contain at least 8 digits.';
@@ -290,10 +359,11 @@ const ShippingAgentsPage: React.FC = () => {
                 RepresentativePhone: repPhone.trim(),
             };
 
-            // If we have the organization present in `orgs`, include OrganizationId (prefer id)
+            // If we have the organization present in `orgs`, include OrganizationId and OrganizationName (controller requires OrganizationName)
             const matchedOrg = orgs.find((o) => normalize(o.name) === normalize(resolvedOrgName as string));
-            if (matchedOrg && matchedOrg.id) {
+            if (matchedOrg) {
                 payload.OrganizationId = matchedOrg.id;
+                payload.OrganizationName = matchedOrg.name;
             } else {
                 // fallback: send OrganizationName so backend can resolve it
                 payload.OrganizationName = resolvedOrgName as string;
@@ -387,7 +457,7 @@ const ShippingAgentsPage: React.FC = () => {
                         placeholder={
                             view === 'organizations'
                                 ? 'Search by name, address, contact…'
-                                : 'Search by name, tax number, organization…'
+                                : 'Search by name, citizen id, organization…'
                         }
                         className="flex-1 p-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-maritime-500"
                     />
@@ -418,18 +488,27 @@ const ShippingAgentsPage: React.FC = () => {
                                 value={orgAddress}
                                 onChange={(e) => setOrgAddress(e.target.value)}
                             />
+                            {/* Not used by backend but kept for display purposes */}
                             <input
                                 className="p-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-maritime-500"
-                                placeholder="Email"
+                                placeholder="Email (optional)"
                                 value={orgEmail}
                                 onChange={(e) => setOrgEmail(e.target.value)}
                                 type="email"
                             />
                             <input
                                 className="p-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-maritime-500"
-                                placeholder="Phone"
+                                placeholder="Phone (optional)"
                                 value={orgPhone}
                                 onChange={(e) => setOrgPhone(e.target.value)}
+                            />
+                            {/* NEW: required by backend */}
+                            <input
+                                className="p-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-maritime-500 md:col-span-2"
+                                placeholder="Tax number (NIF/VAT) *"
+                                value={orgTaxNumber}
+                                onChange={(e) => setOrgTaxNumber(e.target.value)}
+                                required
                             />
                         </div>
 
@@ -444,25 +523,29 @@ const ShippingAgentsPage: React.FC = () => {
                             />
                             <input
                                 className="p-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-maritime-500"
-                                placeholder="Tax number *"
+                                placeholder="Citizen ID *"
                                 value={repInitCitizen}
                                 onChange={(e) => setRepInitCitizen(e.target.value)}
                                 required
                             />
+                            {/* Nationality is required by backend; using default 'PT' for now */}
                             <input
                                 className="p-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-maritime-500"
-                                placeholder="Rep Email"
+                                placeholder="Rep Email *"
                                 value={repInitEmail}
                                 onChange={(e) => setRepInitEmail(e.target.value)}
                                 type="email"
+                                required
                             />
                             <input
                                 className="p-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-maritime-500"
-                                placeholder="Rep Phone"
+                                placeholder="Rep Phone *"
                                 value={repInitPhone}
                                 onChange={(e) => setRepInitPhone(e.target.value)}
+                                required
                             />
                         </div>
+                        <p className="text-xs text-gray-500">Email and phone are required for the initial representative. Phone must start with 9 and have 9 digits.</p>
 
                         <button
                             disabled={!canSubmitOrg}
@@ -486,7 +569,7 @@ const ShippingAgentsPage: React.FC = () => {
                             />
                             <datalist id="org-names">
                                 {orgs.map((o) => (
-                                    <option key={o.id} value={o.name} />
+                                    <option key={o.id || o.name} value={o.name} />
                                 ))}
                             </datalist>
                             <p className="text-xs text-gray-500 mt-1">
@@ -509,7 +592,7 @@ const ShippingAgentsPage: React.FC = () => {
                             />
                             <input
                                 className="p-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-maritime-500"
-                                placeholder="Tax number *"
+                                placeholder="Citizen ID *"
                                 value={repCitizen}
                                 onChange={(e) => setRepCitizen(e.target.value)}
                                 required
@@ -570,7 +653,7 @@ const ShippingAgentsPage: React.FC = () => {
                                     Name
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-maritime-700 uppercase tracking-wider">
-                                    Tax number
+                                    Citizen ID
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-maritime-700 uppercase tracking-wider">
                                     Organization
@@ -603,7 +686,7 @@ const ShippingAgentsPage: React.FC = () => {
                                 </tr>
                             ) : (
                                 filteredOrgs.map((org) => (
-                                    <tr key={org.id} className="hover:bg-maritime-50">
+                                    <tr key={org.id || org.name} className="hover:bg-maritime-50">
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                             {org.name}
                                         </td>

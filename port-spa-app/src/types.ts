@@ -158,3 +158,28 @@ export interface RejectVvnDto {
     officerId: string;
     reason: string;
 }
+
+
+export interface Dock {
+    id: string;
+    name: string;
+    locationZone: string;
+    locationSection: string;
+    lengthInMeters: number;
+    depthInMeters: number;
+    maxDraftInMeters: number;
+    numberOfSTSCranes: number;
+    allowedVesselTypeIds?: string[];
+}
+        
+export interface DockCreateDto {
+    id: string;
+    name: string;
+    locationZone: string;
+    locationSection: string;
+    lengthInMeters: number;
+    depthInMeters: number;
+    maxDraftInMeters: number;
+    numberOfSTSCranes: number;
+    allowedVesselTypeIds?: string[];
+}

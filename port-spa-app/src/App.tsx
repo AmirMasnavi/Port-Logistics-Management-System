@@ -8,6 +8,8 @@ import {setupApiInterceptor} from "./services/apiService.ts";
 import AdminPage from './pages/AdminPage';
 import ActivationPage from './pages/ActivationPage';
 import VesselVisitsPage from './pages/VesselVisitsPage';
+import DockPage from './pages/DockPage';
+import RequireAuth from './auth/RequireAuth'; // <-- protect routes
 
 // We can create a simple placeholder for the dashboard page
 const DashboardPage = () => <div className="text-xl">Welcome to the Port Authority Dashboard!</div>;
@@ -30,17 +32,18 @@ function App() {
             <Layout>
                 {/* Routes define which page component to show based on the URL */}
                 <Routes>
-                    <Route path="/" element={<DashboardPage />} />
-                    <Route path="/vessel-types" element={<VesselTypesPage />} />
-                    <Route path="/vessel-visits" element={<VesselVisitsPage />} />
-                    <Route path="/shippingagentorganization" element={<ShippingAgentOrganization />} />
-                    {/* We will add more routes here for Docks, Resources, etc. */}
-                    <Route path="/port-facilities" element={<PortFacilitiesPage />} />
-
-                    {/* Route for the 3D Visualization Page */}
-                    <Route path="/visualization" element={<VisualizationPage />} />
-                    <Route path="/admin/users" element={<AdminPage />} />
+                    {/* Public route (activation) */}
                     <Route path="/activate" element={<ActivationPage />} />
+
+                    {/* Protected routes (require authenticated user with active internal role) */}
+                    <Route path="/" element={<RequireAuth><DashboardPage /></RequireAuth>} />
+                    <Route path="/vessel-types" element={<RequireAuth><VesselTypesPage /></RequireAuth>} />
+                    <Route path="/vessel-visits" element={<RequireAuth><VesselVisitsPage /></RequireAuth>} />
+                    <Route path="/docks" element={<RequireAuth><DockPage /></RequireAuth>} />
+                    <Route path="/shippingagentorganization" element={<RequireAuth><ShippingAgentOrganization /></RequireAuth>} />
+                    <Route path="/port-facilities" element={<RequireAuth><PortFacilitiesPage /></RequireAuth>} />
+                    <Route path="/visualization" element={<RequireAuth><VisualizationPage /></RequireAuth>} />
+                    <Route path="/admin/users" element={<RequireAuth><AdminPage /></RequireAuth>} />
                 </Routes>
             </Layout>
         </BrowserRouter>

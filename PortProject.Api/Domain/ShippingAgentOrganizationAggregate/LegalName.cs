@@ -1,5 +1,4 @@
 using System;
-using System.Text.RegularExpressions;
 
 namespace PortProject.Api.Domain.ShippingAgentOrganizationAggregate
 {
@@ -14,14 +13,12 @@ namespace PortProject.Api.Domain.ShippingAgentOrganizationAggregate
             if (string.IsNullOrWhiteSpace(value))
                 throw new ArgumentException("The legal name cannot be empty.", nameof(value));
 
-            if (value.Length < 3 || value.Length > 100)
+            var trimmed = value.Trim();
+            if (trimmed.Length < 3 || trimmed.Length > 100)
                 throw new ArgumentException("The legal name must contain between 3 and 100 characters.", nameof(value));
 
-            // Optional regex to restrict invalid characters (only letters, digits, spaces, and common punctuation)
-            if (!Regex.IsMatch(value, @"^[A-Za-z0-9\s.,&'()-]+$"))
-                throw new ArgumentException("The legal name contains invalid characters.", nameof(value));
-
-            Value = value.Trim();
+            // No regex character restrictions: accept any visible characters users may need
+            Value = trimmed;
         }
 
         public override string ToString() => Value;

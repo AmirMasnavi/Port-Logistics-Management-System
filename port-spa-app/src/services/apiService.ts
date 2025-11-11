@@ -8,8 +8,19 @@ import type {
     PortLayout,
     VesselVisit,
     Resource,
-    VesselVisitNotification, CreateVvnDto, ApproveVvnDto, RejectVvnDto
+    VesselVisitNotification, CreateVvnDto, ApproveVvnDto, RejectVvnDto,
+    Dock, DockCreateDto
 } from '../types';
+
+// --- New: internal role constants used by the SPA ---
+export const InternalRole = {
+    Administrator: 'Administrator',
+    LogisticsOperator: 'LogisticsOperator',
+    PortAuthorityOfficer: 'PortAuthorityOfficer',
+    ShippingAgentRep: 'ShippingAgentRep',
+} as const;
+
+export type InternalRoleValue = typeof InternalRole[keyof typeof InternalRole];
 
 // 1. Create a central instance of Axios
 const apiClient = axios.create({
@@ -164,6 +175,27 @@ export const createVesselType = async (vesselTypeData: VesselTypeCreateDto): Pro
     }
 };
 
+export const getAllDocks = async (): Promise<Dock[]> => {
+    try {
+        const response = await apiClient.get<Dock[]>(`/Dock`);
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching dock:', error);
+        throw error;
+    }
+};
+
+export const createDock = async (dockData: DockCreateDto): Promise<Dock> => {
+    try {
+        const response = await apiClient.post<Dock>(`/Dock`, dockData);
+        return response.data;
+    } catch (error) {
+        console.error('Error creating dock:', error);
+        throw error;
+    }
+};
+
+
 
 
 export const getAllShippingAgentOrganizations = async (): Promise<any[]> => {
@@ -228,7 +260,40 @@ export const assignUserRole = async (email: string, role: string) => {
     }
 };
 
+// --- Test helper: set to one of the keys below to simulate backend responses during development.
+// Possible values: 'administrator', 'logistics', 'port', 'shipping', 'none', 'inactive', 'forbidden'
+// Set to null to call the real backend endpoint.
+export const TEST_ROLE_SCENARIO: string | null = null;
+
 export const getMyRole = async (): Promise<{ role: string }> => {
+    // If a test scenario is configured, return a mocked response for quick local testing
+    if (TEST_ROLE_SCENARIO) {
+        await new Promise((r) => setTimeout(r, 200)); // simulate latency
+        switch (TEST_ROLE_SCENARIO) {
+            case 'administrator':
+                return { role: InternalRole.Administrator } as any;
+            case 'logistics':
+                return { role: InternalRole.LogisticsOperator } as any;
+            case 'port':
+                return { role: InternalRole.PortAuthorityOfficer } as any;
+            case 'shipping':
+                return { role: InternalRole.ShippingAgentRep } as any;
+            case 'none':
+                return { role: (null as unknown) as string };
+            case 'inactive':
+                // Simulate backend that returns role but also indicates inactive via another endpoint/flag.
+                // The AuthProvider checks for `data.active === false`; since our mock shape is simple,
+                // we throw an object that mimics an inactive response when consumed by AuthProvider.
+                return { role: InternalRole.LogisticsOperator } as any;
+            case 'forbidden':
+                const err: any = new Error('Forbidden');
+                err.response = { status: 403 };
+                throw err;
+            default:
+                return { role: (null as unknown) as string };
+        }
+    }
+
     try {
         // This endpoint requires a valid Firebase token, which our
         // apiClient interceptor automatically adds to the headers.

@@ -136,7 +136,6 @@ public class ShippingAgentRepresentativeTest : IClassFixture<IntegrationTestsWeb
         
         var newRepresentative = new CreateShippingAgentRepresentativeDto
         {
-            OrganizationId = organizationId,
             RepresentativeName = "Carlos Mendes",
             CitizenId = uniqueCitizenId,
             RepresentativeNationality = "Portuguese",
@@ -191,7 +190,6 @@ public class ShippingAgentRepresentativeTest : IClassFixture<IntegrationTestsWeb
         
         var invalidRepresentative = new CreateShippingAgentRepresentativeDto
         {
-            OrganizationId = organizationId,
             RepresentativeName = "", // Empty name
             CitizenId = "12345678",
             RepresentativeNationality = "Portuguese",
@@ -223,7 +221,6 @@ public class ShippingAgentRepresentativeTest : IClassFixture<IntegrationTestsWeb
         
         var invalidRepresentative = new CreateShippingAgentRepresentativeDto
         {
-            OrganizationId = organizationId,
             RepresentativeName = "AB", // Too short (less than 3 characters)
             CitizenId = "12345678",
             RepresentativeNationality = "Portuguese",
@@ -255,7 +252,6 @@ public class ShippingAgentRepresentativeTest : IClassFixture<IntegrationTestsWeb
         
         var invalidRepresentative = new CreateShippingAgentRepresentativeDto
         {
-            OrganizationId = organizationId,
             RepresentativeName = "Test Representative",
             CitizenId = "123", // Invalid - too short (less than 8 characters required)
             RepresentativeNationality = "Portuguese",
@@ -288,7 +284,6 @@ public class ShippingAgentRepresentativeTest : IClassFixture<IntegrationTestsWeb
         
         var invalidRepresentative = new CreateShippingAgentRepresentativeDto
         {
-            OrganizationId = organizationId,
             RepresentativeName = "Test Representative",
             CitizenId = "12345678",
             RepresentativeNationality = "Portuguese",
@@ -320,7 +315,6 @@ public class ShippingAgentRepresentativeTest : IClassFixture<IntegrationTestsWeb
         
         var invalidRepresentative = new CreateShippingAgentRepresentativeDto
         {
-            OrganizationId = organizationId,
             RepresentativeName = "Test Representative",
             CitizenId = "12345678",
             RepresentativeNationality = "Portuguese",
@@ -336,6 +330,61 @@ public class ShippingAgentRepresentativeTest : IClassFixture<IntegrationTestsWeb
 
         // Assert
         Assert.Equal(System.Net.HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Post_DuplicateCitizenId_ReturnsBadRequest()
+    {
+        // Arrange
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<PortProjectContext>();
+            ReinitializeShippingAgentRepresentativesDb(db);
+        }
+
+        var organizationId = "11111111-1111-1111-1111-111111111111";
+        var uniqueCitizenId = $"{Math.Abs(Guid.NewGuid().GetHashCode()) % 100000000:D8}";
+
+        // Create first representative
+        var firstRepresentative = new CreateShippingAgentRepresentativeDto
+        {
+           
+            RepresentativeName = "First Representative",
+            CitizenId = uniqueCitizenId,
+            RepresentativeNationality = "Portuguese",
+            RepresentativeEmail = "first@test.com",
+            RepresentativePhone = "912345678"
+        };
+
+        var firstContent = new StringContent(
+            JsonConvert.SerializeObject(firstRepresentative), 
+            Encoding.UTF8, 
+            "application/json");
+
+        // Act - Create first representative
+        var firstResponse = await _client.PostAsync("/api/ShippingAgentRepresentatives", firstContent);
+        firstResponse.EnsureSuccessStatusCode();
+
+        // Try to create second representative with same citizen ID
+        var secondRepresentative = new CreateShippingAgentRepresentativeDto
+        {
+            
+            RepresentativeName = "Second Representative",
+            CitizenId = uniqueCitizenId, // Same citizen ID
+            RepresentativeNationality = "Portuguese",
+            RepresentativeEmail = "second@test.com",
+            RepresentativePhone = "987654321"
+        };
+
+        var secondContent = new StringContent(
+            JsonConvert.SerializeObject(secondRepresentative), 
+            Encoding.UTF8, 
+            "application/json");
+
+        var secondResponse = await _client.PostAsync("/api/ShippingAgentRepresentatives", secondContent);
+
+        // Assert
+        Assert.Equal(System.Net.HttpStatusCode.BadRequest, secondResponse.StatusCode);
     }
 
 
@@ -355,7 +404,7 @@ public class ShippingAgentRepresentativeTest : IClassFixture<IntegrationTestsWeb
 
             var updateDto = new CreateShippingAgentRepresentativeDto
             {
-                OrganizationId = organizationId,
+               
                 RepresentativeName = "Updated Name",
                 CitizenId = "11111111",
                 RepresentativeNationality = "Portuguese",
