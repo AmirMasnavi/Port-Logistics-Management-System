@@ -1,4 +1,3 @@
-
 using System.Text.RegularExpressions;
 
 namespace PortProject.Api.Domain.ShippingAgentOrganizationAggregate
@@ -18,7 +17,9 @@ namespace PortProject.Api.Domain.ShippingAgentOrganizationAggregate
             if (value.Length < 3 || value.Length > 100)
                 throw new ArgumentException("The alternative name must contain between 3 and 100 characters.", nameof(value));
 
-            if (!Regex.IsMatch(value, @"^[A-Za-z0-9\s.,&'()-]+$"))
+            // Unicode-friendly pattern (matches LegalName rules)
+            var pattern = @"^[\p{L}\p{N}\s.,&'()\-]+$";
+            if (!Regex.IsMatch(value, pattern))
                 throw new ArgumentException("The alternative name contains invalid characters.", nameof(value));
 
             Value = value.Trim();

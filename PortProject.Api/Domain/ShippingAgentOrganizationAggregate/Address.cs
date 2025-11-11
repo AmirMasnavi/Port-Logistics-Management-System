@@ -14,14 +14,14 @@ namespace PortProject.Api.Domain.ShippingAgentOrganizationAggregate
         {
             if (string.IsNullOrWhiteSpace(street))
                 throw new ArgumentException("Address is required.", nameof(street));
-            if (string.IsNullOrWhiteSpace(city))
-                throw new ArgumentException("The city is a must.", nameof(city));
-            if (string.IsNullOrWhiteSpace(country))
-                throw new ArgumentException("Country is required.", nameof(country));
+            
+            // City and Country are optional; default to 'Unknown' when not provided
+            var safeCity = string.IsNullOrWhiteSpace(city) ? "Unknown" : city.Trim();
+            var safeCountry = string.IsNullOrWhiteSpace(country) ? "Unknown" : country.Trim();
 
             Street  = street.Trim();
-            City    = city.Trim();
-            Country = country.Trim();
+            City    = safeCity;
+            Country = safeCountry;
         }
 
         public static Address Parse(string fullAddress)
@@ -33,8 +33,8 @@ namespace PortProject.Api.Domain.ShippingAgentOrganizationAggregate
             return parts.Length switch
             {
                 >= 3 => new Address(parts[0].Trim(), parts[1].Trim(), parts[2].Trim()),
-                2    => new Address(parts[0].Trim(), parts[1].Trim(), "unknown"),
-                _    => new Address(fullAddress.Trim(), "unknown", "unknown")
+                2    => new Address(parts[0].Trim(), parts[1].Trim(), "Unknown"),
+                _    => new Address(fullAddress.Trim(), "Unknown", "Unknown")
             };
         }
 
