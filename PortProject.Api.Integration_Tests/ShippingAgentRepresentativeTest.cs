@@ -348,7 +348,7 @@ public class ShippingAgentRepresentativeTest : IClassFixture<IntegrationTestsWeb
         // Create first representative
         var firstRepresentative = new CreateShippingAgentRepresentativeDto
         {
-            OrganizationId = organizationId,
+           
             RepresentativeName = "First Representative",
             CitizenId = uniqueCitizenId,
             RepresentativeNationality = "Portuguese",
@@ -368,7 +368,7 @@ public class ShippingAgentRepresentativeTest : IClassFixture<IntegrationTestsWeb
         // Try to create second representative with same citizen ID
         var secondRepresentative = new CreateShippingAgentRepresentativeDto
         {
-            OrganizationId = organizationId,
+            
             RepresentativeName = "Second Representative",
             CitizenId = uniqueCitizenId, // Same citizen ID
             RepresentativeNationality = "Portuguese",
