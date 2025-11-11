@@ -175,7 +175,8 @@ const VisualizationPage: React.FC = () => {
     const containerStyle: React.CSSProperties = {
         height: 'calc(100vh - 180px)', // Ajuste a altura conforme necessário
         width: '100%',
-        backgroundColor: '#f0f0f0'
+        backgroundColor: '#f0f0f0',
+        overflow: 'hidden' // Prevent the 3D canvas from overflowing horizontally when sidebar opens
     };
 
     return (
@@ -202,7 +203,11 @@ const VisualizationPage: React.FC = () => {
 
                 {/*  Render layout.elements in <PortScene /> as base structures */}
                 {!loading && !error && layout && (
-                    <PortScene layoutElements={layout.elements} vessels={vessels} resources={resources} />
+                    // Put the PortScene inside an absolute inset container so the Canvas (which is positioned absolutely by r3f)
+                    // will size itself to this element and be clipped by the parent's overflow:hidden
+                    <div className="absolute inset-0">
+                        <PortScene layoutElements={layout.elements} vessels={vessels} resources={resources} />
+                    </div>
                 )}
             </div>
         </div>

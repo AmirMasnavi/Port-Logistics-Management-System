@@ -26,7 +26,8 @@ interface PortSceneProps {
 
 const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resources }) => {
     return (
-        <Canvas shadows camera={{ position: [0, 40, 50], fov: 50 }}>
+        // Ensure the Canvas will size to its parent container which should control layout
+        <Canvas className="w-full h-full" style={{ width: '100%', height: '100%' }} shadows camera={{ position: [0, 40, 50], fov: 50 }}>
             <Sky sunPosition={[100, 20, 100]} />
             <ambientLight intensity={0.6} />
             <directionalLight
@@ -37,7 +38,7 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
                 shadow-mapSize-height={2048}
             />
 
-            <Grid infiniteGrid sectionColor="gray" fadeDistance={100} />
+            <Grid infiniteGrid cellThickness={0} sectionThickness={0} sectionColor="gray" fadeDistance={100} />
 
             {/* Render layout.elements as base structures */}
             {/* 1. Renderizar Elementos do Layout Estático */}
