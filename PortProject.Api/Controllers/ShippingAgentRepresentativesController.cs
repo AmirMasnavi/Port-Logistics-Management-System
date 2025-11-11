@@ -43,27 +43,35 @@ namespace PortProject.Api.Controllers
         }
 
         /// <summary>
-        /// Updates a Shipping Agent Representative.
+        /// Updates a Shipping Agent Representative by their Citizen ID.
+        /// Note: CitizenId cannot be changed during update.
         /// </summary>
-        [HttpPut("{id}")]
-        public async Task<ActionResult<ShippingAgentRepresentativeDto>> UpdateRepresentative(string id, [FromBody] CreateShippingAgentRepresentativeDto dto)
+        [HttpPut("{citizenId}")]
+        public async Task<ActionResult<ShippingAgentRepresentativeDto>> UpdateRepresentative(string citizenId, [FromBody] CreateShippingAgentRepresentativeDto dto)
         {
-            var updated = await _service.UpdateRepresentativeAsync(id, dto);
-            if (updated == null)
-                return NotFound($"Representative with ID {id} not found.");
-            return Ok(updated);
+            try
+            {
+                var updated = await _service.UpdateRepresentativeByCitizenIdAsync(citizenId, dto);
+                if (updated == null)
+                    return NotFound($"Representative with Citizen ID {citizenId} not found.");
+                return Ok($"Representative with Citizen ID {citizenId} updated successfully");
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         /// <summary>
-        /// Deletes a Shipping Agent Representative.
+        /// Deletes a Shipping Agent Representative by their Citizen ID.
         /// </summary>
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteRepresentative(string id)
+        [HttpDelete("{citizenId}")]
+        public async Task<IActionResult> DeleteRepresentative(string citizenId)
         {
-            var deleted = await _service.DeleteRepresentativeAsync(id);
+            var deleted = await _service.DeleteRepresentativeByCitizenIdAsync(citizenId);
             if (!deleted)
-                return NotFound($"Representative with ID {id} not found.");
-            return NoContent();
+                return NotFound($"Representative with Citizen ID {citizenId} not found.");
+            return Ok($"Representative with Citizen ID {citizenId} deleted successfully.");
         }
 
         /// <summary>
