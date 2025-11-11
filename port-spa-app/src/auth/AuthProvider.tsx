@@ -51,11 +51,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     console.error("Internal role check failed:", error.message);
                     // ✅ Handle 403 Forbidden by triggering logout and redirecting to /login
                     setInternalRole(null);
-                    // 🔐 Logout automático se receber 403
-                    if (error?.response?.status === 403) {
-                        await logout();
-                        window.location.href = '/login';
-                    }
                 }
             } else {
                 // No Firebase user, so no internal role
