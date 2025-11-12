@@ -1,8 +1,9 @@
 // File: PortProject.Planning.Api/Application/Services/SchedulingService.cs
 
 using PortProject.Planning.Api.Application.Clients;
+using PortProject.Planning.Api.Application.Clients.DTOs;
 using PortProject.Planning.Api.Application.DTOs;
-using VesselVisitDto = PortProject.Planning.Api.Application.DTOs.VesselVisitDto;
+
 
 namespace PortProject.Planning.Api.Application.Services;
 
@@ -68,6 +69,8 @@ public class SchedulingService : ISchedulingService
                 EndTime = task.EndTime
             });
         }
+
+        Console.WriteLine($"Generated schedule for {date} with {schedule.ScheduledTasks.Count} tasks");
 
         return schedule;
     }

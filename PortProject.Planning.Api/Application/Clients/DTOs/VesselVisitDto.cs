@@ -5,4 +5,7 @@ public record VesselVisitDto(
     string Status, 
     DateTime EstimatedArrival, 
     DateTime EstimatedDeparture, 
-    string VesselImo);
+    string VesselImo,
+    double UnloadingTime,
+    double LoadingTime
+    );
