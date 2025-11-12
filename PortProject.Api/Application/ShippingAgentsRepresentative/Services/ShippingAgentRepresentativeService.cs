@@ -131,6 +131,7 @@ namespace PortProject.Api.Application.ShippingAgentsRepresentative.Services
             if (!dto.CitizenId.Equals(citizenId, StringComparison.OrdinalIgnoreCase))
                 throw new InvalidOperationException("Cannot change the Citizen ID of an existing representative.");
 
+            // Update scalar details
             representative.UpdateDetails(
                 new CitizenId(dto.CitizenId),
                 new RepresentativeName(dto.RepresentativeName),
@@ -138,7 +139,16 @@ namespace PortProject.Api.Application.ShippingAgentsRepresentative.Services
                 new RepresentativeNationality(dto.RepresentativeNationality),
                 new RepresentativeEmail(dto.RepresentativeEmail)
             );
-            
+
+            // If an OrganizationName was supplied, try to attach the representative to that organization
+            if (!string.IsNullOrWhiteSpace(dto.OrganizationName))
+            {
+                var org = await _organizationRepository.GetByLegalNameAsync(new LegalName(dto.OrganizationName));
+                if (org == null)
+                    throw new KeyNotFoundException($"Organization with name '{dto.OrganizationName}' not found.");
+                representative.AttachToOrganization(org.Id!);
+            }
+             
             await _representativeRepository.UpdateAsync(representative);
             return new ShippingAgentRepresentativeDto
             {
@@ -154,13 +164,35 @@ namespace PortProject.Api.Application.ShippingAgentsRepresentative.Services
 
         public async Task<bool> DeleteRepresentativeAsync(string id)
         {
-            var repId = new RepresentativeId(Guid.Parse(id));
-            var representative = await _representativeRepository.GetByIdAsync(repId);
-            if (representative == null)
+            // Accept either a GUID representative id or a citizenId string.
+            // If `id` is a GUID, delete by RepresentativeId as before. If not, try to delete by CitizenId.
+            if (Guid.TryParse(id, out var guid))
+            {
+                var repId = new RepresentativeId(guid);
+                var representative = await _representativeRepository.GetByIdAsync(repId);
+                if (representative == null)
+                    return false;
+
+                await _representativeRepository.DeleteAsync(representative);
+                return true;
+            }
+
+            // Fallback: treat `id` as a citizenId value
+            try
+            {
+                var citizen = new CitizenId(id);
+                var representative = await _representativeRepository.GetByCitizenIdAsync(citizen);
+                if (representative == null)
+                    return false;
+
+                await _representativeRepository.DeleteAsync(representative);
+                return true;
+            }
+            catch
+            {
+                // If constructing CitizenId throws or any other error occurs, simply return false
                 return false;
-            
-            await _representativeRepository.DeleteAsync(representative);
-            return true;
+            }
         }
 
         public async Task<bool> DeleteRepresentativeByCitizenIdAsync(string citizenId)
