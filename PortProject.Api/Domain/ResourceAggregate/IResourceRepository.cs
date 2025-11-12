@@ -8,5 +8,6 @@ public interface IResourceRepository
     
     Task<Resource?> GetByIdAsync(ResourceCode code);
     
-    Task<IEnumerable<Resource>> GetAllAsync(ResourceKind? typeFilter);
+    Task<IEnumerable<Resource>> GetAllAsync(string? code, string? description, ResourceKind? kind,
+        ResourceStatus? status);
 }
