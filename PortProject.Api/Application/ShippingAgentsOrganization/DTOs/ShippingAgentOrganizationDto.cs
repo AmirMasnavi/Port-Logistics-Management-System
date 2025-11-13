@@ -8,6 +8,9 @@ namespace PortProject.Api.Application.ShippingAgentsOrganization.DTOs
         public string Street { get; set; } = string.Empty;
         public string City { get; set; } = string.Empty;
         public string Country { get; set; } = string.Empty;
+        // Contact details (new)
+        public string Email { get; set; } = string.Empty;
+        public string Phone { get; set; } = string.Empty;
         public string TaxNumber { get; set; } = string.Empty;
     }
 

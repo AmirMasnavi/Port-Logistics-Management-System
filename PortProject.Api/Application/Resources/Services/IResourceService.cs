@@ -9,7 +9,6 @@ public interface IResourceService
     
     Task<ResourceDto?> GetByCodeAsync(string code);
     
-    Task<IEnumerable<ResourceDto>> GetAllAsync(string? nameFilter, ResourceKind? typeFilter);
 
     // New: full filterable search
     Task<IEnumerable<ResourceDto>> GetAllAsync(string? code, string? description, ResourceKind? kind, ResourceStatus? status);

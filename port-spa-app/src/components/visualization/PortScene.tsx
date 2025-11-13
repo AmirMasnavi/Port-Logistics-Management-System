@@ -25,6 +25,18 @@ interface PortSceneProps {
 }
 
 const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resources }) => {
+    // Build a quick lookup by id for layout elements to avoid repeated finds
+    const layoutMap = React.useMemo(() => new Map(layoutElements.map(el => [el.id, el])), [layoutElements]);
+
+    // Debugging info to help identify why cranes may not be rendered
+    React.useEffect(() => {
+        console.debug('PortScene: layoutElements count =', layoutElements.length);
+        console.debug('PortScene: resources count =', resources.length, resources);
+    }, [layoutElements, resources]);
+
+    // Enable visual markers when URL contains ?debugCrane
+    const showMarkers = typeof window !== 'undefined' && window.location.search.includes('debugCrane');
+
     return (
         // Ensure the Canvas will size to its parent container which should control layout
         <Canvas className="w-full h-full" style={{ width: '100%', height: '100%' }} shadows camera={{ position: [0, 40, 50], fov: 50 }}>
@@ -72,20 +84,83 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
             {/* Render cranes: imported model if available, else procedural based on area type */}
             {/* 3. Renderizar Recursos (Gruas) nos seus locais */}
             {resources.map(r => {
-                if(r.kind.toLowerCase().includes('crane')){
-                    // Simplificação: assumimos que gruas em docas são STS, e em pátios são de pátio
-                    const area = layoutElements.find(el => el.id === r.id); // area.id = resource.assignedArea
+                if (r.kind.toLowerCase().includes('crane')) {
+                    // Resolve area robustly: try several guesses (r.id, r.code, r.assignedArea)
+                    const resolveArea = (): LayoutElement | undefined => {
+                        // Candidates we will try to match against layout elements
+                        const candidates: string[] = [];
+                        if (r.id) candidates.push(String(r.id));
+                        // Some callers might attach assignedArea on the resource object
+                        if ((r as any).assignedArea) candidates.push(String((r as any).assignedArea));
+                        if (r.code) candidates.push(String(r.code));
+
+                        // Try exact id lookup first
+                        for (const c of candidates) {
+                            const byId = layoutMap.get(c);
+                            if (byId) {
+                                console.debug('PortScene: matched layout element by id', c, 'for resource', r);
+                                return byId;
+                            }
+                        }
+
+                        // Try matching by name or id equality
+                        for (const c of candidates) {
+                            const byName = layoutElements.find(el => el.name === c || el.id === c);
+                            if (byName) {
+                                console.debug('PortScene: matched layout element by name/id', c, 'for resource', r);
+                                return byName;
+                            }
+                        }
+
+                        // Fallback: fuzzy match (case-insensitive contains)
+                        const lowerCandidates = candidates.map(x => x.toLowerCase());
+                        const fuzzy = layoutElements.find(el => {
+                            const idLower = String(el.id).toLowerCase();
+                            const nameLower = String(el.name ?? '').toLowerCase();
+                            return lowerCandidates.some(c => idLower.includes(c) || nameLower.includes(c));
+                        });
+                        if (fuzzy) {
+                            console.debug('PortScene: matched layout element by fuzzy contains for resource', r, 'matched', fuzzy.id);
+                            return fuzzy;
+                        }
+
+                        return undefined;
+                    };
+
+                    const area = resolveArea();
+                    if (!area) {
+                        console.warn('PortScene: could not find layout area for resource', r, '— tried id/code/assignedArea');
+                        return null;
+                    }
 
                     if (r.modelUrl) {
-                        return <ImportedModel key={r.id} modelUrl={r.modelUrl} position={r.position} scale={r.size} />;
+                        return <ImportedModel key={`${r.id}-${r.code}`} modelUrl={r.modelUrl} position={r.position} scale={r.size} />;
                     }
-                    
-                    if(area?.type === 'dock') {
-                        return <STSCraneModel key={r.id} position={r.position} size={r.size} label={r.code} />;
+
+                    // Optional debug marker to show expected position
+                    const marker = showMarkers ? (
+                        <mesh key={`marker-${r.id}-${r.code}`} position={r.position}>
+                            <sphereGeometry args={[0.3, 8, 6]} />
+                            <meshStandardMaterial color="red" metalness={0.1} roughness={0.6} opacity={0.9} transparent={false} />
+                        </mesh>
+                    ) : null;
+
+                    if (area.type === 'dock') {
+                        return (
+                            <group key={`${r.id}-${r.code}`}>
+                                <STSCraneModel position={r.position} size={r.size} label={r.code} />
+                                {marker}
+                            </group>
+                        );
                     }
-                    
-                    if(area?.type === 'yard') {
-                        return <YardCraneModel key={r.id} position={r.position} size={r.size} label={r.code} />;
+
+                    if (area.type === 'yard') {
+                        return (
+                            <group key={`${r.id}-${r.code}`}>
+                                <YardCraneModel position={r.position} size={r.size} label={r.code} />
+                                {marker}
+                            </group>
+                        );
                     }
                 }
                 return null;

@@ -11,10 +11,12 @@ namespace PortProject.Api.Application.Resources.Services;
 public class ResourceService : IResourceService
 {
     private readonly PortProjectContext _context;
+    private readonly IResourceRepository _resourceRepository;
 
-    public ResourceService(PortProjectContext context)
+    public ResourceService(PortProjectContext context, IResourceRepository resourceRepository)
     {
         _context = context;
+        _resourceRepository = resourceRepository;
     }
 
     public async Task<ResourceDto> CreateResourceAsync(CreateResourceDto dto)
@@ -233,79 +235,28 @@ public class ResourceService : IResourceService
         return dto;
     }
 
-    public async Task<IEnumerable<ResourceDto>> GetAllAsync(string? nameFilter, ResourceKind? typeFilter)
-    {
-        var query = _context.Resources.AsNoTracking().Include(r => r.Qualifications).AsQueryable();
-
-        // Apply server-side filters that are safe to translate
-        if (typeFilter.HasValue)
-            query = query.Where(r => r.Kind == typeFilter.Value);
-
-        if (!string.IsNullOrWhiteSpace(nameFilter))
-        {
-            try
-            {
-                var codeVo = new ResourceCode(nameFilter);
-                query = query.Where(r => r.Code == codeVo);
-                var list = await query.ToListAsync();
-                return list.Select(MapToDto).ToList();
-            }
-            catch
-            {
-                // means nameFilter is not valid -> goes to in-memory description
-            }
-
-        }
-
-        // For non-numeric nameFilter we can't reliably translate the VO->string call to SQL across all providers
-        // so bring the (possibly type-filtered) results into memory and then apply description contains filter.
-        var resources = await query.ToListAsync();
-
-        if (!string.IsNullOrWhiteSpace(nameFilter))
-        {
-            resources = resources
-                .Where(r => (r.Description?.ToString() ?? string.Empty).Contains(nameFilter,
-                    StringComparison.OrdinalIgnoreCase))
-                .ToList();
-        }
-
-        return resources.Select(MapToDto).ToList();
-    }
-
+  
 
     public async Task<IEnumerable<ResourceDto>> GetAllAsync(string? code, string? description, ResourceKind? kind,
         ResourceStatus? status)
     {
-        // Start with base query - Include Qualifications to avoid lazy loading issues
-        var query = _context.Resources.AsNoTracking().Include(r => r.Qualifications).AsQueryable();
-
-        // Server-side enum filters
-        if (kind.HasValue)
-            query = query.Where(r => r.Kind == kind.Value);
-        if (status.HasValue)
-            query = query.Where(r => r.Status == status.Value);
-
-        // Materialize results, then apply string-based partial filters (VOs may not translate reliably)
-        var resources = await query.ToListAsync();
-
-        if (!string.IsNullOrWhiteSpace(code))
-        {
-            var lc = code.Trim();
-            resources = resources
-                .Where(r => (r.Code?.ToString() ?? string.Empty).Contains(lc, StringComparison.OrdinalIgnoreCase))
-                .ToList();
-        }
-
-        if (!string.IsNullOrWhiteSpace(description))
-        {
-            var ld = description.Trim();
-            resources = resources
-                .Where(r => (r.Description?.ToString() ?? string.Empty).Contains(ld,
-                    StringComparison.OrdinalIgnoreCase))
-                .ToList();
-        }
-
-        return resources.Select(MapToDto).ToList();
+        var resource = await _resourceRepository.GetAllAsync(code, description, kind, status);
+        
+        return resource.Select(sm => new ResourceDto() {
+            Code = sm.Code?.ToString() ?? string.Empty,
+            Description = sm.Description?.ToString() ?? string.Empty,
+            Kind = sm.Kind.ToString(),
+            AssignedArea = sm.AssignedArea,
+            Status = sm.Status.ToString(),
+            SetupTimeMinutes = sm.SetupTime?.Minutes ?? 0,
+            OperationalWindowStart = sm.OperationalWindow != null
+                ? sm.OperationalWindow.StartTime.ToString("HH:mm")
+                : string.Empty,
+            OperationalWindowEnd = sm.OperationalWindow != null
+                ? sm.OperationalWindow.EndTime.ToString("HH:mm")
+                : string.Empty,
+            QualificationRequirements = sm.QualificationRequirements?.ToList() ?? new List<string>()
+        });
     }
 
     public async Task<ResourceDto?> EditResourceAsync(string code, EditResourceDto dto)

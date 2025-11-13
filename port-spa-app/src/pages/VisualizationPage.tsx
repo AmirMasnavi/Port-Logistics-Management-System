@@ -1,5 +1,6 @@
 ﻿import React, { useState, useEffect } from 'react';
 import PortScene from '../components/visualization/PortScene';
+
 import {
     getPortLayout,
     getApprovedVesselVisits,
@@ -19,7 +20,7 @@ import type {
 } from '../types';
 
 const VisualizationPage: React.FC = () => {
-    const [layout, setLayout] = useState<PortLayout | null>(null); // Store response in PortLayout type    const [vessels, setVessels] = useState<RenderableVessel[]>([]);
+    const [layout, setLayout] = useState<PortLayout | null>(null); // Store response in PortLayout type
     const [vessels, setVessels] = useState<RenderableVessel[]>([]);
     const [resources, setResources] = useState<RenderableResource[]>([]);
     const [loading, setLoading] = useState(true);
@@ -117,51 +118,63 @@ const VisualizationPage: React.FC = () => {
                 // Fetch and render cranes (procedural geometry)
                 // Fetch resources via getResources() and filter by crane type
                 // 3. Processar Recursos (Gruas)
-                const renderableResources = (allResources as Resource[])
-                    .filter((r: Resource) => r.assignedArea && r.kind.toLowerCase().includes('crane'))
-                    .map((r: Resource) => {
-                        // Match assignedArea to layout element for crane positioning
-                        const area = layoutElementsMap.get(r.assignedArea!); // A área (doca ou pátio) onde a grua está
-                        if (!area) return null;
+                const renderableResources: RenderableResource[] = [];
+                for (const r of (allResources as Resource[])) {
+                    if (!r.assignedArea || !r.kind.toLowerCase().includes('crane')) continue;
 
-                        let resourceSize: [number, number, number];
-                        let resourcePosition: [number, number, number];
-                        
-                        // Compute crane size/position based on assigned area type (dock or yard)
-                        if (area.type === 'dock') { // Ship-to-Shore (STS) Crane
-                            resourceSize = [1, 10, area.size[2] * 0.8]; // Fina, alta, e larga (ao longo da doca)
-                            resourcePosition = [
-                                area.position[0],
-                                resourceSize[1] / 2,
-                                area.position[2]
-                            ];
-                        } else if (area.type === 'yard') { // Yard Crane (RTG/RMG)
-                            resourceSize = [area.size[0] * 0.8, 6, 1]; // Larga (atravessa o pátio), altura média, fina
-                            resourcePosition = [
-                                area.position[0],
-                                resourceSize[1] / 2,
-                                area.position[2]
-                            ];
-                        } else {
-                            return null; // Não renderizar gruas em áreas desconhecidas
+                    // Try to match assignedArea to layout element by id first
+                    let area = layoutElementsMap.get(r.assignedArea!);
+
+                    // Fallback: some resources store assignedArea as a GUID while layout elements use the dock name.
+                    // Try resolving with getDockById and match by name if initial lookup failed.
+                    if (!area) {
+                        try {
+                            const dockDto = await getDockById(r.assignedArea!);
+                            if (dockDto?.name) {
+                                area = layoutElementsMap.get(dockDto.name) || layoutData.elements.find((el: LayoutElement) => el.name === dockDto.name);
+                            }
+                        } catch (err) {
+                            console.warn('Could not resolve resource.assignedArea to layout element:', r.assignedArea, err);
                         }
+                    }
 
-                        // Use procedural geometry for cranes
-                        return {
-                            id: r.assignedArea!,
-                            code: r.code,
-                            kind: r.kind,
-                            position: resourcePosition,
-                            size: resourceSize,
-                            modelUrl: r.kind.toLowerCase().includes('sts') ? '/models/sts-crane.glb' : undefined // Example
-                        } as RenderableResource;
-                    }).filter((rr): rr is RenderableResource => rr !== null);
+                    if (!area) continue; // still couldn't resolve area
+
+                    let resourceSize: [number, number, number];
+                    let resourcePosition: [number, number, number];
+
+                    if (area.type === 'dock') {
+                        // Ship-to-Shore (STS) Crane
+                        // Use a small base height: models scale internally (e.g. towerHeight = size[1] * 8)
+                        resourceSize = [1, 1.2, area.size[2] * 0.8]; // thin, moderate height, span-wise length
+                        resourcePosition = [area.position[0], resourceSize[1] / 2, area.position[2]];
+                    } else if (area.type === 'yard') {
+                        // Yard Crane (RTG/RMG)
+                        resourceSize = [area.size[0] * 0.8, 1.2, 1]; // wide, moderate height, thin
+                        resourcePosition = [area.position[0], resourceSize[1] / 2, area.position[2]];
+                    } else {
+                        // Don't render cranes for unknown area types; skip this resource but continue processing others
+                        continue;
+                    }
+
+                    renderableResources.push({
+                        id: area.id,
+                        code: r.code,
+                        kind: r.kind,
+                        position: resourcePosition,
+                        size: resourceSize,
+                        modelUrl: r.kind.toLowerCase().includes('sts') ? '/models/sts-crane.glb' : undefined
+                    } as RenderableResource);
+                }
+
+                // DEBUG: log constructed renderable resources to help diagnose missing cranes
+                console.debug('VisualizationPage: constructed renderableResources =', renderableResources);
 
                 setResources(renderableResources);
 
             } catch (e) {
                 // Handle error state gracefully
-                setError('Failed to load visualization data. Is the backend running?');
+              
                 console.error(e);
             } finally {
                 // Handle loading state gracefully
@@ -170,7 +183,7 @@ const VisualizationPage: React.FC = () => {
         };
 
         fetchData();
-    }, [selectedLayout]); // Reacts to layout switching via dropdown
+    }, [selectedLayout]); // Reacts to layout switching via selectedLayout dropdown
     
     const containerStyle: React.CSSProperties = {
         height: 'calc(100vh - 180px)', // Ajuste a altura conforme necessário
@@ -215,4 +228,3 @@ const VisualizationPage: React.FC = () => {
 };
 
 export default VisualizationPage;
-

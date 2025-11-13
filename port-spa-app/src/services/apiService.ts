@@ -250,6 +250,43 @@ export const createShippingAgentRepresentative = async (dto: any): Promise<any> 
     }
 }
 
+// PUT /api/ShippingAgentRepresentatives/{citizenId} - update representative by citizenId
+export const updateShippingAgentRepresentativeByCitizenId = async (citizenId: string, dto: any): Promise<{ status: number; data: any }> => {
+    try {
+        const encoded = encodeURIComponent(citizenId);
+        const response = await apiClient.put(`/ShippingAgentRepresentatives/${encoded}`, dto);
+        return { status: response.status, data: response.data };
+    } catch (error: any) {
+        console.error(`Error updating shipping agent representative ${citizenId}:`, error);
+        throw error;
+    }
+}
+
+// NEW: Delete representative by CitizenId (controller exposes DELETE /api/ShippingAgentRepresentatives/{citizenId})
+export const deleteShippingAgentRepresentativeByCitizenId = async (citizenId: string): Promise<{ status: number; data: any }> => {
+    try {
+        // Citizen IDs may contain characters that need encoding
+        const encoded = encodeURIComponent(citizenId);
+        const response = await apiClient.delete(`/ShippingAgentRepresentatives/${encoded}`);
+        // Return status/data so the UI can inspect server messages
+        return { status: response.status, data: response.data };
+    } catch (error: any) {
+        console.error(`Error deleting shipping agent representative ${citizenId}:`, error);
+        throw error;
+    }
+ }
+
+// GET /api/ShippingAgentRepresentatives/{id} - fetch a single representative by GUID id
+export const getShippingAgentRepresentativeById = async (id: string): Promise<any> => {
+    try {
+        const response = await apiClient.get(`/ShippingAgentRepresentatives/${encodeURIComponent(id)}`);
+        return response.data;
+    } catch (error) {
+        console.error(`Error fetching shipping agent representative ${id}:`, error);
+        throw error;
+    }
+}
+
 export const assignUserRole = async (email: string, role: string) => {
     try {
         const response = await apiClient.post('/admin/assign-role', { email, role });
@@ -447,7 +484,8 @@ export const approveVvn = async (id: string, dto: ApproveVvnDto): Promise<void> 
 export const rejectVvn = async (id: string, dto: RejectVvnDto): Promise<void> => {
     try {
         // --- FIX: Used apiClient and correct endpoint ---
-        await apiClient.patch(`/notifications/${id}/reject`, dto);
+        const resp = await apiClient.patch(`/notifications/${id}/reject`, dto);
+        return resp.data;
     } catch (error) {
         console.error(`Error rejecting VVN ${id}:`, error);
         throw error;

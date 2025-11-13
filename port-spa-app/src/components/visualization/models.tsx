@@ -15,8 +15,39 @@ import waterNormalUrl from './textures/Water_002_NORM.jpg';
 import waterRoughnessUrl from './textures/Water_002_ROUGH.jpg';
 import waterDisplacementUrl from './textures/Water_002_DISP.png';
 import waterOccUrl from './textures/Water_002_OCC.jpg';
+// Dynamically import all Tower_crane textures and group them by material and map type.
+// Filenames are expected like: Tower_crane_{MATERIAL}_{MapType}.png
+const towerCraneFiles = import.meta.glob('./textures/Tower_crane*.png', { eager: true, as: 'url' }) as Record<string, string>;
 
 
+// towerCraneByMaterial: { [MATERIAL]: { [MapType]: url } }
+const towerCraneByMaterial: Record<string, Record<string, string>> = {};
+Object.entries(towerCraneFiles).forEach(([path, url]) => {
+    const fileName = path.split('/').pop() ?? path;
+    const withoutExt = fileName.replace(/\.[^/.]+$/, '');
+    const rest = withoutExt.replace(/^Tower_crane_/, '');
+    const parts = rest.split('_');
+    const material = (parts.shift() ?? 'UNKNOWN').toUpperCase();
+    const mapType = parts.join('_'); // e.g. BaseColor, Normal, Roughness, Metallic
+    if (!towerCraneByMaterial[material]) towerCraneByMaterial[material] = {};
+    towerCraneByMaterial[material][mapType] = url;
+});
+
+// Helper: return ordered URLs for common PBR slots for a given material
+function getMaterialTextureUrls(material: string) {
+    const m = towerCraneByMaterial[material] ?? {};
+    return [
+        m['BaseColor'] ?? m['Base'] ?? m['Albedo'] ?? m['COLOR'] ?? undefined,
+        m['Normal'] ?? m['NORM'] ?? undefined,
+        m['Roughness'] ?? m['ROUGH'] ?? m['R'] ?? undefined,
+        m['Metallic'] ?? m['METALLIC'] ?? m['M'] ?? undefined,
+        m['AO'] ?? m['AmbientOcclusion'] ?? undefined,
+        m['Height'] ?? m['DISP'] ?? undefined,
+    ].filter(Boolean) as string[];
+}
+
+// Provide a safe fallback URL for useTexture when a material has no maps
+const defaultCraneUrl = Object.values(towerCraneFiles)[0] ?? concreteBaseUrl;
 
 
 // Props base para qualquer modelo
@@ -446,28 +477,178 @@ export const STSCraneModel: React.FC<Omit<ModelProps, 'color'>> = ({ position, s
     const towerHeight = Math.max(3, size[1] * 8);
     const span = Math.max(4, size[2] * 1.2);
 
+    // Load textures for known crane materials (fall back to a default URL if material missing)
+    const bucketUrls = getMaterialTextureUrls('BUCKET');
+    const ironUrls = getMaterialTextureUrls('IRON');
+    const ropeUrls = getMaterialTextureUrls('ROPE');
+    const concreteUrls = getMaterialTextureUrls('CONCRETE');
+    const glassUrls = getMaterialTextureUrls('GLASS');
+    const frameUrls = getMaterialTextureUrls('FRAME');
+    const uvUrls = getMaterialTextureUrls('UV');
+
+    // For each material, request only the maps we plan to use to avoid unused variables
+    const [bBase, bNormal, bRough, bMetal, bAO, bHeight] = useTexture(bucketUrls.length ? bucketUrls : [defaultCraneUrl]);
+    const [iBase, iNormal, iRough, iMetal] = useTexture(ironUrls.length ? ironUrls.slice(0, 4) : [defaultCraneUrl]);
+    const [rBase] = useTexture(ropeUrls.length ? [ropeUrls[0]] : [defaultCraneUrl]);
+    const [cBase] = useTexture(concreteUrls.length ? [concreteUrls[0]] : [defaultCraneUrl]);
+    const [gBase] = useTexture(glassUrls.length ? [glassUrls[0]] : [defaultCraneUrl]);
+    const [fBase, fNormal, fRough, fMetal] = useTexture(frameUrls.length ? frameUrls.slice(0,4) : [defaultCraneUrl]);
+    const [uBase] = useTexture(uvUrls.length ? [uvUrls[0]] : [defaultCraneUrl]);
+
+    // Clone per-instance
+    const bucketTex = React.useMemo(() => ({
+        base: (bBase as any)?.clone?.() ?? null,
+        normal: (bNormal as any)?.clone?.() ?? null,
+        roughness: (bRough as any)?.clone?.() ?? null,
+        metallic: (bMetal as any)?.clone?.() ?? null,
+        ao: (bAO as any)?.clone?.() ?? null,
+        height: (bHeight as any)?.clone?.() ?? null,
+    }), [bBase, bNormal, bRough, bMetal, bAO, bHeight]);
+
+    const ironTex = React.useMemo(() => ({
+        base: (iBase as any)?.clone?.() ?? null,
+        normal: (iNormal as any)?.clone?.() ?? null,
+        roughness: (iRough as any)?.clone?.() ?? null,
+        metallic: (iMetal as any)?.clone?.() ?? null,
+    }), [iBase, iNormal, iRough, iMetal]);
+
+    const ropeTex = React.useMemo(() => ({
+        base: (rBase as any)?.clone?.() ?? null,
+    }), [rBase]);
+
+    const concreteTex = React.useMemo(() => ({
+        base: (cBase as any)?.clone?.() ?? null,
+    }), [cBase]);
+
+    const glassTex = React.useMemo(() => ({
+        base: (gBase as any)?.clone?.() ?? null,
+    }), [gBase]);
+
+    const frameTex = React.useMemo(() => ({
+        base: (fBase as any)?.clone?.() ?? null,
+        normal: (fNormal as any)?.clone?.() ?? null,
+        roughness: (fRough as any)?.clone?.() ?? null,
+        metallic: (fMetal as any)?.clone?.() ?? null,
+    }), [fBase, fNormal, fRough, fMetal]);
+
+    const uvTex = React.useMemo(() => ({
+        base: (uBase as any)?.clone?.() ?? null,
+    }), [uBase]);
+
+    // Configure wrapping/repeat and colorSpace for all loaded textures
+    useEffect(() => {
+        const all = [bucketTex.base, bucketTex.normal, bucketTex.roughness, bucketTex.metallic, bucketTex.ao,
+            ironTex.base, ironTex.normal, ironTex.roughness, ironTex.metallic,
+            ropeTex.base, concreteTex.base, glassTex.base];
+        all.push(frameTex.base, frameTex.normal, frameTex.roughness, frameTex.metallic, uvTex.base);
+        all.forEach(tex => {
+            if (!tex) return;
+            tex.wrapS = tex.wrapT = RepeatWrapping;
+            tex.repeat.set(1, 1);
+            tex.anisotropy = Math.max(tex.anisotropy ?? 0, 8);
+            tex.needsUpdate = true;
+        });
+        if (bucketTex.base && 'colorSpace' in bucketTex.base) (bucketTex.base as any).colorSpace = SRGBColorSpace;
+        if (ironTex.base && 'colorSpace' in ironTex.base) (ironTex.base as any).colorSpace = SRGBColorSpace;
+        if (glassTex.base && 'colorSpace' in glassTex.base) (glassTex.base as any).colorSpace = SRGBColorSpace;
+        return () => {
+            [...Object.values(bucketTex), ...Object.values(ironTex), ...Object.values(ropeTex), ...Object.values(concreteTex), ...Object.values(glassTex), ...Object.values(frameTex), ...Object.values(uvTex)].forEach(t => t?.dispose());
+        };
+    }, [bucketTex, ironTex, ropeTex, concreteTex, glassTex]);
+
+    // Positions for additional decorative parts
+    const cabinPos: [number, number, number] = [span * 0.25, towerHeight - 0.65, 0.2];
+    const bucketPos: [number, number, number] = [0, towerHeight - 1.6, 0];
+    const ropeLength = 1.2;
+
     return (
         <group position={position}>
-            {/* Towers */}
+            {/* Base / small concrete pad at tower feet */}
+            <mesh position={[-span / 2 + 0.3, 0.08, 0]} receiveShadow>
+                <boxGeometry args={[0.6, 0.16, 0.6]} />
+                <meshStandardMaterial map={concreteTex.base as any} metalness={0.02} roughness={0.9} />
+            </mesh>
+            <mesh position={[span / 2 - 0.3, 0.08, 0]} receiveShadow>
+                <boxGeometry args={[0.6, 0.16, 0.6]} />
+                <meshStandardMaterial map={concreteTex.base as any} metalness={0.02} roughness={0.9} />
+            </mesh>
+
+            {/* Towers (iron) */}
             <mesh position={[-span / 2 + 0.3, towerHeight / 2, 0]} castShadow>
                 <boxGeometry args={[0.3, towerHeight, 0.3]} />
-                <meshStandardMaterial color="orangered" metalness={0.6} roughness={0.4} />
+                <meshStandardMaterial color="#ffffff" metalness={0.8} roughness={0.6}
+                    map={ironTex.base as any}
+                    normalMap={ironTex.normal as any}
+                    roughnessMap={ironTex.roughness as any}
+                    metalnessMap={ironTex.metallic as any}
+                />
             </mesh>
             <mesh position={[span / 2 - 0.3, towerHeight / 2, 0]} castShadow>
                 <boxGeometry args={[0.3, towerHeight, 0.3]} />
-                <meshStandardMaterial color="orangered" metalness={0.6} roughness={0.4} />
+                <meshStandardMaterial color="#ffffff" metalness={0.8} roughness={0.6}
+                    map={ironTex.base as any}
+                    normalMap={ironTex.normal as any}
+                    roughnessMap={ironTex.roughness as any}
+                    metalnessMap={ironTex.metallic as any}
+                />
             </mesh>
 
-            {/* Overhead beam */}
+            {/* Overhead beam (BUCKET material) */}
             <mesh position={[0, towerHeight - 0.2, 0]} castShadow>
                 <boxGeometry args={[span, 0.2, 0.4]} />
-                <meshStandardMaterial color="orangered" metalness={0.6} roughness={0.4} />
+                <meshStandardMaterial color="#ffffff" metalness={0.7} roughness={0.5}
+                    map={bucketTex.base as any}
+                    normalMap={bucketTex.normal as any}
+                    roughnessMap={bucketTex.roughness as any}
+                    metalnessMap={bucketTex.metallic as any}
+                />
+            </mesh>
+
+            {/* Decorative frame plates near beam ends (FRAME material) */}
+            <mesh position={[span/2 - 0.25, towerHeight - 0.2 + 0.05, 0.45]} rotation={[0, 0, 0]} castShadow>
+                <planeGeometry args={[0.4, 0.25]} />
+                <meshStandardMaterial map={frameTex.base as any} normalMap={frameTex.normal as any} roughnessMap={frameTex.roughness as any} metalnessMap={frameTex.metallic as any} side={DoubleSide} />
+            </mesh>
+            <mesh position={[-span/2 + 0.25, towerHeight - 0.2 + 0.05, 0.45]} rotation={[0, 0, 0]} castShadow>
+                <planeGeometry args={[0.4, 0.25]} />
+                <meshStandardMaterial map={frameTex.base as any} normalMap={frameTex.normal as any} roughnessMap={frameTex.roughness as any} metalnessMap={frameTex.metallic as any} side={DoubleSide} />
+            </mesh>
+
+            {/* Cabin (glass) attached to beam */}
+            <mesh position={cabinPos} castShadow>
+                <boxGeometry args={[0.6, 0.4, 0.5]} />
+                <meshStandardMaterial color="#ffffff" metalness={0.1} roughness={0.2} opacity={0.95} transparent={true}
+                    map={glassTex.base as any}
+                />
             </mesh>
 
             {/* Trolley */}
             <mesh position={[0, towerHeight - 0.6, 0]} castShadow>
                 <boxGeometry args={[0.6, 0.2, 0.6]} />
-                <meshStandardMaterial color="#333" metalness={0.7} roughness={0.3} />
+                <meshStandardMaterial color="#222" metalness={0.6} roughness={0.3} map={bucketTex.base as any} />
+            </mesh>
+
+            {/* Rope/cable under trolley */}
+            <mesh position={[0, towerHeight - 0.95 - ropeLength / 2, 0]} castShadow>
+                <cylinderGeometry args={[0.02, 0.02, ropeLength, 8]} />
+                <meshStandardMaterial color="#444" metalness={0.1} roughness={0.7} map={ropeTex.base as any} />
+            </mesh>
+
+            {/* Bucket / grab at the end of cable */}
+            <mesh position={bucketPos} castShadow>
+                <boxGeometry args={[0.5, 0.5, 0.5]} />
+                <meshStandardMaterial color="#333" metalness={0.6} roughness={0.4}
+                    map={bucketTex.base as any}
+                    normalMap={bucketTex.normal as any}
+                    roughnessMap={bucketTex.roughness as any}
+                    metalnessMap={bucketTex.metallic as any}
+                />
+            </mesh>
+
+            {/* Small UV decal on top of bucket (UV material) */}
+            <mesh position={[bucketPos[0], bucketPos[1] + 0.28, bucketPos[2]]} rotation={[-Math.PI/2, 0, 0]} castShadow>
+                <planeGeometry args={[0.38, 0.38]} />
+                <meshStandardMaterial map={uvTex.base as any} transparent={true} opacity={0.95} side={DoubleSide} />
             </mesh>
 
             {label && (
@@ -488,7 +669,7 @@ export const STSCraneModel: React.FC<Omit<ModelProps, 'color'>> = ({ position, s
 
 // Yard Gantry Crane (grua de pátio) — pernas laterais e viga superior com trole
 export const YardCraneModel: React.FC<Omit<ModelProps, 'color'>> = ({ position, size, label }) => {
-    const legHeight = Math.max(2, size[1] * 6);
+    const legHeight = Math.max(20, size[1] * 6);
     const span = Math.max(3, size[0] * 0.9);
 
     return (

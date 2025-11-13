@@ -187,8 +187,11 @@ public class VesselVisitNotificationService : IVesselVisitNotificationService
             query = query.Where(v => v.EstimatedArrival.Value >= from.Value);
 
         if (to.HasValue)
-            query = query.Where(v => v.EstimatedArrival.Value <= to.Value);
-
+        {
+            var toDateEnd = to.Value.Date.AddDays(1);
+            query = query.Where(v => v.EstimatedArrival.Value < toDateEnd);;
+        }
+        
         var results = await query.ToListAsync();
         return results.Select(MapToDto).ToList();
     }

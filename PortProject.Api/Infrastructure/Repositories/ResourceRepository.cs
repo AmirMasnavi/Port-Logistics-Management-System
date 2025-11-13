@@ -26,7 +26,8 @@ public class ResourceRepository : IResourceRepository
     }
     
     
-    public async Task<IEnumerable<Resource>> GetAllAsync(ResourceKind? typeFilter)
+    public async Task<IEnumerable<Resource>> GetAllAsync(string? code, string? description, ResourceKind? typeFilter,
+        ResourceStatus? status)
     {
         var query = _context.Resources.AsQueryable();
         
