@@ -1,167 +1,198 @@
-// File: PortProject.Planning.Api/Application/Services/SchedulingService.cs
-
 using PortProject.Planning.Api.Application.Clients;
 using PortProject.Planning.Api.Application.Clients.DTOs;
 using PortProject.Planning.Api.Application.DTOs;
-
+using System.Net.Http.Json; // <-- REQUIRED
+using System.Text.Json.Serialization; // <-- REQUIRED
 
 namespace PortProject.Planning.Api.Application.Services;
 
 public class SchedulingService : ISchedulingService
 {
     private readonly IPortApiHttpClient _portApiClient;
+    
+    // --- 1. ADD IHttpClientFactory ---
+    // This is new. You need it to call the Prolog API.
+    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly ILogger<SchedulingService> _logger;
 
-    public SchedulingService(IPortApiHttpClient portApiClient)
+    // --- 2. UPDATE THE CONSTRUCTOR ---
+    public SchedulingService(
+        IPortApiHttpClient portApiClient, 
+        IHttpClientFactory httpClientFactory, 
+        ILogger<SchedulingService> logger)
     {
         _portApiClient = portApiClient;
+        _httpClientFactory = httpClientFactory;
+        _logger = logger;
     }
 
     public async Task<DailyScheduleResponseDto> GenerateDailySchedule(DateOnly date)
     {
-        // 1. Consumir dados do API principal (AC 2)
+        // 1. Consumir dados do API principal (This part is correct)
         var docks = (await _portApiClient.GetDocksAsync()).ToList();
         var staff = (await _portApiClient.GetAvailableStaffAsync(date)).ToList();
         var clientVisits = (await _portApiClient.GetPendingVisitsAsync(date)).ToList();
-
-        // Map client DTOs to Planning module DTOs (client DTO lacks loading/unloading times)
-        var visits = clientVisits.Select(cv => new VesselVisitDto(
-            cv.Id,
-            cv.Status,
-            cv.EstimatedArrival,
-            cv.EstimatedDeparture,
-            cv.VesselImo,
-            0.0, // UnloadingTime default (no data from client API)
-            0.0 // LoadingTime default
-        )).ToList();
-
+        
         var schedule = new DailyScheduleResponseDto { Date = date };
 
-        // Validação de recursos (AC 4c)
-        if (!visits.Any())
+        // Validação de recursos (This part is correct)
+        if (!clientVisits.Any())
         {
-            // Poderíamos adicionar uma mensagem de aviso à resposta
+            _logger.LogWarning("No pending visits for {Date}, returning empty schedule.", date);
             return schedule; // Sem visitas, sem agendamento
         }
 
         if (!docks.Any() || !staff.Any())
         {
-            // Adicionar aviso sobre falta de recursos
+            _logger.LogWarning("No docks or staff available for {Date}, returning empty schedule.", date);
             return schedule;
         }
 
-        // 2. Encontrar a melhor sequência de navios (lógica traduzida do Prolog)
-        var bestSchedule = FindBestSequence(visits);
+        // --- 3. PREPARE DATA FOR PROLOG ---
+        // This REPLACES your C# mapping logic.
+        
+        // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        // !!!!!!!! CRITICAL FIXME !!!!!!!!!!!!
+        // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        // Your `clientVisits` (from GetPendingVisitsAsync) MUST contain UnloadingTime and LoadingTime.
+        // Your comment says "(no data from client API)". This is a blocker.
+        // You MUST fix the `PortProject.Planning.Api/Application/Clients/DTOs/VesselVisitDto.cs`
+        // and the main API to provide this data.
+        //
+        // I will assume you HAVE fixed this and that `clientVisits` now contains these fields.
+        
+        DateTime dayStart = date.ToDateTime(TimeOnly.MinValue);
+        var prologVesselList = clientVisits.Select(v => new PrologVesselRequest
+        {
+            Id = v.Id.ToString(),
+            
+            // Calculate total hours from the start of the day.
+            // This matches the Prolog logic (e.g., 6, 23, 63)
+            EstimatedArrival = ((int)(v.EstimatedArrival - dayStart).TotalHours).ToString(),
+            EstimatedDeparture = ((int)(v.EstimatedDeparture - dayStart).TotalHours).ToString(),
+            
+            // These MUST come from your client API.
+            // Using 0.0 as in your old code will make the algorithm fail.
+            UnloadingTime = v.UnloadingTime, // <-- FIXME: Ensure this has a value
+            LoadingTime = v.LoadingTime      // <-- FIXME: Ensure this has a value
+        }).ToList();
+        
 
-        // 3. Mapear para a resposta final
-        // Por simplicidade, atribuímos a sequência ao primeiro cais e ao primeiro operador disponível
+        // --- 4. CALL PROLOG SERVER ---
+        // This REPLACES FindBestSequence, GetPermutations, etc.
+        PrologScheduleResponse? prologResult;
+        try
+        {
+            var prologClient = _httpClientFactory.CreateClient("PrologApiClient");
+            
+            _logger.LogInformation("Sending {Count} vessels to Prolog server...", prologVesselList.Count);
+            
+            // Call the Prolog server running on http://localhost:5001
+            HttpResponseMessage prologResponse = await prologClient.PostAsJsonAsync("http://localhost:5001/api/schedule", prologVesselList);
+
+            if (prologResponse.IsSuccessStatusCode)
+            {
+                // Read the JSON response from Prolog: { "schedule": [...], "delay": ... }
+                prologResult = await prologResponse.Content.ReadFromJsonAsync<PrologScheduleResponse>();
+                
+                if (prologResult == null)
+                {
+                     _logger.LogError("Failed to deserialize response from Prolog.");
+                     return schedule; // Return empty schedule on error
+                }
+                
+                _logger.LogInformation("Received schedule from Prolog with {Count} tasks and delay {Delay}", 
+                    prologResult.Schedule.Count, prologResult.Delay);
+            }
+            else
+            {
+                // The Prolog server returned an error
+                string errorContent = await prologResponse.Content.ReadAsStringAsync();
+                _logger.LogError("Error from Prolog server ({StatusCode}): {Error}", prologResponse.StatusCode, errorContent);
+                return schedule; // Return empty schedule on error
+            }
+        }
+        catch (Exception ex)
+        {
+            // Could not connect to Prolog server
+            _logger.LogError(ex, "Failed to call Prolog server. Is it running at http://localhost:5001?");
+            // You could add a user-friendly error message to the response DTO
+            return schedule; // Return empty schedule on error
+        }
+        
+        // --- 5. MAP PROLOG RESULT TO C# DTO ---
+        // (This is similar to your old code, but uses the prologResult)
+        
         var firstDock = docks.First();
         var firstOperator = staff.FirstOrDefault(s => s.QualificationCodes.Contains("CRANE_OPERATOR")) ?? staff.First();
-
-        foreach (var task in bestSchedule.Tasks)
+        
+        foreach (var task in prologResult.Schedule)
         {
+            // The Prolog task is a Tuple: (VesselId, StartHour, EndHour)
+            string vesselId = task.Item1;
+            int startHour = task.Item2;
+            int endHour = task.Item3; // Note: Prolog logic is inclusive
+
             schedule.ScheduledTasks.Add(new ScheduledTaskDto
             {
-                VesselVisitId = task.Vessel.Id.ToString(),
+                VesselVisitId = vesselId, // Prolog returns the ID as a string
                 DockId = firstDock.Id,
                 StaffId = firstOperator.MecanographicNumber,
-                ResourceId = "CRANE-01", // Placeholder para o recurso de grua
-                StartTime = task.StartTime,
-                EndTime = task.EndTime
+                ResourceId = "CRANE-01", // Placeholder
+                StartTime = dayStart.AddHours(startHour),
+                // Add 1 hour because Prolog's TEndLoad is inclusive (e.g., 8 to 24 is 17 hours)
+                // C# EndTime is exclusive.
+                EndTime = dayStart.AddHours(endHour + 1) 
             });
         }
-
-        Console.WriteLine($"Generated schedule for {date} with {schedule.ScheduledTasks.Count} tasks");
-
+        
         return schedule;
     }
 
-    // --- Lógica do Algoritmo (Tradução do Prolog) ---
+    // --- 6. ADD HELPER CLASSES FOR JSON (De)serialization ---
+    // These can be inside your class or in separate files.
+    // Putting them here is simpler.
 
-    private record ScheduledTask(VesselVisitDto Vessel, DateTime StartTime, DateTime EndTime);
-
-    private record ScheduleResult(List<ScheduledTask> Tasks, double TotalDelay);
-
-    private ScheduleResult FindBestSequence(List<VesselVisitDto> visits)
+    private class PrologVesselRequest
     {
-        ScheduleResult? bestSchedule = null;
+        [JsonPropertyName("id")]
+        public string Id { get; set; }
 
-        // `permutation(LV, SeqV)`
-        foreach (var sequence in GetPermutations(visits))
+        [JsonPropertyName("estimatedArrival")]
+        public string EstimatedArrival { get; set; }
+
+        [JsonPropertyName("estimatedDeparture")]
+        public string EstimatedDeparture { get; set; }
+
+        [JsonPropertyName("unloadingTime")]
+        public double UnloadingTime { get; set; }
+
+        [JsonPropertyName("loadingTime")]
+        public double LoadingTime { get; set; }
+    }
+
+    private class PrologScheduleResponse
+    {
+        // Prolog returns: "schedule": [["vc",8,24], ["vb",25,40], ...]
+        [JsonPropertyName("schedule")]
+        public List<List<object>>? ScheduleRaw { get; set; }
+
+        [JsonIgnore]
+        public List<Tuple<string, int, int>> Schedule
         {
-            // `sequence_temporization(SeqV, SeqTriplets)`
-            var currentTasks = CalculateTemporization(sequence.ToList());
-
-            // `sum_delays(SeqTriplets, S)`
-            var currentDelay = CalculateTotalDelay(currentTasks);
-
-            // `compare_shortest_delay`
-            if (bestSchedule == null || currentDelay < bestSchedule.TotalDelay)
+            get
             {
-                bestSchedule = new ScheduleResult(currentTasks, currentDelay);
+                return ScheduleRaw?
+                    .Select(item => new Tuple<string, int, int>(
+                        item[0].ToString() ?? "",
+                        int.Parse(item[1].ToString() ?? "0"),
+                        int.Parse(item[2].ToString() ?? "0")
+                    ))
+                    .ToList() ?? new List<Tuple<string, int, int>>();
             }
         }
 
-        return bestSchedule ?? new ScheduleResult(new List<ScheduledTask>(), 0);
-    }
-
-    // Gera todas as permutações de uma lista (equivalente a `permutation/2`)
-    private IEnumerable<IEnumerable<T>> GetPermutations<T>(IEnumerable<T> list)
-    {
-        var items = list.ToList();
-
-        if (!items.Any())
-        {
-            yield return Enumerable.Empty<T>();
-            yield break;
-        }
-
-        int i = 0;
-        foreach (var item in items)
-        {
-            var remaining = items.Take(i).Concat(items.Skip(i + 1));
-            foreach (var p in GetPermutations(remaining))
-            {
-                yield return p.Prepend(item);
-            }
-
-            i++;
-        }
-    }
-
-    // Calcula o cronograma para uma sequência de navios (equivalente a `sequence_temporization/2`)
-    private List<ScheduledTask> CalculateTemporization(List<VesselVisitDto> sequence)
-    {
-        var tasks = new List<ScheduledTask>();
-        DateTime lastEndTime = DateTime.MinValue;
-
-        foreach (var visit in sequence)
-        {
-            // O início da descarga é o máximo entre a chegada do navio e o fim da operação anterior
-            var startTime = visit.EstimatedArrival > lastEndTime ? visit.EstimatedArrival : lastEndTime;
-
-            // O tempo total da operação é a soma da descarga e da carga
-            var operationDuration = visit.UnloadingTime + visit.LoadingTime;
-            var endTime = startTime.AddHours(operationDuration);
-
-            tasks.Add(new ScheduledTask(visit, startTime, endTime));
-            lastEndTime = endTime;
-        }
-
-        return tasks;
-    }
-
-    // Calcula o atraso total para um cronograma (equivalente a `sum_delays/2`)
-    private double CalculateTotalDelay(List<ScheduledTask> tasks)
-    {
-        double totalDelay = 0;
-        foreach (var task in tasks)
-        {
-            if (task.EndTime > task.Vessel.EstimatedDeparture)
-            {
-                totalDelay += (task.EndTime - task.Vessel.EstimatedDeparture).TotalHours;
-            }
-        }
-
-        return totalDelay;
+        [JsonPropertyName("delay")]
+        public double Delay { get; set; }
     }
 }
