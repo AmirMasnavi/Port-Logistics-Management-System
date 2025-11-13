@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using PortProject.Api.Models;
 
@@ -15,23 +16,27 @@ namespace PortProject.Api.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "9.0.10");
+            modelBuilder
+                .HasAnnotation("ProductVersion", "9.0.10")
+                .HasAnnotation("Relational:MaxIdentifierLength", 64);
+
+            MySqlModelBuilderExtensions.AutoIncrementColumns(modelBuilder);
 
             modelBuilder.Entity("PortProject.Api.Domain.AppUserAggregate.AppUser", b =>
                 {
                     b.Property<string>("Email")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("varchar(255)");
 
                     b.Property<string>("ActivationToken")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("longtext");
 
                     b.Property<string>("Role")
                         .IsRequired()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("longtext");
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("longtext");
 
                     b.HasKey("Email");
 
@@ -41,7 +46,7 @@ namespace PortProject.Api.Migrations
             modelBuilder.Entity("PortProject.Api.Domain.DockAggregate.Dock", b =>
                 {
                     b.Property<string>("Id")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("varchar(255)");
 
                     b.HasKey("Id");
 
@@ -52,17 +57,17 @@ namespace PortProject.Api.Migrations
                 {
                     b.Property<string>("Code")
                         .HasMaxLength(20)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("varchar(20)");
 
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasMaxLength(500)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("varchar(500)");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("varchar(100)");
 
                     b.HasKey("Code");
 
@@ -73,22 +78,22 @@ namespace PortProject.Api.Migrations
                 {
                     b.Property<string>("Code")
                         .HasMaxLength(50)
-                        .HasColumnType("TEXT")
+                        .HasColumnType("varchar(50)")
                         .HasColumnName("Code");
 
                     b.Property<string>("AssignedArea")
                         .HasMaxLength(100)
-                        .HasColumnType("TEXT")
+                        .HasColumnType("varchar(100)")
                         .HasColumnName("AssignedArea");
 
                     b.Property<string>("Kind")
                         .IsRequired()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("longtext")
                         .HasColumnName("Kind");
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("longtext")
                         .HasColumnName("Status");
 
                     b.HasKey("Code");
@@ -99,20 +104,28 @@ namespace PortProject.Api.Migrations
             modelBuilder.Entity("PortProject.Api.Domain.ShippingAgentOrganizationAggregate.ShippingAgentOrganization", b =>
                 {
                     b.Property<Guid>("Id")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("char(36)");
 
                     b.Property<string>("AlternativeName")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("longtext")
                         .HasColumnName("AlternativeName");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasColumnType("longtext");
 
                     b.Property<string>("LegalName")
                         .IsRequired()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("longtext")
                         .HasColumnName("LegalName");
+
+                    b.Property<string>("Phone")
+                        .IsRequired()
+                        .HasColumnType("longtext");
 
                     b.Property<string>("TaxNumber")
                         .IsRequired()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("longtext")
                         .HasColumnName("TaxNumber");
 
                     b.HasKey("Id");
@@ -123,35 +136,35 @@ namespace PortProject.Api.Migrations
             modelBuilder.Entity("PortProject.Api.Domain.ShippingAgentRepresentativeAggregate.ShippingAgentRepresentative", b =>
                 {
                     b.Property<Guid>("RepresentativeId")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("char(36)");
 
                     b.Property<string>("CitizenId")
                         .IsRequired()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("longtext")
                         .HasColumnName("CitizenId");
 
                     b.Property<Guid?>("OrganizationId")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("char(36)")
                         .HasColumnName("OrganizationId");
 
                     b.Property<string>("RepresentativeEmail")
                         .IsRequired()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("longtext")
                         .HasColumnName("RepresentativeEmail");
 
                     b.Property<string>("RepresentativeName")
                         .IsRequired()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("longtext")
                         .HasColumnName("RepresentativeName");
 
                     b.Property<string>("RepresentativeNationality")
                         .IsRequired()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("longtext")
                         .HasColumnName("RepresentativeNationality");
 
                     b.Property<string>("RepresentativePhone")
                         .IsRequired()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("longtext")
                         .HasColumnName("RepresentativePhone");
 
                     b.HasKey("RepresentativeId");
@@ -163,22 +176,22 @@ namespace PortProject.Api.Migrations
                 {
                     b.Property<string>("MecanographicNumber")
                         .HasMaxLength(20)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("varchar(20)");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("datetime(6)");
 
                     b.Property<string>("CurrentStatus")
                         .IsRequired()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("longtext");
 
                     b.Property<string>("ShortName")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("varchar(100)");
 
                     b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("datetime(6)");
 
                     b.HasKey("MecanographicNumber");
 
@@ -189,12 +202,14 @@ namespace PortProject.Api.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
+                        .HasColumnType("int")
                         .HasAnnotation("Sqlite:Autoincrement", true);
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Type")
                         .IsRequired()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("longtext");
 
                     b.HasKey("Id");
 
@@ -205,26 +220,26 @@ namespace PortProject.Api.Migrations
                 {
                     b.Property<string>("ImoNumber")
                         .HasMaxLength(7)
-                        .HasColumnType("TEXT")
+                        .HasColumnType("varchar(7)")
                         .HasColumnName("IMO");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("datetime(6)")
                         .HasColumnName("CreatedAt");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("TEXT")
+                        .HasColumnType("varchar(100)")
                         .HasColumnName("Name");
 
                     b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("datetime(6)")
                         .HasColumnName("UpdatedAt");
 
                     b.Property<string>("VesselTypeId")
                         .IsRequired()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("varchar(255)")
                         .HasColumnName("VesselTypeId");
 
                     b.HasKey("ImoNumber");
@@ -237,7 +252,7 @@ namespace PortProject.Api.Migrations
             modelBuilder.Entity("PortProject.Api.Domain.VesselTypeAggregate.VesselType", b =>
                 {
                     b.Property<string>("Id")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("varchar(255)")
                         .HasColumnName("Id");
 
                     b.HasKey("Id");
@@ -248,24 +263,24 @@ namespace PortProject.Api.Migrations
             modelBuilder.Entity("PortProject.Api.Domain.VesselVisitNotificationAggregate.VesselVisitNotification", b =>
                 {
                     b.Property<Guid>("Id")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("char(36)");
 
                     b.Property<string>("AssignedDockId")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("varchar(255)")
                         .HasColumnName("AssignedDockId");
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("longtext")
                         .HasColumnName("Status");
 
                     b.Property<Guid>("SubmittedBy")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("char(36)")
                         .HasColumnName("SubmittedBy");
 
                     b.Property<string>("VesselId")
                         .IsRequired()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("varchar(7)")
                         .HasColumnName("VesselId");
 
                     b.HasKey("Id");
@@ -282,10 +297,10 @@ namespace PortProject.Api.Migrations
             modelBuilder.Entity("QualificationResource", b =>
                 {
                     b.Property<string>("QualificationsCode")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("varchar(20)");
 
                     b.Property<string>("ResourceCode")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("varchar(50)");
 
                     b.HasKey("QualificationsCode", "ResourceCode");
 
@@ -297,10 +312,10 @@ namespace PortProject.Api.Migrations
             modelBuilder.Entity("QualificationStaffMember", b =>
                 {
                     b.Property<string>("QualificationsCode")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("varchar(20)");
 
                     b.Property<string>("StaffMemberMecanographicNumber")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("varchar(20)");
 
                     b.HasKey("QualificationsCode", "StaffMemberMecanographicNumber");
 
@@ -314,16 +329,16 @@ namespace PortProject.Api.Migrations
                     b.OwnsOne("PortProject.Api.Domain.DockAggregate.DockLocation", "Location", b1 =>
                         {
                             b1.Property<string>("DockId")
-                                .HasColumnType("TEXT");
+                                .HasColumnType("varchar(255)");
 
                             b1.Property<string>("Section")
                                 .IsRequired()
-                                .HasColumnType("TEXT")
+                                .HasColumnType("longtext")
                                 .HasColumnName("LocationSection");
 
                             b1.Property<string>("Zone")
                                 .IsRequired()
-                                .HasColumnType("TEXT")
+                                .HasColumnType("longtext")
                                 .HasColumnName("LocationZone");
 
                             b1.HasKey("DockId");
@@ -337,11 +352,11 @@ namespace PortProject.Api.Migrations
                     b.OwnsOne("PortProject.Api.Domain.DockAggregate.DockName", "Name", b1 =>
                         {
                             b1.Property<string>("DockId")
-                                .HasColumnType("TEXT");
+                                .HasColumnType("varchar(255)");
 
                             b1.Property<string>("Value")
                                 .IsRequired()
-                                .HasColumnType("TEXT")
+                                .HasColumnType("longtext")
                                 .HasColumnName("DockName");
 
                             b1.HasKey("DockId");
@@ -355,10 +370,10 @@ namespace PortProject.Api.Migrations
                     b.OwnsOne("PortProject.Api.Domain.DockAggregate.NumberOfSTSCranes", "STSCranes", b1 =>
                         {
                             b1.Property<string>("DockId")
-                                .HasColumnType("TEXT");
+                                .HasColumnType("varchar(255)");
 
                             b1.Property<int>("Value")
-                                .HasColumnType("INTEGER")
+                                .HasColumnType("int")
                                 .HasColumnName("NumberOfSTSCranes");
 
                             b1.HasKey("DockId");
@@ -372,18 +387,18 @@ namespace PortProject.Api.Migrations
                     b.OwnsOne("PortProject.Api.Domain.DockAggregate.PhysicalCharacteristics", "Characteristics", b1 =>
                         {
                             b1.Property<string>("DockId")
-                                .HasColumnType("TEXT");
+                                .HasColumnType("varchar(255)");
 
                             b1.Property<double>("DepthInMeters")
-                                .HasColumnType("REAL")
+                                .HasColumnType("double")
                                 .HasColumnName("Depth");
 
                             b1.Property<double>("LengthInMeters")
-                                .HasColumnType("REAL")
+                                .HasColumnType("double")
                                 .HasColumnName("Length");
 
                             b1.Property<double>("MaxDraftInMeters")
-                                .HasColumnType("REAL")
+                                .HasColumnType("double")
                                 .HasColumnName("MaxDraft");
 
                             b1.HasKey("DockId");
@@ -397,10 +412,10 @@ namespace PortProject.Api.Migrations
                     b.OwnsMany("src.Domain.VesselTypeAggregate.VesselTypeId", "AllowedVesselTypes", b1 =>
                         {
                             b1.Property<string>("DockId")
-                                .HasColumnType("TEXT");
+                                .HasColumnType("varchar(255)");
 
                             b1.Property<string>("Value")
-                                .HasColumnType("TEXT")
+                                .HasColumnType("varchar(255)")
                                 .HasColumnName("VesselTypeId");
 
                             b1.HasKey("DockId", "Value");
@@ -431,12 +446,12 @@ namespace PortProject.Api.Migrations
                     b.OwnsOne("PortProject.Api.Domain.ResourceAggregate.ResourceDescription", "Description", b1 =>
                         {
                             b1.Property<string>("ResourceCode")
-                                .HasColumnType("TEXT");
+                                .HasColumnType("varchar(50)");
 
                             b1.Property<string>("Description")
                                 .IsRequired()
                                 .HasMaxLength(255)
-                                .HasColumnType("TEXT")
+                                .HasColumnType("varchar(255)")
                                 .HasColumnName("Description");
 
                             b1.HasKey("ResourceCode");
@@ -450,32 +465,32 @@ namespace PortProject.Api.Migrations
                     b.OwnsOne("PortProject.Api.Domain.ResourceAggregate.ResourceOperationalCapacity", "OperationalCapacity", b1 =>
                         {
                             b1.Property<string>("ResourceCode")
-                                .HasColumnType("TEXT");
+                                .HasColumnType("varchar(50)");
 
                             b1.Property<int?>("AverageContainersPerHour")
-                                .HasColumnType("INTEGER")
+                                .HasColumnType("int")
                                 .HasColumnName("AvgContainersPerHour");
 
                             b1.Property<double?>("AverageSpeedKmh")
-                                .HasColumnType("REAL")
+                                .HasColumnType("double")
                                 .HasColumnName("AverageSpeedKmh");
 
                             b1.Property<int?>("ContainersPerTrip")
-                                .HasColumnType("INTEGER")
+                                .HasColumnType("int")
                                 .HasColumnName("ContainersPerTrip");
 
                             b1.Property<double?>("GenericValue")
-                                .HasColumnType("REAL")
+                                .HasColumnType("double")
                                 .HasColumnName("CapacityValue");
 
                             b1.Property<string>("Kind")
                                 .IsRequired()
-                                .HasColumnType("TEXT")
+                                .HasColumnType("longtext")
                                 .HasColumnName("CapacityKind");
 
                             b1.Property<string>("Unit")
                                 .HasMaxLength(50)
-                                .HasColumnType("TEXT")
+                                .HasColumnType("varchar(50)")
                                 .HasColumnName("CapacityUnit");
 
                             b1.HasKey("ResourceCode");
@@ -489,14 +504,14 @@ namespace PortProject.Api.Migrations
                     b.OwnsOne("PortProject.Api.Domain.ResourceAggregate.ResourceOperationalWindow", "OperationalWindow", b1 =>
                         {
                             b1.Property<string>("ResourceCode")
-                                .HasColumnType("TEXT");
+                                .HasColumnType("varchar(50)");
 
                             b1.Property<TimeSpan>("EndTime")
-                                .HasColumnType("TEXT")
+                                .HasColumnType("time(6)")
                                 .HasColumnName("OperationalEnd");
 
                             b1.Property<TimeSpan>("StartTime")
-                                .HasColumnType("TEXT")
+                                .HasColumnType("time(6)")
                                 .HasColumnName("OperationalStart");
 
                             b1.HasKey("ResourceCode");
@@ -510,10 +525,10 @@ namespace PortProject.Api.Migrations
                     b.OwnsOne("PortProject.Api.Domain.ResourceAggregate.ResourceSetupTime", "SetupTime", b1 =>
                         {
                             b1.Property<string>("ResourceCode")
-                                .HasColumnType("TEXT");
+                                .HasColumnType("varchar(50)");
 
                             b1.Property<int>("Minutes")
-                                .HasColumnType("INTEGER")
+                                .HasColumnType("int")
                                 .HasColumnName("SetupTimeMinutes");
 
                             b1.HasKey("ResourceCode");
@@ -542,21 +557,21 @@ namespace PortProject.Api.Migrations
                     b.OwnsOne("PortProject.Api.Domain.ShippingAgentOrganizationAggregate.Address", "Address", b1 =>
                         {
                             b1.Property<Guid>("ShippingAgentOrganizationId")
-                                .HasColumnType("TEXT");
+                                .HasColumnType("char(36)");
 
                             b1.Property<string>("City")
                                 .IsRequired()
-                                .HasColumnType("TEXT")
+                                .HasColumnType("longtext")
                                 .HasColumnName("Address_City");
 
                             b1.Property<string>("Country")
                                 .IsRequired()
-                                .HasColumnType("TEXT")
+                                .HasColumnType("longtext")
                                 .HasColumnName("Address_Country");
 
                             b1.Property<string>("Street")
                                 .IsRequired()
-                                .HasColumnType("TEXT")
+                                .HasColumnType("longtext")
                                 .HasColumnName("Address_Street");
 
                             b1.HasKey("ShippingAgentOrganizationId");
@@ -575,16 +590,16 @@ namespace PortProject.Api.Migrations
                     b.OwnsOne("PortProject.Api.Domain.StaffMemberAggregate.ContactDetails", "ContactDetails", b1 =>
                         {
                             b1.Property<string>("StaffMemberMecanographicNumber")
-                                .HasColumnType("TEXT");
+                                .HasColumnType("varchar(20)");
 
                             b1.Property<string>("Email")
                                 .IsRequired()
-                                .HasColumnType("TEXT")
+                                .HasColumnType("longtext")
                                 .HasColumnName("Email");
 
                             b1.Property<string>("Phone")
                                 .IsRequired()
-                                .HasColumnType("TEXT")
+                                .HasColumnType("longtext")
                                 .HasColumnName("Phone");
 
                             b1.HasKey("StaffMemberMecanographicNumber");
@@ -598,17 +613,17 @@ namespace PortProject.Api.Migrations
                     b.OwnsOne("PortProject.Api.Domain.StaffMemberAggregate.OperationalWindow", "OperationalWindow", b1 =>
                         {
                             b1.Property<string>("StaffMemberMecanographicNumber")
-                                .HasColumnType("TEXT");
+                                .HasColumnType("varchar(20)");
 
                             b1.Property<TimeSpan>("EndTime")
-                                .HasColumnType("TEXT");
+                                .HasColumnType("time(6)");
 
                             b1.Property<TimeSpan>("StartTime")
-                                .HasColumnType("TEXT");
+                                .HasColumnType("time(6)");
 
                             b1.Property<string>("WorkingDays")
                                 .IsRequired()
-                                .HasColumnType("TEXT");
+                                .HasColumnType("longtext");
 
                             b1.HasKey("StaffMemberMecanographicNumber");
 
@@ -630,10 +645,10 @@ namespace PortProject.Api.Migrations
                     b.OwnsOne("PortProject.Api.Domain.StorageAggregate.StorageAreaCurrentOccupancy", "CurrentOccupancy", b1 =>
                         {
                             b1.Property<int>("StorageAreaId")
-                                .HasColumnType("INTEGER");
+                                .HasColumnType("int");
 
                             b1.Property<int>("Value")
-                                .HasColumnType("INTEGER")
+                                .HasColumnType("int")
                                 .HasColumnName("CurrentOccupancy");
 
                             b1.HasKey("StorageAreaId");
@@ -647,14 +662,14 @@ namespace PortProject.Api.Migrations
                     b.OwnsOne("PortProject.Api.Domain.StorageAggregate.StorageAreaLocation", "Location", b1 =>
                         {
                             b1.Property<int>("StorageAreaId")
-                                .HasColumnType("INTEGER");
+                                .HasColumnType("int");
 
                             b1.Property<float>("X")
-                                .HasColumnType("REAL")
+                                .HasColumnType("float")
                                 .HasColumnName("X");
 
                             b1.Property<float>("Y")
-                                .HasColumnType("REAL")
+                                .HasColumnType("float")
                                 .HasColumnName("Y");
 
                             b1.HasKey("StorageAreaId");
@@ -668,10 +683,10 @@ namespace PortProject.Api.Migrations
                     b.OwnsOne("PortProject.Api.Domain.StorageAggregate.StorageCapacity", "Capacity", b1 =>
                         {
                             b1.Property<int>("StorageAreaId")
-                                .HasColumnType("INTEGER");
+                                .HasColumnType("int");
 
                             b1.Property<int>("Value")
-                                .HasColumnType("INTEGER")
+                                .HasColumnType("int")
                                 .HasColumnName("Capacity");
 
                             b1.HasKey("StorageAreaId");
@@ -703,12 +718,12 @@ namespace PortProject.Api.Migrations
                     b.OwnsOne("PortProject.Api.Domain.VesselAggregate.VesselOperator", "Operator", b1 =>
                         {
                             b1.Property<string>("VesselImoNumber")
-                                .HasColumnType("TEXT");
+                                .HasColumnType("varchar(7)");
 
                             b1.Property<string>("Value")
                                 .IsRequired()
                                 .HasMaxLength(100)
-                                .HasColumnType("TEXT")
+                                .HasColumnType("varchar(100)")
                                 .HasColumnName("OperatorName");
 
                             b1.HasKey("VesselImoNumber");
@@ -728,10 +743,10 @@ namespace PortProject.Api.Migrations
                     b.OwnsOne("src.Domain.VesselTypeAggregate.VesselTypeCapacity", "Capacity", b1 =>
                         {
                             b1.Property<string>("VesselTypeId")
-                                .HasColumnType("TEXT");
+                                .HasColumnType("varchar(255)");
 
                             b1.Property<int>("Value")
-                                .HasColumnType("INTEGER")
+                                .HasColumnType("int")
                                 .HasColumnName("Capacity");
 
                             b1.HasKey("VesselTypeId");
@@ -745,12 +760,12 @@ namespace PortProject.Api.Migrations
                     b.OwnsOne("src.Domain.VesselTypeAggregate.VesselTypeDescription", "Description", b1 =>
                         {
                             b1.Property<string>("VesselTypeId")
-                                .HasColumnType("TEXT");
+                                .HasColumnType("varchar(255)");
 
                             b1.Property<string>("Value")
                                 .IsRequired()
                                 .HasMaxLength(255)
-                                .HasColumnType("TEXT")
+                                .HasColumnType("varchar(255)")
                                 .HasColumnName("Description");
 
                             b1.HasKey("VesselTypeId");
@@ -764,18 +779,18 @@ namespace PortProject.Api.Migrations
                     b.OwnsOne("src.Domain.VesselTypeAggregate.VesselTypeDimensions", "OperationalConstraints", b1 =>
                         {
                             b1.Property<string>("VesselTypeId")
-                                .HasColumnType("TEXT");
+                                .HasColumnType("varchar(255)");
 
                             b1.Property<int>("MaxBays")
-                                .HasColumnType("INTEGER")
+                                .HasColumnType("int")
                                 .HasColumnName("MaxBays");
 
                             b1.Property<int>("MaxRows")
-                                .HasColumnType("INTEGER")
+                                .HasColumnType("int")
                                 .HasColumnName("MaxRows");
 
                             b1.Property<int>("MaxTiers")
-                                .HasColumnType("INTEGER")
+                                .HasColumnType("int")
                                 .HasColumnName("MaxTiers");
 
                             b1.HasKey("VesselTypeId");
@@ -789,12 +804,12 @@ namespace PortProject.Api.Migrations
                     b.OwnsOne("src.Domain.VesselTypeAggregate.VesselTypeName", "Name", b1 =>
                         {
                             b1.Property<string>("VesselTypeId")
-                                .HasColumnType("TEXT");
+                                .HasColumnType("varchar(255)");
 
                             b1.Property<string>("Value")
                                 .IsRequired()
                                 .HasMaxLength(100)
-                                .HasColumnType("TEXT")
+                                .HasColumnType("varchar(100)")
                                 .HasColumnName("Name");
 
                             b1.HasKey("VesselTypeId");
@@ -843,17 +858,17 @@ namespace PortProject.Api.Migrations
                     b.OwnsOne("PortProject.Api.Domain.VesselVisitNotificationAggregate.Cargo", "Cargo", b1 =>
                         {
                             b1.Property<Guid>("VesselVisitNotificationId")
-                                .HasColumnType("TEXT");
+                                .HasColumnType("char(36)");
 
                             b1.Property<string>("Description")
                                 .IsRequired()
-                                .HasColumnType("TEXT");
+                                .HasColumnType("longtext");
 
                             b1.Property<int>("Id")
-                                .HasColumnType("INTEGER");
+                                .HasColumnType("int");
 
                             b1.Property<double>("Weight")
-                                .HasColumnType("REAL");
+                                .HasColumnType("double");
 
                             b1.HasKey("VesselVisitNotificationId");
 
@@ -866,19 +881,21 @@ namespace PortProject.Api.Migrations
                                 {
                                     b2.Property<int>("Id")
                                         .ValueGeneratedOnAdd()
-                                        .HasColumnType("INTEGER");
+                                        .HasColumnType("int");
+
+                                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b2.Property<int>("Id"));
 
                                     b2.Property<string>("Code")
                                         .IsRequired()
-                                        .HasColumnType("TEXT")
+                                        .HasColumnType("longtext")
                                         .HasColumnName("ContainerCode");
 
                                     b2.Property<string>("Position")
                                         .IsRequired()
-                                        .HasColumnType("TEXT");
+                                        .HasColumnType("longtext");
 
                                     b2.Property<Guid?>("VvnId")
-                                        .HasColumnType("TEXT");
+                                        .HasColumnType("char(36)");
 
                                     b2.HasKey("Id");
 
@@ -896,10 +913,10 @@ namespace PortProject.Api.Migrations
                     b.OwnsOne("PortProject.Api.Domain.VesselVisitNotificationAggregate.ETA", "EstimatedArrival", b1 =>
                         {
                             b1.Property<Guid>("VesselVisitNotificationId")
-                                .HasColumnType("TEXT");
+                                .HasColumnType("char(36)");
 
                             b1.Property<DateTime>("Value")
-                                .HasColumnType("TEXT")
+                                .HasColumnType("datetime(6)")
                                 .HasColumnName("ETA");
 
                             b1.HasKey("VesselVisitNotificationId");
@@ -913,10 +930,10 @@ namespace PortProject.Api.Migrations
                     b.OwnsOne("PortProject.Api.Domain.VesselVisitNotificationAggregate.ETD", "EstimatedDeparture", b1 =>
                         {
                             b1.Property<Guid>("VesselVisitNotificationId")
-                                .HasColumnType("TEXT");
+                                .HasColumnType("char(36)");
 
                             b1.Property<DateTime>("Value")
-                                .HasColumnType("TEXT")
+                                .HasColumnType("datetime(6)")
                                 .HasColumnName("ETD");
 
                             b1.HasKey("VesselVisitNotificationId");
@@ -930,21 +947,21 @@ namespace PortProject.Api.Migrations
                     b.OwnsMany("PortProject.Api.Domain.VesselVisitNotificationAggregate.CrewMember", "CrewMembers", b1 =>
                         {
                             b1.Property<Guid>("Id")
-                                .HasColumnType("TEXT");
+                                .HasColumnType("char(36)");
 
                             b1.Property<bool>("IsSafetyOfficer")
-                                .HasColumnType("INTEGER");
+                                .HasColumnType("tinyint(1)");
 
                             b1.Property<string>("Name")
                                 .IsRequired()
-                                .HasColumnType("TEXT");
+                                .HasColumnType("longtext");
 
                             b1.Property<string>("Nationality")
                                 .IsRequired()
-                                .HasColumnType("TEXT");
+                                .HasColumnType("longtext");
 
                             b1.Property<Guid>("VvnId")
-                                .HasColumnType("TEXT");
+                                .HasColumnType("char(36)");
 
                             b1.HasKey("Id");
 
@@ -960,24 +977,26 @@ namespace PortProject.Api.Migrations
                         {
                             b1.Property<int>("Id")
                                 .ValueGeneratedOnAdd()
-                                .HasColumnType("INTEGER");
+                                .HasColumnType("int");
+
+                            MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b1.Property<int>("Id"));
 
                             b1.Property<string>("OfficerId")
                                 .IsRequired()
-                                .HasColumnType("TEXT");
+                                .HasColumnType("longtext");
 
                             b1.Property<string>("Outcome")
                                 .IsRequired()
-                                .HasColumnType("TEXT");
+                                .HasColumnType("longtext");
 
                             b1.Property<string>("Reason")
-                                .HasColumnType("TEXT");
+                                .HasColumnType("longtext");
 
                             b1.Property<DateTime>("Timestamp")
-                                .HasColumnType("TEXT");
+                                .HasColumnType("datetime(6)");
 
                             b1.Property<Guid>("VvnId")
-                                .HasColumnType("TEXT");
+                                .HasColumnType("char(36)");
 
                             b1.HasKey("Id");
 

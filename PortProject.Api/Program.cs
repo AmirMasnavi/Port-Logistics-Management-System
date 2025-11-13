@@ -34,6 +34,8 @@ using PortProject.Api.Domain.VesselVisitNotificationAggregate;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using PortProject.Api.Application.PortLayout;
 using Microsoft.IdentityModel.Tokens;
+using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
+
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -74,8 +76,11 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
+var mysqlConn = builder.Configuration.GetConnectionString("DefaultConnection");
+var serverVersion = ServerVersion.AutoDetect(mysqlConn);
+
 builder.Services.AddDbContext<PortProjectContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseMySql(mysqlConn, serverVersion));
 builder.Services.AddScoped<IStaffMemberService, StaffMemberService>();
 builder.Services.AddScoped<IStaffMemberRepository, StaffMemberRepository>();
 builder.Services.AddScoped<IVesselTypeRepository, VesselTypeRepository>();
