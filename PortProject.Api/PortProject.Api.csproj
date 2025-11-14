@@ -21,6 +21,8 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
+    <PackageReference Include="MySqlConnector" Version="2.5.0" />
+    <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="9.0.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="9.0.6" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="9.0.9" />
   </ItemGroup>
@@ -32,6 +34,14 @@
 
   <ItemGroup>
     <Content Include="Application\VesselVisitNotification\.DS_Store" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="Migrations\PortProjectContextModelSnapshot.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="portproject.db" />
   </ItemGroup>
 
 </Project>

@@ -307,58 +307,50 @@ export const WaterModel: React.FC<Omit<ModelProps, 'color'>> = ({ position, size
         const time = clock.getElapsedTime();
         const count = posAttr.count;
         // Calmer wave parameters
-        const amp1 = 1.00;
-        const amp2 = 0.5;
+        const amp1 = 1.10;
+        const amp2 = 0.6;
         const freq1 = 0.18;
         const freq2 = 0.12;
-        const speed1 = 0.3;
-        const speed2 = 0.2;
+        const speed1 = 0.7;
+        const speed2 = 0.35;
         // Edge stop/fade settings (UV-based primary)
-        const stopUV = 0.31; // outer 40% band: waves fully stopped
-        const fadeUV = 0.33; // next 10%: smooth fade-in to full amplitude
+        const stopUV = 0.2; // outer 2% band: waves fully stopped
+        const fadeUV = 0.1; // next 10%: smooth fade-in to full amplitude
         const w = size[0];
-        const h = size[2];
-        const stopWorld = Math.min(w, h) * 0.02; // ~2% of shortest side fully stopped
-        const fadeWorld = Math.min(w, h) * 0.10; // ~10% smooth fade-in
+        // Removed unused stopWorld and fadeWorld
+        // Helper function for smoothstep
+        function smoothstep(edge0: number, edge1: number, x: number) {
+            const t = Math.max(0, Math.min(1, (x - edge0) / (edge1 - edge0)));
+            return t * t * (3 - 2 * t);
+        }
         for (let i = 0; i < count; i++) {
             const ix = i * 3;
             const x = orig[ix];
             const y = orig[ix + 1];
+            const baselineZ = orig[ix + 2] ?? 0;
             const wave1 = Math.sin(x * freq1 + time * speed1);
             const wave2 = Math.sin((y + x * 0.25) * freq2 + time * speed2 + 1.2);
             let height = wave1 * amp1 + wave2 * amp2;
-            // Attenuation near borders with hard stop band + smooth fade
-            let atten = 1;
+
+            // Clamp attenuation so waves are strictly zero outside water area (now on horizontal axis)
+            let atten = 0;
+            const rampStart = stopUV + (1 - stopUV) * fadeUV;
             if (uvAttr) {
                 const iu = i * 2;
-                const u = uvAttr.array[iu];
-                const v = uvAttr.array[iu + 1];
-                const edgeDist = Math.min(u, 1 - u, v, 1 - v); // distance to nearest edge in UV space
-                if (edgeDist <= stopUV) {
-                    atten = 0;
-                } else if (edgeDist <= stopUV + fadeUV) {
-                    const t = Math.min(1, Math.max(0, (edgeDist - stopUV) / fadeUV));
-                    // smoothstep 0->1 over fade band
-                    atten = t * t * (3 - 2 * t);
-                } else {
-                    atten = 1;
+                const u = uvAttr.array[iu]; // use u (horizontal) instead of v
+                if (u >= stopUV) {
+                    atten = smoothstep(rampStart, 1.0, u);
+                    atten = Math.pow(atten, 1.2);
                 }
             } else {
-                // Fallback: world pos-based stop/fade
-                const dx = w * 0.5 - Math.abs(x);
-                const dy = h * 0.5 - Math.abs(y);
-                const minEdge = Math.max(0, Math.min(dx, dy));
-                if (minEdge <= stopWorld) {
-                    atten = 0;
-                } else if (minEdge <= stopWorld + fadeWorld) {
-                    const t = Math.min(1, Math.max(0, (minEdge - stopWorld) / fadeWorld));
-                    atten = t * t * (3 - 2 * t);
-                } else {
-                    atten = 1;
+                // Fallback: normalized horizontal position
+                const xNorm = Math.max(0, Math.min(1, (x + w * 0.5) / w));
+                if (xNorm >= stopUV) {
+                    atten = smoothstep(rampStart, 1.0, xNorm);
+                    atten = Math.pow(atten, 1.2);
                 }
             }
-            height *= atten;
-            posAttr.array[ix + 2] = height; // Z becomes vertical after rotation
+            posAttr.array[ix + 2] = baselineZ + height * atten;
         }
         posAttr.needsUpdate = true;
         geom.computeVertexNormals();

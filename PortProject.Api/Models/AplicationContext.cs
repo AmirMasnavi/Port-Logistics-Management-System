@@ -42,9 +42,18 @@ public class PortProjectContext : DbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
-        optionsBuilder
-            .UseSqlite("Data Source=portproject.db")
-            .ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
+        if (!optionsBuilder.IsConfigured)
+        {
+            // Fallback only if DI hasn't configured options (e.g., design-time tools)
+            var conn = Environment.GetEnvironmentVariable("MYSQL_CONNECTION");
+            if (!string.IsNullOrEmpty(conn))
+            {
+                optionsBuilder.UseMySql(conn, ServerVersion.AutoDetect(conn));
+            }
+        }
+    
+        optionsBuilder.ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
+
     }
 
 
