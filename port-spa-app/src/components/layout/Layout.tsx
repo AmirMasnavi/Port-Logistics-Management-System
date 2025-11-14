@@ -73,6 +73,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 }`}>
                     {renderContent()}
                 </main>
+                {isSidebarVisible && <div className="h-14 flex-shrink-0" />}
                 {isSidebarVisible && 
                     <Footer
                         isSidebarVisible={isSidebarVisible}

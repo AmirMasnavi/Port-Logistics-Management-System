@@ -14,6 +14,7 @@ import { Search, SlidersHorizontal } from 'lucide-react';
 import { useAuth } from '../auth/AuthProvider';
 import {Link, useNavigate} from "react-router-dom";
 import ConfirmationModal from "../components/common/ConfirmationModal.tsx";
+import VvnDetailsModal from '../components/vvn/VvnDetailsModal';
 
 const VesselVisitNotificationPage: React.FC = () => {
     const { internalRole} = useAuth(); //
@@ -26,10 +27,8 @@ const VesselVisitNotificationPage: React.FC = () => {
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
     const [query, setQuery] = useState('');
     const [filterStatus, setFilterStatus] = useState('');
-
-    // --- 4. NEW: State for modals ---
     const [submitModalState, setSubmitModalState] = useState<{ isOpen: boolean; vvnId: string | null }>({ isOpen: false, vvnId: null });
-    // (We'll add the details/approve modals later)
+    const [viewModalState, setViewModalState] = useState<{ isOpen: boolean; vvn: VesselVisitNotification | null }>({ isOpen: false, vvn: null });
 
     // --- Data Fetching (Unchanged) ---
     const fetchVvns = async () => {
@@ -99,8 +98,7 @@ const VesselVisitNotificationPage: React.FC = () => {
     };
 
     const handleViewDetails = (vvn: VesselVisitNotification) => {
-        const log = vvn.decisionLog.length > 0 ? JSON.stringify(vvn.decisionLog, null, 2) : 'No decisions logged.'; //
-        alert(`Status: ${vvn.status}\nAssigned Dock: ${vvn.assignedDockId || 'N/A'}\nLog: ${log}`); //
+        setViewModalState({ isOpen: true, vvn: vvn });
     };
 
     const openSubmitModal = (id: string) => {
@@ -245,6 +243,12 @@ const VesselVisitNotificationPage: React.FC = () => {
                 title="Submit Notification"
                 message="Are you sure you want to submit this notification for review? You will not be able to edit it after submission."
                 confirmText="Submit"
+            />
+
+            <VvnDetailsModal
+                isOpen={viewModalState.isOpen}
+                onClose={() => setViewModalState({ isOpen: false, vvn: null })}
+                vvn={viewModalState.vvn}
             />
         </div>
     );
