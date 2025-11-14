@@ -9,6 +9,7 @@ public interface IPortApiHttpClient
 {
     Task<IEnumerable<DockDto>> GetDocksAsync();
     Task<IEnumerable<StaffMemberDto>> GetAvailableStaffAsync(DateOnly date);
-    // Task<IEnumerable<ResourceDto>> GetAvailableResourcesAsync(DateOnly date);
+    Task<IEnumerable<ResourceDto>> GetResourcesAsync(DateOnly date);
     Task<IEnumerable<VesselVisitDto>> GetPendingVisitsAsync(DateOnly date);
+    Task<IEnumerable<StaffMemberDto>> GetStaffByQualificationAsync(string qualificationCode);
 }

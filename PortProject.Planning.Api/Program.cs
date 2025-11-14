@@ -21,6 +21,12 @@ builder.Services.AddHttpClient<IPortApiHttpClient, PortApiHttpClient>(client =>
     client.BaseAddress = new Uri("http://localhost:5273");
 });
 
+// 1.b Register a named HttpClient for the Prolog server used by SchedulingService
+builder.Services.AddHttpClient("PrologApiClient", client =>
+{
+    client.BaseAddress = new Uri("http://localhost:5001");
+});
+
 // 2. Register our new "dummy" Scheduling Service
 builder.Services.AddScoped<ISchedulingService, SchedulingService>();
 
