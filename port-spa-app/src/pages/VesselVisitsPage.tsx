@@ -6,12 +6,13 @@ import {
     approveVvn,
     rejectVvn
 } from '../services/apiService';
-import type { VesselVisitNotification, ApproveVvnDto, RejectVvnDto } from '../types';
+import type { VesselVisitNotification, ApproveVvnDto} from '../types';
 import Modal from '../components/common/Modal';
 import CreateVvnForm from './CreateVvnForm';
 // --- 1. Import our new Card component ---
 import VvnCard from '../components/vvn/VvnCard';
 import { Search, SlidersHorizontal } from 'lucide-react'; // Icons for search and filter
+import { useAuth } from '../auth/AuthProvider';
 
 const VesselVisitNotificationPage: React.FC = () => {
     // --- State ---
@@ -21,6 +22,11 @@ const VesselVisitNotificationPage: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
+    // --- Get Role ---
+    const { internalRole } = useAuth(); // <-- GET THE USER'S ROLE
+    const isAgent = internalRole === 'ShippingAgentRepresentative';
+    const isOfficer = internalRole === 'PortAuthorityOfficer';
+    
     // --- 2. NEW STATE for filters ---
     const [query, setQuery] = useState('');
     const [filterStatus, setFilterStatus] = useState(''); // 
@@ -41,13 +47,13 @@ const VesselVisitNotificationPage: React.FC = () => {
 
     useEffect(() => {
         fetchVvns();
-    }, []);
+    }, []); // Runs once on component mount
 
     // --- Action Handlers (Unchanged, but we'll use them differently) ---
     const handleCreateSuccess = (newVvn: VesselVisitNotification) => {
-        setVvns(prev => [newVvn, ...prev]);
+        setVvns(prev => [newVvn, ...prev]); // Add new VVN to the top of the list
         setSuccessMessage('Notification created successfully!');
-        setTimeout(() => setSuccessMessage(null), 3000);
+        setTimeout(() => setSuccessMessage(null), 3000); // Clear message after 3 seconds
     };
 
     // --- 3. FILTER LOGIC ---
@@ -61,61 +67,67 @@ const VesselVisitNotificationPage: React.FC = () => {
     // This function will show the approve/reject/submit actions
     // In the future, this could open a details page
     const handleCardSelect = (vvn: VesselVisitNotification) => {
-        if (vvn.status === 'InProgress') {
+        // Lógica para o Agente Marítimo
+        if (isAgent && vvn.status === 'InProgress') {
             if (window.confirm('Are you sure you want to submit this notification?')) {
                 handleSubmit(vvn.id);
             }
-        }
-        if (vvn.status === 'Submitted') {
+            // Lógica para o Oficial da Autoridade Portuária
+        } else if (isOfficer && vvn.status === 'Submitted') {
             if (window.confirm('Do you want to Approve or Reject this submission? (OK=Approve, Cancel=Reject)')) {
                 handleApprove(vvn.id);
             } else {
                 handleReject(vvn.id);
             }
-        }
-        if (vvn.status === 'Approved' || vvn.status === 'Rejected') {
+            // Para itens já decididos, qualquer pessoa pode ver o log
+        } else if (vvn.status === 'Approved' || vvn.status === 'Rejected') {
             alert(`Decision Log:\n${JSON.stringify(vvn.decisionLog, null, 2)}`);
         }
     };
 
     // --- (These are the original functions your page had, now called by handleCardSelect) ---
     const handleSubmit = async (id: string) => {
+        if (!window.confirm('Are you sure you want to submit this notification?')) return;
+
         try {
             await submitVvn(id);
             setSuccessMessage('Notification submitted!');
-            fetchVvns();
+            fetchVvns(); // Re-fetch the list to show the new "Submitted" status
         } catch (err: any) {
             setError(err.response?.data?.message || 'Failed to submit.');
         }
     };
 
     const handleApprove = async (id: string) => {
-        const officerId = "OFFICER-001"; // Placeholder
+        const officerId = "OFFICER-001"; // In a real app, this comes from auth
         const dockId = window.prompt("Enter Dock ID to assign (e.g., DOCK-A):");
         if (!dockId) return;
+
         const dto: ApproveVvnDto = { officerId, dockId };
+
         try {
             await approveVvn(id, dto);
             setSuccessMessage('Notification Approved!');
-            fetchVvns();
+            fetchVvns(); // Re-fetch
         } catch (err: any) {
             setError(err.response?.data?.message || 'Failed to approve.');
         }
     };
 
+    // Rejeita uma notificação
     const handleReject = async (id: string) => {
         const officerId = "OFFICER-001"; // Placeholder
         const reason = window.prompt("Enter reason for rejection:");
-        if (!reason) return;
-        const dto: RejectVvnDto = { officerId, reason };
+        if (!reason) return; // O utilizador cancelou ou não inseriu texto
         try {
-            await rejectVvn(id, dto);
+            await rejectVvn(id, { officerId, reason });
             setSuccessMessage('Notification Rejected.');
             fetchVvns();
         } catch (err: any) {
             setError(err.response?.data?.message || 'Failed to reject.');
         }
     };
+
 
 
     // --- 5. NEW RENDER JSX ---
@@ -161,15 +173,13 @@ const VesselVisitNotificationPage: React.FC = () => {
                     </select>
                 </div>
 
-                {/* Create Button */}
-                <button
-                    onClick={() => setIsModalOpen(true)}
-                    className="btn btn-primary text-lg" // [cite: 545, 589]
-                >
-                    + Create Visit
-                </button>
+                {/* O botão de criar só aparece para Agentes */}
+                {isAgent && (
+                    <button onClick={() => setIsModalOpen(true)} className="btn btn-primary text-lg">
+                        + Create Visit
+                    </button>
+                )}
             </div>
-
             {/* Success/Error Feedback */}
             {successMessage && <div className="p-3 bg-green-100 text-green-800 rounded-lg mb-4">{successMessage}</div>}
             {error && <div className="p-3 bg-red-100 text-red-800 rounded-lg mb-4">{error}</div>}
