@@ -9,7 +9,8 @@ import AdminPage from './pages/AdminPage';
 import ActivationPage from './pages/ActivationPage';
 import VesselVisitsPage from './pages/VesselVisitsPage';
 import DockPage from './pages/DockPage';
-import RequireAuth from './auth/RequireAuth'; // <-- protect routes
+import RequireAuth from './auth/RequireAuth';
+import CreateVvnPage from "./pages/CreateVvnPage.tsx"; // <-- protect routes
 
 // We can create a simple placeholder for the dashboard page
 const DashboardPage = () => <div className="text-xl">Welcome to the Port Authority Dashboard!</div>;
@@ -44,6 +45,8 @@ function App() {
                     <Route path="/port-facilities" element={<RequireAuth><PortFacilitiesPage /></RequireAuth>} />
                     <Route path="/visualization" element={<RequireAuth><VisualizationPage /></RequireAuth>} />
                     <Route path="/admin/users" element={<RequireAuth><AdminPage /></RequireAuth>} />
+                    <Route path="/vessel-visits/new" element={<RequireAuth><CreateVvnPage /></RequireAuth>} />
+                    <Route path="/vessel-visits/edit/:id" element={<RequireAuth><CreateVvnPage /></RequireAuth>} />
                 </Routes>
             </Layout>
         </BrowserRouter>

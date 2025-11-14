@@ -17,7 +17,7 @@ export const InternalRole = {
     Administrator: 'Administrator',
     LogisticsOperator: 'LogisticsOperator',
     PortAuthorityOfficer: 'PortAuthorityOfficer',
-    ShippingAgentRep: 'ShippingAgentRep',
+    ShippingAgentRep: 'ShippingAgentRepresentative',
 } as const;
 
 export type InternalRoleValue = typeof InternalRole[keyof typeof InternalRole];
