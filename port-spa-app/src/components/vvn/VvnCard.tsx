@@ -1,19 +1,20 @@
 // src/components/vvn/VvnCard.tsx
 import React from 'react';
-import type { VesselVisitNotification } from '../../types';
+import type {VesselVisitNotification} from '../../types';
 import Badge from '../common/Badge'; //
-import { Ship, Calendar, Anchor, User } from 'lucide-react';
+import {Ship, Calendar, Anchor, User, RefreshCcw} from 'lucide-react';
 import type {InternalRoleValue} from '../../services/apiService'; //
 
 // --- 1. UPDATE PROPS (Unchanged) ---
 interface VvnCardProps {
-    vvn: VesselVisitNotification;
-    internalRole: InternalRoleValue | null;
-    onApprove: () => void;
-    onReject: () => void;
-    onSubmit: () => void;
-    onEdit: () => void;
-    onViewDetails: () => void;
+    vvn: VesselVisitNotification,
+    internalRole: InternalRoleValue | null,
+    onApprove: () => void,
+    onReject: () => void,
+    onSubmit: () => void,
+    onEdit: () => void,
+    onViewDetails: () => void,
+    onReopen?: () => void
 }
 
 // formatDate helper (Unchanged)
@@ -36,7 +37,8 @@ const VvnCard: React.FC<VvnCardProps> = ({
                                              onReject,
                                              onSubmit,
                                              onEdit,
-                                             onViewDetails
+                                             onViewDetails,
+                                             onReopen
                                          }) => {
 
     // Card data (Unchanged)
@@ -49,7 +51,8 @@ const VvnCard: React.FC<VvnCardProps> = ({
     const renderActions = () => {
         // --- Port Authority Officer & ADMIN Logic ---
         if (internalRole === 'PortAuthorityOfficer' || internalRole === 'Administrator') {
-            if (vvn.status === 'Submitted') { //
+
+            if (vvn.status === 'Submitted') {
                 return (
                     <>
                         <button onClick={onReject} className="btn btn-outline-danger">
@@ -61,7 +64,22 @@ const VvnCard: React.FC<VvnCardProps> = ({
                     </>
                 );
             }
-            // For 'Approved' or 'Rejected', show a log
+
+            if (vvn.status === 'Rejected') {
+                return (
+                    <>
+                        <button onClick={onViewDetails} className="btn btn-secondary">
+                            View Log
+                        </button>
+                        <button onClick={onReopen} className="btn btn-primary flex items-center gap-1.5">
+                            <RefreshCcw className="w-4 h-4" />
+                            Reopen
+                        </button>
+                    </>
+                );
+            }
+
+            // For 'Approved' or 'InProgress'
             return (
                 <button onClick={onViewDetails} className="btn btn-secondary">
                     View Log
@@ -69,10 +87,9 @@ const VvnCard: React.FC<VvnCardProps> = ({
             );
         }
 
-        // --- Shipping Agent Representative Logic (UPDATED) ---
-        // --- THIS LINE IS CHANGED ---
-        if (internalRole === 'ShippingAgentRepresentative') { //
-            if (vvn.status === 'InProgress') { //
+        // --- Shipping Agent Representative Logic ---
+        if (internalRole === 'ShippingAgentRepresentative') {
+            if (vvn.status === 'InProgress') {
                 return (
                     <>
                         <button onClick={onEdit} className="btn btn-secondary">
@@ -84,7 +101,7 @@ const VvnCard: React.FC<VvnCardProps> = ({
                     </>
                 );
             }
-            // For 'Submitted', 'Approved', 'Rejected', just allow viewing
+            // For 'Submitted', 'Approved', 'Rejected'
             return (
                 <button onClick={onViewDetails} className="btn btn-secondary">
                     View Status
@@ -92,7 +109,7 @@ const VvnCard: React.FC<VvnCardProps> = ({
             );
         }
 
-        return null; // No actions for other roles
+        return null;
     };
 
     return (
@@ -102,15 +119,15 @@ const VvnCard: React.FC<VvnCardProps> = ({
             {/* Card Header (Unchanged) */}
             <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-bold text-gray-800">{title}</h2>
-                <Badge status={vvn.status} />
+                <Badge status={vvn.status}/>
             </div>
 
             {/* Card Body (Unchanged) */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <InfoItem icon={Ship} title="IMO Number" value={vvn.vesselImo} />
-                <InfoItem icon={Calendar} title="Arrival Date" value={arrivalDate} />
-                <InfoItem icon={Anchor} title="Assigned Dock" value={dock} />
-                <InfoItem icon={User} title="Submitted By" value={submittedBy.substring(0, 8)} />
+                <InfoItem icon={Ship} title="IMO Number" value={vvn.vesselImo}/>
+                <InfoItem icon={Calendar} title="Arrival Date" value={arrivalDate}/>
+                <InfoItem icon={Anchor} title="Assigned Dock" value={dock}/>
+                <InfoItem icon={User} title="Submitted By" value={submittedBy.substring(0, 8)}/>
             </div>
 
             {/* --- 3. NEW: Action buttons area (Unchanged) --- */}
@@ -122,10 +139,14 @@ const VvnCard: React.FC<VvnCardProps> = ({
 };
 
 // --- Helper component (Unchanged) ---
-const InfoItem: React.FC<{ icon: React.ElementType<{ className?: string }>, title: string, value: string }> = ({ icon: Icon, title, value }) => (
+const InfoItem: React.FC<{
+    icon: React.ElementType<{ className?: string }>,
+    title: string,
+    value: string
+}> = ({icon: Icon, title, value}) => (
     <div className="flex flex-col">
         <div className="text-xs font-medium text-gray-500 flex items-center gap-1.5">
-            <Icon className="w-3 h-3" />
+            <Icon className="w-3 h-3"/>
             {title}
         </div>
         <div className="text-sm font-semibold text-gray-900 mt-1 truncate" title={value}>

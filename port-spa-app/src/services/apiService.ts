@@ -491,3 +491,12 @@ export const rejectVvn = async (id: string, dto: RejectVvnDto): Promise<void> =>
         throw error;
     }
 };
+
+export const reopenVvn = async (id: string): Promise<void> => {
+    try {
+        await apiClient.patch(`/notifications/${id}/resubmit`);
+    } catch (error) {
+        console.error(`Error reopening VVN ${id}:`, error);
+        throw error;
+    }
+};

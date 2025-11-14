@@ -5,20 +5,37 @@ import {
     submitVvn,
     approveVvn,
     rejectVvn,
+    reopenVvn,
     type InternalRoleValue
 } from '../services/apiService';
 import type { VesselVisitNotification, ApproveVvnDto, RejectVvnDto } from '../types';
 import VvnCard from '../components/vvn/VvnCard';
 import StatCard from '../components/common/StatCard';
-import { Search, SlidersHorizontal } from 'lucide-react';
+import { Search, SlidersHorizontal, Twitch } from 'lucide-react';
 import { useAuth } from '../auth/AuthProvider';
 import {Link, useNavigate} from "react-router-dom";
 import ConfirmationModal from "../components/common/ConfirmationModal.tsx";
 import VvnDetailsModal from '../components/vvn/VvnDetailsModal';
+import VvnDecisionModal from '../components/vvn/VvnDecisionModal';
 
 const VesselVisitNotificationPage: React.FC = () => {
-    const { internalRole} = useAuth(); //
+
+    // --- 2. Get the REAL role ---
+    const { internalRole } = useAuth();
     const navigate = useNavigate();
+
+    // --- 3. NEW: State to manage the "view" ---
+    // We'll set the default view to be the user's actual role
+    const [viewAsRole, setViewAsRole] = useState(internalRole);
+
+    useEffect(() => {
+        // If user is Admin, default to PortOfficer view
+        if (internalRole === 'Administrator') {
+            setViewAsRole('PortAuthorityOfficer');
+        } else {
+            setViewAsRole(internalRole);
+        }
+    }, [internalRole]);
 
 // --- State (UPDATED) ---
     const [vvns, setVvns] = useState<VesselVisitNotification[]>([]);
@@ -29,7 +46,9 @@ const VesselVisitNotificationPage: React.FC = () => {
     const [filterStatus, setFilterStatus] = useState('');
     const [submitModalState, setSubmitModalState] = useState<{ isOpen: boolean; vvnId: string | null }>({ isOpen: false, vvnId: null });
     const [viewModalState, setViewModalState] = useState<{ isOpen: boolean; vvn: VesselVisitNotification | null }>({ isOpen: false, vvn: null });
-
+    const [decisionModalState, setDecisionModalState] = useState<{ isOpen: boolean; vvn: VesselVisitNotification | null, action: 'approve' | 'reject' | null }>({ isOpen: false, vvn: null, action: null });
+    const [reopenModalState, setReopenModalState] = useState<{ isOpen: boolean; vvnId: string | null }>({ isOpen: false, vvnId: null });
+    
     // --- Data Fetching (Unchanged) ---
     const fetchVvns = async () => {
         try {
@@ -64,31 +83,46 @@ const VesselVisitNotificationPage: React.FC = () => {
         }
     };
 
-    const handleApprove = async (id: string) => {
-        const officerId = "OFFICER-001"; // Placeholder
-        const dockId = window.prompt("Enter Dock ID to assign (e.g., DOCK-A):");
-        if (!dockId) return;
-        const dto: ApproveVvnDto = { officerId, dockId }; //
+// UPDATED: These handlers now call the API and close the modal
+    const executeApprove = async (id: string, dto: ApproveVvnDto) => {
         try {
-            await approveVvn(id, dto); //
+            await approveVvn(id, dto);
             setSuccessMessage('Notification Approved!');
             fetchVvns();
         } catch (err: any) {
             setError(err.response?.data?.message || 'Failed to approve.');
+        } finally {
+            setDecisionModalState({ isOpen: false, vvn: null, action: null });
         }
     };
 
-    const handleReject = async (id: string) => {
-        const officerId = "OFFICER-001"; // Placeholder
-        const reason = window.prompt("Enter reason for rejection:");
-        if (!reason) return;
-        const dto: RejectVvnDto = { officerId, reason }; //
+    const executeReject = async (id: string, dto: RejectVvnDto) => {
         try {
-            await rejectVvn(id, dto); //
+            await rejectVvn(id, dto);
             setSuccessMessage('Notification Rejected.');
             fetchVvns();
         } catch (err: any) {
             setError(err.response?.data?.message || 'Failed to reject.');
+        } finally {
+            setDecisionModalState({ isOpen: false, vvn: null, action: null });
+        }
+    };
+
+    // --- 4. NEW: Handlers for "Reopen" ---
+    const openReopenModal = (id: string) => {
+        setReopenModalState({ isOpen: true, vvnId: id });
+    };
+    
+    const executeReopen = async () => {
+        if (!reopenModalState.vvnId) return;
+        try {
+            await reopenVvn(reopenModalState.vvnId);
+            setSuccessMessage('Notification has been reopened.');
+            fetchVvns();
+        } catch (err: any) {
+            setError(err.response?.data?.message || 'Failed to reopen.');
+        } finally {
+            setReopenModalState({ isOpen: false, vvnId: null });
         }
     };
 
@@ -114,17 +148,25 @@ const VesselVisitNotificationPage: React.FC = () => {
         });
     }, [vvns, query, filterStatus]);
 
-    // --- Calculate stats for the agent's dashboard (UPDATED) ---
     const agentStats = useMemo(() => {
-        // --- THIS LINE IS CHANGED ---
-        if (internalRole !== 'ShippingAgentRepresentative') return null;
+        if (viewAsRole !== 'ShippingAgentRepresentative') return null; // <-- UPDATED
         return {
             inProgress: vvns.filter(v => v.status === 'InProgress').length,
             pending: vvns.filter(v => v.status === 'Submitted').length,
             approved: vvns.filter(v => v.status === 'Approved').length,
             rejected: vvns.filter(v => v.status === 'Rejected').length,
         };
-    }, [vvns, internalRole]);
+    }, [vvns, viewAsRole]); // <-- UPDATED
+
+    const officerStats = useMemo(() => {
+        if (viewAsRole !== 'PortAuthorityOfficer' && viewAsRole !== 'Administrator') return null; // <-- UPDATED
+        return {
+            pending: vvns.filter(v => v.status === 'Submitted').length,
+            approved: vvns.filter(v => v.status === 'Approved').length,
+            rejected: vvns.filter(v => v.status === 'Rejected').length,
+            inProgress: vvns.filter(v => v.status === 'InProgress').length,
+        };
+    }, [vvns, viewAsRole]); // <-- UPDATED
 
     // --- DYNAMIC TITLES (UPDATED) ---
     // --- THIS LINE IS CHANGED ---
@@ -142,23 +184,54 @@ const VesselVisitNotificationPage: React.FC = () => {
     // Replace this with your actual Representative ID.
     const myRepresentativeId = "cbe6abb5-7ad3-482c-b5cd-6d0876e0c9b2"
 
+    const handleViewToggle = () => {
+        if (viewAsRole === 'PortAuthorityOfficer') {
+            setViewAsRole('ShippingAgentRepresentative');
+        } else {
+            setViewAsRole('PortAuthorityOfficer');
+        }
+    };
+
     // --- RENDER JSX (UPDATED) ---
     return (
         <div className="container mx-auto">
-            {/* Page Header (Unchanged) */}
-            <div className="mb-6">
-                <h1 className="text-3xl font-bold text-gray-900">{pageTitle}</h1>
-                <p className="text-gray-600 mt-1">{pageSubtitle}</p>
-            </div>
+            {/* --- 1. THIS IS THE UPDATED Page Header --- */}
+            <div className="flex justify-between items-center mb-6">
+                <div>
+                    <h1 className="text-3xl font-bold text-gray-900">{pageTitle}</h1>
+                    <p className="text-gray-600 mt-1">{pageSubtitle}</p>
+                </div>
 
-            {/* --- NEW: Agent Overview Dashboard (UPDATED) --- */}
-            {/* --- THIS LINE IS CHANGED --- */}
-            {internalRole === 'ShippingAgentRepresentative' && agentStats && (
+                {/* --- 2. Admin Toggle Button MOVED HERE --- */}
+                {internalRole === 'Administrator' && (
+                    <button
+                        onClick={handleViewToggle}
+                        className="btn btn-secondary text-lg flex items-center justify-center gap-2"
+                        title="Switch View"
+                    >
+                        <Twitch className="w-5 h-5" />
+                        {viewAsRole === 'ShippingAgentRepresentative' ? 'View as Officer' : 'View as Agent'}
+                    </button>
+                )}
+            </div>
+            
+            {/* Agent Overview (UPDATED) */}
+            {viewAsRole === 'ShippingAgentRepresentative' && agentStats && ( // <-- UPDATED
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                     <StatCard title="In Progress" value={agentStats.inProgress} description="Visits you are still drafting." />
                     <StatCard title="Pending Review" value={agentStats.pending} description="Visits awaiting port approval." />
                     <StatCard title="Approved" value={agentStats.approved} description="Visits approved by the port." />
                     <StatCard title="Rejected" value={agentStats.rejected} description="Visits that need correction." />
+                </div>
+            )}
+
+            {/* Port Officer Overview (UPDATED) */}
+            {(viewAsRole === 'PortAuthorityOfficer' || viewAsRole === 'Administrator') && officerStats && ( // <-- UPDATED
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                    <StatCard title="Pending Review" value={officerStats.pending} description="Visits awaiting your decision." />
+                    <StatCard title="Total Approved" value={officerStats.approved} description="Visits currently approved." />
+                    <StatCard title="Total Rejected" value={officerStats.rejected} description="Visits that were rejected." />
+                    <StatCard title="In Progress" value={officerStats.inProgress} description="Visits being drafted by agents." />
                 </div>
             )}
 
@@ -195,12 +268,14 @@ const VesselVisitNotificationPage: React.FC = () => {
                         <option value="Rejected">Rejected</option>
                     </select>
                 </div>
+                
+  
 
-                {/* --- 8. UPDATED Create Button (now a Link) --- */}
-                {internalRole === 'ShippingAgentRepresentative' && (
+                {/* Create Button (UPDATED) */}
+                {viewAsRole === 'ShippingAgentRepresentative' && ( // <-- UPDATED
                     <Link
                         to="/vessel-visits/new"
-                        state={{ representativeId: myRepresentativeId }} // Pass the hard-coded ID
+                        state={{ representativeId: myRepresentativeId }}
                         className="btn btn-primary text-lg"
                     >
                         + Create Visit
@@ -212,6 +287,7 @@ const VesselVisitNotificationPage: React.FC = () => {
             {successMessage && <div className="p-3 bg-green-100 text-green-800 rounded-lg mb-4">{successMessage}</div>}
             {error && <div className="p-3 bg-red-100 text-red-800 rounded-lg mb-4">{error}</div>}
 
+            {/* Card List (UPDATED) */}
             <div className="space-y-4">
                 {loading && <div className="text-center py-10">Loading notifications...</div>}
                 {!loading && filteredVvns.length === 0 && (
@@ -219,17 +295,16 @@ const VesselVisitNotificationPage: React.FC = () => {
                         No notifications found matching your criteria.
                     </div>
                 )}
-
-                {/* --- 9. UPDATED Card List --- */}
                 {!loading && filteredVvns.map(vvn => (
                     <VvnCard
                         key={vvn.id}
                         vvn={vvn}
-                        internalRole={internalRole as InternalRoleValue | null}
-                        onApprove={() => handleApprove(vvn.id)}
-                        onReject={() => handleReject(vvn.id)}
-                        onSubmit={() => openSubmitModal(vvn.id)} // <-- Use new modal
-                        onEdit={() => handleEdit(vvn)} // <-- Use new edit function
+                        internalRole={viewAsRole as InternalRoleValue | null} // <-- 8. UPDATED
+                        onApprove={() => setDecisionModalState({ isOpen: true, vvn: vvn, action: 'approve' })}
+                        onReject={() => setDecisionModalState({ isOpen: true, vvn: vvn, action: 'reject' })}
+                        onReopen={() => openReopenModal(vvn.id)}
+                        onSubmit={() => openSubmitModal(vvn.id)}
+                        onEdit={() => handleEdit(vvn)}
                         onViewDetails={() => handleViewDetails(vvn)}
                     />
                 ))}
@@ -244,11 +319,28 @@ const VesselVisitNotificationPage: React.FC = () => {
                 message="Are you sure you want to submit this notification for review? You will not be able to edit it after submission."
                 confirmText="Submit"
             />
+            <ConfirmationModal
+                isOpen={reopenModalState.isOpen}
+                onClose={() => setReopenModalState({ isOpen: false, vvnId: null })}
+                onConfirm={executeReopen}
+                title="Reopen Notification"
+                message="Are you sure you want to reopen this notification? This will move it back to 'In Progress' for the agent to edit."
+                confirmText="Reopen"
+            />
 
             <VvnDetailsModal
                 isOpen={viewModalState.isOpen}
                 onClose={() => setViewModalState({ isOpen: false, vvn: null })}
                 vvn={viewModalState.vvn}
+            />
+
+            <VvnDecisionModal
+                isOpen={decisionModalState.isOpen}
+                onClose={() => setDecisionModalState({ isOpen: false, vvn: null, action: null })}
+                vvn={decisionModalState.vvn}
+                action={decisionModalState.action}
+                onConfirmApprove={executeApprove}
+                onConfirmReject={executeReject}
             />
         </div>
     );
