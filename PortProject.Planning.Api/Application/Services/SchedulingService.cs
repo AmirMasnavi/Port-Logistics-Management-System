@@ -5,6 +5,7 @@ using System.Net.Http.Json;
 using System.Text.Json.Serialization; 
 using System.Text.RegularExpressions;
 using System.Globalization;
+using System.Diagnostics;
 
 namespace PortProject.Planning.Api.Application.Services;
 
@@ -30,13 +31,32 @@ public class SchedulingService : ISchedulingService
 
     public async Task<DailyScheduleResponseDto> GenerateDailySchedule(DateOnly date)
     {
+        var schedule = new DailyScheduleResponseDto { Date = date };
+        var sw = Stopwatch.StartNew();
+
+        DailyScheduleResponseDto Finish()
+        {
+            try { sw.Stop(); } catch { }
+            schedule.ExecutionTimeMs = sw.Elapsed.TotalMilliseconds;
+            return schedule;
+        }
+
         // 1. Consumir dados do API principal (This part is correct)
         var docks = (await _portApiClient.GetDocksAsync()).ToList();
         var staff = (await _portApiClient.GetAvailableStaffAsync(date)).ToList();
         var clientVisits = (await _portApiClient.GetPendingVisitsAsync(date)).ToList();
         var resources = (await _portApiClient.GetResourcesAsync(date)).ToList();
-        
-        var schedule = new DailyScheduleResponseDto { Date = date };
+
+        // Early detection: if the statically-requested resource (code "1") exists but is not Active,
+        // add a warning immediately so callers see it even if scheduling aborts earlier.
+        const string staticRequiredResourceCode = "1";
+        var staticRequestedResource = resources.FirstOrDefault(r => r.Code == staticRequiredResourceCode);
+        if (staticRequestedResource != null && !string.Equals(staticRequestedResource.Status, "Active", StringComparison.OrdinalIgnoreCase))
+        {
+            var inactiveMsg = "resource required is inactive";
+            _logger.LogWarning("{Msg} (resource {ResourceCode} status={Status})", inactiveMsg, staticRequestedResource.Code, staticRequestedResource.Status);
+            if (!schedule.Warnings.Contains(inactiveMsg)) schedule.Warnings.Add(inactiveMsg);
+        }
 
         // Diagnostic logging: dump what we received from the main API so we can compare with the test harness
         try
@@ -58,13 +78,13 @@ public class SchedulingService : ISchedulingService
         if (!clientVisits.Any())
         {
             _logger.LogWarning("No pending visits for {Date}, returning empty schedule.", date);
-            return schedule; // Sem visitas, sem agendamento
+            return Finish(); // Sem visitas, sem agendamento
         }
 
         if (!docks.Any() || !staff.Any())
         {
             _logger.LogWarning("No docks or staff available for {Date}, returning empty schedule.", date);
-            return schedule;
+            return Finish();
         }
 
         // --- 3. PREPARE DATA FOR PROLOG ---
@@ -110,8 +130,9 @@ public class SchedulingService : ISchedulingService
                 if (prologResult == null)
                 {
                      _logger.LogError("Failed to deserialize response from Prolog.");
-                     return schedule; // Return empty schedule on error
+                     return Finish(); // Return empty schedule on error
                 }
+                schedule.TotalDelay = prologResult.Delay;
                 
                 _logger.LogInformation("Received schedule from Prolog with {Count} tasks and delay {Delay}", 
                     prologResult.Schedule.Count, prologResult.Delay);
@@ -121,13 +142,13 @@ public class SchedulingService : ISchedulingService
                 // The Prolog server returned an error
                 string errorContent = await prologResponse.Content.ReadAsStringAsync();
                 _logger.LogError("Error from Prolog server ({StatusCode}): {Error}", prologResponse.StatusCode, errorContent);
-                return schedule; // Return empty schedule on error
+                return Finish(); // Return empty schedule on error
             }
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to call Prolog server. Is it running at http://localhost:5001?");
-            return schedule; 
+            return Finish(); 
         }
         
         // --- 5. MAP PROLOG RESULT TO C# DTO ---
@@ -167,6 +188,15 @@ public class SchedulingService : ISchedulingService
                 {
                     _logger.LogWarning("Requested resource {ResourceCode} not found and no fallback resources are available.", requestedResourceCode);
                 }
+            }
+
+            // If the resource is found but isn't Active, add a warning so the caller can see the problem
+            if (requestedResource != null && !string.Equals(requestedResource.Status, "Active", StringComparison.OrdinalIgnoreCase))
+            {
+                var inactiveMsg = "resource required is inactive";
+                _logger.LogWarning("{Msg} (resource {ResourceCode} status={Status})", inactiveMsg, requestedResource.Code, requestedResource.Status);
+                if (!schedule.Warnings.Contains(inactiveMsg))
+                    schedule.Warnings.Add(inactiveMsg);
             }
 
             // Determine required qualifications from the requested resource if present
@@ -238,28 +268,97 @@ public class SchedulingService : ISchedulingService
             // Compute actual scheduled start = next time when resource is available (on or after taskStart)
             var scheduledStart = FindNextResourceAvailable(taskStart, requestedResource);
 
-            // Compute scheduled end by accumulating working segments where the resource is available; staff presence is preferred but does not block progress
-            DateTime scheduledEnd = ComputeEndByAccumulatingWork_Hybrid(scheduledStart, requiredHours, requestedResource, candidateStaff, out var assignedStaff);
+            // We'll now ensure dock exclusivity (one vessel per dock at a time) and a single storage location
+            // (no two tasks may overlap in storage).
+            StaffMemberDto? assignedStaff = null;
+            string assignedDockId = firstDock.Id;
+            DateTime scheduledEnd = scheduledStart;
+            bool allocated = false;
 
-            // Log if resource not actually available at any point
-            if (requestedResource != null)
+            // Try to find a schedule that satisfies dock & storage exclusivity within 14 days
+            var searchLimit = scheduledStart.AddDays(14);
+            var attemptStart = scheduledStart;
+            while (attemptStart <= searchLimit && !allocated)
             {
-                var resourceIsEverAvailable = IsResourceEverAvailableBetween(requestedResource, scheduledStart, scheduledEnd);
-                if (!resourceIsEverAvailable)
+                // Recompute end for this attempt start (respecting staff-required policy)
+                scheduledEnd = ComputeEndByAccumulatingWork_Hybrid(attemptStart, requiredHours, requestedResource, candidateStaff, out assignedStaff);
+
+                // If the resource isn't available at all during [attemptStart, scheduledEnd], move to next resource window
+                if (requestedResource != null && !IsResourceEverAvailableBetween(requestedResource, attemptStart, scheduledEnd))
                 {
-                    _logger.LogWarning("Requested resource {ResourceCode} was never available during computed window {Start}-{End}.", requestedResourceCode, scheduledStart, scheduledEnd);
+                    schedule.Warnings.Add($"Resource {requestedResource.Code} not available between {attemptStart:O} and {scheduledEnd:O}; searching next resource window.");
+                    attemptStart = FindNextResourceAvailable(attemptStart.AddSeconds(1), requestedResource);
+                    continue;
                 }
+
+                // Find a dock that has no overlapping scheduled task in current schedule
+                string? freeDock = null;
+                foreach (var d in docks)
+                {
+                    var conflict = schedule.ScheduledTasks.Any(t => t.DockId == d.Id && t.StartTime < scheduledEnd && t.EndTime > attemptStart);
+                    if (!conflict)
+                    {
+                        freeDock = d.Id;
+                        break;
+                    }
+                }
+
+                // Check storage exclusivity: since we consider one storage location, ensure no existing scheduled task overlaps
+                var storageConflict = schedule.ScheduledTasks.Any(t => t.StartTime < scheduledEnd && t.EndTime > attemptStart);
+
+                if (freeDock != null && !storageConflict)
+                {
+                    assignedDockId = freeDock;
+                    allocated = true;
+                    break;
+                }
+
+                // If we reach here, either no dock free or storage conflict. Advance attemptStart to earliest conflicting task end and try again.
+                var conflictingEnds = schedule.ScheduledTasks
+                    .Where(t => t.StartTime < scheduledEnd && t.EndTime > attemptStart)
+                    .Select(t => t.EndTime)
+                    .ToList();
+
+                if (conflictingEnds.Any())
+                {
+                    var nextAvailable = conflictingEnds.Min();
+                    attemptStart = FindNextResourceAvailable(nextAvailable.AddSeconds(1), requestedResource);
+                    continue;
+                }
+
+                // No explicit conflicting tasks found (should not normally happen) — break to avoid infinite loop
+                break;
             }
 
+            if (!allocated)
+            {
+                schedule.Warnings.Add($"Could not reserve dock/storage within 14 days for vessel {vesselId}; performing best-effort allocation.");
+            }
+
+            // Recompute scheduledEnd using the allocated/attempted start to be consistent
+            if (allocated)
+            {
+                // assignedStaff was set by the compute call during successful attempt
+            }
+            else
+            {
+                // use last attempted times
+                scheduledEnd = ComputeEndByAccumulatingWork_Hybrid(attemptStart, requiredHours, requestedResource, candidateStaff, out assignedStaff);
+                scheduledStart = attemptStart;
+            }
+
+            // Add warning if no staff was assigned
             if (assignedStaff == null)
             {
-                _logger.LogWarning("No staff could be assigned for vessel {Vessel} between {Start} and {End}.", vesselId, scheduledStart, scheduledEnd);
+                var msg = $"No staff could be assigned for vessel {vesselId} between {scheduledStart:O} and {scheduledEnd:O}.";
+                _logger.LogWarning(msg);
+                schedule.Warnings.Add(msg);
             }
 
             schedule.ScheduledTasks.Add(new ScheduledTaskDto
             {
                 VesselVisitId = vesselId,
-                DockId = firstDock.Id,
+                DockId = assignedDockId,
                 StaffId = assignedStaff?.MecanographicNumber ?? "UNASSIGNED",
                 ResourceId = requestedResourceCode,
                 StartTime = scheduledStart,
@@ -267,7 +366,7 @@ public class SchedulingService : ISchedulingService
             });
         }
 
-        return schedule;
+        return Finish();
     }
 
     // --- Helpers for availability scheduling (hybrid) ---
@@ -608,4 +707,3 @@ public class SchedulingService : ISchedulingService
             || TimeOnly.TryParse(input, CultureInfo.InvariantCulture, DateTimeStyles.None, out time);
     }
 }
-
