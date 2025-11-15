@@ -41,6 +41,13 @@
     @apply btn bg-maritime-500 text-white hover:bg-maritime-600;
   }
 
+    .btn-secondary {
+        @apply btn bg-gray-200 text-gray-800 hover:bg-gray-300;
+    }
+    .btn-outline-danger {
+        @apply btn bg-white text-red-600 border border-red-500 hover:bg-red-50;
+    }
+
   .panel {
     @apply bg-white rounded-lg shadow p-4;
   }

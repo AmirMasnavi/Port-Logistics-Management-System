@@ -16,7 +16,7 @@ import {
     PanelRightClose, // Icon for "pinned"
     Shield,
     Box, // For 3D Visualization
-    SquareSquare, 
+    SquareSquare, // For Docks
 } from 'lucide-react';
 
 // 2. Create a new, reusable component for our icon-links
@@ -74,6 +74,14 @@ const Sidebar: React.FC<SidebarProps> = ({
                                          }) => {
     const { internalRole, logout } = useAuth();
 
+    // Helper constants for role checks ---
+    const isAdmin = internalRole === 'Administrator';
+
+    // Helper sets for easier checking
+    const canManagePort = new Set(['Administrator', 'PortAuthorityOfficer']);
+
+    const canViewPlanning = new Set(['Administrator', 'PortAuthorityOfficer', 'LogisticsOperator']);
+
     return (
         // 6. This <aside> is now a "fixed" panel
         // It uses onMouseEnter/onMouseLeave to set the hover state in the parent
@@ -123,16 +131,27 @@ const Sidebar: React.FC<SidebarProps> = ({
             </div>
             {/* 9. Pass 'isExpanded' down to all NavItems */}
             <nav className="flex-1 flex flex-col items-center space-y-3">
+                {/* Dashboard: Everyone */}
                 <NavItem to="/" label="Dashboard" icon={LayoutDashboard} isExpanded={isExpanded} />
+                {/* Vessel Visits: Everyone */}
                 <NavItem to="/vessel-visits" label="Vessel Visits" icon={Ship} isExpanded={isExpanded} />
-                <NavItem to="/vessel-types" label="Vessel Types" icon={Anchor} isExpanded={isExpanded} />
-                <NavItem to="/port-facilities" label="Port Facilities" icon={Building} isExpanded={isExpanded} />
-                <NavItem to="/shippingagentorganization" label="Shipping Agents" icon={ClipboardList} isExpanded={isExpanded} />
+                {/* Vessel Types: Admin & Officer */}
+                {canManagePort.has(internalRole || '') && (
+                    <NavItem to="/vessel-types" label="Vessel Types" icon={Anchor} isExpanded={isExpanded} />
+                )}
+                {/* Port Facilities: Admin, Officer, Logistics */}
+                {canViewPlanning.has(internalRole || '') && (
+                    <NavItem to="/port-facilities" label="Port Facilities" icon={Building} isExpanded={isExpanded} />
+                )}
+                {/* Shipping Agents: Admin & Officer */}
+                {canManagePort.has(internalRole || '') && (
+                    <NavItem to="/shippingagentorganization" label="Shipping Agents" icon={ClipboardList} isExpanded={isExpanded} />
+                )}
                 <NavItem to="/docks" label="Docks" icon={SquareSquare} isExpanded={isExpanded} />
                 <NavItem to="/visualization" label="3D Visualization" icon={Box} isExpanded={isExpanded} />
 
-
-                {internalRole === 'Administrator' && (
+                {/* Admin Page: Admin only */}
+                {isAdmin && (
                     <>
                         <hr className="w-full my-2" />
                         <NavItem to="/admin/users" label="User Admin" icon={Settings} isExpanded={isExpanded} />

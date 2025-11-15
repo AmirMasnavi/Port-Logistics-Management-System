@@ -17,7 +17,7 @@ export const InternalRole = {
     Administrator: 'Administrator',
     LogisticsOperator: 'LogisticsOperator',
     PortAuthorityOfficer: 'PortAuthorityOfficer',
-    ShippingAgentRep: 'ShippingAgentRep',
+    ShippingAgentRep: 'ShippingAgentRepresentative',
 } as const;
 
 export type InternalRoleValue = typeof InternalRole[keyof typeof InternalRole];
@@ -488,6 +488,15 @@ export const rejectVvn = async (id: string, dto: RejectVvnDto): Promise<void> =>
         return resp.data;
     } catch (error) {
         console.error(`Error rejecting VVN ${id}:`, error);
+        throw error;
+    }
+};
+
+export const reopenVvn = async (id: string): Promise<void> => {
+    try {
+        await apiClient.patch(`/notifications/${id}/resubmit`);
+    } catch (error) {
+        console.error(`Error reopening VVN ${id}:`, error);
         throw error;
     }
 };
