@@ -2,20 +2,22 @@
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Grid, Sky } from '@react-three/drei';
 import { useGLTF } from '@react-three/drei';
+import { CargoShipModel } from "./CargoShipModel";
 import type { LayoutElement, RenderableVessel, RenderableResource } from '../../types';
 import {
     DockModel, LandModel, WaterModel, YardModel, BuildingModel,
-    VesselModel, STSCraneModel, YardCraneModel
+    STSCraneModel, YardCraneModel
 } from './models';
 
 // Generic component to render imported GLTF/OBJ models
 const ImportedModel: React.FC<{
     modelUrl: string;
     position: [number, number, number];
-    scale: [number, number, number];
-}> = ({ modelUrl, position, scale }) => {
+    scale: [number, number, number] | number;
+    rotation?: [number, number, number];
+}> = ({ modelUrl, position, scale, rotation }) => {
     const { scene } = useGLTF(modelUrl);
-    return <primitive object={scene} position={position} scale={scale} />;
+    return <primitive object={scene} position={position} rotation={rotation as any} scale={scale as any} />;
 };
 
 interface PortSceneProps {
@@ -71,13 +73,19 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
                 }
             })}
 
-            {/* Render vessels: imported model if available, else procedural */}
+            {/* Render vessels: imported model if available, else use CargoShipModel */}
             {/* 2. Renderizar Navios nos seus locais */}
             {vessels.map(v => (
                 v.modelUrl ? (
-                    <ImportedModel key={v.id} modelUrl={v.modelUrl} position={v.position} scale={v.size} />
+                    <ImportedModel key={v.id} modelUrl={v.modelUrl} position={v.position} scale={v.size} rotation={v.rotation} />
                 ) : (
-                    <VesselModel key={v.id} position={v.position} size={v.size} label={v.name} />
+                    <CargoShipModel
+                        key={v.id}
+                        position={v.position}
+                        // vessels.size can be either a number or an array; pass it through or fallback to 0.5
+                        scale={Array.isArray(v.size) ? (v.size as any) : (v.size ?? 0.5)}
+                        rotation={v.rotation}
+                    />
                 )
             ))}
 

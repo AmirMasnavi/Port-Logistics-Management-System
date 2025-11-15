@@ -56,6 +56,7 @@ type ModelProps = {
     size: [number, number, number];
     color?: string;
     label?: string;
+    rotation?: [number, number, number];
 };
 
 // --- Componentes Específicos do Porto (mais detalhados) ---
@@ -417,14 +418,14 @@ export const BuildingModel: React.FC<Omit<ModelProps, 'color'>> = ({ position, s
 );
 
 // Vessel: casco, ponte, chaminé — mais parecido com um navio
-export const VesselModel: React.FC<Omit<ModelProps, 'color'>> = ({ position, size, label }) => {
+export const VesselModel: React.FC<Omit<ModelProps, 'color'>> = ({ position, size, label, rotation }) => {
     // size = [width, height, length]
     const [w, h, l] = size;
     const hullHeight = Math.max(0.5, h * 0.6);
     const deckHeight = Math.max(0.2, h * 0.4);
 
     return (
-        <group position={position}>
+        <group position={position} rotation={rotation}>
             {/* Hull (um box arredondado em aparência) */}
             <mesh castShadow receiveShadow rotation={[0, 0, 0]}>
                 <boxGeometry args={[w, hullHeight, l]} />
@@ -625,7 +626,7 @@ export const STSCraneModel: React.FC<Omit<ModelProps, 'color'>> = ({ position, s
             {/* Trolley */}
             <mesh position={[0, towerHeight - 0.6, 0]} castShadow>
                 <boxGeometry args={[0.6, 0.2, 0.6]} />
-                <meshStandardMaterial color="#222" metalness={0.6} roughness={0.3} map={bucketTex.base as any} />
+                <meshStandardMaterial color="#333" metalness={0.7} roughness={0.3} map={bucketTex.base as any} />
             </mesh>
 
             {/* Rope/cable under trolley */}

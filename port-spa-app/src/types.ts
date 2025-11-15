@@ -62,6 +62,7 @@ export interface RenderableVessel {
     position: [number, number, number];
     size: [number, number, number];  
     modelUrl?: string; // Optional GLTF/OBJ model path
+    rotation?: [number, number, number]; // optional Euler rotation in radians [x,y,z]
     
 }
 

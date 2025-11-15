@@ -95,20 +95,47 @@ const VisualizationPage: React.FC = () => {
 
                             // Position vessels relative to dock geometry
                             // Calcular a posição do navio para atracar ao lado da doca
-                            const vesselPosition: [number, number, number] = [
+                            const vesselPositionComputed: [number, number, number] = [
                                 dock.position[0] - (dock.size[0] / 2) - (vesselSize[2] / 2) - 0.2, // X: ao lado da doca
                                 vesselSize[1] / 2, // Y: para o navio "flutuar" no plano
                                 dock.position[2] // Z: alinhado com o centro da doca
                             ];
 
-                            // Use procedural geometry for vessels
+                            // Determine if the visit provides an absolute position override (array or separate coords)
+                            let visitPosition: [number, number, number] | undefined = undefined;
+                            if ((visit as any).position && Array.isArray((visit as any).position) && (visit as any).position.length === 3) {
+                                visitPosition = (visit as any).position as [number, number, number];
+                            } else if ((visit as any).position_x != null && (visit as any).position_y != null && (visit as any).position_z != null) {
+                                visitPosition = [(visit as any).position_x, (visit as any).position_y, (visit as any).position_z];
+                            }
+
+                            // Base position: either the visit-provided absolute position, or the computed one
+                            const basePosition: [number, number, number] = visitPosition ?? vesselPositionComputed;
+
+                            // Apply optional offsets (visit.offset_x/offset_y/offset_z or visit.offset.{x,y,z})
+                            const offsetX = (visit as any).offset_x ?? (visit as any).offset?.x ?? 0;
+                            const offsetY = (visit as any).offset_y ?? (visit as any).offset?.y ?? 0;
+                            const offsetZ = (visit as any).offset_z ?? (visit as any).offset?.z ?? 0;
+
+                            const finalPosition: [number, number, number] = [
+                                basePosition[1] + offsetX,
+                                basePosition[1] + offsetY,
+                                basePosition[2] + offsetZ,
+                            ];
+
+                            // Use procedural geometry for vessels (position now honors overrides/offsets)
+                            // Force rotation: 90° to the left (negative Y rotation)
+                            const left90 = -Math.PI / 2; // -1.57079632679
+                            const rotation: [number, number, number] = [0, left90, 0];
+
                             renderableVessels.push({
                                 id: visit.id,
                                 imo: visit.vesselImo,
                                 name: vesselDetails.name,
-                                position: vesselPosition,
+                                position: finalPosition,
                                 size: vesselSize,
-                                modelUrl: vesselType?.modelPath ?? undefined // Optional model path
+                                modelUrl: vesselType?.modelPath ?? undefined, // Optional model path
+                                rotation,
                             });
                         }
                     }
