@@ -77,10 +77,10 @@ namespace PortProject.Api.Controllers
         /// <summary>
         /// Retrieves a Shipping Agent Representative by their ID.
         /// </summary>
-        [HttpGet("{id}")]
+        [HttpGet("{citizenId}")]
         public async Task<ActionResult<ShippingAgentRepresentativeDto>> GetRepresentativeById(string id)
         {
-            var resultDto = await _service.GetByIdAsync(id);
+            var resultDto = await _service.GetByCitizenIdAsync(id);
             if (resultDto == null)
             {
                 return NotFound($"Representative with ID {id} not found.");

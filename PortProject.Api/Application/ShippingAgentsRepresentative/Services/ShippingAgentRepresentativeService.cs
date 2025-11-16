@@ -60,7 +60,7 @@ namespace PortProject.Api.Application.ShippingAgentsRepresentative.Services
             return representative;
         }
 
-        public async Task<ShippingAgentRepresentativeDto?> GetByIdAsync(string id)
+        public async Task<ShippingAgentRepresentativeDto?> GetByCitizenIdAsync(string id)
         {
             var repId = new RepresentativeId(Guid.Parse(id));
             var representative = await _representativeRepository.GetByIdAsync(repId);
