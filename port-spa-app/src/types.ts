@@ -113,7 +113,9 @@ export interface VesselVisitNotification {
     estimatedArrival: string; // DateTime
     estimatedDeparture: string; // DateTime
     vesselImo: string;
-    submittedBy: string; // Guid (RepresentativeId)
+    // `submittedBy` now holds the representative's display name (e.g. "Ana Silva").
+    // Internal IDs (GUIDs) are not exposed by the API here to avoid leaking DB identifiers.
+    submittedBy: string;
     assignedDockId: string | null;
     cargo: Cargo;
     crewMembers: CrewMember[];

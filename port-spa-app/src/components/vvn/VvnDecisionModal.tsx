@@ -141,7 +141,8 @@ const VvnDecisionModal: React.FC<VvnDecisionModalProps> = ({
                 {/* 3. Read-Only Details */}
                 <div className="grid grid-cols-2 gap-4 pt-4 border-t">
                     <DetailItem icon={Ship} label="IMO Number" value={vvn.vesselImo} />
-                    <DetailItem icon={User} label="Submitted By (GUID)" value={vvn.submittedBy} />
+                    {/* SubmittedBy now contains the representative's name (not the internal GUID) */}
+                    <DetailItem icon={User} label="Submitted By" value={vvn.submittedBy} />
                     <DetailItem icon={Calendar} label="Estimated Arrival" value={formatDateTime(vvn.estimatedArrival)} />
                     <DetailItem icon={Calendar} label="Estimated Departure" value={formatDateTime(vvn.estimatedDeparture)} />
                 </div>

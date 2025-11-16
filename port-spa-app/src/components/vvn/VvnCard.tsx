@@ -45,6 +45,7 @@ const VvnCard: React.FC<VvnCardProps> = ({
     const title = `Vessel: ${vvn.vesselImo}`; //
     const arrivalDate = formatDate(vvn.estimatedArrival); //
     const dock = vvn.assignedDockId || 'N/A'; //
+    // submittedBy now contains the representative's name (not an internal GUID)
     const submittedBy = vvn.submittedBy; //
 
     // --- 2. UPDATED: Render action buttons based on Role and Status ---
@@ -127,7 +128,8 @@ const VvnCard: React.FC<VvnCardProps> = ({
                 <InfoItem icon={Ship} title="IMO Number" value={vvn.vesselImo}/>
                 <InfoItem icon={Calendar} title="Arrival Date" value={arrivalDate}/>
                 <InfoItem icon={Anchor} title="Assigned Dock" value={dock}/>
-                <InfoItem icon={User} title="Submitted By" value={submittedBy.substring(0, 8)}/>
+                {/* show representative name */}
+                <InfoItem icon={User} title="Submitted By" value={submittedBy}/>
             </div>
 
             {/* --- 3. NEW: Action buttons area (Unchanged) --- */}

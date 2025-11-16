@@ -68,7 +68,7 @@ public class VesselVisitNotificationService : IVesselVisitNotificationService
         await _context.SaveChangesAsync();
 
         // 4. Map to the response DTO
-        return MapToDto(newNotification);
+        return await MapToDtoAsync(newNotification);
     }
 
     public async Task<VesselVisitNotificationDto> UpdateAsync(string businessId, CreateVvnDto dto)
@@ -91,7 +91,7 @@ public class VesselVisitNotificationService : IVesselVisitNotificationService
             newCrewMembers);
 
         await _context.SaveChangesAsync();
-        return MapToDto(notification);
+        return await MapToDtoAsync(notification);
     }
 
     public async Task SubmitAsync(string businessId)
@@ -108,7 +108,7 @@ public class VesselVisitNotificationService : IVesselVisitNotificationService
     public async Task<VesselVisitNotificationDto?> GetByBusinessIdAsync(string id)
     {
         var entity = await _vvnRepo.GetByBusinessIdAsync(id);
-        return entity is null ? null : MapToDto(entity);
+        return entity is null ? null : await MapToDtoAsync(entity);
     }
 
     public async Task<VesselVisitNotificationDto> ApproveAsync(string businessId, ApproveVvnDto dto)
@@ -127,7 +127,7 @@ public class VesselVisitNotificationService : IVesselVisitNotificationService
         notification.Approve(new MecanographicNumber(dto.OfficerId), new DockId(dto.DockId));
         await _context.SaveChangesAsync();
 
-        return MapToDto(notification);
+        return await MapToDtoAsync(notification);
     }
 
     public async Task<VesselVisitNotificationDto> RejectAsync(string businessId, RejectVvnDto dto)
@@ -141,7 +141,7 @@ public class VesselVisitNotificationService : IVesselVisitNotificationService
         notification.Reject(new MecanographicNumber(dto.OfficerId), dto.Reason);
         await _context.SaveChangesAsync();
 
-        return MapToDto(notification);
+        return await MapToDtoAsync(notification);
     }
 
 
@@ -176,26 +176,20 @@ public class VesselVisitNotificationService : IVesselVisitNotificationService
         
         if (!string.IsNullOrWhiteSpace(status))
         {
-            // Convert to the Enum *before* the query
             if (Enum.TryParse<NotificationStatus>(status, ignoreCase: true, out var statusEnum))
             {
-                // Compare the enums directly. EF Core will use your converter.
-                query = query.Where(v => v.Status == statusEnum); // 
+                query = query.Where(v => v.Status == statusEnum);
             }
             else
             {
-                // If an invalid status string is passed, return no results
                 return new List<VesselVisitNotificationDto>();
             }
         }
 
         if (!string.IsNullOrWhiteSpace(representativeId))
         {
-            // Convert to the Value Object *before* the query
             var repId = new RepresentativeId(Guid.Parse(representativeId));
-            
-            // Compare the Value Objects directly. EF Core will use your converter.
-            query = query.Where(v => v.SubmittedBy == repId); // 
+            query = query.Where(v => v.SubmittedBy == repId);
         }
 
         if (from.HasValue)
@@ -204,16 +198,15 @@ public class VesselVisitNotificationService : IVesselVisitNotificationService
         if (to.HasValue)
         {
             var toDateEnd = to.Value.Date.AddDays(1);
-            query = query.Where(v => v.EstimatedArrival.Value < toDateEnd);;
+            query = query.Where(v => v.EstimatedArrival.Value < toDateEnd);
         }
         
         var results = await query.ToListAsync();
-        return results.Select(MapToDto).ToList();
+        return await MapListToDtoAsync(results);
     }
 
     public async Task<List<DecisionLogEntryDto>> GetDecisionLogAsync(string notificationId)
     {
-        var id = new NotificationId(Guid.Parse(notificationId));
         var notification = await _vvnRepo.GetByBusinessIdAsync(notificationId)
                            ?? throw new KeyNotFoundException($"Notification {notificationId} not found.");
 
@@ -241,12 +234,53 @@ public class VesselVisitNotificationService : IVesselVisitNotificationService
             .Where(v => v.SubmittedBy.Value == repGuid);
 
         var result = await query.ToListAsync();
-        return result.Select(MapToDto).ToList();
+        return await MapListToDtoAsync(result);
     }
 
 
     // This private helper keeps our mapping logic in one place
-    private VesselVisitNotificationDto MapToDto(Domain.VesselVisitNotificationAggregate.VesselVisitNotification entity)
+    private async Task<VesselVisitNotificationDto> MapToDtoAsync(Domain.VesselVisitNotificationAggregate.VesselVisitNotification entity)
+    {
+        // Single-entity version used by Create/Update/Get flows: load its representative name directly.
+        var rep = await _repRepo.GetByIdAsync(entity.SubmittedBy);
+        var submittedByName = rep?.RepresentativeName.Value ?? "Unknown Representative";
+
+        return MapCore(entity, submittedByName);
+    }
+
+    private async Task<List<VesselVisitNotificationDto>> MapListToDtoAsync(IEnumerable<Domain.VesselVisitNotificationAggregate.VesselVisitNotification> entities)
+    {
+        var entityList = entities.ToList();
+        if (!entityList.Any())
+            return new List<VesselVisitNotificationDto>();
+
+        // Collect all distinct representative IDs referenced by the notifications
+        var repIds = entityList
+            .Select(e => e.SubmittedBy)
+            .Distinct()
+            .ToList();
+
+        // Load all needed representatives in one go
+        var reps = await _repRepo.GetAllAsync();
+        var repLookup = reps
+            .Where(r => r.RepresentativeId != null && repIds.Contains(r.RepresentativeId))
+            .ToDictionary(r => r.RepresentativeId!, r => r.RepresentativeName.Value);
+
+        // Map each notification using the resolved name (or fallback if not found)
+        var dtos = entityList
+            .Select(e =>
+            {
+                var name = repLookup.TryGetValue(e.SubmittedBy, out var repName)
+                    ? repName
+                    : "Unknown Representative";
+                return MapCore(e, name);
+            })
+            .ToList();
+
+        return dtos;
+    }
+
+    private static VesselVisitNotificationDto MapCore(Domain.VesselVisitNotificationAggregate.VesselVisitNotification entity, string submittedByName)
     {
         return new VesselVisitNotificationDto
         {
@@ -255,7 +289,7 @@ public class VesselVisitNotificationService : IVesselVisitNotificationService
             EstimatedArrival = entity.EstimatedArrival.Value,
             EstimatedDeparture = entity.EstimatedDeparture.Value,
             VesselImo = entity.VesselId.Value,
-            SubmittedBy = entity.SubmittedBy.Value,
+            SubmittedBy = submittedByName,
             AssignedDockId = entity.AssignedDockId?.Value,
             Cargo = new CargoDto
             {
@@ -273,7 +307,7 @@ public class VesselVisitNotificationService : IVesselVisitNotificationService
                 Nationality = c.Nationality,
                 IsSafetyOfficer = c.IsSafetyOfficer
             }).ToList(),
-            DecisionLog = entity.DecisionLog?
+            DecisionLog = entity.DecisionLog
                 .OrderByDescending(dl => dl.Timestamp)
                 .Select(dl => new DecisionLogEntryDto
                 {
