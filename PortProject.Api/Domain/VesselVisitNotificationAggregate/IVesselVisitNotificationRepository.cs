@@ -17,5 +17,7 @@
         /// </summary>
         Task UpdateAsync(VesselVisitNotification notification);
         
+        Task <VesselVisitNotification?> GetByBusinessIdAsync(string businessId);
+        
     }
 }

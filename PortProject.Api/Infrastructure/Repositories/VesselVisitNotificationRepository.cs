@@ -34,4 +34,13 @@ public class VesselVisitNotificationRepository : IVesselVisitNotificationReposit
         _context.VesselVisitNotifications.Update(notification);
         return Task.CompletedTask;
     }
+    
+    public async Task<VesselVisitNotification?> GetByBusinessIdAsync(string businessId)
+    {
+        return await _context.VesselVisitNotifications
+            .Include(v => v.Cargo).ThenInclude(c => c.Containers)
+            .Include(v => v.CrewMembers)
+            .Include(v => v.DecisionLog)
+            .FirstOrDefaultAsync(v => v.BusinessId == businessId);
+    }
 }

@@ -6,7 +6,7 @@ namespace PortProject.Api.Application.ShippingAgentsRepresentative.Services
     public interface IShippingAgentRepresentativeService
     {
         Task<ShippingAgentRepresentative> CreateRepresentativeAsync(CreateShippingAgentRepresentativeDto dto);
-        Task<ShippingAgentRepresentativeDto?> GetByIdAsync(string id);
+        Task<ShippingAgentRepresentativeDto?> GetByCitizenIdAsync(string citizenId);
         Task<IEnumerable<ShippingAgentRepresentativeDto>> GetAllAsync();
     Task<ShippingAgentRepresentativeDto?> UpdateRepresentativeAsync(string id, CreateShippingAgentRepresentativeDto dto);
         Task<ShippingAgentRepresentativeDto?> UpdateRepresentativeByCitizenIdAsync(string citizenId, CreateShippingAgentRepresentativeDto dto);

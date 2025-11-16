@@ -1,4 +1,6 @@
 ﻿// Add using statements for the IDs from other aggregates
+
+using NanoidDotNet;
 using PortProject.Api.Domain.VesselAggregate;
 using PortProject.Api.Domain.ShippingAgentRepresentativeAggregate;
 using PortProject.Api.Domain.DockAggregate;
@@ -9,6 +11,7 @@ namespace PortProject.Api.Domain.VesselVisitNotificationAggregate;
 public class VesselVisitNotification // We will add inheritance and interfaces later
 {
     public NotificationId Id { get; private set; }
+    public string BusinessId { get; private set; }
     public NotificationStatus Status { get; private set; }
     public ETA EstimatedArrival { get; private set; }
     public ETD EstimatedDeparture { get; private set; }
@@ -32,7 +35,8 @@ public class VesselVisitNotification // We will add inheritance and interfaces l
     private VesselVisitNotification(ETA eta, ETD etd, ImoNumber vesselId, RepresentativeId submittedBy, Cargo cargo, List<CrewMember>? crewMembers)
     {
         Id = new NotificationId(Guid.NewGuid());
-        Status = NotificationStatus.InProgress; // Always starts as 'In Progress' [cite: 312]
+        BusinessId = "VVN-" + Nanoid.Generate(size: 10);
+        Status = NotificationStatus.InProgress;
         EstimatedArrival = eta;
         EstimatedDeparture = etd;
         VesselId = vesselId;

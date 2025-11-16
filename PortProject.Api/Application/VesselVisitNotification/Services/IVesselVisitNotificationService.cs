@@ -8,22 +8,22 @@ namespace PortProject.Api.Application.VesselVisitNotification.Services
         Task<VesselVisitNotificationDto> CreateAsync(CreateVvnDto dto, string representativeId);
 
         // 🟡 US 2.2.9 — Atualizar notificação em progresso
-        Task<VesselVisitNotificationDto> UpdateAsync(string notificationId, CreateVvnDto dto);
+        Task<VesselVisitNotificationDto> UpdateAsync(string businessId, CreateVvnDto dto);
 
         // 🟣 US 2.2.8 — Submeter notificação para decisão
-        Task SubmitAsync(string notificationId);
+        Task SubmitAsync(string businessId);
 
         // 🔍 Auxiliar — Obter notificação por ID
-        Task<VesselVisitNotificationDto?> GetByIdAsync(string notificationId);
+        Task<VesselVisitNotificationDto?> GetByBusinessIdAsync(string businessId);
 
         // ✅ US 2.2.7 — Aprovar notificação pendente
-        Task<VesselVisitNotificationDto> ApproveAsync(string notificationId, ApproveVvnDto dto);
+        Task<VesselVisitNotificationDto> ApproveAsync(string businessId, ApproveVvnDto dto);
 
         // ❌ US 2.2.7 — Rejeitar notificação pendente
-        Task<VesselVisitNotificationDto> RejectAsync(string notificationId, RejectVvnDto dto);
+        Task<VesselVisitNotificationDto> RejectAsync(string businessId, RejectVvnDto dto);
 
         // ♻️ Reabrir notificação rejeitada
-        Task ReopenAsync(string notificationId);
+        Task ReopenAsync(string businessId);
 
         // 🔎 Pesquisa avançada de notificações
         Task<List<VesselVisitNotificationDto>> SearchAsync(

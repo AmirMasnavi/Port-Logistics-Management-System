@@ -12,8 +12,8 @@ using PortProject.Api.Models;
 namespace PortProject.Api.Migrations
 {
     [DbContext(typeof(PortProjectContext))]
-    [Migration("20251113124605_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20251116175251_AddBusinessIdToVvn")]
+    partial class AddBusinessIdToVvn
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -272,6 +272,11 @@ namespace PortProject.Api.Migrations
                         .HasColumnType("varchar(255)")
                         .HasColumnName("AssignedDockId");
 
+                    b.Property<string>("BusinessId")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasColumnType("longtext")
@@ -289,6 +294,9 @@ namespace PortProject.Api.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("AssignedDockId");
+
+                    b.HasIndex("BusinessId")
+                        .IsUnique();
 
                     b.HasIndex("SubmittedBy");
 

@@ -24,12 +24,12 @@ public class VesselVisitNotificationController : ControllerBase
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(dto.RepresentativeId))
+            if (string.IsNullOrWhiteSpace(dto.RepresentativeCitizenId)) 
             {
-                return BadRequest(new { message = "RepresentativeId is required in the request body." });
+                return BadRequest(new { message = "RepresentativeCitizenId is required in the request body." });
             }
-            var resultDto = await _service.CreateAsync(dto, dto.RepresentativeId);
-            return CreatedAtAction(nameof(GetById), new { id = resultDto.Id }, resultDto);
+            var resultDto = await _service.CreateAsync(dto, null);
+            return CreatedAtRoute("GetNotificationById", new { businessId = resultDto.BusinessId }, resultDto);
         }
         catch (ArgumentException ex)
         {
@@ -58,11 +58,11 @@ public class VesselVisitNotificationController : ControllerBase
     }
 
     // US 2.2.9: Update a notification
-    [HttpPut("{id}")]
-    public async Task<ActionResult<VesselVisitNotificationDto>> Update(string id, CreateVvnDto dto)
+    [HttpPut("{businessId}")]
+    public async Task<ActionResult<VesselVisitNotificationDto>> Update(string businessId, CreateVvnDto dto)
     {
         try {
-            var result = await _service.UpdateAsync(id, dto);
+            var result = await _service.UpdateAsync(businessId, dto);
             return Ok(result);
         } catch (KeyNotFoundException ex) {
             return NotFound(ex.Message);
@@ -75,11 +75,11 @@ public class VesselVisitNotificationController : ControllerBase
     }
     
     // US 2.2.8: Submit a notification
-    [HttpPatch("{id}/submit")]
-    public async Task<IActionResult> Submit(string id)
+    [HttpPatch("{businessId}/submit")]
+    public async Task<IActionResult> Submit(string businessId)
     {
         try {
-            await _service.SubmitAsync(id);
+            await _service.SubmitAsync(businessId);
             return NoContent();
         } catch (KeyNotFoundException ex) {
             return NotFound(ex.Message);
@@ -90,17 +90,21 @@ public class VesselVisitNotificationController : ControllerBase
             return Conflict(new { message = ex.Message }); // 409 Conflict
         }
     }
-    [HttpPatch("{id}/approve")]
-    public async Task<IActionResult> ApproveVvn(string id, [FromBody] ApproveVvnDto dto)
+    [HttpPatch("{businessId}/approve")]
+    public async Task<IActionResult> ApproveVvn(string businessId, [FromBody] ApproveVvnDto dto)
     {
         try
         {
-            var result = await _service.ApproveAsync(id, dto);
+            var result = await _service.ApproveAsync(businessId, dto);
             return Ok(result);
         }
         catch (KeyNotFoundException ex)
         {
             return NotFound(new { message = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
         }
         catch (InvalidOperationException ex)
         {
@@ -108,12 +112,12 @@ public class VesselVisitNotificationController : ControllerBase
         }
     }
 
-    [HttpPatch("{id}/reject")]
-    public async Task<IActionResult> RejectVvn(string id, [FromBody] RejectVvnDto dto)
+    [HttpPatch("{businessId}/reject")]
+    public async Task<IActionResult> RejectVvn(string businessId, [FromBody] RejectVvnDto dto)
     {
         try
         {
-            var result = await _service.RejectAsync(id, dto);
+            var result = await _service.RejectAsync(businessId, dto);
             return NoContent(); // ✅ devolve 204 como esperado no teste
         }
         catch (KeyNotFoundException ex)
@@ -127,12 +131,12 @@ public class VesselVisitNotificationController : ControllerBase
     }
 
 
-    [HttpPatch("{id}/resubmit")]
-    public async Task<IActionResult> ReopenVvn(string id)
+    [HttpPatch("{businessId}/resubmit")]
+    public async Task<IActionResult> ReopenVvn(string businessId)
     {
         try
         {
-            await _service.ReopenAsync(id);
+            await _service.ReopenAsync(businessId);
             return NoContent();
         }
         catch (KeyNotFoundException ex)
@@ -166,15 +170,15 @@ public class VesselVisitNotificationController : ControllerBase
 
 
 // Helper endpoint to get a notification by its ID
-    [HttpGet("{id}")]
-    public async Task<ActionResult<VesselVisitNotificationDto>> GetById(string id)
+    [HttpGet("{businessId}", Name = "GetNotificationById")]
+    public async Task<ActionResult<VesselVisitNotificationDto>> GetById(string businessId)
     {
         try
         {
-            var result = await _service.GetByIdAsync(id);
+            var result = await _service.GetByBusinessIdAsync(businessId);
             if (result == null)
             {
-                return NotFound($"Notification with ID '{id}' not found.");
+                return NotFound($"Notification with ID '{businessId}' not found.");
             }
             return Ok(result);
         }

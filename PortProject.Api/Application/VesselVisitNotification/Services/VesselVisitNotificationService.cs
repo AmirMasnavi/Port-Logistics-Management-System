@@ -13,16 +13,30 @@ public class VesselVisitNotificationService : IVesselVisitNotificationService
 {
     private readonly IVesselVisitNotificationRepository _vvnRepo;
     private readonly PortProjectContext _context;
+    
+    // --- ADD THIS REPO ---
+    private readonly IShippingAgentRepresentativeRepository _repRepo;
 
-    public VesselVisitNotificationService(IVesselVisitNotificationRepository vvnRepo, PortProjectContext context)
+    public VesselVisitNotificationService(IVesselVisitNotificationRepository vvnRepo, PortProjectContext context, IShippingAgentRepresentativeRepository repRepo)
     {
         _vvnRepo = vvnRepo;
         _context = context;
+        _repRepo = repRepo;
     }
 
 
     public async Task<VesselVisitNotificationDto> CreateAsync(CreateVvnDto dto, string representativeId)
     {
+        
+        // 1. Find the representative by their BUSINESS ID
+        var rep = await _repRepo.GetByCitizenIdAsync(new CitizenId(dto.RepresentativeCitizenId));
+        if (rep == null)
+        {
+            throw new KeyNotFoundException($"Representative with Citizen ID '{dto.RepresentativeCitizenId}' not found.");
+        }
+        // 2. Get their INTERNAL ID (Guid)
+        var repInternalId = rep.RepresentativeId;
+        
         // 1. Convert DTOs to Domain Objects
         var cargo = new Cargo(
             dto.Cargo.Description,
@@ -39,7 +53,7 @@ public class VesselVisitNotificationService : IVesselVisitNotificationService
             new ETA(dto.EstimatedArrival),
             new ETD(dto.EstimatedDeparture),
             new ImoNumber(dto.VesselImo),
-            new RepresentativeId(Guid.Parse(representativeId)),
+            repInternalId,
             cargo,
             crewMembers
         );
@@ -57,10 +71,10 @@ public class VesselVisitNotificationService : IVesselVisitNotificationService
         return MapToDto(newNotification);
     }
 
-    public async Task<VesselVisitNotificationDto> UpdateAsync(string notificationId, CreateVvnDto dto)
+    public async Task<VesselVisitNotificationDto> UpdateAsync(string businessId, CreateVvnDto dto)
     {
-        var notification = await _vvnRepo.GetByIdAsync(new NotificationId(Guid.Parse(notificationId)))
-                           ?? throw new KeyNotFoundException($"Notification with ID '{notificationId}' not found.");
+        var notification = await _vvnRepo.GetByBusinessIdAsync(businessId)
+                           ?? throw new KeyNotFoundException($"Notification with Business ID '{businessId}' not found.");
 
         var newCargo = new Cargo(
             dto.Cargo.Description,
@@ -80,10 +94,10 @@ public class VesselVisitNotificationService : IVesselVisitNotificationService
         return MapToDto(notification);
     }
 
-    public async Task SubmitAsync(string notificationId)
+    public async Task SubmitAsync(string businessId)
     {
-        var notification = await _vvnRepo.GetByIdAsync(new NotificationId(Guid.Parse(notificationId)))
-                           ?? throw new KeyNotFoundException($"Notification with ID '{notificationId}' not found.");
+        var notification = await _vvnRepo.GetByBusinessIdAsync(businessId)
+                           ?? throw new KeyNotFoundException($"Notification with Business ID '{businessId}' not found.");
 
         // Use the domain method to change the status
         notification.Submit();
@@ -91,21 +105,24 @@ public class VesselVisitNotificationService : IVesselVisitNotificationService
         await _context.SaveChangesAsync();
     }
 
-    public async Task<VesselVisitNotificationDto?> GetByIdAsync(string id)
+    public async Task<VesselVisitNotificationDto?> GetByBusinessIdAsync(string id)
     {
-        var guid = Guid.Parse(id);
-        var entity = await _vvnRepo.GetByIdAsync(new NotificationId(guid));
+        var entity = await _vvnRepo.GetByBusinessIdAsync(id);
         return entity is null ? null : MapToDto(entity);
     }
 
-    public async Task<VesselVisitNotificationDto> ApproveAsync(string notificationId, ApproveVvnDto dto)
+    public async Task<VesselVisitNotificationDto> ApproveAsync(string businessId, ApproveVvnDto dto)
     {
-        var id = new NotificationId(Guid.Parse(notificationId));
-        var notification = await _vvnRepo.GetByIdAsync(id)
-                           ?? throw new KeyNotFoundException($"Notification {notificationId} not found.");
+        var notification = await _vvnRepo.GetByBusinessIdAsync(businessId)
+                           ?? throw new KeyNotFoundException($"Notification {businessId} not found.");
 
         if (notification.Status != NotificationStatus.Submitted)
-            throw new InvalidOperationException("Only submitted notifications can be approved.");       
+            throw new InvalidOperationException("Only submitted notifications can be approved.");
+        
+        // Validate that the dock exists before assigning
+        var dockExists = await _context.Docks.AnyAsync(d => d.Id == new DockId(dto.DockId));
+        if (!dockExists)
+            throw new ArgumentException($"Dock with ID '{dto.DockId}' does not exist.");
         
         notification.Approve(new MecanographicNumber(dto.OfficerId), new DockId(dto.DockId));
         await _context.SaveChangesAsync();
@@ -113,11 +130,10 @@ public class VesselVisitNotificationService : IVesselVisitNotificationService
         return MapToDto(notification);
     }
 
-    public async Task<VesselVisitNotificationDto> RejectAsync(string notificationId, RejectVvnDto dto)
+    public async Task<VesselVisitNotificationDto> RejectAsync(string businessId, RejectVvnDto dto)
     {
-        var id = new NotificationId(Guid.Parse(notificationId));
-        var notification = await _vvnRepo.GetByIdAsync(id)
-                           ?? throw new KeyNotFoundException($"Notification {notificationId} not found.");
+        var notification = await _vvnRepo.GetByBusinessIdAsync(businessId)
+                           ?? throw new KeyNotFoundException($"Notification {businessId} not found.");
 
         if (notification.Status != NotificationStatus.Submitted)
             throw new InvalidOperationException("Only submitted notifications can be rejected.");
@@ -129,11 +145,10 @@ public class VesselVisitNotificationService : IVesselVisitNotificationService
     }
 
 
-    public async Task ReopenAsync(string notificationId)
+    public async Task ReopenAsync(string businessId)
     {
-        var id = new NotificationId(Guid.Parse(notificationId));
-        var notification = await _vvnRepo.GetByIdAsync(id)
-                           ?? throw new KeyNotFoundException($"Notification {notificationId} not found.");
+        var notification = await _vvnRepo.GetByBusinessIdAsync(businessId)
+                           ?? throw new KeyNotFoundException($"Notification {businessId} not found.");
     
         if (notification.Status != NotificationStatus.Rejected)
             throw new InvalidOperationException("Cannot resubmit a notification that is not rejected.");
@@ -199,7 +214,7 @@ public class VesselVisitNotificationService : IVesselVisitNotificationService
     public async Task<List<DecisionLogEntryDto>> GetDecisionLogAsync(string notificationId)
     {
         var id = new NotificationId(Guid.Parse(notificationId));
-        var notification = await _vvnRepo.GetByIdAsync(id)
+        var notification = await _vvnRepo.GetByBusinessIdAsync(notificationId)
                            ?? throw new KeyNotFoundException($"Notification {notificationId} not found.");
 
         return notification.DecisionLog.Select(dl => new DecisionLogEntryDto
@@ -235,7 +250,7 @@ public class VesselVisitNotificationService : IVesselVisitNotificationService
     {
         return new VesselVisitNotificationDto
         {
-            Id = entity.Id.Value,
+            BusinessId = entity.BusinessId,
             Status = entity.Status.ToString(),
             EstimatedArrival = entity.EstimatedArrival.Value,
             EstimatedDeparture = entity.EstimatedDeparture.Value,
@@ -254,7 +269,6 @@ public class VesselVisitNotificationService : IVesselVisitNotificationService
             },
             CrewMembers = entity.CrewMembers.Select(c => new CrewMemberDto
             {
-                Id = c.Id.Value,
                 Name = c.Name,
                 Nationality = c.Nationality,
                 IsSafetyOfficer = c.IsSafetyOfficer

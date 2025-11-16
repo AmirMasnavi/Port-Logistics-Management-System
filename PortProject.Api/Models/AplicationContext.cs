@@ -38,7 +38,7 @@ public class PortProjectContext : DbContext
     public DbSet<VesselVisitNotification> VesselVisitNotifications { get; set; }
     public DbSet<AppUser> AppUsers { get; set; }
     
-    public DbSet<Resource> Resources { get; set; }
+    public DbSet<Resource> Resources { get; set;}
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -399,6 +399,13 @@ public class PortProjectContext : DbContext
         vvnBuilder.HasKey(vvn => vvn.Id);
         vvnBuilder.Property(vvn => vvn.Id)
             .HasConversion(id => id.Value, val => new NotificationId(val));
+        
+        vvnBuilder.Property(vvn => vvn.BusinessId)
+            .IsRequired()
+            .HasMaxLength(20);
+        
+        vvnBuilder.HasIndex(vvn => vvn.BusinessId)
+            .IsUnique();
 
         // 2. Foreign Keys to other Aggregates
         vvnBuilder.Property(vvn => vvn.VesselId)
