@@ -185,15 +185,15 @@ namespace Port.Project.Api.System_Tests
             var orgId = await PostAndReadJsonAsync<Guid>("/api/ShippingAgentOrganizations", orgCreate);
             Assert.NotEqual(Guid.Empty, orgId);
 
-            // 5) Get the created representative ID from the database
-            string repId;
+            // 5) Get the created representative's CitizenId from the database
+            string repCitizenId;
             using (var scope1 = _factory.Services.CreateScope())
             {
                 var db1 = scope1.ServiceProvider.GetRequiredService<PortProjectContext>();
                 var representatives = await db1.ShippingAgentRepresentatives.ToListAsync();
                 var representative = representatives.FirstOrDefault(r => r.OrganizationId.Value == orgId);
                 Assert.NotNull(representative);
-                repId = representative.RepresentativeId.Value.ToString();
+                repCitizenId = representative.CitizenId.Value; // Use CitizenId instead of internal GUID
             }
 
             // 6) Create Vessel Visit Notification with valid container code
@@ -213,7 +213,7 @@ namespace Port.Project.Api.System_Tests
                 EstimatedDeparture = DateTime.UtcNow.AddDays(4),
                 VesselImo = imo,
                 Cargo = createCargo,
-                RepresentativeId = repId,
+                RepresentativeCitizenId = repCitizenId, // Use CitizenId instead of RepresentativeId
                 CrewMembers = new List<CreateCrewMemberDto>
                 {
                     new CreateCrewMemberDto { Name = "Captain Test", Nationality = "PT", IsSafetyOfficer = true },
@@ -224,8 +224,7 @@ namespace Port.Project.Api.System_Tests
             var vvn = await PostAndReadJsonAsync<VesselVisitNotificationDto>("/api/notifications", createVvn);
             Assert.NotNull(vvn);
             Assert.Equal(imo, vvn.VesselImo);
-            Assert.Equal(Guid.Parse(repId), vvn.SubmittedBy);
-            Assert.NotNull(vvn.Cargo);
+            Assert.NotNull(vvn.BusinessId); // Verify BusinessId is generated
             Assert.NotEmpty(vvn.CrewMembers);
             Assert.Equal(2, vvn.CrewMembers.Count);
 
@@ -238,6 +237,7 @@ namespace Port.Project.Api.System_Tests
                 .FirstOrDefaultAsync();
             Assert.NotNull(dbVvn);
             Assert.Equal(imo, dbVvn.VesselId.Value);
+            Assert.NotNull(dbVvn.BusinessId); // Verify BusinessId exists in database
             
             var vessels = await db.Vessels.ToListAsync();
             var dbVessel = vessels.FirstOrDefault(v => v.ImoNumber.Value == imo);

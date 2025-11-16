@@ -25,37 +25,37 @@ public class VesselVisitNotificationControllerTests
         _mockService = new Mock<IVesselVisitNotificationService>();
         _controller = new VesselVisitNotificationController(_mockService.Object);
 
-        _validNotificationId = Guid.NewGuid().ToString();
-        _validCreateDto = new CreateVvnDto { RepresentativeId = Guid.NewGuid().ToString(), Cargo = new CreateCargoDto() /* Add other required fields */ };
-        _validResultDto = new VesselVisitNotificationDto { Id = Guid.Parse(_validNotificationId) /* Add other fields */ };
+        _validNotificationId = "VVN-" + DateTime.UtcNow.Ticks; // Use BusinessId format instead of GUID
+        _validCreateDto = new CreateVvnDto { RepresentativeCitizenId = "12345678Z", Cargo = new CreateCargoDto() /* Add other required fields */ };
+        _validResultDto = new VesselVisitNotificationDto { BusinessId = _validNotificationId /* Add other fields */ };
     }
 
     // --- Create Tests ---
 
     [TestMethod]
-    public async Task Create_WithValidDto_ShouldCallServiceAndReturnCreatedAtAction()
+    public async Task Create_WithValidDto_ShouldCallServiceAndReturnCreatedAtRoute()
     {
         // Arrange
-        _mockService.Setup(s => s.CreateAsync(_validCreateDto, _validCreateDto.RepresentativeId))
+        _mockService.Setup(s => s.CreateAsync(_validCreateDto, null))
                     .ReturnsAsync(_validResultDto);
 
         // Act
         var result = await _controller.Create(_validCreateDto);
 
         // Assert
-        Assert.IsInstanceOfType(result.Result, typeof(CreatedAtActionResult));
-        var actionResult = (CreatedAtActionResult)result.Result!;
-        Assert.AreEqual(nameof(_controller.GetById), actionResult.ActionName);
+        Assert.IsInstanceOfType(result.Result, typeof(CreatedAtRouteResult));
+        var actionResult = (CreatedAtRouteResult)result.Result!;
+        Assert.AreEqual("GetNotificationById", actionResult.RouteName);
         Assert.AreEqual(201, actionResult.StatusCode);
         Assert.AreEqual(_validResultDto, actionResult.Value);
-        _mockService.Verify(s => s.CreateAsync(_validCreateDto, _validCreateDto.RepresentativeId), Times.Once);
+        _mockService.Verify(s => s.CreateAsync(_validCreateDto, null), Times.Once);
     }
 
     [TestMethod]
     public async Task Create_WhenDtoMissingRepId_ShouldReturnBadRequest()
     {
         // Arrange
-        var invalidDto = new CreateVvnDto { RepresentativeId = "", Cargo = new CreateCargoDto() }; // Missing RepId
+        var invalidDto = new CreateVvnDto { RepresentativeCitizenId = "", Cargo = new CreateCargoDto() }; // Missing RepId
 
         // Act
         var result = await _controller.Create(invalidDto);
@@ -68,7 +68,7 @@ public class VesselVisitNotificationControllerTests
     public async Task Create_WhenServiceThrowsArgumentException_ShouldReturnBadRequest()
     {
         // Arrange
-        _mockService.Setup(s => s.CreateAsync(_validCreateDto, _validCreateDto.RepresentativeId))
+        _mockService.Setup(s => s.CreateAsync(_validCreateDto, null))
                     .ThrowsAsync(new ArgumentException("Invalid data"));
 
         // Act
@@ -82,7 +82,7 @@ public class VesselVisitNotificationControllerTests
     public async Task Create_WhenServiceThrowsFormatException_ShouldReturnBadRequest()
     {
         // Arrange
-        _mockService.Setup(s => s.CreateAsync(_validCreateDto, _validCreateDto.RepresentativeId))
+        _mockService.Setup(s => s.CreateAsync(_validCreateDto, null))
                     .ThrowsAsync(new FormatException("Invalid GUID"));
 
         // Act
@@ -96,7 +96,7 @@ public class VesselVisitNotificationControllerTests
     public async Task Create_WhenServiceThrowsGenericException_ShouldReturnInternalServerError()
     {
         // Arrange
-        _mockService.Setup(s => s.CreateAsync(_validCreateDto, _validCreateDto.RepresentativeId))
+        _mockService.Setup(s => s.CreateAsync(_validCreateDto, null))
                     .ThrowsAsync(new Exception("Unexpected error"));
 
         // Act
@@ -174,7 +174,7 @@ public class VesselVisitNotificationControllerTests
     public async Task GetById_WhenFound_ShouldReturnOk()
     {
          // Arrange
-        _mockService.Setup(s => s.GetByIdAsync(_validNotificationId))
+        _mockService.Setup(s => s.GetByBusinessIdAsync(_validNotificationId))
                     .ReturnsAsync(_validResultDto);
 
         // Act
@@ -190,7 +190,7 @@ public class VesselVisitNotificationControllerTests
     public async Task GetById_WhenNotFound_ShouldReturnNotFound()
     {
          // Arrange
-        _mockService.Setup(s => s.GetByIdAsync(_validNotificationId))
+        _mockService.Setup(s => s.GetByBusinessIdAsync(_validNotificationId))
                     .ReturnsAsync((VesselVisitNotificationDto?)null);
 
         // Act
@@ -204,17 +204,15 @@ public class VesselVisitNotificationControllerTests
     public async Task GetById_WhenInvalidIdFormat_ShouldReturnBadRequest()
     {
         // Arrange
-        var invalidId = "not-a-guid";
-        // Service will throw FormatException when converting string to Guid
-         _mockService.Setup(s => s.GetByIdAsync(invalidId)).ThrowsAsync(new FormatException());
-
+        var invalidId = "not-a-valid-businessid";
+        // Service will throw FormatException when converting string
+         _mockService.Setup(s => s.GetByBusinessIdAsync(invalidId)).ThrowsAsync(new FormatException());
 
         // Act
         var result = await _controller.GetById(invalidId);
 
         // Assert
         Assert.IsInstanceOfType(result.Result, typeof(BadRequestObjectResult));
-        // Verify service was NOT successfully called with the parsed Guid
     }
     [TestMethod]
     public async Task Reject_WhenServiceSucceeds_ShouldReturnNoContent()
@@ -314,3 +312,4 @@ public class VesselVisitNotificationControllerTests
         Assert.AreEqual(expectedList, okResult.Value);
     }
 }
+

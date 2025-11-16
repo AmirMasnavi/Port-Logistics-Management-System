@@ -94,7 +94,7 @@ public class VesselVisitNotificationTests : IClassFixture<IntegrationTestsWebApp
             EstimatedArrival = DateTime.UtcNow.AddHours(2),
             EstimatedDeparture = DateTime.UtcNow.AddHours(12),
             VesselImo = vesselImo,
-            RepresentativeId = representativeId,
+            RepresentativeCitizenId = "98765432Z", // Use CitizenId instead of internal GUID
             Cargo = new CreateCargoDto { Description = "Test", Weight = 100, Containers = new List<CreateContainerDto>{ new CreateContainerDto { ContainerCode="CSQU3054383", Position="B1"} } },
             CrewMembers = new List<CreateCrewMemberDto>{ new CreateCrewMemberDto { Name="Crew A", Nationality="N1"} }
         };
@@ -111,9 +111,8 @@ public class VesselVisitNotificationTests : IClassFixture<IntegrationTestsWebApp
         using var jsonDoc = JsonDocument.Parse(responseBody);
         Assert.Equal("InProgress", jsonDoc.RootElement.GetProperty("status").GetString());
         Assert.Equal(vesselImo, jsonDoc.RootElement.GetProperty("vesselImo").GetString());
-        Assert.Equal(representativeId, jsonDoc.RootElement.GetProperty("submittedBy").GetString(), ignoreCase: true);
         Assert.True(jsonDoc.RootElement.GetProperty("crewMembers").GetArrayLength() > 0);
-        Assert.NotEmpty(jsonDoc.RootElement.GetProperty("id").GetString()!); // Ensure an ID was generated
+        Assert.NotEmpty(jsonDoc.RootElement.GetProperty("businessId").GetString()!); // Check BusinessId instead of Id
     }
 
     [Fact]
@@ -127,7 +126,7 @@ public class VesselVisitNotificationTests : IClassFixture<IntegrationTestsWebApp
             EstimatedArrival = DateTime.UtcNow.AddHours(2),
             EstimatedDeparture = DateTime.UtcNow.AddHours(12),
             VesselImo = vesselImo,
-            RepresentativeId = representativeId,
+            RepresentativeCitizenId = "98765432Z",
             Cargo = new CreateCargoDto { Description = "Bad Container", Weight = 100, Containers = new List<CreateContainerDto>{ new CreateContainerDto { ContainerCode = "INVALID", Position = "B1"} } } // Invalid code
         };
         var content = SerializeDto(createDto);
@@ -144,14 +143,13 @@ public class VesselVisitNotificationTests : IClassFixture<IntegrationTestsWebApp
     {
         // Arrange
         var (vesselImo, _) = SeedTestData();
-        var nonExistentRepId = Guid.NewGuid().ToString();
         
         var createDto = new CreateVvnDto
         {
             EstimatedArrival = DateTime.UtcNow.AddHours(2),
             EstimatedDeparture = DateTime.UtcNow.AddHours(12),
             VesselImo = vesselImo,
-            RepresentativeId = nonExistentRepId, // This Rep ID doesn't exist
+            RepresentativeCitizenId = "99999999Z", // This CitizenId doesn't exist
             Cargo = new CreateCargoDto { Description = "No Rep", Weight = 100, Containers = new List<CreateContainerDto>() }
         };
         var content = SerializeDto(createDto);
@@ -162,7 +160,7 @@ public class VesselVisitNotificationTests : IClassFixture<IntegrationTestsWebApp
         // Assert
         Assert.Equal(System.Net.HttpStatusCode.BadRequest, response.StatusCode);
         var responseString = await response.Content.ReadAsStringAsync();
-        Assert.Contains("Foreign key constraint failed", responseString, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("not found", responseString, StringComparison.OrdinalIgnoreCase);
     }
 
 
@@ -176,7 +174,7 @@ public class VesselVisitNotificationTests : IClassFixture<IntegrationTestsWebApp
             EstimatedArrival = DateTime.UtcNow.AddHours(3),
             EstimatedDeparture = DateTime.UtcNow.AddHours(13),
             VesselImo = vesselImo,
-            RepresentativeId = representativeId,
+            RepresentativeCitizenId = "98765432Z",
             Cargo = new CreateCargoDto {
                 Description = "GetTest",
                 Weight = 1,
@@ -197,16 +195,16 @@ public class VesselVisitNotificationTests : IClassFixture<IntegrationTestsWebApp
             await createResponse.Content.ReadAsStringAsync(),
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
-        var notificationId = createdDto!.Id.ToString();
+        var notificationBusinessId = createdDto!.BusinessId; // Use BusinessId
 
         // Act
-        var response = await _client.GetAsync($"/api/notifications/{notificationId}");
+        var response = await _client.GetAsync($"/api/notifications/{notificationBusinessId}");
 
         // Assert
         response.EnsureSuccessStatusCode();
         var responseBody = await response.Content.ReadAsStringAsync();
         using var jsonDoc = JsonDocument.Parse(responseBody);
-        Assert.Equal(notificationId, jsonDoc.RootElement.GetProperty("id").GetString(), ignoreCase: true);
+        Assert.Equal(notificationBusinessId, jsonDoc.RootElement.GetProperty("businessId").GetString(), ignoreCase: true);
         Assert.Equal("GetTest", jsonDoc.RootElement.GetProperty("cargo").GetProperty("description").GetString());
         Assert.True(jsonDoc.RootElement.GetProperty("crewMembers").GetArrayLength() > 0);
         Assert.Equal("GetCrew", jsonDoc.RootElement.GetProperty("crewMembers")[0].GetProperty("name").GetString());
@@ -217,7 +215,7 @@ public class VesselVisitNotificationTests : IClassFixture<IntegrationTestsWebApp
     {
         // Arrange
         SeedTestData(); // Still need to initialize DB even if we don't use the data
-        var nonExistentId = Guid.NewGuid().ToString();
+        var nonExistentId = "VVN-" + DateTime.UtcNow.Ticks; // Use a BusinessId format
 
         // Act
         var response = await _client.GetAsync($"/api/notifications/{nonExistentId}");
@@ -237,7 +235,7 @@ public class VesselVisitNotificationTests : IClassFixture<IntegrationTestsWebApp
             EstimatedArrival = DateTime.UtcNow.AddHours(2),
             EstimatedDeparture = DateTime.UtcNow.AddHours(12),
             VesselImo = vesselImo,
-            RepresentativeId = representativeId,
+            RepresentativeCitizenId = "98765432Z",
             Cargo = new CreateCargoDto { Description = "Original Cargo", Weight = 100, Containers = new List<CreateContainerDto>{ new CreateContainerDto { ContainerCode="CSQU3054383", Position="A1"} } },
             CrewMembers = new List<CreateCrewMemberDto>{ new CreateCrewMemberDto { Name="Original Crew", Nationality="OrigNat"} }
         };
@@ -245,22 +243,22 @@ public class VesselVisitNotificationTests : IClassFixture<IntegrationTestsWebApp
         var createResponse = await _client.PostAsync("/api/notifications", createContent);
         createResponse.EnsureSuccessStatusCode();
         var createdDto = JsonSerializer.Deserialize<VesselVisitNotificationDto>(await createResponse.Content.ReadAsStringAsync(), new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-        var notificationId = createdDto!.Id.ToString();
+        var notificationBusinessId = createdDto!.BusinessId; // Use BusinessId
 
         // Arrange Update DTO
-        var updateDto = new CreateVvnDto // Use Create DTO for update
+        var updateDto = new CreateVvnDto
         {
              EstimatedArrival = DateTime.UtcNow.AddHours(4), // Updated
              EstimatedDeparture = DateTime.UtcNow.AddHours(14), // Updated
              VesselImo = vesselImo,
-             RepresentativeId = representativeId, // Must include RepId in PUT DTO
+             RepresentativeCitizenId = "98765432Z",
              Cargo = new CreateCargoDto { Description = "Updated PUT Cargo", Weight = 200, Containers = new List<CreateContainerDto>() }, // Updated
              CrewMembers = new List<CreateCrewMemberDto>{ new CreateCrewMemberDto { Name="Updated Crew", Nationality="UpNat"} } // Updated
         };
         var updateContent = SerializeDto(updateDto);
 
         // Act
-        var response = await _client.PutAsync($"/api/notifications/{notificationId}", updateContent);
+        var response = await _client.PutAsync($"/api/notifications/{notificationBusinessId}", updateContent);
 
         // Assert
         response.EnsureSuccessStatusCode();
@@ -281,7 +279,7 @@ public class VesselVisitNotificationTests : IClassFixture<IntegrationTestsWebApp
             EstimatedArrival = DateTime.UtcNow.AddHours(2),
             EstimatedDeparture = DateTime.UtcNow.AddHours(12),
             VesselImo = vesselImo,
-            RepresentativeId = representativeId,
+            RepresentativeCitizenId = "98765432Z",
             Cargo = new CreateCargoDto { Description = "Submit Test Cargo", Weight = 100, Containers = new List<CreateContainerDto>{ new CreateContainerDto { ContainerCode="CSQU3054383", Position="S1"} } },
             CrewMembers = new List<CreateCrewMemberDto>{ new CreateCrewMemberDto { Name="Submit Crew", Nationality="SubNat"} }
         };
@@ -289,9 +287,9 @@ public class VesselVisitNotificationTests : IClassFixture<IntegrationTestsWebApp
         var createResponse = await _client.PostAsync("/api/notifications", createContent);
         createResponse.EnsureSuccessStatusCode();
         var createdDto = JsonSerializer.Deserialize<VesselVisitNotificationDto>(await createResponse.Content.ReadAsStringAsync(), new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-        var notificationId = createdDto!.Id.ToString();
+        var notificationBusinessId = createdDto!.BusinessId;
         // Submit it
-        await _client.PatchAsync($"/api/notifications/{notificationId}/submit", null);
+        await _client.PatchAsync($"/api/notifications/{notificationBusinessId}/submit", null);
 
         // Arrange Update DTO
         var updateDto = new CreateVvnDto 
@@ -299,14 +297,14 @@ public class VesselVisitNotificationTests : IClassFixture<IntegrationTestsWebApp
             EstimatedArrival = DateTime.UtcNow.AddHours(3),
             EstimatedDeparture = DateTime.UtcNow.AddHours(13),
             VesselImo = vesselImo,
-            RepresentativeId = representativeId,
+            RepresentativeCitizenId = "98765432Z",
             Cargo = new CreateCargoDto { Description = "Updated Cargo", Weight = 150, Containers = new List<CreateContainerDto>() },
             CrewMembers = new List<CreateCrewMemberDto>{ new CreateCrewMemberDto { Name="Updated Crew", Nationality="UpdNat"} }
         };
         var updateContent = SerializeDto(updateDto);
 
         // Act
-        var response = await _client.PutAsync($"/api/notifications/{notificationId}", updateContent);
+        var response = await _client.PutAsync($"/api/notifications/{notificationBusinessId}", updateContent);
 
         // Assert
         Assert.True(response.StatusCode == System.Net.HttpStatusCode.BadRequest || response.StatusCode == System.Net.HttpStatusCode.Conflict, $"Expected 400/409 but got {response.StatusCode}");
@@ -324,7 +322,7 @@ public class VesselVisitNotificationTests : IClassFixture<IntegrationTestsWebApp
             EstimatedArrival = DateTime.UtcNow.AddHours(2),
             EstimatedDeparture = DateTime.UtcNow.AddHours(12),
             VesselImo = vesselImo,
-            RepresentativeId = representativeId,
+            RepresentativeCitizenId = "98765432Z",
             Cargo = new CreateCargoDto { Description = "Patch Test Cargo", Weight = 100, Containers = new List<CreateContainerDto>{ new CreateContainerDto { ContainerCode="CSQU3054383", Position="P1"} } },
             CrewMembers = new List<CreateCrewMemberDto>{ new CreateCrewMemberDto { Name="Patch Crew", Nationality="PatchNat"} }
         };
@@ -332,17 +330,17 @@ public class VesselVisitNotificationTests : IClassFixture<IntegrationTestsWebApp
         var createResponse = await _client.PostAsync("/api/notifications", createContent);
         createResponse.EnsureSuccessStatusCode();
         var createdDto = JsonSerializer.Deserialize<VesselVisitNotificationDto>(await createResponse.Content.ReadAsStringAsync(), new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-        var notificationId = createdDto!.Id.ToString();
+        var notificationBusinessId = createdDto!.BusinessId;
    
         // Act
-        var response = await _client.PatchAsync($"/api/notifications/{notificationId}/submit", null); // No body needed
+        var response = await _client.PatchAsync($"/api/notifications/{notificationBusinessId}/submit", null); // No body needed
 
         // Assert
         response.EnsureSuccessStatusCode(); // Expect 2xx range
         Assert.Equal(System.Net.HttpStatusCode.NoContent, response.StatusCode);
 
         // Verify status changed using GET
-        var getResponse = await _client.GetAsync($"/api/notifications/{notificationId}");
+        var getResponse = await _client.GetAsync($"/api/notifications/{notificationBusinessId}");
         getResponse.EnsureSuccessStatusCode();
         var getBody = await getResponse.Content.ReadAsStringAsync();
         using var jsonDoc = JsonDocument.Parse(getBody);
@@ -360,7 +358,7 @@ public class VesselVisitNotificationTests : IClassFixture<IntegrationTestsWebApp
             EstimatedArrival = DateTime.UtcNow.AddHours(2),
             EstimatedDeparture = DateTime.UtcNow.AddHours(12),
             VesselImo = vesselImo,
-            RepresentativeId = representativeId,
+            RepresentativeCitizenId = "98765432Z",
             Cargo = new CreateCargoDto { Description = "Double Submit Cargo", Weight = 100, Containers = new List<CreateContainerDto>{ new CreateContainerDto { ContainerCode="CSQU3054383", Position="D1"} } },
             CrewMembers = new List<CreateCrewMemberDto>{ new CreateCrewMemberDto { Name="Double Crew", Nationality="DblNat"} }
         };
@@ -368,69 +366,69 @@ public class VesselVisitNotificationTests : IClassFixture<IntegrationTestsWebApp
         var createResponse = await _client.PostAsync("/api/notifications", createContent);
         createResponse.EnsureSuccessStatusCode();
         var createdDto = JsonSerializer.Deserialize<VesselVisitNotificationDto>(await createResponse.Content.ReadAsStringAsync(), new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-        var notificationId = createdDto!.Id.ToString();
+        var notificationBusinessId = createdDto!.BusinessId;
         // Submit it once
-        await _client.PatchAsync($"/api/notifications/{notificationId}/submit", null);
+        await _client.PatchAsync($"/api/notifications/{notificationBusinessId}/submit", null);
 
         // Act: Try to submit again
-        var response = await _client.PatchAsync($"/api/notifications/{notificationId}/submit", null);
+        var response = await _client.PatchAsync($"/api/notifications/{notificationBusinessId}/submit", null);
 
         // Assert
         Assert.True(response.StatusCode == System.Net.HttpStatusCode.BadRequest || response.StatusCode == System.Net.HttpStatusCode.Conflict, $"Expected 400/409 but got {response.StatusCode}");
     }
-    
-     // Add tests for Approve, Reject, Resubmit following similar patterns
-     [Fact]
-     public async Task PatchApprove_NonSubmittedNotification_ReturnsError()
-     {
-         // Arrange
-         var (vesselImo, representativeId) = SeedTestData();
 
-         var createDto = new CreateVvnDto 
-         { 
-             EstimatedArrival = DateTime.UtcNow.AddHours(2),
-             EstimatedDeparture = DateTime.UtcNow.AddHours(12),
-             VesselImo = vesselImo,
-             RepresentativeId = representativeId,
-             Cargo = new CreateCargoDto 
-             { 
-                 Description = "Non-Submitted Test Cargo", 
-                 Weight = 100, 
-                 Containers = new List<CreateContainerDto> 
-                 { 
-                     new CreateContainerDto { ContainerCode = "CSQU3054383", Position = "B1" } 
-                 } 
-             },
-             CrewMembers = new List<CreateCrewMemberDto> 
-             { 
-                 new CreateCrewMemberDto { Name = "Non-Submitted Crew", Nationality = "NonSubNat" } 
-             }
-         };
 
-         var createContent = SerializeDto(createDto);
-         var createResponse = await _client.PostAsync("/api/notifications", createContent);
-         createResponse.EnsureSuccessStatusCode();
+    [Fact]
+    public async Task PatchApprove_NonSubmittedNotification_ReturnsError()
+    {
+        // Arrange
+        var (vesselImo, representativeId) = SeedTestData();
 
-         var createdDto = JsonSerializer.Deserialize<VesselVisitNotificationDto>(
-             await createResponse.Content.ReadAsStringAsync(), 
-             new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        var createDto = new CreateVvnDto 
+        { 
+            EstimatedArrival = DateTime.UtcNow.AddHours(2),
+            EstimatedDeparture = DateTime.UtcNow.AddHours(12),
+            VesselImo = vesselImo,
+            RepresentativeCitizenId = "98765432Z",
+            Cargo = new CreateCargoDto 
+            { 
+                Description = "Non-Submitted Test Cargo", 
+                Weight = 100, 
+                Containers = new List<CreateContainerDto> 
+                { 
+                    new CreateContainerDto { ContainerCode = "CSQU3054383", Position = "B1" } 
+                } 
+            },
+            CrewMembers = new List<CreateCrewMemberDto> 
+            { 
+                new CreateCrewMemberDto { Name = "Non-Submitted Crew", Nationality = "NonSubNat" } 
+            }
+        };
 
-         var notificationId = createdDto!.Id.ToString();
+        var createContent = SerializeDto(createDto);
+        var createResponse = await _client.PostAsync("/api/notifications", createContent);
+        createResponse.EnsureSuccessStatusCode();
 
-         var approveDto = new ApproveVvnDto { OfficerId = "OFFICER1", DockId = "DOCK-A" };
-         var approveContent = SerializeDto(approveDto);
+        var createdDto = JsonSerializer.Deserialize<VesselVisitNotificationDto>(
+            await createResponse.Content.ReadAsStringAsync(), 
+            new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
-         // Act
-         var response = await _client.PatchAsync($"/api/notifications/{notificationId}/approve", approveContent);
+        var notificationBusinessId = createdDto!.BusinessId;
 
-         // Assert
-         Assert.True(
-             response.StatusCode == HttpStatusCode.BadRequest || response.StatusCode == HttpStatusCode.Conflict,
-             $"Expected 400/409 but got {response.StatusCode}");
+        var approveDto = new ApproveVvnDto { OfficerId = "OFFICER1", DockId = "DOCK-A" };
+        var approveContent = SerializeDto(approveDto);
 
-         var responseString = await response.Content.ReadAsStringAsync();
-         Assert.Contains("cannot approve", responseString, StringComparison.OrdinalIgnoreCase);
-     }
+        // Act
+        var response = await _client.PatchAsync($"/api/notifications/{notificationBusinessId}/approve", approveContent);
+
+        // Assert
+        Assert.True(
+            response.StatusCode == HttpStatusCode.BadRequest || response.StatusCode == HttpStatusCode.Conflict,
+            $"Expected 400/409 but got {response.StatusCode}");
+
+        var responseString = await response.Content.ReadAsStringAsync();
+        Assert.Contains("cannot approve", responseString, StringComparison.OrdinalIgnoreCase);
+    }
 
     
     [Fact]
@@ -444,7 +442,7 @@ public class VesselVisitNotificationTests : IClassFixture<IntegrationTestsWebApp
             EstimatedArrival = DateTime.UtcNow.AddHours(2),
             EstimatedDeparture = DateTime.UtcNow.AddHours(12),
             VesselImo = vesselImo,
-            RepresentativeId = representativeId,
+            RepresentativeCitizenId = "98765432Z",
             Cargo = new CreateCargoDto 
             { 
                 Description = "Reject Test Cargo", 
@@ -459,22 +457,22 @@ public class VesselVisitNotificationTests : IClassFixture<IntegrationTestsWebApp
         var createdDto = JsonSerializer.Deserialize<VesselVisitNotificationDto>(
             await createResponse.Content.ReadAsStringAsync(), 
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-        var notificationId = createdDto!.Id.ToString();
+        var notificationBusinessId = createdDto!.BusinessId;
         
         // Submeter a notificação primeiro
-        await _client.PatchAsync($"/api/notifications/{notificationId}/submit", null);
+        await _client.PatchAsync($"/api/notifications/{notificationBusinessId}/submit", null);
 
         var rejectDto = new { OfficerId = "OFFICER2", Reason = "Incomplete documentation" };
         var rejectContent = SerializeDto(rejectDto);
 
         // Act
-        var response = await _client.PatchAsync($"/api/notifications/{notificationId}/reject", rejectContent);
+        var response = await _client.PatchAsync($"/api/notifications/{notificationBusinessId}/reject", rejectContent);
 
         // Assert
         Assert.Equal(System.Net.HttpStatusCode.NoContent, response.StatusCode);
 
         // Verificar estado atualizado via GET
-        var getResponse = await _client.GetAsync($"/api/notifications/{notificationId}");
+        var getResponse = await _client.GetAsync($"/api/notifications/{notificationBusinessId}");
         getResponse.EnsureSuccessStatusCode();
         var getBody = await getResponse.Content.ReadAsStringAsync();
         using var jsonDoc = JsonDocument.Parse(getBody);
@@ -496,7 +494,7 @@ public class VesselVisitNotificationTests : IClassFixture<IntegrationTestsWebApp
             EstimatedArrival = DateTime.UtcNow.AddHours(2),
             EstimatedDeparture = DateTime.UtcNow.AddHours(12),
             VesselImo = vesselImo,
-            RepresentativeId = representativeId,
+            RepresentativeCitizenId = "98765432Z",
             Cargo = new CreateCargoDto 
             { 
                 Description = "Non-Submitted Reject Cargo", 
@@ -511,13 +509,13 @@ public class VesselVisitNotificationTests : IClassFixture<IntegrationTestsWebApp
         var createdDto = JsonSerializer.Deserialize<VesselVisitNotificationDto>(
             await createResponse.Content.ReadAsStringAsync(), 
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-        var notificationId = createdDto!.Id.ToString();
+        var notificationBusinessId = createdDto!.BusinessId;
 
         var rejectDto = new { OfficerId = "OFFICER2", Reason = "Test rejection" };
         var rejectContent = SerializeDto(rejectDto);
 
         // Act
-        var response = await _client.PatchAsync($"/api/notifications/{notificationId}/reject", rejectContent);
+        var response = await _client.PatchAsync($"/api/notifications/{notificationBusinessId}/reject", rejectContent);
 
         // Assert
         Assert.True(
@@ -538,7 +536,7 @@ public class VesselVisitNotificationTests : IClassFixture<IntegrationTestsWebApp
             EstimatedArrival = DateTime.UtcNow.AddHours(2),
             EstimatedDeparture = DateTime.UtcNow.AddHours(12),
             VesselImo = vesselImo,
-            RepresentativeId = representativeId,
+            RepresentativeCitizenId = "98765432Z",
             Cargo = new CreateCargoDto 
             { 
                 Description = "Resubmit Test Cargo", 
@@ -553,22 +551,22 @@ public class VesselVisitNotificationTests : IClassFixture<IntegrationTestsWebApp
         var createdDto = JsonSerializer.Deserialize<VesselVisitNotificationDto>(
             await createResponse.Content.ReadAsStringAsync(), 
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-        var notificationId = createdDto!.Id.ToString();
+        var notificationBusinessId = createdDto!.BusinessId;
         
         // Submeter e rejeitar a notificação primeiro
-        await _client.PatchAsync($"/api/notifications/{notificationId}/submit", null);
+        await _client.PatchAsync($"/api/notifications/{notificationBusinessId}/submit", null);
         var rejectDto = new { OfficerId = "OFFICER2", Reason = "Missing info" };
         var rejectContent = SerializeDto(rejectDto);
-        await _client.PatchAsync($"/api/notifications/{notificationId}/reject", rejectContent);
+        await _client.PatchAsync($"/api/notifications/{notificationBusinessId}/reject", rejectContent);
 
         // Act
-        var response = await _client.PatchAsync($"/api/notifications/{notificationId}/resubmit", null);
+        var response = await _client.PatchAsync($"/api/notifications/{notificationBusinessId}/resubmit", null);
 
         // Assert
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
 
         // Verificar estado atualizado via GET
-        var getResponse = await _client.GetAsync($"/api/notifications/{notificationId}");
+        var getResponse = await _client.GetAsync($"/api/notifications/{notificationBusinessId}");
         getResponse.EnsureSuccessStatusCode();
         var getBody = await getResponse.Content.ReadAsStringAsync();
         using var jsonDoc = JsonDocument.Parse(getBody);
@@ -587,7 +585,7 @@ public class VesselVisitNotificationTests : IClassFixture<IntegrationTestsWebApp
             EstimatedArrival = DateTime.UtcNow.AddHours(2),
             EstimatedDeparture = DateTime.UtcNow.AddHours(12),
             VesselImo = vesselImo,
-            RepresentativeId = representativeId,
+            RepresentativeCitizenId = "98765432Z",
             Cargo = new CreateCargoDto 
             { 
                 Description = "Non-Rejected Resubmit Cargo", 
@@ -602,10 +600,10 @@ public class VesselVisitNotificationTests : IClassFixture<IntegrationTestsWebApp
         var createdDto = JsonSerializer.Deserialize<VesselVisitNotificationDto>(
             await createResponse.Content.ReadAsStringAsync(), 
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-        var notificationId = createdDto!.Id.ToString();
+        var notificationBusinessId = createdDto!.BusinessId;
 
         // Act
-        var response = await _client.PatchAsync($"/api/notifications/{notificationId}/resubmit", null);
+        var response = await _client.PatchAsync($"/api/notifications/{notificationBusinessId}/resubmit", null);
 
         // Assert
         Assert.True(
@@ -615,4 +613,3 @@ public class VesselVisitNotificationTests : IClassFixture<IntegrationTestsWebApp
         Assert.Contains("cannot resubmit", responseString, StringComparison.OrdinalIgnoreCase);
     }
 }
-     

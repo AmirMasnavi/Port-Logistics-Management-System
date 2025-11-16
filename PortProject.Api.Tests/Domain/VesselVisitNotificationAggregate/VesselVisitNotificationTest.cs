@@ -21,13 +21,14 @@ public class VesselVisitNotificationTests
         var vesselId = new ImoNumber("9319466"); // Use valid IMO
         var repId = new RepresentativeId(Guid.NewGuid());
         var cargo = new Cargo("Test Cargo", 1000, new List<Container> { new Container(new ContainerCode("CSQU3054383"), "P1") });
-        var crew = new List<CrewMember> { new CrewMember("Capt.", "TestNat") };
+        var crew = new List<CrewMember> { new CrewMember("Capt.", "TestNat", false) };
 
         // Use reflection to create instance and set status if needed (since constructor is private)
         var notification = (VesselVisitNotification)Activator.CreateInstance(typeof(VesselVisitNotification), true)!;
 
         // Use reflection or a test helper method if needed to set private fields for Arrange phase
         SetPrivateField(notification, "Id", new NotificationId(Guid.NewGuid()));
+        SetPrivateField(notification, "BusinessId", "VVN-" + DateTime.UtcNow.Ticks); // Add BusinessId
         SetPrivateField(notification, "EstimatedArrival", eta);
         SetPrivateField(notification, "EstimatedDeparture", etd);
         SetPrivateField(notification, "VesselId", vesselId);
@@ -70,7 +71,7 @@ public class VesselVisitNotificationTests
         var etd = new ETD(DateTime.UtcNow.AddHours(10));
         var vesselId = new ImoNumber("9319466");
         var repId = new RepresentativeId(Guid.NewGuid());
-        var cargo = new Cargo("Test", 100, null);
+        var cargo = new Cargo("Test", 100, new List<Container>());
         var crew = new List<CrewMember>();
 
         // Act
@@ -79,6 +80,8 @@ public class VesselVisitNotificationTests
         // Assert
         Assert.IsNotNull(notification);
         Assert.AreEqual(NotificationStatus.InProgress, notification.Status);
+        Assert.IsNotNull(notification.BusinessId); // Verify BusinessId is generated
+        Assert.IsTrue(notification.BusinessId.StartsWith("VVN-")); // Verify BusinessId format
         Assert.AreEqual(eta, notification.EstimatedArrival);
         Assert.AreEqual(etd, notification.EstimatedDeparture);
         Assert.AreEqual(vesselId, notification.VesselId);
@@ -98,11 +101,11 @@ public class VesselVisitNotificationTests
         var etd = new ETD(DateTime.UtcNow.AddHours(1)); // Departs EARLIER
         var vesselId = new ImoNumber("9319466");
         var repId = new RepresentativeId(Guid.NewGuid());
-        var cargo = new Cargo("Test", 100, null);
+        var cargo = new Cargo("Test", 100, new List<Container>());
 
         // Act & Assert
         Assert.ThrowsException<ArgumentException>(() =>
-            VesselVisitNotification.Create(eta, etd, vesselId, repId, cargo, null)
+            VesselVisitNotification.Create(eta, etd, vesselId, repId, cargo, new List<CrewMember>())
         );
     }
 
@@ -140,7 +143,7 @@ public class VesselVisitNotificationTests
         var newEta = new ETA(DateTime.UtcNow.AddHours(2));
         var newEtd = new ETD(DateTime.UtcNow.AddHours(12));
         var newCargo = new Cargo("Updated Cargo", 2000, new List<Container>());
-        var newCrew = new List<CrewMember> { new CrewMember("New Guy", "New Nat") };
+        var newCrew = new List<CrewMember> { new CrewMember("New Guy", "New Nat", false) };
 
         // Act
         notification.UpdateDetails(newEta, newEtd, newCargo, newCrew);
@@ -224,5 +227,97 @@ public class VesselVisitNotificationTests
 
         // Act & Assert
         Assert.ThrowsException<InvalidOperationException>(() => notification.Reject(officerId, reason));
+    }
+
+    [TestMethod]
+    public void Reopen_WhenStatusIsRejected_ShouldChangeStatusToSubmitted()
+    {
+        // Arrange
+        var notification = CreateValidNotification(NotificationStatus.Rejected);
+
+        // Act
+        notification.Reopen();
+
+        // Assert
+        Assert.AreEqual(NotificationStatus.Submitted, notification.Status);
+    }
+
+    [TestMethod]
+    [DataRow(NotificationStatus.InProgress)]
+    [DataRow(NotificationStatus.Submitted)]
+    [DataRow(NotificationStatus.Approved)]
+    public void Reopen_WhenStatusIsNotRejected_ShouldThrowInvalidOperationException(NotificationStatus status)
+    {
+        // Arrange
+        var notification = CreateValidNotification(status);
+
+        // Act & Assert
+        Assert.ThrowsException<InvalidOperationException>(() => notification.Reopen());
+    }
+
+    [TestMethod]
+    public void BusinessId_ShouldBeUnique_ForDifferentNotifications()
+    {
+        // Arrange & Act
+        var notification1 = VesselVisitNotification.Create(
+            new ETA(DateTime.UtcNow.AddHours(1)),
+            new ETD(DateTime.UtcNow.AddHours(10)),
+            new ImoNumber("9319466"),
+            new RepresentativeId(Guid.NewGuid()),
+            new Cargo("Test", 100, new List<Container>()),
+            new List<CrewMember>()
+        );
+
+        var notification2 = VesselVisitNotification.Create(
+            new ETA(DateTime.UtcNow.AddHours(2)),
+            new ETD(DateTime.UtcNow.AddHours(12)),
+            new ImoNumber("9319466"),
+            new RepresentativeId(Guid.NewGuid()),
+            new Cargo("Test2", 200, new List<Container>()),
+            new List<CrewMember>()
+        );
+
+        // Assert
+        Assert.IsNotNull(notification1.BusinessId);
+        Assert.IsNotNull(notification2.BusinessId);
+        Assert.AreNotEqual(notification1.BusinessId, notification2.BusinessId);
+    }
+
+    [TestMethod]
+    public void UpdateDetails_WhenStatusIsRejected_ShouldUpdatePropertiesAndCrew()
+    {
+        // Arrange
+        var notification = CreateValidNotification(NotificationStatus.Rejected);
+        var newEta = new ETA(DateTime.UtcNow.AddHours(3));
+        var newEtd = new ETD(DateTime.UtcNow.AddHours(13));
+        var newCargo = new Cargo("Updated After Rejection", 3000, new List<Container>());
+        var newCrew = new List<CrewMember> { new CrewMember("Updated Crew", "Updated Nat", true) };
+
+        // Act
+        notification.UpdateDetails(newEta, newEtd, newCargo, newCrew);
+
+        // Assert
+        Assert.AreEqual(newEta, notification.EstimatedArrival);
+        Assert.AreEqual(newEtd, notification.EstimatedDeparture);
+        Assert.AreEqual(newCargo, notification.Cargo);
+        Assert.AreEqual(1, notification.CrewMembers.Count);
+        Assert.AreEqual("Updated Crew", notification.CrewMembers.First().Name);
+    }
+
+    [TestMethod]
+    [DataRow(NotificationStatus.Submitted)]
+    [DataRow(NotificationStatus.Approved)]
+    public void UpdateDetails_WhenStatusIsNotInProgressOrRejected_ShouldThrowInvalidOperationException(NotificationStatus status)
+    {
+        // Arrange
+        var notification = CreateValidNotification(status);
+        var newEta = new ETA(DateTime.UtcNow.AddHours(2));
+        var newEtd = new ETD(DateTime.UtcNow.AddHours(12));
+        var newCargo = new Cargo("Updated", 1500, new List<Container>());
+        var newCrew = new List<CrewMember>();
+
+        // Act & Assert
+        Assert.ThrowsException<InvalidOperationException>(() => 
+            notification.UpdateDetails(newEta, newEtd, newCargo, newCrew));
     }
 }
