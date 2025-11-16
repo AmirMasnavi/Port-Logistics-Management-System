@@ -434,7 +434,6 @@ export const getDockById = async (id: string): Promise<{ id: string; name: strin
 // GET /api/notifications/search
 export const getAllVvns = async (): Promise<VesselVisitNotification[]> => {
     try {
-        // --- FIX: Used apiClient and correct endpoint ---
         const response = await apiClient.get<VesselVisitNotification[]>('/notifications/search');
         return response.data;
     } catch (error) {
@@ -443,14 +442,13 @@ export const getAllVvns = async (): Promise<VesselVisitNotification[]> => {
     }
 };
 
-// GET /api/notifications/{id}
-export const getVvnById = async (id: string): Promise<VesselVisitNotification> => {
+// GET /api/notifications/{businessId} - Changed to use businessId instead of internal id
+export const getVvnById = async (businessId: string): Promise<VesselVisitNotification> => {
     try {
-        // --- FIX: Used apiClient and correct endpoint ---
-        const response = await apiClient.get<VesselVisitNotification>(`/notifications/${id}`);
+        const response = await apiClient.get<VesselVisitNotification>(`/notifications/${businessId}`);
         return response.data;
     } catch (error) {
-        console.error(`Error fetching VVN ${id}:`, error);
+        console.error(`Error fetching VVN ${businessId}:`, error);
         throw error;
     }
 };
@@ -458,7 +456,6 @@ export const getVvnById = async (id: string): Promise<VesselVisitNotification> =
 // POST /api/notifications
 export const createVvn = async (dto: CreateVvnDto): Promise<VesselVisitNotification> => {
     try {
-        // --- FIX: Used apiClient and correct endpoint ---
         const response = await apiClient.post<VesselVisitNotification>('/notifications', dto);
         return response.data;
     } catch (error) {
@@ -467,57 +464,54 @@ export const createVvn = async (dto: CreateVvnDto): Promise<VesselVisitNotificat
     }
 };
 
-// PUT /api/notifications/{id}
-export const updateVvn = async (id: string, dto: CreateVvnDto): Promise<VesselVisitNotification> => {
+// PUT /api/notifications/{businessId} - Changed to use businessId
+export const updateVvn = async (businessId: string, dto: CreateVvnDto): Promise<VesselVisitNotification> => {
     try {
-        // --- FIX: Used apiClient and correct endpoint ---
-        const response = await apiClient.put<VesselVisitNotification>(`/notifications/${id}`, dto);
+        const response = await apiClient.put<VesselVisitNotification>(`/notifications/${businessId}`, dto);
         return response.data;
     } catch (error) {
-        console.error(`Error updating VVN ${id}:`, error);
+        console.error(`Error updating VVN ${businessId}:`, error);
         throw error;
     }
 };
 
-// PATCH /api/notifications/{id}/submit
-export const submitVvn = async (id: string): Promise<void> => {
+// PATCH /api/notifications/{businessId}/submit - Changed to use businessId
+export const submitVvn = async (businessId: string): Promise<void> => {
     try {
-        // --- FIX: Used apiClient and correct endpoint ---
-        await apiClient.patch(`/notifications/${id}/submit`);
+        await apiClient.patch(`/notifications/${businessId}/submit`);
     } catch (error) {
-        console.error(`Error submitting VVN ${id}:`, error);
+        console.error(`Error submitting VVN ${businessId}:`, error);
         throw error;
     }
 };
 
-// PATCH /api/notifications/{id}/approve
-export const approveVvn = async (id: string, dto: ApproveVvnDto): Promise<void> => {
+// PATCH /api/notifications/{businessId}/approve - Changed to use businessId
+export const approveVvn = async (businessId: string, dto: ApproveVvnDto): Promise<void> => {
     try {
-        // --- FIX: Used apiClient and correct endpoint ---
-        await apiClient.patch(`/notifications/${id}/approve`, dto);
+        await apiClient.patch(`/notifications/${businessId}/approve`, dto);
     } catch (error) {
-        console.error(`Error approving VVN ${id}:`, error);
+        console.error(`Error approving VVN ${businessId}:`, error);
         throw error;
     }
 };
 
-// PATCH /api/notifications/{id}/reject
-export const rejectVvn = async (id: string, dto: RejectVvnDto): Promise<void> => {
+// PATCH /api/notifications/{businessId}/reject - Changed to use businessId
+export const rejectVvn = async (businessId: string, dto: RejectVvnDto): Promise<void> => {
     try {
-        // --- FIX: Used apiClient and correct endpoint ---
-        const resp = await apiClient.patch(`/notifications/${id}/reject`, dto);
+        const resp = await apiClient.patch(`/notifications/${businessId}/reject`, dto);
         return resp.data;
     } catch (error) {
-        console.error(`Error rejecting VVN ${id}:`, error);
+        console.error(`Error rejecting VVN ${businessId}:`, error);
         throw error;
     }
 };
 
-export const reopenVvn = async (id: string): Promise<void> => {
+// PATCH /api/notifications/{businessId}/resubmit - Changed to use businessId
+export const reopenVvn = async (businessId: string): Promise<void> => {
     try {
-        await apiClient.patch(`/notifications/${id}/resubmit`);
+        await apiClient.patch(`/notifications/${businessId}/resubmit`);
     } catch (error) {
-        console.error(`Error reopening VVN ${id}:`, error);
+        console.error(`Error reopening VVN ${businessId}:`, error);
         throw error;
     }
 };

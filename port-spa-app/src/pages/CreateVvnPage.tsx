@@ -36,7 +36,7 @@ const initialState: CreateVvnDto = {
     "estimatedArrival": "2025-11-14T12:00",
     "estimatedDeparture": "2025-11-14T20:00",
     "vesselImo": "9319466",
-    "representativeId": "6C8D1459-376C-4CFD-AA51-965AE6CAD476",
+    "representativeCitizenId": "AC1234567", // Changed from representativeId (GUID) to CitizenId
     "cargo": {
         "description": "Initial Cargo Load",
         "weight": 12000,
@@ -67,13 +67,13 @@ const CreateVvnPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const isEditMode = Boolean(id);
 
-    // Read the representative ID passed from the previous page
-    const representativeId = location.state?.representativeId || "cbe6abb5-7ad3-482c-b5cd-6d0876e0c9b2";
+    // Read the representative CitizenId passed from the previous page
+    const representativeCitizenId = location.state?.representativeCitizenId || "AC1234567";
 
     const [step, setStep] = useState(1);
     const [formData, setFormData] = useState<CreateVvnDto>({
         ...initialState,
-        representativeId: representativeId,
+        representativeCitizenId: representativeCitizenId, // Changed from representativeId
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isLoading, setIsLoading] = useState(isEditMode);
@@ -86,7 +86,7 @@ const CreateVvnPage: React.FC = () => {
         if (isEditMode && id) {
             const fetchVvn = async () => {
                 try {
-                    const vvn = await getVvnById(id); //
+                    const vvn = await getVvnById(id); // Now uses businessId
                     // Format dates for the input field
                     const formatDt = (dt: string) => dt.substring(0, 16);
 
@@ -94,7 +94,7 @@ const CreateVvnPage: React.FC = () => {
                         estimatedArrival: formatDt(vvn.estimatedArrival),
                         estimatedDeparture: formatDt(vvn.estimatedDeparture),
                         vesselImo: vvn.vesselImo,
-                        representativeId: vvn.submittedBy, //
+                        representativeCitizenId: representativeCitizenId, // Keep the CitizenId from location state
                         cargo: vvn.cargo,
                         crewMembers: vvn.crewMembers,
                     });
@@ -367,3 +367,4 @@ const CreateVvnPage: React.FC = () => {
 };
 
 export default CreateVvnPage;
+

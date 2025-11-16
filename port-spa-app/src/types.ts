@@ -107,7 +107,8 @@ export interface DecisionLogEntry {
 
 // This is the main data structure we GET from the API
 export interface VesselVisitNotification {
-    id: string; // Guid
+    id: string; // Guid (internal ID, kept for backward compatibility)
+    businessId: string; // New: Business identifier like "VVN-123456789"
     status: 'InProgress' | 'Submitted' | 'Approved' | 'Rejected';
     estimatedArrival: string; // DateTime
     estimatedDeparture: string; // DateTime
@@ -143,7 +144,7 @@ export interface CreateVvnDto {
     estimatedArrival: string;
     estimatedDeparture: string;
     vesselImo: string;
-    representativeId: string;
+    representativeCitizenId: string; // Changed from representativeId (GUID) to CitizenId (e.g., "12345678Z")
     cargo: CreateCargoDto;
     crewMembers: CreateCrewMemberDto[];
 }

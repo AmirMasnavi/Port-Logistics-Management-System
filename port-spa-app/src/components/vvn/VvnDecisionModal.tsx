@@ -82,7 +82,7 @@ const VvnDecisionModal: React.FC<VvnDecisionModalProps> = ({
                 setError('Dock ID is required to approve.');
                 return;
             }
-            onConfirmApprove(vvn.id, { officerId, dockId });
+            onConfirmApprove(vvn.businessId, { officerId, dockId });
         }
 
         if (action === 'reject') {
@@ -90,7 +90,7 @@ const VvnDecisionModal: React.FC<VvnDecisionModalProps> = ({
                 setError('A reason is required to reject.');
                 return;
             }
-            onConfirmReject(vvn.id, { officerId, reason });
+            onConfirmReject(vvn.businessId, { officerId, reason });
         }
     };
 

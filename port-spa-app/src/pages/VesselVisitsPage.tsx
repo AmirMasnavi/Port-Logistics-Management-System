@@ -127,8 +127,8 @@ const VesselVisitNotificationPage: React.FC = () => {
     };
 
     const handleEdit = (vvn: VesselVisitNotification) => {
-        // Navigate to the new edit page
-        navigate(`/vessel-visits/edit/${vvn.id}`);
+        // Navigate to the new edit page using businessId
+        navigate(`/vessel-visits/edit/${vvn.businessId}`);
     };
 
     const handleViewDetails = (vvn: VesselVisitNotification) => {
@@ -180,9 +180,9 @@ const VesselVisitNotificationPage: React.FC = () => {
         : "Manage and review incoming vessel visit submissions";
 
     // --- 6. FIX THE GUID (TEMPORARY) ---
-    // Find a real GUID from your notifications to pass to the create page.
-    // Replace this with your actual Representative ID.
-    const myRepresentativeId = "cbe6abb5-7ad3-482c-b5cd-6d0876e0c9b2"
+    // Use the representative's CitizenId instead of internal GUID
+    // Replace this with your actual CitizenId (e.g., "12345678Z")
+    const myRepresentativeCitizenId = "AC1234567"
 
     const handleViewToggle = () => {
         if (viewAsRole === 'PortAuthorityOfficer') {
@@ -272,10 +272,10 @@ const VesselVisitNotificationPage: React.FC = () => {
   
 
                 {/* Create Button (UPDATED) */}
-                {viewAsRole === 'ShippingAgentRepresentative' && ( // <-- UPDATED
+                {viewAsRole === 'ShippingAgentRepresentative' && (
                     <Link
                         to="/vessel-visits/new"
-                        state={{ representativeId: myRepresentativeId }}
+                        state={{ representativeCitizenId: myRepresentativeCitizenId }} // Use CitizenId instead of GUID
                         className="btn btn-primary text-lg"
                     >
                         + Create Visit
@@ -297,13 +297,13 @@ const VesselVisitNotificationPage: React.FC = () => {
                 )}
                 {!loading && filteredVvns.map(vvn => (
                     <VvnCard
-                        key={vvn.id}
+                        key={vvn.businessId} 
                         vvn={vvn}
-                        internalRole={viewAsRole as InternalRoleValue | null} // <-- 8. UPDATED
+                        internalRole={viewAsRole as InternalRoleValue | null}
                         onApprove={() => setDecisionModalState({ isOpen: true, vvn: vvn, action: 'approve' })}
                         onReject={() => setDecisionModalState({ isOpen: true, vvn: vvn, action: 'reject' })}
-                        onReopen={() => openReopenModal(vvn.id)}
-                        onSubmit={() => openSubmitModal(vvn.id)}
+                        onReopen={() => openReopenModal(vvn.businessId)} 
+                        onSubmit={() => openSubmitModal(vvn.businessId)} 
                         onEdit={() => handleEdit(vvn)}
                         onViewDetails={() => handleViewDetails(vvn)}
                     />
@@ -347,3 +347,4 @@ const VesselVisitNotificationPage: React.FC = () => {
 };
 
 export default VesselVisitNotificationPage;
+
