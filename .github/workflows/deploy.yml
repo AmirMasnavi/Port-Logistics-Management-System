@@ -1,0 +1,62 @@
+﻿name: Deploy App to VM
+
+on:
+  workflow_dispatch: # manual trigger
+  schedule:
+    - cron: '0 5 * * *' # nightly at 5 AM - this can be adjusted as needed
+
+jobs:
+  build-and-deploy:
+    runs-on: self-hosted # VM runner
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # ---------------- Frontend ----------------
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Build React frontend
+        working-directory: ./port-spa-app
+        run: |
+          npm install
+          npm run build
+
+      - name: Deploy frontend to IIS
+        run: |
+          Remove-Item "C:\inetpub\wwwroot\*" -Recurse -Force -ErrorAction SilentlyContinue
+          Copy-Item ./port-spa-app/dist/* "C:\inetpub\wwwroot\" -Recurse -Force
+
+      # ---------------- Backend ----------------
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Build .NET backend
+        working-directory: ./PortProject.Api
+        run: |
+          dotnet publish -c Release -o ./publish
+
+      - name: Deploy backend via NSSM
+        run: |
+          Stop-Service MyBackendService
+          Remove-Item "C:\MyBackend\*" -Recurse -Force -ErrorAction SilentlyContinue
+          Copy-Item ./PortProject.Api/publish/* "C:\MyBackend\" -Recurse -Force
+          Start-Service MyBackendService
+
+      # ---------------- Tests & Logs ----------------
+      - name: Run automated tests
+        run: |
+          dotnet test ./PortProject.Api.Tests/PortProject.Api.Tests.csproj --logger "trx;LogFileName=UnitTests.trx"
+          dotnet test ./Port.Project.Api.System_Tests/Port.Project.Api.System_Tests.csproj --logger "trx;LogFileName=SystemTests.trx"
+      
+
+      - name: Archive test results
+        uses: actions/upload-artifact@v3
+        with:
+          name: deployment-logs
+          path: |
+            **/TestResults/
