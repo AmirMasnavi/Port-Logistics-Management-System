@@ -11,6 +11,7 @@ import VesselVisitsPage from './pages/VesselVisitsPage';
 import DockPage from './pages/DockPage';
 import RequireAuth from './auth/RequireAuth';
 import CreateVvnPage from "./pages/CreateVvnPage.tsx"; // <-- protect routes
+import PortFacilitiesPage from './pages/PortFacilitiesPage';
 
 // We can create a simple placeholder for the dashboard page
 const DashboardPage = () => <div className="text-xl">Welcome to the Port Authority Dashboard!</div>;
@@ -18,7 +19,6 @@ const DashboardPage = () => <div className="text-xl">Welcome to the Port Authori
 // Placeholder for the page we will build in US 3.1.5
 // const VesselVisitsPage = () => <div className="text-xl">Vessel Visits Page (Coming Soon!)</div>;
 
-const PortFacilitiesPage = () => <div className="text-xl">Port Facilities Page (Coming Soon!)</div>;
 
 function App() {
     // All the auth logic is removed from here.

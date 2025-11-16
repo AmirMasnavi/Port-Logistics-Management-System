@@ -2,8 +2,9 @@
 
 namespace PortProject.Api.Domain.StorageAggregate
 {
-    public class StorageArea : Entity<StorageAreaId>, IAggregateRoot
+    public class StorageArea : Entity<int>, IAggregateRoot
     {
+        public string Code { get; internal set; } = string.Empty;
         public StorageAreaLocation Location { get; private set; }
         public StorageAreaType Type { get; private set; }
         public StorageCapacity Capacity { get; private set; }

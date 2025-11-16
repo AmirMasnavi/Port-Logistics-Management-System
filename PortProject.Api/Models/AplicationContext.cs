@@ -249,12 +249,17 @@ public class PortProjectContext : DbContext
 
         storageAreaBuilder.HasKey(storageArea => storageArea.Id);
 
+        // Map Id directly as int to avoid casting issues
         storageAreaBuilder.Property(storageArea => storageArea.Id)
-            .HasConversion(
-                id => id.Value,
-                value => new StorageAreaId(value))
             .ValueGeneratedOnAdd()
-            .IsRequired().HasAnnotation("Sqlite:Autoincrement", true);
+            .IsRequired()
+            .HasAnnotation("Sqlite:Autoincrement", true);
+
+        storageAreaBuilder.Property(sa => sa.Code)
+            .HasMaxLength(50)
+            .IsRequired();
+
+        storageAreaBuilder.HasIndex(sa => sa.Code).IsUnique();
 
         storageAreaBuilder.Property(sa => sa.Type)
             .HasConversion<string>()
