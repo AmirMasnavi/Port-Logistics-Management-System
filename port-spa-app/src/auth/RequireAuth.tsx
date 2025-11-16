@@ -1,16 +1,24 @@
 import React from 'react';
-import { Navigate } from 'react-router-dom';
+import { useLocation, Navigate, Outlet } from "react-router-dom";
 import { useAuth } from './AuthProvider';
 
-const RequireAuth: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const { isAuthenticated, isLoading, isInternalLoading, roleStatus, accessDeniedReason } = useAuth();
+const RequireAuth: React.FC = () => {
+    const { isAuthenticated, internalRole, isLoading, isInternalLoading, roleStatus, accessDeniedReason } = useAuth();
 
+    const location = useLocation();
+
+    
     if (isLoading || isInternalLoading) {
-        return <div>Carregando...</div>;
+        return <div className="flex h-screen items-center justify-center">Loading session...</div>;
     }
 
     if (!isAuthenticated) {
         return <Navigate to="/login" replace />;
+    }
+
+    if (isAuthenticated && internalRole) {
+        // If authorized, render the child route that the user was trying to access.
+        return <Outlet />;
     }
 
     if (roleStatus !== 'active') {
@@ -22,7 +30,7 @@ const RequireAuth: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         );
     }
 
-    return <>{children}</>;
+    return <Navigate to="/" state={{ from: location }} replace />;
 };
 
 export default RequireAuth;
