@@ -9,7 +9,8 @@ import type {
     VesselVisit,
     Resource,
     VesselVisitNotification, CreateVvnDto, ApproveVvnDto, RejectVvnDto,
-    Dock, DockCreateDto
+    Dock, DockCreateDto,
+    StorageArea, StorageAreaCreateDto
 } from '../types';
 
 // --- New: internal role constants used by the SPA ---
@@ -195,6 +196,26 @@ export const createDock = async (dockData: DockCreateDto): Promise<Dock> => {
     }
 };
 
+// --- Storage Areas (Port Facilities) ---
+export const getAllStorageAreas = async (): Promise<StorageArea[]> => {
+    try {
+        const response = await apiClient.get<StorageArea[]>(`/StorageArea`);
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching storage areas:', error);
+        throw error;
+    }
+};
+
+export const createStorageArea = async (data: StorageAreaCreateDto): Promise<StorageArea> => {
+    try {
+        const response = await apiClient.post<StorageArea>(`/StorageArea`, data);
+        return response.data;
+    } catch (error) {
+        console.error('Error creating storage area:', error);
+        throw error;
+    }
+}
 
 
 

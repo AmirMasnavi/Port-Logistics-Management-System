@@ -30,10 +30,14 @@ public class StorageAreaService : IStorageAreaService
         
         await _repository.AddAsync(storageArea);
         await _context.SaveChangesAsync();
+
+        // Generate a public code after ID is known (e.g., YARD-3)
+        storageArea.Code = $"{storageArea.Type.ToString().ToUpperInvariant()}-{storageArea.Id}";
+        await _context.SaveChangesAsync();
         
         return new StorageAreaDto
         {
-            Id = storageArea.Id?.ToString() ?? "0",
+            Code = storageArea.Code,
             Type = storageArea.Type.ToString(),
             Location = storageArea.Location?.ToString() ?? string.Empty,
             Capacity = storageArea.Capacity?.Value ?? 0,
@@ -42,18 +46,16 @@ public class StorageAreaService : IStorageAreaService
     }
     
     
-    public async Task<StorageAreaDto?> GetByIdAsync(int id)
+    public async Task<StorageAreaDto?> GetByIdAsync(string code)
     {
-        var value = new StorageAreaId(id);
-        
-        var storageArea = await _repository.GetByIdAsync(value);
+        var storageArea = await _repository.GetByIdAsync(code);
         
         if (storageArea == null)
             return null;
 
         return new StorageAreaDto
         {
-            Id = storageArea.Id?.ToString() ?? "0",
+            Code = storageArea.Code,
             Type = storageArea.Type.ToString(),
             Location = storageArea.Location?.ToString() ?? string.Empty,
             Capacity = storageArea.Capacity?.Value ?? 0,
@@ -61,8 +63,19 @@ public class StorageAreaService : IStorageAreaService
         };
     }
 
-    
-    
+    public async Task<List<StorageAreaDto>> GetAllAsync()
+    {
+        var storageAreas = await _repository.GetAllAsync(null, null);
+
+        return storageAreas.Select(sa => new StorageAreaDto
+        {
+            Code = sa.Code,
+            Type = sa.Type.ToString(),
+            Location = sa.Location?.ToString() ?? string.Empty,
+            Capacity = sa.Capacity?.Value ?? 0,
+            CurrentOccupancy = sa.CurrentOccupancy?.Value ?? 0
+        }).ToList();
+    }
     
     private static StorageAreaLocation BuildLocation(string location)
     {
@@ -86,11 +99,9 @@ public class StorageAreaService : IStorageAreaService
     }
     
     
-    public async Task<StorageAreaDto?> UpdateStorageAreaAsync(int id, UpdateStorageAreaDto dto)
+    public async Task<StorageAreaDto?> UpdateStorageAreaAsync(string code, UpdateStorageAreaDto dto)
     {
-        var value = new StorageAreaId(id);
-        
-        var storageArea = await _repository.GetByIdAsync(value);
+        var storageArea = await _repository.GetByIdAsync(code);
         
         if (storageArea == null)
             return null;
@@ -124,7 +135,7 @@ public class StorageAreaService : IStorageAreaService
 
         return new StorageAreaDto
         {
-            Id = storageArea.Id?.ToString() ?? "0",
+            Code = storageArea.Code,
             Type = storageArea.Type.ToString(),
             Location = storageArea.Location?.ToString() ?? string.Empty,
             Capacity = storageArea.Capacity?.Value ?? 0,

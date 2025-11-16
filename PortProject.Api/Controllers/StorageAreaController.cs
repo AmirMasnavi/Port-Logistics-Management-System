@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using PortProject.Api.Application.StorageAreas.DTOs;
 using PortProject.Api.Application.StorageAreas.Services;
-using PortProject.Api.Domain.StorageAggregate;
 
 namespace PortProject.Api.Controllers;
 
@@ -27,7 +26,9 @@ public class StorageAreaController : ControllerBase
         {
             var resultDto = await _storageAreaService.CreateStorageAreaAsync(dto);
             
-            return CreatedAtAction(nameof(GetStorageAreaById), new { id = int.Parse(resultDto.Id) }, resultDto);
+            // Return 201 with the created storage area, without exposing DB ID in the body
+            // and without including it in the Location header either.
+            return Created(string.Empty, resultDto);
         }
         catch (ArgumentException ex)
         {
@@ -36,16 +37,16 @@ public class StorageAreaController : ControllerBase
     }
 
     /// <summary>
-    /// Gets a Storage Area by its ID.
+    /// Gets a Storage Area by its code.
     /// </summary>
-    [HttpGet("{id}")]
-    public async Task<ActionResult<StorageAreaDto>> GetStorageAreaById(int id)
+    [HttpGet("{code}")]
+    public async Task<ActionResult<StorageAreaDto>> GetStorageAreaById(string code)
     {
-        var resultDto = await _storageAreaService.GetByIdAsync(id);
+        var resultDto = await _storageAreaService.GetByIdAsync(code);
 
         if (resultDto == null)
         {
-            return NotFound($"Storage area with ID {id} not found.");
+            return NotFound($"Storage area with code {code} not found.");
         }
 
         return Ok(resultDto);
@@ -55,15 +56,25 @@ public class StorageAreaController : ControllerBase
     /// <summary>
     /// Updates an existing Storage Area.
     /// </summary>
-    [HttpPut("{id}")]
-    public async Task<ActionResult<StorageAreaDto>> UpdateStorageArea(int id, UpdateStorageAreaDto dto)
+    [HttpPut("{code}")]
+    public async Task<ActionResult<StorageAreaDto>> UpdateStorageArea(string code, UpdateStorageAreaDto dto)
     {
-        var resultDto = await _storageAreaService.UpdateStorageAreaAsync(id, dto);
+        var resultDto = await _storageAreaService.UpdateStorageAreaAsync(code, dto);
         if (resultDto == null)
         {
-            return NotFound($"Storage area with ID {id} not found.");
+            return NotFound($"Storage area with code {code} not found.");
         }
 
         return Ok(resultDto);
+    }
+    
+    /// <summary>
+    /// Gets all Storage Areas.
+    /// </summary>
+    [HttpGet]
+    public async Task<ActionResult<List<StorageAreaDto>>> GetAllStorageAreas()
+    {
+        var result = await _storageAreaService.GetAllAsync();
+        return Ok(result);
     }
 }

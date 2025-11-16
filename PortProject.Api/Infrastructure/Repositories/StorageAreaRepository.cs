@@ -18,15 +18,14 @@ public class StorageAreaRepository : IStorageAreaRepository
         await _context.StorageAreas.AddAsync(storageArea);
     }
     
-    public async Task<StorageArea?> GetByIdAsync(StorageAreaId id)
+    public async Task<StorageArea?> GetByIdAsync(string code)
     {
         return await _context.StorageAreas
             .Include(sa => sa.Location)
             .Include(sa => sa.Capacity)
             .Include(sa => sa.CurrentOccupancy)
-            .FirstOrDefaultAsync(sa => sa.Id == id);
+            .FirstOrDefaultAsync(sa => sa.Code == code);
     }
-    
     
     public async Task<IEnumerable<StorageArea>> GetAllAsync(StorageAreaType? typeFilter, string? locationFilter)
     {
