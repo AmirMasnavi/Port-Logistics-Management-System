@@ -2,6 +2,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthProvider'; // [cite: 192]
+import { canManagePort, canViewPlanning, isAdmin, canViewVisualization } from '../../auth/permissions';
 
 // 1. Import the icons we need from lucide-react
 import {
@@ -74,14 +75,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                                          }) => {
     const { internalRole, logout } = useAuth();
 
-    // Helper constants for role checks ---
-    const isAdmin = internalRole === 'Administrator';
-
-    // Helper sets for easier checking
-    const canManagePort = new Set(['Administrator', 'PortAuthorityOfficer']);
-
-    const canViewPlanning = new Set(['Administrator', 'PortAuthorityOfficer', 'LogisticsOperator']);
-
+   
     return (
         // 6. This <aside> is now a "fixed" panel
         // It uses onMouseEnter/onMouseLeave to set the hover state in the parent
@@ -130,28 +124,34 @@ const Sidebar: React.FC<SidebarProps> = ({
                 )}
             </div>
             {/* 9. Pass 'isExpanded' down to all NavItems */}
+            
             <nav className="flex-1 flex flex-col items-center space-y-3">
                 {/* Dashboard: Everyone */}
                 <NavItem to="/" label="Dashboard" icon={LayoutDashboard} isExpanded={isExpanded} />
                 {/* Vessel Visits: Everyone */}
                 <NavItem to="/vessel-visits" label="Vessel Visits" icon={Ship} isExpanded={isExpanded} />
+                
                 {/* Vessel Types: Admin & Officer */}
                 {canManagePort.has(internalRole || '') && (
                     <NavItem to="/vessel-types" label="Vessel Types" icon={Anchor} isExpanded={isExpanded} />
                 )}
-                {/* Port Facilities: Admin, Officer, Logistics */}
+                {/* Port Facilities & Docks: Admin, Officer, Logistics */}
                 {canViewPlanning.has(internalRole || '') && (
-                    <NavItem to="/port-facilities" label="Port Facilities" icon={Building} isExpanded={isExpanded} />
+                    <>
+                        <NavItem to="/port-facilities" label="Port Facilities" icon={Building} isExpanded={isExpanded} />
+                        <NavItem to="/docks" label="Docks" icon={SquareSquare} isExpanded={isExpanded} />
+                    </>
                 )}
                 {/* Shipping Agents: Admin & Officer */}
                 {canManagePort.has(internalRole || '') && (
                     <NavItem to="/shippingagentorganization" label="Shipping Agents" icon={ClipboardList} isExpanded={isExpanded} />
                 )}
-                <NavItem to="/docks" label="Docks" icon={SquareSquare} isExpanded={isExpanded} />
-                <NavItem to="/visualization" label="3D Visualization" icon={Box} isExpanded={isExpanded} />
-
+                {/* 3D Visualization: Admin, Officer, Logistics */}
+                {canViewVisualization.has(internalRole || '') && (
+                    <NavItem to="/visualization" label="3D Visualization" icon={Box} isExpanded={isExpanded} />
+                )}
                 {/* Admin Page: Admin only */}
-                {isAdmin && (
+                {isAdmin.has(internalRole || '') && (
                     <>
                         <hr className="w-full my-2" />
                         <NavItem to="/admin/users" label="User Admin" icon={Settings} isExpanded={isExpanded} />
@@ -159,6 +159,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 )}
             </nav>
 
+            {/* Logout button */}
             {/* 10. The Logout button, now also expanding */}
             <div className="mt-auto w-full">
                 <button
