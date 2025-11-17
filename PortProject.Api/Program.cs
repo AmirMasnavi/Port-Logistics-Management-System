@@ -107,7 +107,13 @@ builder.Services.AddScoped<IPortLayoutService, PortLayoutService>();
 // Add CORS
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowFrontend", policy => policy.WithOrigins("http://localhost:5173", "http://localhost:5174", "http://localhost:5000")
+    options.AddPolicy("AllowFrontend", policy => policy.WithOrigins(
+            "http://localhost:5173",
+            "http://localhost:5174",
+            "http://localhost:5000",
+            // Production frontend served from IIS on server IP
+            "http://10.9.11.67"
+        )
         .AllowAnyHeader()
         .AllowAnyMethod());
 });
@@ -123,9 +129,20 @@ if (app.Environment.IsDevelopment())
     {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "Port Project API v1");
     });
+    // In Development we have HTTPS endpoints from launchSettings
+    app.UseHttpsRedirection();
+}
+// In Production do not force HTTPS redirection unless HTTPS endpoints/certs are configured.
+else if (app.Environment.IsProduction())
+{
+    // Check if HTTPS redirection is needed based on configuration
+    var redirectToHttps = builder.Configuration.GetValue<bool>("RedirectToHttps");
+    if (redirectToHttps)
+    {
+        app.UseHttpsRedirection();
+    }
 }
 
-app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 

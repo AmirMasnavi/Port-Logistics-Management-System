@@ -24,7 +24,7 @@ export type InternalRoleValue = typeof InternalRole[keyof typeof InternalRole];
 
 // 1. Create a central instance of Axios
 const apiClient = axios.create({
-    baseURL: 'http://localhost:5273/api',
+    baseURL: (import.meta.env.REACT_APP_API_URL as string | undefined) ?? (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:5273/api',
     timeout: 15000,
 });
 

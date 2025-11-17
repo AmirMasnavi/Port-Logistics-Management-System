@@ -4,7 +4,6 @@ namespace PortProject.Api.Application.Resources.DTOs;
 
 public class CreateResourceDto
 {
-    public string Code { get; set; }
     public string Description { get; set; }
     public string Kind { get; set; }
     public string? AssignedArea { get; set; }

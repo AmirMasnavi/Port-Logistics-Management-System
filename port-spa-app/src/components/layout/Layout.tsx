@@ -5,10 +5,13 @@ import Sidebar from './Sidebar';
 import Footer from './Footer';
 import { useAuth } from '../../auth/AuthProvider';
 import { useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { isAuthenticated, isLoading, isInternalLoading, internalRole } = useAuth();
     const location = useLocation();
+    // Use a lightweight cast to avoid deep generic instantiation from react-i18next types
+    const { t } = (useTranslation as unknown as () => { t: (key: string) => string })();
 
     // This is the state we added in the last step
     const [isSidebarHovered, setIsSidebarHovered] = useState(false);
@@ -21,7 +24,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     // -------------------
 
     if (isLoading || isInternalLoading) {
-        return <div className="flex h-screen items-center justify-center">Loading...</div>;
+        return <div className="flex h-screen items-center justify-center">{t('loading')}</div>;
     }
 
     const renderContent = () => {
@@ -37,14 +40,13 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 <div className="text-center text-xl panel max-w-lg mx-auto">
                     <h2 className="font-bold text-red-600 text-2xl">Access Denied</h2>
                     <p className="mt-2">
-                        You have successfully logged in, but your account is not activated
-                        or does not have a role assigned in this system.
+                        {t('layout.accessDenied.description')}
                     </p>
-                    <p className="mt-2">Please contact your administrator.</p>
+                    <p className="mt-2">{t('layout.accessDenied.contact')}</p>
                 </div>
             );
         }
-        return <div className="text-center text-xl">Please log in to continue.</div>;
+        return <div className="text-center text-xl">{t('layout.loginPrompt')}</div>;
     };
 
     return (

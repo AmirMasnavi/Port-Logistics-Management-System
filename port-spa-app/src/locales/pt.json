@@ -10,19 +10,73 @@
   "nav": {
     "dashboard": "Painel",
     "vesselTypes": "Tipos de navio",
-    "vesselVisits": "Visitas de navios"
+    "vesselVisits": "Visitas de navios",
+    "portFacilities": "Instalações do porto",
+    "docks": "Docas",
+    "shippingAgents": "Agentes de transporte",
+    "visualization": "Visualização 3D",
+    "userAdmin": "Admin. de Utilizadores"
   },
   "loading": "A carregar...",
+  "common": {
+    "loading": "A carregar..."
+  },
   "search": {
     "placeholder": "Pesquisar..."
   },
   "button": {
     "new": "Novo",
     "logout": "Terminar sessão",
-    "login": "Iniciar sessão"
+    "login": "Iniciar sessão",
+    "createType": "Criar tipo"
+  },
+  "sidebar": {
+    "pin": "Fixar barra lateral",
+    "unpin": "Desafixar barra lateral",
+    "role": "Função"
+  },
+  "header": {
+    "changeLanguage": "Mudar idioma",
+    "profile": "Perfil",
+    "editProfile": "Editar perfil",
+    "changePassword": "Alterar palavra-passe",
+    "noNameSet": "Sem nome definido",
+    "passwordReset": {
+      "sent": "Email de redefinição enviado!",
+      "failed": "Falha ao enviar o email."
+    }
+  },
+  "menu": {
+    "dashboard": "Painel",
+    "userAdmin": "Admin. de Utilizadores",
+    "reports": "Relatórios",
+    "cargoManagement": "Gestão de cargas",
+    "movements": "Movimentações",
+    "operationalReports": "Relatórios operacionais",
+    "monitoring": "Monitorização do porto",
+    "authorizations": "Autorizações",
+    "portReports": "Relatórios do porto",
+    "myOrders": "Minhas encomendas",
+    "documentation": "Documentação",
+    "communications": "Comunicações"
+  },
+  "layout": {
+    "accessDenied": {
+      "description": "Iniciou sessão, mas a sua conta não está ativada ou não tem uma função atribuída neste sistema.",
+      "contact": "Por favor contacte o seu administrador."
+    },
+    "loginPrompt": "Por favor inicie sessão para continuar."
   },
   "greeting": {
     "hello": "Olá, {{name}}"
+  },
+  "vesselTypes": {
+    "title": "Tipos de Navio"
+  },
+  "modal": {
+    "createVesselType": "Criar novo tipo de navio"
+  },
+  "errors": {
+    "fetchFailed": "Falha ao obter dados. Tente novamente mais tarde."
   }
 }
-

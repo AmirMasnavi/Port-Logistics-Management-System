@@ -47,7 +47,7 @@ export interface VesselVisit {
 }
 
 // Resource DTO (cranes, etc.)
-export interface Resource {
+export interface VisualizationResource {
     id: string;
     code: string;
     kind: string; // e.g., 'STS Crane', 'Yard Crane'
@@ -114,4 +114,22 @@ export interface StorageAreaCreateDto {
     location: string;
     capacity: number;
     currentOccupancy: number;
+}
+
+// --- Resource types (Application Resources) ---
+export interface Resource {
+    code: string;
+    description: string;
+    kind: string;
+    assignedArea?: string | null;
+    status: string;
+    setupTimeMinutes: number;
+    operationalWindowStart: string;
+    operationalWindowEnd: string;
+    qualificationRequirements?: string[] | null;
+    averageContainersPerHour?: number | null;
+    containersPerTrip?: number | null;
+    averageSpeedKmh?: number | null;
+    otherUnit?: string | null;
+    otherGenericValue?: number | null;
 }
