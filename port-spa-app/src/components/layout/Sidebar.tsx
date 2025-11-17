@@ -140,8 +140,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                 {/* Port Facilities & Docks: Admin, Officer, Logistics */}
                 {canViewPlanning.has(internalRole || '') && (
                     <>
-                        <NavItem to="/port-facilities" label={t('nav.portFacilities')} icon={Building} isExpanded={isExpanded} />
-                        <NavItem to="/docks" label={t('nav.docks')} icon={SquareSquare} isExpanded={isExpanded} />
+                        <NavItem to="/port-facilities" label="Port Facilities" icon={Building} isExpanded={isExpanded} />
+                        <NavItem to="/docks" label="Docks" icon={SquareSquare} isExpanded={isExpanded} />
                     </>
                 )}
                 {/* Shipping Agents: Admin & Officer */}
