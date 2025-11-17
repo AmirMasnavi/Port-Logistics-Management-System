@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
-import { useNavigate, useLocation, useParams } from 'react-router-dom';
-import { VvnService } from '../../app/vvn/vvn.service';
-import { vvnApiRepository } from '../../infrastructure/repositories/vvn/vvnApi.repository';
-import type { CreateVvnDto } from '../../infrastructure/repositories/vvn/vvn.dto';
+import { useState, useEffect } from 'react';
+import {useLocation, useNavigate, useParams} from 'react-router-dom';
+import { VvnService } from '../../../app/vvn/vvn.service';
+import { vvnApiRepository } from '../../../infrastructure/repositories/vvn/vvnApi.repository';
+import type { CreateVvnDto} from '../../../infrastructure/repositories/vvn/vvn.dto';
 
 // Create the service instance
 const vvnService = new VvnService(vvnApiRepository);
@@ -193,7 +193,7 @@ export const useVvnFormController = () => {
         } catch (err: any) {
             setError(
                 err.message ||
-                    `Failed to ${isEditMode ? 'update' : 'create'} notification.`,
+                `Failed to ${isEditMode ? 'update' : 'create'} notification.`,
             );
             setIsSubmitting(false);
         }
@@ -223,4 +223,3 @@ export const useVvnFormController = () => {
         removeCrewMember,
     };
 };
-

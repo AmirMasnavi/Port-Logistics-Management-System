@@ -1,5 +1,5 @@
 import React from 'react';
-import { useVvnListController } from './useVvnListController';
+import { useVvnListController } from './controllers/useVvnListController';
 import VvnCard from './components/VvnCard';
 import VvnDetailsModal from './components/VvnDetailsModal';
 import VvnDecisionModal from './components/VvnDecisionModal';
