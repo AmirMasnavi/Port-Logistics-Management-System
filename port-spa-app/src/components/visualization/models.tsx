@@ -15,6 +15,11 @@ import waterNormalUrl from './textures/Water_002_NORM.jpg';
 import waterRoughnessUrl from './textures/Water_002_ROUGH.jpg';
 import waterDisplacementUrl from './textures/Water_002_DISP.png';
 import waterOccUrl from './textures/Water_002_OCC.jpg';
+import grassColorUrl from './textures/grass/Grass_001_COLOR.jpg';
+import grassNormalUrl from './textures/grass/Grass_001_NORM.jpg';
+import grassRoughnessUrl from './textures/grass/Grass_001_ROUGH.jpg';
+import grassDisplacementUrl from './textures/grass/Grass_001_DISP.png';
+import grassOccUrl from './textures/grass/Grass_001_OCC.jpg';
 // Dynamically import all Tower_crane textures and group them by material and map type.
 // Filenames are expected like: Tower_crane_{MATERIAL}_{MapType}.png
 const towerCraneFiles = import.meta.glob('./textures/Tower_crane*.png', { eager: true, as: 'url' }) as Record<string, string>;
@@ -123,13 +128,77 @@ export const YardModel: React.FC<Omit<ModelProps, 'color'>> = ({ position, size,
         }
     }
 
+    // --- Grass PBR ground (similar structure to LandModel but tuned for grass) ---
+    const [gBase, gNormal, gRough, gDisp, gOcc] = useTexture([
+        grassColorUrl,
+        grassNormalUrl,
+        grassRoughnessUrl,
+        grassDisplacementUrl,
+        grassOccUrl,
+    ]);
+
+    const grass = React.useMemo(() => ({
+        base: gBase?.clone() ?? null,
+        normal: gNormal?.clone() ?? null,
+        roughness: gRough?.clone() ?? null,
+        disp: gDisp?.clone() ?? null,
+        occ: gOcc?.clone() ?? null,
+    }), [gBase, gNormal, gRough, gDisp, gOcc]);
+
+    useEffect(() => {
+        return () => {
+            Object.values(grass).forEach(t => t?.dispose());
+        };
+    }, [grass]);
+
+    const GRASS_TILE_SCALE = 3; // a bit denser tiling than concrete
+    const grassRepeatX = Math.max(1, size[0] / GRASS_TILE_SCALE);
+    const grassRepeatZ = Math.max(1, size[2] / GRASS_TILE_SCALE);
+
+    useEffect(() => {
+        const list = [grass.base, grass.normal, grass.roughness, grass.disp, grass.occ];
+        list.forEach(tex => {
+            if (!tex) return;
+            tex.wrapS = tex.wrapT = RepeatWrapping;
+            tex.repeat.set(grassRepeatX, grassRepeatZ);
+            tex.anisotropy = Math.max(tex.anisotropy ?? 0, 8);
+            tex.needsUpdate = true;
+        });
+        if (grass.base && 'colorSpace' in grass.base) (grass.base as any).colorSpace = SRGBColorSpace;
+    }, [grass.base, grass.normal, grass.roughness, grass.disp, grass.occ, grassRepeatX, grassRepeatZ]);
+
+    const grassSegX = Math.min(100, Math.ceil(size[0] / 2));
+    const grassSegZ = Math.min(100, Math.ceil(size[2] / 2));
+    const grassMeshRef = React.useRef<Mesh | null>(null);
+
+    useEffect(() => {
+        const geom: any = grassMeshRef.current?.geometry;
+        if (geom?.attributes?.uv && !geom.attributes.uv2) {
+            geom.setAttribute('uv2', new BufferAttribute(geom.attributes.uv.array, 2));
+        }
+    }, [grassMeshRef]);
+
     return (
         <group position={position}>
-            <mesh receiveShadow>
-                <boxGeometry args={[size[0], Math.max(0.1, size[1]), size[2]]} />
-                <meshStandardMaterial color="#3c6b5a" metalness={0.1} roughness={0.9} />
+            {/* Grass ground as a textured plane (slightly lifted to avoid z-fighting) */}
+            <mesh ref={grassMeshRef} position={[0, 0.01, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+                <planeGeometry args={[size[0], size[2], grassSegX, grassSegZ]} />
+                <meshStandardMaterial
+                    side={DoubleSide}
+                    color="#41ff17"
+                    map={grass.base as any}
+                    normalMap={grass.normal as any}
+                    roughnessMap={grass.roughness as any}
+                    displacementMap={grass.disp as any}
+                    displacementScale={0.02}
+                    aoMap={grass.occ as any}
+                    aoMapIntensity={0.2}
+                    metalness={0.02}
+                    roughness={0.9}
+                />
             </mesh>
 
+            {/* Container stacks only (remove opaque box platform so grass is visible) */}
             {stacks}
 
             {label && (
