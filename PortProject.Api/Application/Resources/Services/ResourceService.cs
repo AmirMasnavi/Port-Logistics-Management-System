@@ -1,10 +1,10 @@
 ﻿using System.Linq;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using PortProject.Api.Application.Resources.DTOs;
 using PortProject.Api.Domain.ResourceAggregate;
 using PortProject.Api.Models;
-using PortProject.Api.Domain.QualificationAggregate; // <-- added
+using PortProject.Api.Domain.QualificationAggregate;
+using PortProject.Api.Domain;
 
 namespace PortProject.Api.Application.Resources.Services;
 
@@ -35,16 +35,8 @@ public class ResourceService : IResourceService
         if (!Enum.TryParse<ResourceStatus>(dto.Status, ignoreCase: true, out var status))
             throw new ArgumentException($"Invalid resource status: {dto.Status}", nameof(dto.Status));
 
-        // ResourceCode
-        if (string.IsNullOrWhiteSpace(dto.Code))
-            throw new ArgumentException("Code is required.", nameof(dto.Code));
-
-        var code = new ResourceCode(dto.Code);
-
-        // Ensure uniqueness
-        var exists = await _context.Resources.AsNoTracking().AnyAsync(r => r.Code == code);
-        if (exists)
-            throw new ArgumentException($"A resource with code {code} already exists.", nameof(dto.Code));
+        // Auto-generate ResourceCode (removed requirement from DTO)
+        var code = await ResourceCodeGenerator.GenerateAsync(_context);
 
         // Description
         var description = new ResourceDescription(dto.Description ?? string.Empty);
@@ -140,7 +132,7 @@ public class ResourceService : IResourceService
         // Map domain back to ResourceDto
         var result = new ResourceDto
         {
-            Code = dto.Code,
+            Code = code.Value,
             Description = dto.Description ?? string.Empty,
             Kind = kind.ToString(),
             AssignedArea = assignedArea,
@@ -235,13 +227,11 @@ public class ResourceService : IResourceService
         return dto;
     }
 
-  
-
     public async Task<IEnumerable<ResourceDto>> GetAllAsync(string? code, string? description, ResourceKind? kind,
         ResourceStatus? status)
     {
         var resource = await _resourceRepository.GetAllAsync(code, description, kind, status);
-        
+
         return resource.Select(sm => new ResourceDto() {
             Code = sm.Code?.ToString() ?? string.Empty,
             Description = sm.Description?.ToString() ?? string.Empty,
@@ -323,7 +313,7 @@ public class ResourceService : IResourceService
                 var foundCodes = qualificationEntities
                     .Select(q => q.Code.Value)
                     .ToHashSet(StringComparer.OrdinalIgnoreCase);
-                    
+
                 var missing = qualCodes.Where(n => !foundCodes.Contains(n)).ToList();
                 if (missing.Count > 0)
                     throw new ArgumentException(

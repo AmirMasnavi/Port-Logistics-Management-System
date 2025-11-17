@@ -140,6 +140,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                     <>
                         <NavItem to="/port-facilities" label="Port Facilities" icon={Building} isExpanded={isExpanded} />
                         <NavItem to="/docks" label="Docks" icon={SquareSquare} isExpanded={isExpanded} />
+                        <NavItem to="/resources" label="Resources" icon={ClipboardList} isExpanded={isExpanded} />
                     </>
                 )}
                 {/* Shipping Agents: Admin & Officer */}
