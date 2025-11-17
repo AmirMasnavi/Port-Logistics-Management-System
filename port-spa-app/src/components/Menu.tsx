@@ -1,6 +1,7 @@
 import React from 'react';
 import { useAuth } from '../auth/AuthProvider';
 import { InternalRole } from '../services/apiService';
+import { t } from '../i18nClient';
 
 const Menu: React.FC = () => {
     const { internalRole } = useAuth();
@@ -12,9 +13,9 @@ const Menu: React.FC = () => {
             return (
                 <nav>
                     <ul>
-                        <li>Dashboard</li>
-                        <li>Gestão de Utilizadores</li>
-                        <li>Relatórios</li>
+                        <li>{t('menu.dashboard')}</li>
+                        <li>{t('menu.userAdmin')}</li>
+                        <li>{t('menu.reports')}</li>
                     </ul>
                 </nav>
             );
@@ -23,10 +24,10 @@ const Menu: React.FC = () => {
             return (
                 <nav>
                     <ul>
-                        <li>Dashboard</li>
-                        <li>Gestão de Cargas</li>
-                        <li>Movimentação</li>
-                        <li>Relatórios Operacionais</li>
+                        <li>{t('menu.dashboard')}</li>
+                        <li>{t('menu.cargoManagement')}</li>
+                        <li>{t('menu.movements')}</li>
+                        <li>{t('menu.operationalReports')}</li>
                     </ul>
                 </nav>
             );
@@ -35,10 +36,10 @@ const Menu: React.FC = () => {
             return (
                 <nav>
                     <ul>
-                        <li>Dashboard</li>
-                        <li>Monitorização do Porto</li>
-                        <li>Autorizações</li>
-                        <li>Relatórios do Porto</li>
+                        <li>{t('menu.dashboard')}</li>
+                        <li>{t('menu.monitoring')}</li>
+                        <li>{t('menu.authorizations')}</li>
+                        <li>{t('menu.portReports')}</li>
                     </ul>
                 </nav>
             );
@@ -47,10 +48,10 @@ const Menu: React.FC = () => {
             return (
                 <nav>
                     <ul>
-                        <li>Dashboard</li>
-                        <li>Minhas Encomendas</li>
-                        <li>Documentação</li>
-                        <li>Comunicações</li>
+                        <li>{t('menu.dashboard')}</li>
+                        <li>{t('menu.myOrders')}</li>
+                        <li>{t('menu.documentation')}</li>
+                        <li>{t('menu.communications')}</li>
                     </ul>
                 </nav>
             );
@@ -59,7 +60,7 @@ const Menu: React.FC = () => {
             return (
                 <nav>
                     <ul>
-                        <li>Dashboard</li>
+                        <li>{t('menu.dashboard')}</li>
                     </ul>
                 </nav>
             );

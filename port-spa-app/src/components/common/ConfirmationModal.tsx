@@ -2,6 +2,7 @@
 import React from 'react';
 import Modal from './Modal';
 import { AlertTriangle } from 'lucide-react';
+import { t } from '../../i18nClient';
 
 interface ConfirmationModalProps {
     isOpen: boolean;
@@ -22,6 +23,9 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
                                                                  confirmText = 'Confirm',
                                                                  isDestructive = false,
                                                              }) => {
+    // If caller passed a recognisable key we translate it; otherwise we fall back to a sensible default
+    const confirmLabel = confirmText === 'Confirm' ? t('button.confirm') : t(confirmText);
+
     return (
         <Modal isOpen={isOpen} onClose={onClose} title={title} showFooter={false}>
             <div className="flex items-start gap-4">
@@ -42,7 +46,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
                     onClick={onClose}
                     className="btn btn-secondary w-full sm:w-auto justify-center"
                 >
-                    Cancel
+                    {t('button.cancel')}
                 </button>
                 <button
                     type="button"
@@ -53,7 +57,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
                             : 'btn-primary'
                     }`}
                 >
-                    {confirmText}
+                    {confirmLabel}
                 </button>
             </div>
         </Modal>
