@@ -47,14 +47,14 @@ jobs:
           Copy-Item ./PortProject.Api/publish/* "E:\MyBackend\" -Recurse -Force
           Start-Service MyBackendService
 
-      # ---------------- Tests & Logs ---------------- 
+      # ---------------- Tests & Logs ----------------
       # COMENTED TEMPORARILY TO TEST DEPLOYMENT ONLY, AND BECAUSE TESTS ARE FAILING DUE TO RECENT CHANGES.
-      # 
+      #
       #- name: Run automated tests
       #  run: |
       #    dotnet test ./PortProject.Api.Tests/PortProject.Api.Tests.csproj --logger "trx;LogFileName=UnitTests.trx"
       #    dotnet test ./Port.Project.Api.System_Tests/Port.Project.Api.System_Tests.csproj --logger "trx;LogFileName=SystemTests.trx"
-      
+
 
       #- name: Archive test results
       #  uses: actions/upload-artifact@v4
@@ -62,3 +62,4 @@ jobs:
       #    name: deployment-logs
       #    path: |
       #      **/TestResults/
+
