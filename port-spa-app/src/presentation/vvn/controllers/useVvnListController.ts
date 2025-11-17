@@ -10,7 +10,7 @@ const vvnService = new VvnService(vvnApiRepository);
 
 export const useVvnListController = () => {
     const navigate = useNavigate();
-    const { internalRole } = useAuth();
+    const { internalRole, citizenId } = useAuth();
 
     const [vvns, setVvns] = useState<VesselVisitNotification[]>([]);
     const [loading, setLoading] = useState(true);
@@ -164,7 +164,7 @@ export const useVvnListController = () => {
         };
     }, [vvns, viewAsRole]);
 
-    const myRepresentativeCitizenId = 'AC1234567';
+    const myRepresentativeCitizenId = citizenId ?? 'AC1234567';
 
     const handleViewToggle = () => {
         if (viewAsRole === 'PortAuthorityOfficer') {

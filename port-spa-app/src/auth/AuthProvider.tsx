@@ -12,6 +12,7 @@ interface AuthContextType {
     isLoading: boolean;
     isInternalLoading: boolean;
     internalRole: string | null;
+    citizenId: string | null;
     roleStatus: 'unknown' | 'active' | 'inactive' | 'none';
     accessDeniedReason: string | null;
     logout: () => Promise<void>;
@@ -26,6 +27,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [isLoading, setIsLoading] = useState(true);
     const [isInternalLoading, setIsInternalLoading] = useState(true);
     const [internalRole, setInternalRole] = useState<string | null>(null);
+    const [citizenId, setCitizenId] = useState<string | null>(null);
     const [roleStatus, setRoleStatus] = useState<'unknown' | 'active' | 'inactive' | 'none'>('unknown');
     const [accessDeniedReason, setAccessDeniedReason] = useState<string | null>(null);
 
@@ -49,20 +51,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     // ✅ Call getMyRole() after Firebase authentication is confirmed
                     const data: any = await getMyRole(); // Call our new API
 
-                    // Flexible handling because backend may return different shapes
+                    // Normalize response
+                    const { role, citizenId: repCitizenId, active } = data ?? {};
+
                     // If backend returns { role: null | '' } -> deny access
-                    if (!data || !data.role) {
+                    if (!data || !role) {
                         setInternalRole(null);
+                        setCitizenId(repCitizenId ?? null);                // <-- set ID even when no role (if provided)
                         setRoleStatus('none');
                         setAccessDeniedReason('Nenhuma role atribuída. Contacte o administrador.');
-                    } else if (data.active === false) {
+                    } else if (active === false) {
                         // If backend provides an "active" flag and it's false -> inactive
-                        setInternalRole(data.role);
+                        setInternalRole(role);
+                        setCitizenId(repCitizenId ?? null);                // <-- set ID for inactive case
                         setRoleStatus('inactive');
                         setAccessDeniedReason('A sua role está inativa. Contacte o administrador.');
                     } else {
                         // role válida e ativa
-                        setInternalRole(data.role);
+                        setInternalRole(role);
+                        setCitizenId(repCitizenId ?? null);                // <-- set ID for active case
                         setRoleStatus('active');
                         setAccessDeniedReason(null);
                     }
@@ -71,6 +78,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
                     // Default deny case
                     setInternalRole(null);
+                    setCitizenId(null);                                     // <-- ensure ID cleared on error
                     setRoleStatus('none');
                     setAccessDeniedReason('Erro ao verificar role interna.');
 
@@ -89,6 +97,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             } else {
                 // No Firebase user, so no internal role
                 setInternalRole(null);
+                setCitizenId(null);                                         // <-- ensure ID cleared when no user
                 setRoleStatus('none');
                 setAccessDeniedReason(null);
             }
@@ -129,6 +138,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const logout = async () => {
         await signOut(auth);
         setInternalRole(null);
+        setCitizenId(null); // <-- Clear ID on logout
         setRoleStatus('none');
         setAccessDeniedReason(null);
     };
@@ -139,6 +149,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isLoading,
         isInternalLoading, // exposed to consumers
         internalRole,      // exposed to consumers
+        citizenId,         // <-- expose the citizenId
         roleStatus,
         accessDeniedReason,
         logout,

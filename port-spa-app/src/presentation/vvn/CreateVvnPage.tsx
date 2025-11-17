@@ -47,7 +47,7 @@ const CreateVvnPage: React.FC = () => {
 
     // 2. The JSX is identical to your old file.
     return (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 max-w-4xl mx-auto">
             {/* Page Header */}
             <div className="flex items-center gap-4 mb-4">
                 <button

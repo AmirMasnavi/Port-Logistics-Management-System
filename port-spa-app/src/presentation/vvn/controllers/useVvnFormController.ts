@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import {useLocation, useNavigate, useParams} from 'react-router-dom';
+import { useNavigate, useParams} from 'react-router-dom';
 import { VvnService } from '../../../app/vvn/vvn.service';
 import { vvnApiRepository } from '../../../infrastructure/repositories/vvn/vvnApi.repository';
 import type { CreateVvnDto} from '../../../infrastructure/repositories/vvn/vvn.dto';
+import { useAuth } from '../../../auth/AuthProvider';
 
 // Create the service instance
 const vvnService = new VvnService(vvnApiRepository);
@@ -40,18 +41,16 @@ const initialState: CreateVvnDto = {
 // This is the Controller for the FORM page
 export const useVvnFormController = () => {
     const navigate = useNavigate();
-    const location = useLocation();
+    const { citizenId } = useAuth();
     const { id } = useParams<{ id: string }>(); // 'id' is the businessId
     const isEditMode = Boolean(id);
-
-    // Get representative ID from navigation state
-    const representativeCitizenId = location.state?.representativeCitizenId || '12345678Z';
+    
 
     // 1. All state is moved here
     const [step, setStep] = useState(1);
     const [formData, setFormData] = useState<CreateVvnDto>({
         ...initialState,
-        representativeCitizenId,
+        representativeCitizenId: citizenId ?? 'AC1234567',
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isLoading, setIsLoading] = useState(isEditMode);
@@ -69,7 +68,7 @@ export const useVvnFormController = () => {
                         estimatedArrival: formatDt(vvn.estimatedArrival),
                         estimatedDeparture: formatDt(vvn.estimatedDeparture),
                         vesselImo: vvn.vesselImo,
-                        representativeCitizenId,
+                        representativeCitizenId: citizenId ?? 'AC1234567',
                         cargo: vvn.cargo,
                         crewMembers: vvn.crewMembers,
                     });
@@ -81,7 +80,7 @@ export const useVvnFormController = () => {
             };
             fetchVvn();
         }
-    }, [id, isEditMode, representativeCitizenId]);
+    }, [id, isEditMode, citizenId]);
 
     // 3. All form handlers are here
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {

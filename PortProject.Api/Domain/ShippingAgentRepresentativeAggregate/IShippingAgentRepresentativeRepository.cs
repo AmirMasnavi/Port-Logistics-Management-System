@@ -9,6 +9,7 @@ namespace PortProject.Api.Domain.ShippingAgentRepresentativeAggregate
         Task AddAsync(ShippingAgentRepresentative representative);
         Task<ShippingAgentRepresentative?> GetByIdAsync(RepresentativeId id);
         Task<ShippingAgentRepresentative?> GetByCitizenIdAsync(CitizenId citizenId);
+        Task<ShippingAgentRepresentative?> GetByEmailAsync(RepresentativeEmail email);
         Task<bool> ExistsByCitizenIdAsync(CitizenId citizenId);
     Task<IEnumerable<ShippingAgentRepresentative>> GetAllAsync();
     Task<IEnumerable<ShippingAgentRepresentative>> GetByOrganizationIdAsync(OrganizationId organizationId);

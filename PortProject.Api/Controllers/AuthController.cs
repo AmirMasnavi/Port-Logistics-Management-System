@@ -7,6 +7,8 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims; // Needed for User.Identity
+using PortProject.Api.Domain.ShippingAgentRepresentativeAggregate; // <-- ADD THIS
+using PortProject.Api.Application.ShippingAgentsOrganization.DTOs;
 
 [ApiController]
 [Route("api/auth")]
@@ -14,10 +16,12 @@ using System.Security.Claims; // Needed for User.Identity
 public class AuthController : ControllerBase
 {
     private readonly PortProjectContext _context;
+    private readonly IShippingAgentRepresentativeRepository _repRepository;
 
-    public AuthController(PortProjectContext context)
+    public AuthController(PortProjectContext context, IShippingAgentRepresentativeRepository repRepository)
     {
         _context = context;
+        _repRepository = repRepository;
     }
 
     [HttpGet("my-role")]
@@ -45,8 +49,24 @@ public class AuthController : ControllerBase
         {
             return Forbid(); // 403 Forbidden
         }
+        
+        // If the user is a rep, find their Citizen ID
+        string? citizenId = null;
+        if (user.Role == Role.ShippingAgentRepresentative) {
+            try { 
+                var rep = await _repRepository.GetByEmailAsync(new RepresentativeEmail(email)); 
+                if (rep != null) {
+                                citizenId = rep.CitizenId.Value;
+                }
+            }
+            catch (Exception)
+            {
+                // Could not create RepresentativeEmail (invalid format) or other error.
+                // Log this, but proceed without a citizenId.
+            }
+        }
 
         // Success: User is found and activated
-        return Ok(new { role = user.Role.ToString() });
+        return Ok(new { role = user.Role.ToString(), citizenId = citizenId });
     }
 }

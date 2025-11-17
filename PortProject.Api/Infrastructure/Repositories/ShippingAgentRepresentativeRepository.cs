@@ -31,6 +31,11 @@ namespace PortProject.Api.Infrastructure.Repositories
             return await _context.Set<ShippingAgentRepresentative>()
                 .FirstOrDefaultAsync(r => r.CitizenId == citizenId);
         }
+        public async Task<ShippingAgentRepresentative?> GetByEmailAsync(RepresentativeEmail email)
+        {
+            return await _context.Set<ShippingAgentRepresentative>()
+                .FirstOrDefaultAsync(r => r.RepresentativeEmail == email);
+        }
 
         public async Task<bool> ExistsByCitizenIdAsync(CitizenId citizenId)
         {
