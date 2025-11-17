@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getAllVesselTypes } from '../services/apiService';
-import type { VesselType } from '../types';
+import type { VesselType } from '../domain/types';
 // --- 1. Import our new components ---
 import Modal from '../components/common/Modal';
 import CreateVesselTypeForm from './CreateVesselTypeForm';

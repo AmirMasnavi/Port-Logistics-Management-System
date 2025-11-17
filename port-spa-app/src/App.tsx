@@ -7,10 +7,10 @@ import ShippingAgentOrganization from "./pages/ShippingAgentOrganization.tsx";
 import {setupApiInterceptor} from "./services/apiService.ts";
 import AdminPage from './pages/AdminPage';
 import ActivationPage from './pages/ActivationPage';
-import VesselVisitsPage from './pages/VesselVisitsPage';
+import VesselVisitsPage from './presentation/vvn/VesselVisitsPage';
+import CreateVvnPage from "./presentation/vvn/CreateVvnPage.tsx";
 import DockPage from './pages/DockPage';
 import RequireAuth from './auth/RequireAuth';
-import CreateVvnPage from "./pages/CreateVvnPage.tsx"; // <-- protect routes
 import PortFacilitiesPage from './pages/PortFacilitiesPage';
 import RoleProtectedRoute from './auth/RoleProtectedRoute'; // Our new component to check the user's role
 

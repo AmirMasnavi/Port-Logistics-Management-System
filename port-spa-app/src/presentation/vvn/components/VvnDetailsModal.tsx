@@ -1,8 +1,8 @@
-// src/components/vvn/VvnDetailsModal.tsx
+// src/presentation/vvn/components/VvnDetailsModal.tsx
 import React from 'react';
-import type { VesselVisitNotification, DecisionLogEntry } from '../../types';
-import Modal from '../common/Modal';
-import Badge from '../common/Badge';
+import type { VesselVisitNotification, DecisionLogEntry, Container, CrewMember } from '../../../domain/vvn/vvn.model';
+import Modal from '../../..//components/common/Modal';
+import Badge from '../../../components/common/Badge';
 import { Ship, Calendar, Anchor, Box, Weight, Users, List, Shield, Check, X } from 'lucide-react';
 
 // --- Helper Components for this modal ---
@@ -88,7 +88,7 @@ const VvnDetailsModal: React.FC<VvnDetailsModalProps> = ({ isOpen, onClose, vvn 
                                 </tr>
                                 </thead>
                                 <tbody className="bg-white divide-y divide-gray-200">
-                                {vvn.cargo.containers.map((c, i) => (
+                                {vvn.cargo.containers.map((c: Container, i: number) => (
                                     <tr key={i}>
                                         <td className="px-4 py-3 text-sm">{c.containerCode}</td>
                                         <td className="px-4 py-3 text-sm">{c.position}</td>
@@ -113,7 +113,7 @@ const VvnDetailsModal: React.FC<VvnDetailsModalProps> = ({ isOpen, onClose, vvn 
                             </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
-                            {vvn.crewMembers.map((c, i) => (
+                            {vvn.crewMembers.map((c: CrewMember, i: number) => (
                                 <tr key={i}>
                                     <td className="px-4 py-3 text-sm">{c.name}</td>
                                     <td className="px-4 py-3 text-sm">{c.nationality}</td>

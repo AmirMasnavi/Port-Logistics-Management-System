@@ -1,6 +1,6 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { getAllDocks } from '../services/apiService';
-import type { Dock } from '../types';
+import type { Dock } from '../domain/types';
 // --- 1. Import our new components ---
 import Modal from '../components/common/Modal';
 import CreateDockForm from './CreateDockForm';

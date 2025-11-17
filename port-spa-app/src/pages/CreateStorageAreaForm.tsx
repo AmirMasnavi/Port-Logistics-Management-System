@@ -1,6 +1,6 @@
 ﻿import React, { useState } from 'react';
 import { createStorageArea } from '../services/apiService';
-import type { StorageArea, StorageAreaCreateDto } from '../types';
+import type { StorageArea, StorageAreaCreateDto } from '../domain/types';
 
 interface CreateStorageAreaFormProps {
     onClose: () => void;

@@ -75,93 +75,93 @@ export interface RenderableResource {
     modelUrl?: string; //  Optional GLTF/OBJ model path
 }
 
-// --- Vessel Visit Notification (New) ---
-
-export interface Container {
-    id: number;
-    containerCode: string;
-    position: string;
-}
-
-export interface Cargo {
-    id: number;
-    description: string;
-    weight: number;
-    containers: Container[];
-}
-
-export interface CrewMember {
-    id: string; // Guid
-    name: string;
-    nationality: string;
-    isSafetyOfficer: boolean;
-}
-
-export interface DecisionLogEntry {
-    id: number;
-    timestamp: string; // DateTime
-    officerId: string;
-    outcome: 'Approved' | 'Rejected' | 'Reopened';
-    reason: string | null;
-}
-
-// This is the main data structure we GET from the API
-export interface VesselVisitNotification {
-    id: string; // Guid (internal ID, kept for backward compatibility)
-    businessId: string; // New: Business identifier like "VVN-123456789"
-    status: 'InProgress' | 'Submitted' | 'Approved' | 'Rejected';
-    estimatedArrival: string; // DateTime
-    estimatedDeparture: string; // DateTime
-    vesselImo: string;
-    // `submittedBy` now holds the representative's display name (e.g. "Ana Silva").
-    // Internal IDs (GUIDs) are not exposed by the API here to avoid leaking DB identifiers.
-    submittedBy: string;
-    assignedDockId: string | null;
-    cargo: Cargo;
-    crewMembers: CrewMember[];
-    decisionLog: DecisionLogEntry[];
-}
+// // --- Vessel Visit Notification (New) ---
+//
+// export interface Container {
+//     id: number;
+//     containerCode: string;
+//     position: string;
+// }
+//
+// export interface Cargo {
+//     id: number;
+//     description: string;
+//     weight: number;
+//     containers: Container[];
+// }
+//
+// export interface CrewMember {
+//     id: string; // Guid
+//     name: string;
+//     nationality: string;
+//     isSafetyOfficer: boolean;
+// }
+//
+// export interface DecisionLogEntry {
+//     id: number;
+//     timestamp: string; // DateTime
+//     officerId: string;
+//     outcome: 'Approved' | 'Rejected' | 'Reopened';
+//     reason: string | null;
+// }
+//
+// // This is the main data structure we GET from the API
+// export interface VesselVisitNotification {
+//     id: string; // Guid (internal ID, kept for backward compatibility)
+//     businessId: string; // New: Business identifier like "VVN-123456789"
+//     status: 'InProgress' | 'Submitted' | 'Approved' | 'Rejected';
+//     estimatedArrival: string; // DateTime
+//     estimatedDeparture: string; // DateTime
+//     vesselImo: string;
+//     // `submittedBy` now holds the representative's display name (e.g. "Ana Silva").
+//     // Internal IDs (GUIDs) are not exposed by the API here to avoid leaking DB identifiers.
+//     submittedBy: string;
+//     assignedDockId: string | null;
+//     cargo: Cargo;
+//     crewMembers: CrewMember[];
+//     decisionLog: DecisionLogEntry[];
+// }
 
 // --- DTOs for Sending Data (New) ---
 
-export interface CreateContainerDto {
-    containerCode: string;
-    position: string;
-}
-
-export interface CreateCargoDto {
-    description: string;
-    weight: number;
-    containers: CreateContainerDto[];
-}
-
-export interface CreateCrewMemberDto {
-    name: string;
-    nationality: string;
-    isSafetyOfficer: boolean;
-}
-
-// DTO for POST /api/notifications
-export interface CreateVvnDto {
-    estimatedArrival: string;
-    estimatedDeparture: string;
-    vesselImo: string;
-    representativeCitizenId: string; // Changed from representativeId (GUID) to CitizenId (e.g., "12345678Z")
-    cargo: CreateCargoDto;
-    crewMembers: CreateCrewMemberDto[];
-}
-
-// DTO for PATCH /api/notifications/{id}/approve
-export interface ApproveVvnDto {
-    officerId: string;
-    dockId: string;
-}
-
-// DTO for PATCH /api/notifications/{id}/reject
-export interface RejectVvnDto {
-    officerId: string;
-    reason: string;
-}
+// export interface CreateContainerDto {
+//     containerCode: string;
+//     position: string;
+// }
+//
+// export interface CreateCargoDto {
+//     description: string;
+//     weight: number;
+//     containers: CreateContainerDto[];
+// }
+//
+// export interface CreateCrewMemberDto {
+//     name: string;
+//     nationality: string;
+//     isSafetyOfficer: boolean;
+// }
+//
+// // DTO for POST /api/notifications
+// export interface CreateVvnDto {
+//     estimatedArrival: string;
+//     estimatedDeparture: string;
+//     vesselImo: string;
+//     representativeCitizenId: string; // Changed from representativeId (GUID) to CitizenId (e.g., "12345678Z")
+//     cargo: CreateCargoDto;
+//     crewMembers: CreateCrewMemberDto[];
+// }
+//
+// // DTO for PATCH /api/notifications/{id}/approve
+// export interface ApproveVvnDto {
+//     officerId: string;
+//     dockId: string;
+// }
+//
+// // DTO for PATCH /api/notifications/{id}/reject
+// export interface RejectVvnDto {
+//     officerId: string;
+//     reason: string;
+// }
 
 
 export interface Dock {

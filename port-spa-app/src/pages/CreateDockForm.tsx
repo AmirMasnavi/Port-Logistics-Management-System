@@ -1,7 +1,7 @@
 ﻿// typescript
 import React, { useState } from 'react';
 import { createDock } from '../services/apiService';
-import type { Dock, DockCreateDto } from '../types';
+import type { Dock, DockCreateDto } from '../domain/types';
 
 interface CreateDockFormProps {
     onClose: () => void;

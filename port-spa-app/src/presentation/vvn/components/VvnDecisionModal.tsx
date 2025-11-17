@@ -1,9 +1,10 @@
-// src/components/vvn/VvnDecisionModal.tsx
+// src/presentation/vvn/components/VvnDecisionModal.tsx
 import React, { useState, useEffect } from 'react';
-import type { VesselVisitNotification, ApproveVvnDto, RejectVvnDto } from '../../types';
-import Modal from '../common/Modal';
-import Badge from '../common/Badge';
-import { Ship, Calendar, User,  Weight, List, CheckCircle, XCircle } from 'lucide-react';
+import type { VesselVisitNotification } from '../../../domain/vvn/vvn.model';
+import type { ApproveVvnDto, RejectVvnDto } from '../../../infrastructure/repositories/vvn/vvn.dto';
+import Modal from '../../../components/common/Modal';
+import Badge from '../../../components/common/Badge';
+import { Ship, Calendar, User, Weight, List, CheckCircle, XCircle } from 'lucide-react';
 
 // --- Reusable Styled Form Components (for this file) ---
 const Input: React.FC<React.InputHTMLAttributes<HTMLInputElement> & { label: string }> = ({ label, id, ...props }) => (
@@ -171,3 +172,4 @@ const VvnDecisionModal: React.FC<VvnDecisionModalProps> = ({
 };
 
 export default VvnDecisionModal;
+

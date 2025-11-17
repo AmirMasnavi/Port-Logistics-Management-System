@@ -1,20 +1,20 @@
-// src/components/vvn/VvnCard.tsx
+// src/presentation/vvn/components/VvnCard.tsx
 import React from 'react';
-import type {VesselVisitNotification} from '../../types';
-import Badge from '../common/Badge'; //
-import {Ship, Calendar, Anchor, User, RefreshCcw} from 'lucide-react';
-import type {InternalRoleValue} from '../../services/apiService'; //
+import type { VesselVisitNotification } from '../../../domain/vvn/vvn.model';
+import Badge from '../../../components/common/Badge';
+import { Ship, Calendar, Anchor, User, RefreshCcw } from 'lucide-react';
+import type { InternalRoleValue } from '../../../services/apiService';
 
 // --- 1. UPDATE PROPS (Unchanged) ---
 interface VvnCardProps {
-    vvn: VesselVisitNotification,
-    internalRole: InternalRoleValue | null,
-    onApprove: () => void,
-    onReject: () => void,
-    onSubmit: () => void,
-    onEdit: () => void,
-    onViewDetails: () => void,
-    onReopen?: () => void
+    vvn: VesselVisitNotification;
+    internalRole: InternalRoleValue | null;
+    onApprove: () => void;
+    onReject: () => void;
+    onSubmit: () => void;
+    onEdit: () => void;
+    onViewDetails: () => void;
+    onReopen?: () => void;
 }
 
 // formatDate helper (Unchanged)

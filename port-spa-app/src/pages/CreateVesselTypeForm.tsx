@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { createVesselType } from '../services/apiService';
-import type { VesselType, VesselTypeCreateDto } from '../types';
+import type { VesselType, VesselTypeCreateDto } from '../domain/types';
 
 // Define props for the form
 interface CreateVesselTypeFormProps {

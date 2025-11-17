@@ -1,6 +1,6 @@
 ﻿import React, { useEffect, useState } from 'react';
 import { getAllStorageAreas } from '../services/apiService';
-import type { StorageArea } from '../types';
+import type { StorageArea } from '../domain/types';
 import Modal from '../components/common/Modal';
 import CreateStorageAreaForm from './CreateStorageAreaForm';
 

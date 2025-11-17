@@ -8,10 +8,9 @@ import type {
     PortLayout,
     VesselVisit,
     Resource,
-    VesselVisitNotification, CreateVvnDto, ApproveVvnDto, RejectVvnDto,
     Dock, DockCreateDto,
     StorageArea, StorageAreaCreateDto
-} from '../types';
+} from '../domain/types';
 
 // --- New: internal role constants used by the SPA ---
 export const InternalRole = {
@@ -429,89 +428,89 @@ export const getDockById = async (id: string): Promise<{ id: string; name: strin
     }
 };
 
-// --- Vessel Visit Notification Service (FIXED) ---
-
-// GET /api/notifications/search
-export const getAllVvns = async (): Promise<VesselVisitNotification[]> => {
-    try {
-        const response = await apiClient.get<VesselVisitNotification[]>('/notifications/search');
-        return response.data;
-    } catch (error) {
-        console.error('Error fetching VVNs:', error);
-        throw error;
-    }
-};
-
-// GET /api/notifications/{businessId} - Changed to use businessId instead of internal id
-export const getVvnById = async (businessId: string): Promise<VesselVisitNotification> => {
-    try {
-        const response = await apiClient.get<VesselVisitNotification>(`/notifications/${businessId}`);
-        return response.data;
-    } catch (error) {
-        console.error(`Error fetching VVN ${businessId}:`, error);
-        throw error;
-    }
-};
-
-// POST /api/notifications
-export const createVvn = async (dto: CreateVvnDto): Promise<VesselVisitNotification> => {
-    try {
-        const response = await apiClient.post<VesselVisitNotification>('/notifications', dto);
-        return response.data;
-    } catch (error) {
-        console.error('Error creating VVN:', error);
-        throw error;
-    }
-};
-
-// PUT /api/notifications/{businessId} - Changed to use businessId
-export const updateVvn = async (businessId: string, dto: CreateVvnDto): Promise<VesselVisitNotification> => {
-    try {
-        const response = await apiClient.put<VesselVisitNotification>(`/notifications/${businessId}`, dto);
-        return response.data;
-    } catch (error) {
-        console.error(`Error updating VVN ${businessId}:`, error);
-        throw error;
-    }
-};
-
-// PATCH /api/notifications/{businessId}/submit - Changed to use businessId
-export const submitVvn = async (businessId: string): Promise<void> => {
-    try {
-        await apiClient.patch(`/notifications/${businessId}/submit`);
-    } catch (error) {
-        console.error(`Error submitting VVN ${businessId}:`, error);
-        throw error;
-    }
-};
-
-// PATCH /api/notifications/{businessId}/approve - Changed to use businessId
-export const approveVvn = async (businessId: string, dto: ApproveVvnDto): Promise<void> => {
-    try {
-        await apiClient.patch(`/notifications/${businessId}/approve`, dto);
-    } catch (error) {
-        console.error(`Error approving VVN ${businessId}:`, error);
-        throw error;
-    }
-};
-
-// PATCH /api/notifications/{businessId}/reject - Changed to use businessId
-export const rejectVvn = async (businessId: string, dto: RejectVvnDto): Promise<void> => {
-    try {
-        const resp = await apiClient.patch(`/notifications/${businessId}/reject`, dto);
-        return resp.data;
-    } catch (error) {
-        console.error(`Error rejecting VVN ${businessId}:`, error);
-        throw error;
-    }
-};
-
-// PATCH /api/notifications/{businessId}/resubmit - Changed to use businessId
-export const reopenVvn = async (businessId: string): Promise<void> => {
-    try {
-        await apiClient.patch(`/notifications/${businessId}/resubmit`);
-    } catch (error) {
-        console.error(`Error reopening VVN ${businessId}:`, error);
-        throw error;
-    }
-};
+// // --- Vessel Visit Notification Service (FIXED) ---
+//
+// // GET /api/notifications/search
+// export const getAllVvns = async (): Promise<VesselVisitNotification[]> => {
+//     try {
+//         const response = await apiClient.get<VesselVisitNotification[]>('/notifications/search');
+//         return response.data;
+//     } catch (error) {
+//         console.error('Error fetching VVNs:', error);
+//         throw error;
+//     }
+// };
+//
+// // GET /api/notifications/{businessId} - Changed to use businessId instead of internal id
+// export const getVvnById = async (businessId: string): Promise<VesselVisitNotification> => {
+//     try {
+//         const response = await apiClient.get<VesselVisitNotification>(`/notifications/${businessId}`);
+//         return response.data;
+//     } catch (error) {
+//         console.error(`Error fetching VVN ${businessId}:`, error);
+//         throw error;
+//     }
+// };
+//
+// // POST /api/notifications
+// export const createVvn = async (dto: CreateVvnDto): Promise<VesselVisitNotification> => {
+//     try {
+//         const response = await apiClient.post<VesselVisitNotification>('/notifications', dto);
+//         return response.data;
+//     } catch (error) {
+//         console.error('Error creating VVN:', error);
+//         throw error;
+//     }
+// };
+//
+// // PUT /api/notifications/{businessId} - Changed to use businessId
+// export const updateVvn = async (businessId: string, dto: CreateVvnDto): Promise<VesselVisitNotification> => {
+//     try {
+//         const response = await apiClient.put<VesselVisitNotification>(`/notifications/${businessId}`, dto);
+//         return response.data;
+//     } catch (error) {
+//         console.error(`Error updating VVN ${businessId}:`, error);
+//         throw error;
+//     }
+// };
+//
+// // PATCH /api/notifications/{businessId}/submit - Changed to use businessId
+// export const submitVvn = async (businessId: string): Promise<void> => {
+//     try {
+//         await apiClient.patch(`/notifications/${businessId}/submit`);
+//     } catch (error) {
+//         console.error(`Error submitting VVN ${businessId}:`, error);
+//         throw error;
+//     }
+// };
+//
+// // PATCH /api/notifications/{businessId}/approve - Changed to use businessId
+// export const approveVvn = async (businessId: string, dto: ApproveVvnDto): Promise<void> => {
+//     try {
+//         await apiClient.patch(`/notifications/${businessId}/approve`, dto);
+//     } catch (error) {
+//         console.error(`Error approving VVN ${businessId}:`, error);
+//         throw error;
+//     }
+// };
+//
+// // PATCH /api/notifications/{businessId}/reject - Changed to use businessId
+// export const rejectVvn = async (businessId: string, dto: RejectVvnDto): Promise<void> => {
+//     try {
+//         const resp = await apiClient.patch(`/notifications/${businessId}/reject`, dto);
+//         return resp.data;
+//     } catch (error) {
+//         console.error(`Error rejecting VVN ${businessId}:`, error);
+//         throw error;
+//     }
+// };
+//
+// // PATCH /api/notifications/{businessId}/resubmit - Changed to use businessId
+// export const reopenVvn = async (businessId: string): Promise<void> => {
+//     try {
+//         await apiClient.patch(`/notifications/${businessId}/resubmit`);
+//     } catch (error) {
+//         console.error(`Error reopening VVN ${businessId}:`, error);
+//         throw error;
+//     }
+// };

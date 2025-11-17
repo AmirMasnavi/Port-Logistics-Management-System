@@ -17,7 +17,7 @@ import type {
     LayoutElement,
     VesselVisit,
     Resource
-} from '../types';
+} from '../domain/types';
 
 const VisualizationPage: React.FC = () => {
     const [layout, setLayout] = useState<PortLayout | null>(null); // Store response in PortLayout type
