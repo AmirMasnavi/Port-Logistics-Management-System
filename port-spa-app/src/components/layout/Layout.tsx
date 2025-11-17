@@ -10,8 +10,8 @@ import { useTranslation } from 'react-i18next';
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { isAuthenticated, isLoading, isInternalLoading, internalRole } = useAuth();
     const location = useLocation();
-    const _ut = useTranslation();
-    const t = (_ut as any).t as (key: string) => string;
+    // Use a lightweight cast to avoid deep generic instantiation from react-i18next types
+    const { t } = (useTranslation as unknown as () => { t: (key: string) => string })();
 
     // This is the state we added in the last step
     const [isSidebarHovered, setIsSidebarHovered] = useState(false);
