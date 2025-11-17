@@ -3,13 +3,15 @@ import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Grid, Sky } from '@react-three/drei';
 import { useGLTF } from '@react-three/drei';
 import { CargoShipModel } from "./CargoShipModel";
-import type { LayoutElement, RenderableVessel, RenderableResource } from '../../types';
+import type { LayoutElement, RenderableVessel, RenderableResource } from '../../domain/types';
 import {
     DockModel, LandModel, WaterModel, YardModel, BuildingModel,
     STSCraneModel, YardCraneModel
 } from './models';
+import { useMemo } from 'react';
+import * as THREE from 'three';
 
-// Generic component to render imported GLTF/OBJ models
+// This version correctly applies shadows to loaded models.
 const ImportedModel: React.FC<{
     modelUrl: string;
     position: [number, number, number];
@@ -17,6 +19,23 @@ const ImportedModel: React.FC<{
     rotation?: [number, number, number];
 }> = ({ modelUrl, position, scale, rotation }) => {
     const { scene } = useGLTF(modelUrl);
+
+    // We use useMemo to traverse the scene only once when it loads
+    const memoizedScene = useMemo(() => {
+        // This loop goes through every single part of the loaded model
+        scene.traverse((child) => {
+            // We check if the part is a 3D mesh
+            if ((child as THREE.Mesh).isMesh) {
+                // And tell it to cast and receive shadows
+                child.castShadow = true;
+                child.receiveShadow = true;
+            }
+        });
+        return scene;
+    }, [scene]);
+
+    // We now render the 'memoizedScene' which has shadows enabled
+    return <primitive object={memoizedScene} position={position} scale={scale} />;
     return <primitive object={scene} position={position} rotation={rotation as any} scale={scale as any} />;
 };
 
