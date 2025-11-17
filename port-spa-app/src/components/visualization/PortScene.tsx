@@ -193,7 +193,17 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
                 return null;
             })}
 
-            <OrbitControls />
+            <OrbitControls
+                mouseButtons={{
+                    LEFT: THREE.MOUSE.PAN,
+                    MIDDLE: THREE.MOUSE.DOLLY,
+                    RIGHT: THREE.MOUSE.ROTATE,
+                }}
+                maxDistance={50}
+                minDistance={10}
+                rotateSpeed={0.20}
+                panSpeed={0.30}
+            />
         </Canvas>
     );
 };
