@@ -10,19 +10,79 @@
   "nav": {
     "dashboard": "Dashboard",
     "vesselTypes": "Vessel types",
-    "vesselVisits": "Vessel visits"
+    "vesselVisits": "Vessel visits",
+    "portFacilities": "Port facilities",
+    "docks": "Docks",
+    "shippingAgents": "Shipping agents",
+    "visualization": "3D Visualization",
+    "userAdmin": "User Admin"
   },
   "loading": "Loading...",
+  "common": {
+    "loading": "Loading..."
+  },
   "search": {
     "placeholder": "Search..."
   },
   "button": {
     "new": "New",
     "logout": "Logout",
-    "login": "Login"
+    "login": "Login",
+    "createType": "Create Type",
+    "createDock": "Create Dock",
+    "cancel": "Cancel",
+    "save": "Save",
+    "saving": "Saving..."
+  },
+  "sidebar": {
+    "pin": "Pin sidebar",
+    "unpin": "Unpin sidebar",
+    "role": "Role"
+  },
+  "header": {
+    "changeLanguage": "Change language",
+    "profile": "Profile",
+    "editProfile": "Edit Profile",
+    "changePassword": "Change Password",
+    "noNameSet": "No Name Set",
+    "passwordReset": {
+      "sent": "Password reset email sent!",
+      "failed": "Failed to send email."
+    }
+  },
+  "menu": {
+    "dashboard": "Dashboard",
+    "userAdmin": "User Admin",
+    "reports": "Reports",
+    "cargoManagement": "Cargo Management",
+    "movements": "Movements",
+    "operationalReports": "Operational Reports",
+    "monitoring": "Port Monitoring",
+    "authorizations": "Authorizations",
+    "portReports": "Port Reports",
+    "myOrders": "My Orders",
+    "documentation": "Documentation",
+    "communications": "Communications"
+  },
+  "layout": {
+    "accessDenied": {
+      "description": "You have successfully logged in, but your account is not activated or does not have a role assigned in this system.",
+      "contact": "Please contact your administrator."
+    },
+    "loginPrompt": "Please log in to continue."
   },
   "greeting": {
     "hello": "Hello, {{name}}"
+  },
+  "vesselTypes": {
+    "title": "Vessel Types"
+  },
+  "modal": {
+    "createVesselType": "Create New Vessel Type"
+  },
+  "errors": {
+    "fetchFailed": "Failed to fetch data. Please try again later.",
+    "createFailedVesselType": "Failed to create vessel type. Please try again."
   }
+  
 }
-

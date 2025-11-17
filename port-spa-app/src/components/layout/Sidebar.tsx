@@ -4,6 +4,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthProvider'; // [cite: 192]
 import { canManagePort, canViewPlanning, isAdmin, canViewVisualization } from '../../auth/permissions';
 
+import { t } from '../../i18nClient';
 // 1. Import the icons we need from lucide-react
 import {
     LayoutDashboard,
@@ -74,8 +75,9 @@ const Sidebar: React.FC<SidebarProps> = ({
                                              setIsPinned
                                          }) => {
     const { internalRole, logout } = useAuth();
+    // use t from i18nClient to avoid react-i18next typing issues
 
-   
+    
     return (
         // 6. This <aside> is now a "fixed" panel
         // It uses onMouseEnter/onMouseLeave to set the hover state in the parent
@@ -98,7 +100,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                     transition-opacity
                     ${isExpanded ? 'opacity-100' : 'opacity-0'}
                 `}
-                title={isPinned ? 'Unpin sidebar' : 'Pin sidebar'}
+                title={isPinned ? t('sidebar.unpin') : t('sidebar.pin')}
             >
                 {isPinned ? <PanelLeftClose className="w-4 h-4" /> : <PanelRightClose className="w-4 h-4" />}
             </button>
@@ -108,7 +110,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 className={`flex items-center p-3 rounded-lg mb-4
                     ${isExpanded ? 'w-full justify-start gap-3' : 'justify-center'}
                 `}
-                title={`Role: ${internalRole}`} // Show role on hover
+                title={`${t('sidebar.role')}: ${internalRole}`} // Show role on hover
             >
                 {/* The new icon */}
                 <Shield className="w-6 h-6 flex-shrink-0 text-maritime-700" />
@@ -116,7 +118,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 {/* When expanded, show the role text */}
                 {isExpanded && (
                     <div className="overflow-hidden whitespace-nowrap">
-                        <div className="text-xs text-gray-500">Role</div>
+                        <div className="text-xs text-gray-500">{t('sidebar.role')}</div>
                         <div className="font-medium text-sm text-gray-800">
                             {internalRole}
                         </div>
@@ -127,35 +129,34 @@ const Sidebar: React.FC<SidebarProps> = ({
             
             <nav className="flex-1 flex flex-col items-center space-y-3">
                 {/* Dashboard: Everyone */}
-                <NavItem to="/" label="Dashboard" icon={LayoutDashboard} isExpanded={isExpanded} />
+                <NavItem to="/" label={t('nav.dashboard')} icon={LayoutDashboard} isExpanded={isExpanded} />
                 {/* Vessel Visits: Everyone */}
-                <NavItem to="/vessel-visits" label="Vessel Visits" icon={Ship} isExpanded={isExpanded} />
+                <NavItem to="/vessel-visits" label={t('nav.vesselVisits')} icon={Ship} isExpanded={isExpanded} />
                 
                 {/* Vessel Types: Admin & Officer */}
                 {canManagePort.has(internalRole || '') && (
-                    <NavItem to="/vessel-types" label="Vessel Types" icon={Anchor} isExpanded={isExpanded} />
+                    <NavItem to="/vessel-types" label={t('nav.vesselTypes')} icon={Anchor} isExpanded={isExpanded} />
                 )}
                 {/* Port Facilities & Docks: Admin, Officer, Logistics */}
                 {canViewPlanning.has(internalRole || '') && (
                     <>
                         <NavItem to="/port-facilities" label="Port Facilities" icon={Building} isExpanded={isExpanded} />
                         <NavItem to="/docks" label="Docks" icon={SquareSquare} isExpanded={isExpanded} />
-                        <NavItem to="/resources" label="Resources" icon={ClipboardList} isExpanded={isExpanded} />
                     </>
                 )}
                 {/* Shipping Agents: Admin & Officer */}
                 {canManagePort.has(internalRole || '') && (
-                    <NavItem to="/shippingagentorganization" label="Shipping Agents" icon={ClipboardList} isExpanded={isExpanded} />
+                    <NavItem to="/shippingagentorganization" label={t('nav.shippingAgents')} icon={ClipboardList} isExpanded={isExpanded} />
                 )}
                 {/* 3D Visualization: Admin, Officer, Logistics */}
                 {canViewVisualization.has(internalRole || '') && (
-                    <NavItem to="/visualization" label="3D Visualization" icon={Box} isExpanded={isExpanded} />
+                    <NavItem to="/visualization" label={t('nav.visualization')} icon={Box} isExpanded={isExpanded} />
                 )}
                 {/* Admin Page: Admin only */}
                 {isAdmin.has(internalRole || '') && (
                     <>
                         <hr className="w-full my-2" />
-                        <NavItem to="/admin/users" label="User Admin" icon={Settings} isExpanded={isExpanded} />
+                        <NavItem to="/admin/users" label={t('nav.userAdmin')} icon={Settings} isExpanded={isExpanded} />
                     </>
                 )}
             </nav>
@@ -165,7 +166,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             <div className="mt-auto w-full">
                 <button
                     onClick={logout}
-                    title="Logout"
+                    title={t('button.logout')}
                     className={`flex items-center p-3 rounded-lg text-gray-500 hover:bg-red-100 hover:text-red-600
                         ${isExpanded ? 'w-full justify-start gap-3' : 'justify-center'}
                     `}
@@ -173,13 +174,13 @@ const Sidebar: React.FC<SidebarProps> = ({
                     <LogOut className="w-6 h-6 flex-shrink-0" />
                     {isExpanded && (
                         <span className="overflow-hidden whitespace-nowrap font-medium">
-                            Logout
+                            {t('button.logout')}
                         </span>
                     )}
                 </button>
             </div>
         </aside>
-    );
-};
+     );
+ };
 
-export default Sidebar;
+ export default Sidebar;

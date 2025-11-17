@@ -1,8 +1,6 @@
 /*
     IARTI - PROLOG SCHEDULING SERVER (v2)
-    
-    FIX: Corrected `process_vessels/1` to handle the JSON
-    format (list of pairs) sent by C#.
+ 
 */
 
 % --- 1. HTTP Server Libraries ---

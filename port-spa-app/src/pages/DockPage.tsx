@@ -4,6 +4,7 @@ import type { Dock } from '../types';
 // --- 1. Import our new components ---
 import Modal from '../components/common/Modal';
 import CreateDockForm from './CreateDockForm';
+import { t } from '../i18nClient';
 
 // A simple icon component for the actions menu
 const DotsIcon = () => (
@@ -26,7 +27,7 @@ const DocksPage: React.FC = () => {
             const data = await getAllDocks();
             setDocks(data);
         } catch (err) {
-            setError('Failed to fetch data. Please try again later.');
+            setError(t('errors.fetchFailed'));
         } finally {
             setLoading(false);
         }
@@ -49,13 +50,13 @@ const DocksPage: React.FC = () => {
 
                 {/* 1. Page Header */}
                 <div className="flex justify-between items-center mb-4">
-                    <h1 className="text-2xl font-semibold text-gray-800">Docks</h1>
+                    <h1 className="text-2xl font-semibold text-gray-800">{t('nav.docks')}</h1>
                     {/* --- 4. Wire up the button --- */}
                     <button
                         onClick={() => setIsModalOpen(true)}
                         className="btn btn-primary"
                     >
-                        + Create Dock
+                        + {t('button.createDock')}
                     </button>
                 </div>
 
@@ -63,7 +64,7 @@ const DocksPage: React.FC = () => {
                 <div className="flex mb-4">
                     <input
                         type="text"
-                        placeholder="Search by name..."
+                        placeholder={t('search.placeholder')}
                         className="flex-1 p-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-maritime-500"
                     />
                 </div>
@@ -73,19 +74,19 @@ const DocksPage: React.FC = () => {
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-maritime-100">
                         <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-maritime-700 uppercase tracking-wider">Name</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-maritime-700 uppercase tracking-wider">Location</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-maritime-700 uppercase tracking-wider">Length (m)</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-maritime-700 uppercase tracking-wider">Depth (m)</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-maritime-700 uppercase tracking-wider">Max Draft (m)</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-maritime-700 uppercase tracking-wider">STS Cranes</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-maritime-700 uppercase tracking-wider">Allowed Types</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-maritime-700 uppercase tracking-wider">{t('table.name')}</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-maritime-700 uppercase tracking-wider">{t('dock.location')}</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-maritime-700 uppercase tracking-wider">{t('dock.length')}</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-maritime-700 uppercase tracking-wider">{t('dock.depth')}</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-maritime-700 uppercase tracking-wider">{t('dock.maxDraft')}</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-maritime-700 uppercase tracking-wider">{t('dock.stsCranes')}</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-maritime-700 uppercase tracking-wider">{t('dock.allowedTypes')}</th>
                         </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
                         {loading && (
                             <tr>
-                                <td colSpan={5} className="text-center py-4">Loading...</td>
+                                <td colSpan={8} className="text-center py-4">{t('common.loading')}</td>
                             </tr>
                         )}
                         {error && (
@@ -105,7 +106,7 @@ const DocksPage: React.FC = () => {
                                     {(dock.allowedVesselTypeIds ?? []).join(', ') || '—'}
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                    <button className="text-gray-400 hover:text-gray-600">
+                                    <button className="text-gray-400 hover:text-gray-600" aria-label={t('table.actions')} title={t('table.actions')}>
                                         <DotsIcon />
                                     </button>
                                 </td>
@@ -116,13 +117,12 @@ const DocksPage: React.FC = () => {
                 </div>
 
                 {/* --- 5. Render the Modal --- */}
-                <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Create New Dock">
-                    <CreateDockForm onClose={() => setIsModalOpen(false)} onSuccess={handleSuccess} />
-                </Modal>
+                <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={t('dock.createModal')}>
+                     <CreateDockForm onClose={() => setIsModalOpen(false)} onSuccess={handleSuccess} />
+                 </Modal>
             </div>
         </div>
     );
 };
 
 export default DocksPage;
-
