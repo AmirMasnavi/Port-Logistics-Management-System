@@ -1,9 +1,9 @@
 // src/presentation/vvn/components/VvnDecisionModal.tsx
 import React, { useState, useEffect } from 'react';
-import type { VesselVisitNotification } from '../../../domain/vvn/vvn.model';
-import type { ApproveVvnDto, RejectVvnDto } from '../../../infrastructure/repositories/vvn/vvn.dto';
-import Modal from '../../../components/common/Modal';
-import Badge from '../../../components/common/Badge';
+import type { VesselVisitNotification } from '../../domain/vvn/vvn.model';
+import type { ApproveVvnDto, RejectVvnDto } from '../../infrastructure/repositories/vvn/vvn.dto';
+import Modal from '../common/Modal';
+import Badge from '../common/Badge';
 import { Ship, Calendar, User, Weight, List, CheckCircle, XCircle } from 'lucide-react';
 
 // --- Reusable Styled Form Components (for this file) ---

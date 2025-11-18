@@ -5,7 +5,8 @@ using PortProject.Api.Application.UserAdmin.DTOs;
 using System.Threading.Tasks;
 using System;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Authorization; // We need this!
+using Microsoft.AspNetCore.Authorization;
+using PortProject.Api.Services; // We need this!
 
 [ApiController]
 [Route("api/admin")]
@@ -13,43 +14,56 @@ using Microsoft.AspNetCore.Authorization; // We need this!
 public class UserAdminController : ControllerBase
 {
     private readonly PortProjectContext _context;
+    private readonly IEmailService _emailService;
     
-    public UserAdminController(PortProjectContext context)
+    public UserAdminController(PortProjectContext context, IEmailService emailService)
     {
         _context = context;
+        _emailService = emailService;
     }
-
     [HttpPost("assign-role")]
-    // [Authorize(Roles = "Administrator")] // We will add this in the NEXT step
+    [Authorize(Roles = "Administrator")] 
     public async Task<IActionResult> AssignRole([FromBody] AssignRoleDto dto)
     {
         if (!Enum.TryParse<Role>(dto.Role, true, out var role))
             return BadRequest(new { message = "Invalid role specified." });
 
         var user = await _context.AppUsers.FindAsync(dto.Email.ToLowerInvariant());
-        
+        bool isNewUser = false;
+
         if (user != null)
         {
-            // User exists, just update their role
             user.ChangeRole(role);
+            // If user was deactivated, we might want to reactivate or send a new token
+            // For now, we assume we only send emails to NEW users or if explicitly requested.
         }
         else
         {
-            // User doesn't exist, create them
+            isNewUser = true;
             user = new AppUser(dto.Email, role);
             await _context.AppUsers.AddAsync(user);
         }
 
         await _context.SaveChangesAsync();
-        
-        // 4. TODO: We would send the activation email here
-        // We can skip the email logic for now.
+
+        // 3. Send the Email!
+        if (isNewUser && !string.IsNullOrEmpty(user.ActivationToken))
+        {
+            // Construct the link to your Frontend
+            // NOTE: Ensure this port matches your React App (5173 or 5174)
+            string frontendUrl = "http://localhost:5173"; 
+            string link = $"{frontendUrl}/activate?token={user.ActivationToken}";
+
+            // Call the service (Fire and forget, or await)
+            await _emailService.SendActivationEmailAsync(user.Email, link);
+        }
 
         return Ok(new { 
             email = user.Email, 
             role = user.Role.ToString(), 
-            status = user.Status.ToString(), 
-            activationToken = user.ActivationToken 
+            status = user.Status.ToString(),
+            // You can remove activationToken from here now, since it's sent via email!
+            message = "User invited and email sent."
         });
     }
 

@@ -1,11 +1,13 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using PortProject.Api.Application.Dock.DTOs;
 using PortProject.Api.Application.Dock.Services;
+using Microsoft.AspNetCore.Authorization;
 
 namespace PortProject.Api.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(Roles = "Administrator,PortAuthorityOfficer")]
     public class DockController : ControllerBase
     {
         private readonly IDockService _service;

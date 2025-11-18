@@ -13,18 +13,13 @@ using PortProject.Api.Domain.VesselTypeAggregate;
 using PortProject.Api.Infrastructure.Repositories;
 using src.Infrastructure.VesselTypeAggregate;
 using PortProject.Api.Services;
-using PortProject.Api.Domain.VesselTypeAggregate;
-using PortProject.Api.Infrastructure.Repositories;
-using PortProject.Api.Services;
 using src.Application.Services;
 using src.Infrastructure.VesselAggregate;
-using src.Infrastructure.VesselTypeAggregate;
 using PortProject.Api.Application.Qualifications;
 using PortProject.Api.Application.Qualifications.Services;
 using PortProject.Api.Application.Resources.Services;
 using PortProject.Api.Application.ShippingAgentsOrganization.Services;
 using PortProject.Api.Application.ShippingAgentsRepresentative.Services;
-using PortProject.Api.Application.VesselVisitNotification;
 using PortProject.Api.Application.VesselVisitNotification.Services;
 using PortProject.Api.Domain.DockAggregate;
 using PortProject.Api.Domain.ResourceAggregate;
@@ -34,8 +29,8 @@ using PortProject.Api.Domain.VesselVisitNotificationAggregate;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using PortProject.Api.Application.PortLayout;
 using Microsoft.IdentityModel.Tokens;
-using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
-
+using PortProject.Api.Application.UserAdmin.Services;
+using Microsoft.AspNetCore.Authentication;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -58,6 +53,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateLifetime = true
         };
     });
+
+// This registers the Claims Transformation Service
+builder.Services.AddTransient<IClaimsTransformation, ClaimsTransformationService>();
 
 // Add services to the container.
 builder.Services.AddControllers()
@@ -102,6 +100,7 @@ builder.Services.AddScoped<IDockService, DockService>();
 builder.Services.AddScoped<IResourceService, ResourceService>();
 builder.Services.AddScoped<IResourceRepository, ResourceRepository>();
 builder.Services.AddScoped<IPortLayoutService, PortLayoutService>();
+builder.Services.AddTransient<IEmailService, EmailService>();
 
 
 // Add CORS

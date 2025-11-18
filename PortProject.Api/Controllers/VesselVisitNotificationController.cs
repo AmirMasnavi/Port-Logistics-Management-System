@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using PortProject.Api.Application.VesselVisitNotification;
 using PortProject.Api.Application.VesselVisitNotification.DTOs;
 using PortProject.Api.Application.VesselVisitNotification.Services;
+using Microsoft.AspNetCore.Authorization;
 
 namespace PortProject.Api.Controllers;
 
@@ -20,6 +21,7 @@ public class VesselVisitNotificationController : ControllerBase
 
     // US 2.2.8: Create a new notification
     [HttpPost]
+    [Authorize(Roles = "Administrator,ShippingAgentRepresentative")]
     public async Task<ActionResult<VesselVisitNotificationDto>> Create(CreateVvnDto dto)
     {
         try
@@ -59,6 +61,7 @@ public class VesselVisitNotificationController : ControllerBase
 
     // US 2.2.9: Update a notification
     [HttpPut("{businessId}")]
+    [Authorize(Roles = "Administrator,ShippingAgentRepresentative")]
     public async Task<ActionResult<VesselVisitNotificationDto>> Update(string businessId, CreateVvnDto dto)
     {
         try {
@@ -76,6 +79,7 @@ public class VesselVisitNotificationController : ControllerBase
     
     // US 2.2.8: Submit a notification
     [HttpPatch("{businessId}/submit")]
+    [Authorize(Roles = "Administrator,ShippingAgentRepresentative")]
     public async Task<IActionResult> Submit(string businessId)
     {
         try {
@@ -91,6 +95,7 @@ public class VesselVisitNotificationController : ControllerBase
         }
     }
     [HttpPatch("{businessId}/approve")]
+    [Authorize(Roles = "Administrator,PortAuthorityOfficer")]
     public async Task<IActionResult> ApproveVvn(string businessId, [FromBody] ApproveVvnDto dto)
     {
         try
@@ -113,6 +118,7 @@ public class VesselVisitNotificationController : ControllerBase
     }
 
     [HttpPatch("{businessId}/reject")]
+    [Authorize(Roles = "Administrator,PortAuthorityOfficer")]
     public async Task<IActionResult> RejectVvn(string businessId, [FromBody] RejectVvnDto dto)
     {
         try
@@ -132,6 +138,7 @@ public class VesselVisitNotificationController : ControllerBase
 
 
     [HttpPatch("{businessId}/resubmit")]
+    [Authorize(Roles = "Administrator,PortAuthorityOfficer")]
     public async Task<IActionResult> ReopenVvn(string businessId)
     {
         try
@@ -150,6 +157,7 @@ public class VesselVisitNotificationController : ControllerBase
     }
     
     [HttpGet("search")]
+    [Authorize(Roles = "Administrator,ShippingAgentRepresentative,PortAuthorityOfficer")]
     public async Task<ActionResult<List<VesselVisitNotificationDto>>> Search(
         [FromQuery] string? vesselImo,
         [FromQuery] string? status,

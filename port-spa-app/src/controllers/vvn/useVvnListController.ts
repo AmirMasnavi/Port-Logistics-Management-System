@@ -1,10 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { VvnService } from '../../../app/vvn/vvn.service';
-import { vvnApiRepository } from '../../../infrastructure/repositories/vvn/vvnApi.repository';
-import type { VesselVisitNotification } from '../../../domain/vvn/vvn.model';
-import type { ApproveVvnDto, RejectVvnDto } from '../../../infrastructure/repositories/vvn/vvn.dto';
-import { useAuth } from '../../../auth/AuthProvider';
+import { VvnService } from '../../app/vvn/vvn.service';
+import { vvnApiRepository } from '../../infrastructure/repositories/vvn/vvnApi.repository';
+import type { VesselVisitNotification } from '../../domain/vvn/vvn.model';
+import type { ApproveVvnDto, RejectVvnDto } from '../../infrastructure/repositories/vvn/vvn.dto';
+import { useAuth } from '../../auth/AuthProvider';
 
 const vvnService = new VvnService(vvnApiRepository);
 

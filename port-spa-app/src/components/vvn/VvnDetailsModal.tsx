@@ -1,8 +1,8 @@
 // src/presentation/vvn/components/VvnDetailsModal.tsx
 import React from 'react';
-import type { VesselVisitNotification, DecisionLogEntry, Container, CrewMember } from '../../../domain/vvn/vvn.model';
-import Modal from '../../..//components/common/Modal';
-import Badge from '../../../components/common/Badge';
+import type { VesselVisitNotification, DecisionLogEntry, Container, CrewMember } from '../../domain/vvn/vvn.model';
+import Modal from '../common/Modal';
+import Badge from '../common/Badge';
 import { Ship, Calendar, Anchor, Box, Weight, Users, List, Shield, Check, X } from 'lucide-react';
 
 // --- Helper Components for this modal ---

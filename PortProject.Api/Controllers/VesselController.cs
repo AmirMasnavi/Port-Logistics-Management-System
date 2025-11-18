@@ -5,11 +5,13 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using PortProject.Api.Domain.VesselAggregate;
+using Microsoft.AspNetCore.Authorization;
 
 namespace PortProject.Api.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(Roles = "Administrator,PortAuthorityOfficer")]
     public class VesselController : ControllerBase
     {
         private readonly IVesselService _service;

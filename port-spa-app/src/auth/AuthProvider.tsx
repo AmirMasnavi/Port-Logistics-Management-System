@@ -16,6 +16,7 @@ interface AuthContextType {
     roleStatus: 'unknown' | 'active' | 'inactive' | 'none';
     accessDeniedReason: string | null;
     logout: () => Promise<void>;
+    refreshRole: () => Promise<void>; // 👈 NEW: Allow manual role refresh
 }
 
 // Create the context
@@ -30,6 +31,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [citizenId, setCitizenId] = useState<string | null>(null);
     const [roleStatus, setRoleStatus] = useState<'unknown' | 'active' | 'inactive' | 'none'>('unknown');
     const [accessDeniedReason, setAccessDeniedReason] = useState<string | null>(null);
+    const [roleRefreshTrigger, setRoleRefreshTrigger] = useState(0); // 👈 NEW: Trigger for manual refresh
 
     useEffect(() => {
         // ✅ Track Firebase authentication state
@@ -57,19 +59,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     // If backend returns { role: null | '' } -> deny access
                     if (!data || !role) {
                         setInternalRole(null);
-                        setCitizenId(repCitizenId ?? null);                // <-- set ID even when no role (if provided)
+                        setCitizenId(repCitizenId ?? null);
                         setRoleStatus('none');
                         setAccessDeniedReason('Nenhuma role atribuída. Contacte o administrador.');
                     } else if (active === false) {
                         // If backend provides an "active" flag and it's false -> inactive
                         setInternalRole(role);
-                        setCitizenId(repCitizenId ?? null);                // <-- set ID for inactive case
+                        setCitizenId(repCitizenId ?? null);
                         setRoleStatus('inactive');
                         setAccessDeniedReason('A sua role está inativa. Contacte o administrador.');
                     } else {
                         // role válida e ativa
                         setInternalRole(role);
-                        setCitizenId(repCitizenId ?? null);                // <-- set ID for active case
+                        setCitizenId(repCitizenId ?? null);
                         setRoleStatus('active');
                         setAccessDeniedReason(null);
                     }
@@ -78,13 +80,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
                     // Default deny case
                     setInternalRole(null);
-                    setCitizenId(null);                                     // <-- ensure ID cleared on error
+                    setCitizenId(null);
                     setRoleStatus('none');
                     setAccessDeniedReason('Erro ao verificar role interna.');
 
+                    // ✅ FIXED: Check if user is on activation page before forcing logout
+                    // If they're activating their account, they won't have a role yet - that's OK!
+                    const isOnActivationPage = window.location.pathname.includes('/activate');
+                    
                     // If backend returned 403 (forbidden) treat as access denied and force logout
+                    // BUT NOT if they're on the activation page
                     const status = (error?.response as any)?.status ?? (error?.status ?? null);
-                    if (status === 403) {
+                    if (status === 403 && !isOnActivationPage) {
                         try {
                             await logout();
                         } catch (e) {
@@ -97,7 +104,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             } else {
                 // No Firebase user, so no internal role
                 setInternalRole(null);
-                setCitizenId(null);                                         // <-- ensure ID cleared when no user
+                setCitizenId(null);
                 setRoleStatus('none');
                 setAccessDeniedReason(null);
             }
@@ -110,7 +117,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setIsInternalLoading(true);
             void fetchRole();
         }
-    }, [user, isLoading]);
+    }, [user, isLoading, roleRefreshTrigger]); // 👈 ADDED: roleRefreshTrigger dependency
 
     // 🔄 Refresh automático do token a cada 50 minutos
     useEffect(() => {
@@ -138,21 +145,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const logout = async () => {
         await signOut(auth);
         setInternalRole(null);
-        setCitizenId(null); // <-- Clear ID on logout
+        setCitizenId(null);
         setRoleStatus('none');
         setAccessDeniedReason(null);
+    };
+
+    // 👈 NEW: Function to manually refresh the role (called after activation)
+    const refreshRole = async () => {
+        console.log('🔄 Manually refreshing role...');
+        setRoleRefreshTrigger(prev => prev + 1);
     };
 
     const value: AuthContextType = {
         user,
         isAuthenticated: !!user,
         isLoading,
-        isInternalLoading, // exposed to consumers
-        internalRole,      // exposed to consumers
-        citizenId,         // <-- expose the citizenId
+        isInternalLoading,
+        internalRole,
+        citizenId,
         roleStatus,
         accessDeniedReason,
         logout,
+        refreshRole, // 👈 NEW: Expose refreshRole
     };
 
     return (

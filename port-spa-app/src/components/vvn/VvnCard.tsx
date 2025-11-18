@@ -1,9 +1,9 @@
 // src/presentation/vvn/components/VvnCard.tsx
 import React from 'react';
-import type { VesselVisitNotification } from '../../../domain/vvn/vvn.model';
-import Badge from '../../../components/common/Badge';
+import type { VesselVisitNotification } from '../../domain/vvn/vvn.model';
+import Badge from '../../components/common/Badge';
 import { Ship, Calendar, Anchor, User, RefreshCcw } from 'lucide-react';
-import type { InternalRoleValue } from '../../../services/apiService';
+import type { InternalRoleValue } from '../../services/apiService';
 
 // --- 1. UPDATE PROPS (Unchanged) ---
 interface VvnCardProps {

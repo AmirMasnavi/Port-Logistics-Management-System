@@ -1,6 +1,7 @@
 import React from 'react';
-import { useVvnFormController } from './controllers/useVvnFormController.ts'; // Import the new Controller Hook
+import { useVvnFormController } from '../controllers/vvn/useVvnFormController.ts';
 import { Ship, Package, Users, Plus, Trash2, ArrowLeft } from 'lucide-react';
+import type { CreateContainerDto, CreateCrewMemberDto } from '../infrastructure/repositories/vvn/vvn.dto';
 
 // --- Reusable Form Components (Copied from your old file) ---
 const Input: React.FC<React.InputHTMLAttributes<HTMLInputElement> & { label: string }> = ({ label, id, ...props }) => (
@@ -104,7 +105,7 @@ const CreateVvnPage: React.FC = () => {
                             <Input label="Cargo Weight (kg)" id="weight" name="weight" type="number" value={formData.cargo.weight} onChange={handleCargoChange} />
                             <div>
                                 <h4 className="text-md font-medium text-gray-800 mb-2">Containers</h4>
-                                {formData.cargo.containers.map((container, index) => (
+                                {formData.cargo.containers.map((container: CreateContainerDto, index: number) => (
                                     <div key={index} className="flex items-center gap-2 mb-2 p-3 border rounded-lg bg-gray-50">
                                         <Input label={`Code #${index + 1}`} id={`containerCode-${index}`} name="containerCode" placeholder="CSQU3054383" value={container.containerCode} onChange={(e) => handleContainerChange(index, e)} required />
                                         <Input label="Position" id={`position-${index}`} name="position" placeholder="B1-R1-T1" value={container.position} onChange={(e) => handleContainerChange(index, e)} />
@@ -122,7 +123,7 @@ const CreateVvnPage: React.FC = () => {
                     {step === 3 && (
                         <div className="space-y-4">
                             <h4 className="text-md font-medium text-gray-800 mb-2">Crew Members</h4>
-                            {formData.crewMembers.map((crew, index) => (
+                            {formData.crewMembers.map((crew: CreateCrewMemberDto, index: number) => (
                                 <div key={index} className="flex items-center gap-2 mb-2 p-3 border rounded-lg bg-gray-50">
                                     <Input label={`Name #${index + 1}`} id={`crewName-${index}`} name="name" placeholder="John Doe" value={crew.name} onChange={(e) => handleCrewChange(index, e)} required />
                                     <Input label="Nationality" id={`crewNat-${index}`} name="nationality" placeholder="Portuguese" value={crew.nationality} onChange={(e) => handleCrewChange(index, e)} required />
