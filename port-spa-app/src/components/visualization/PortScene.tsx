@@ -381,7 +381,7 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
                             size: el.size
                         });
                         
-                        const numSplits = 2;
+                        const numSplits = 1;
                         const gapZ = 5 * WORLD_SCALE; // Gap along Z (depth)
                         const gapX = 3 * WORLD_SCALE; // Gap along X (length) - spacing between docks
                         const rawSplitDepth = el.size[2] / numSplits;
