@@ -19,6 +19,7 @@ import {
     Shield,
     Box, // For 3D Visualization
     SquareSquare, // For Docks
+    Package, // For Resources
 } from 'lucide-react';
 
 // 2. Create a new, reusable component for our icon-links
@@ -148,6 +149,9 @@ const Sidebar: React.FC<SidebarProps> = ({
                 {canManagePort.has(internalRole || '') && (
                     <NavItem to="/shippingagentorganization" label={t('nav.shippingAgents')} icon={ClipboardList} isExpanded={isExpanded} />
                 )}
+                {/* Resources */}
+                <NavItem to="/resources" label={t('Resources')} icon={Package} isExpanded={isExpanded} />
+                
                 {/* 3D Visualization: Admin, Officer, Logistics */}
                 {canViewVisualization.has(internalRole || '') && (
                     <NavItem to="/visualization" label={t('nav.visualization')} icon={Box} isExpanded={isExpanded} />
