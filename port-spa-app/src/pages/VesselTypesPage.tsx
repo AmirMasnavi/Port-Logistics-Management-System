@@ -1,130 +1,128 @@
-import React, { useState, useEffect } from 'react';
-import { getAllVesselTypes } from '../services/apiService';
-import type { VesselType } from '../domain/types';
-// --- 1. Import our new components ---
+// src/presentation/vesselType/VesselTypesPage.tsx
+import React from 'react';
+import { useVesselTypeListController } from '../presentation/vesseltype/controllers/useVesselTypeListController';
+import StatCard from '../components/common/StatCard';
 import Modal from '../components/common/Modal';
-import CreateVesselTypeForm from './CreateVesselTypeForm';
-
-// A simple icon component for the actions menu
-const DotsIcon = () => (
-    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-        <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-    </svg>
-);
+import ConfirmationModal from '../components/common/ConfirmationModal';
+import VesselTypeCard from '../presentation/vesseltype/components/VesselTypeCard';
+import VesselTypeForm from '../presentation/vesseltype/components/VesselTypeForm';
+import { Search, SlidersHorizontal } from 'lucide-react';
 
 const VesselTypesPage: React.FC = () => {
-    const [vesselTypes, setVesselTypes] = useState<VesselType[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const {
+        loading,
+        error,
+        successMessage,
+        filteredVesselTypes,
+        stats,
+        isModalOpen,
+        editingType,
+        deletingTypeId,
+        searchQuery,
+        setSearchQuery,
+        filterCapacity,
+        setFilterCapacity,
+        handleOpenCreateModal,
+        handleOpenEditModal,
+        handleCloseModal,
+        handleSuccess,
+        setDeletingTypeId,
+        handleDelete,
+    } = useVesselTypeListController();
 
-    // --- 2. Add state to control the modal ---
-    const [isModalOpen, setIsModalOpen] = useState(false);
-
-    const fetchTypes = async () => {
-        try {
-            setLoading(true);
-            const data = await getAllVesselTypes();
-            setVesselTypes(data);
-        } catch (err) {
-            setError('Failed to fetch data. Please try again later.');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        fetchTypes();
-    }, []);
-
-    // --- 3. Handle successful creation ---
-    const handleSuccess = (newType: VesselType) => {
-        // Add the new type to our list to refresh the UI
-        setVesselTypes(prevTypes => [newType, ...prevTypes]);
-    };
-
-    // Tailwind classes for styling inspired by your mock-up
     return (
-        <div className="container mt-6">
-            <div className="panel">
+        <div className="container mx-auto">
+            <div className="mb-6">
+                <h1 className="text-3xl font-bold text-gray-900">Vessel Types</h1>
+                <p className="text-gray-600 mt-1">Manage and configure vessel types for your port operations.</p>
+            </div>
 
-                {/* 1. Page Header */}
-                <div className="flex justify-between items-center mb-4">
-                    <h1 className="text-2xl font-semibold text-gray-800">Vessel Types</h1>
-                    {/* --- 4. Wire up the button --- */}
-                    <button
-                        onClick={() => setIsModalOpen(true)}
-                        className="btn btn-primary"
-                    >
-                        + Create Type
-                    </button>
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <StatCard title="Total Types" value={stats.total} description="Vessel types configured" />
+                <StatCard title="Avg Capacity" value={`${stats.avgCapacity} TEU`} description="Average capacity across types" />
+                <StatCard title="Max Capacity" value={`${stats.maxCapacity} TEU`} description="Highest capacity type" />
+                <StatCard title="Avg Dimensions" value={`${stats.avgDimensions.rows}r/${stats.avgDimensions.bays}b/${stats.avgDimensions.tiers}t`} description="Average dimensions (R/B/T)" />
+            </div>
 
-                {/* 2. Search & Filter Bar */}
-                <div className="flex mb-4">
+            <div className="flex flex-col md:flex-row gap-4 mb-6">
+                <div className="relative flex-grow">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Search className="w-5 h-5 text-gray-400" />
+                    </div>
                     <input
                         type="text"
                         placeholder="Search by name or description..."
-                        className="flex-1 p-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-maritime-500"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg text-lg"
                     />
                 </div>
-
-                {/* 3. Data Table */}
-                <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-maritime-100">
-                        <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-maritime-700 uppercase tracking-wider">Name</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-maritime-700 uppercase tracking-wider">Description</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-maritime-700 uppercase tracking-wider">Capacity (TEU)</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-maritime-700 uppercase tracking-wider">Dimensions (R/B/T)</th>
-                            <th className="px-6 py-3 text-right text-xs font-medium text-maritime-700 uppercase tracking-wider">Actions</th>
-                        </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                        {loading && (
-                            <tr>
-                                <td colSpan={5} className="text-center py-4">Loading...</td>
-                            </tr>
-                        )}
-                        {error && (
-                            <tr>
-                                <td colSpan={5} className="text-center py-4 text-red-600">{error}</td>
-                            </tr>
-                        )}
-                        {!loading && !error && vesselTypes.map(type => (
-                            <tr key={type.id} className="hover:bg-maritime-50">
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{type.name}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{type.description}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{type.capacity}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                    {type.maxRows}r / {type.maxBays}b / {type.maxTiers}t
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                    <button className="text-gray-400 hover:text-gray-600">
-                                        <DotsIcon />
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
-                        </tbody>
-                    </table>
+                <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <SlidersHorizontal className="w-5 h-5 text-gray-400" />
+                    </div>
+                    <select
+                        value={filterCapacity}
+                        onChange={(e) => setFilterCapacity(e.target.value)}
+                        className="w-full md:w-auto pl-10 pr-4 py-3 border border-gray-300 rounded-lg text-lg appearance-none"
+                    >
+                        <option value="all">All Capacities</option>
+                        <option value="small">Small (≤5,000 TEU)</option>
+                        <option value="medium">Medium (5,000-10,000 TEU)</option>
+                        <option value="large">Large (&gt;10,000 TEU)</option>
+                    </select>
                 </div>
-
-                {/* --- 5. Render the Modal --- */}
-                <Modal
-                    isOpen={isModalOpen}
-                    onClose={() => setIsModalOpen(false)}
-                    title="Create New Vessel Type"
+                <button
+                    onClick={handleOpenCreateModal}
+                    className="px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
                 >
-                    <CreateVesselTypeForm
-                        onClose={() => setIsModalOpen(false)}
-                        onSuccess={handleSuccess}
-                    />
-                </Modal>
+                    + Create Type
+                </button>
             </div>
+
+            {successMessage && <div className="p-3 bg-green-100 text-green-800 rounded-lg mb-4">{successMessage}</div>}
+            {error && <div className="p-3 bg-red-100 text-red-800 rounded-lg mb-4">{error}</div>}
+
+            <div className="space-y-4">
+                {loading && <div className="text-center py-10">Loading vessel types...</div>}
+                {!loading && filteredVesselTypes.length === 0 && (
+                    <div className="text-center py-10 text-gray-500">
+                        No vessel types found matching your criteria.
+                    </div>
+                )}
+                {!loading &&
+                    filteredVesselTypes.map((type) => (
+                        <VesselTypeCard
+                            key={type.id}
+                            vesselType={type}
+                            onEdit={() => handleOpenEditModal(type)}
+                            onDelete={() => setDeletingTypeId(type.id)}
+                        />
+                    ))}
+            </div>
+
+            <Modal
+                isOpen={isModalOpen}
+                onClose={handleCloseModal}
+                title={editingType ? "Edit Vessel Type" : "Create New Vessel Type"}
+            >
+                <VesselTypeForm
+                    initialData={editingType}
+                    onClose={handleCloseModal}
+                    onSuccess={handleSuccess}
+                />
+            </Modal>
+
+            <ConfirmationModal
+                isOpen={!!deletingTypeId}
+                onClose={() => setDeletingTypeId(null)}
+                onConfirm={handleDelete}
+                title="Delete Vessel Type"
+                message="Are you sure you want to delete this vessel type? This action cannot be undone."
+                isDestructive
+            />
         </div>
     );
 };
 
 export default VesselTypesPage;
-

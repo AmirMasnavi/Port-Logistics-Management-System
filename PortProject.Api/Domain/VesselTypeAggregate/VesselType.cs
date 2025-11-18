@@ -1,3 +1,4 @@
+using NanoidDotNet;
 using src.Domain.Shared;
 using src.Domain.VesselTypeAggregate;
 
@@ -28,7 +29,7 @@ namespace PortProject.Api.Domain.VesselTypeAggregate
             if (capacity == null) throw new ArgumentNullException(nameof(capacity));
             if (operationalConstraints == null) throw new ArgumentNullException(nameof(operationalConstraints));
 
-            Id = id;
+            Id = new VesselTypeId("VT-" + Nanoid.Generate(size: 10));;
             Name = name;
             Description = description;
             Capacity = capacity;
