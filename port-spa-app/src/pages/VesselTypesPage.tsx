@@ -1,11 +1,11 @@
 // src/presentation/vesselType/VesselTypesPage.tsx
 import React from 'react';
-import { useVesselTypeListController } from '../presentation/vesseltype/controllers/useVesselTypeListController';
+import { useVesselTypeListController } from '../controllers/vesseltype/useVesselTypeListController';
 import StatCard from '../components/common/StatCard';
 import Modal from '../components/common/Modal';
 import ConfirmationModal from '../components/common/ConfirmationModal';
-import VesselTypeCard from '../presentation/vesseltype/components/VesselTypeCard';
-import VesselTypeForm from '../presentation/vesseltype/components/VesselTypeForm';
+import VesselTypeCard from '../components/vesseltype/VesselTypeCard';
+import VesselTypeForm from '../components/vesseltype/VesselTypeForm';
 import { Search, SlidersHorizontal } from 'lucide-react';
 
 const VesselTypesPage: React.FC = () => {

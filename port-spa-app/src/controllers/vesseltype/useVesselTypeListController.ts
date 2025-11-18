@@ -1,7 +1,7 @@
 // src/presentation/vesselType/controllers/useVesselTypeListController.ts
 import { useState, useEffect, useMemo } from 'react';
-import { vesselTypeService } from '../../../app/vesselType/vesselType.service.instance';
-import type { VesselType } from '../../../domain/vesselType/vesselType.model';
+import { vesselTypeService } from '../../app/vesselType/vesselType.service.instance';
+import type { VesselType } from '../../domain/vesselType/vesselType.model';
 
 export const useVesselTypeListController = () => {
     // State
