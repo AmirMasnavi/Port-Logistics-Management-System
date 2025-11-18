@@ -100,6 +100,7 @@ builder.Services.AddScoped<IDockService, DockService>();
 builder.Services.AddScoped<IResourceService, ResourceService>();
 builder.Services.AddScoped<IResourceRepository, ResourceRepository>();
 builder.Services.AddScoped<IPortLayoutService, PortLayoutService>();
+builder.Services.AddTransient<IEmailService, EmailService>();
 
 
 // Add CORS
