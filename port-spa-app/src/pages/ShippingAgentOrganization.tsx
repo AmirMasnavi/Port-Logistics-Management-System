@@ -55,9 +55,16 @@ const ShippingAgentsPage: React.FC = () => {
 
     const [repInitName, setRepInitName] = useState('');
     const [repInitCitizen, setRepInitCitizen] = useState('');
+    // Nationality must be explicitly chosen by the user (no default)
+    const [repInitNationality, setRepInitNationality] = useState('');
     const [repInitEmail, setRepInitEmail] = useState('');
     const [repInitPhone, setRepInitPhone] = useState('');
     const [submittingOrg, setSubmittingOrg] = useState(false);
+
+    // Inline email validation errors (Portuguese messages shown under inputs)
+    const [orgEmailError, setOrgEmailError] = useState<string | null>(null);
+    const [repInitEmailError, setRepInitEmailError] = useState<string | null>(null);
+    const [repEmailError, setRepEmailError] = useState<string | null>(null);
 
     // form: criar representante isolado (liga por nome da organização)
     const [repName, setRepName] = useState('');
@@ -82,6 +89,45 @@ const ShippingAgentsPage: React.FC = () => {
         } catch (e) {
             return str.replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
         }
+    };
+
+    // Normalize phone to digits-only for uniqueness comparisons
+    const normalizePhone = (p?: string) => (p ?? '').toString().replace(/\D/g, '').trim();
+
+    const isValidCitizenId = (v: string) => {
+        const s = (v ?? '').toString().trim();
+        // Require at least 8 chars, allow letters, numbers and -/.
+        return s.length >= 8 && /^[A-Za-z0-9.-]+$/.test(s);
+    };
+
+    // Check whether a phone (digits-only) exists on any org or representative.
+    // Optionally exclude a representative by citizenId (useful during edit so the rep can keep their own number).
+    const phoneExists = (phone?: string, excludeCitizenId?: string) => {
+        if (!phone) return false;
+        const p = normalizePhone(phone);
+        if (!p) return false;
+        // Check organizations
+        for (const o of orgs) {
+            if (normalizePhone(o.phone) === p) return true;
+        }
+        // Check representatives
+        for (const r of reps) {
+            if (excludeCitizenId && normalize(r.citizenId) === normalize(excludeCitizenId)) continue;
+            if (normalizePhone(r.phone) === p) return true;
+        }
+        return false;
+    };
+
+    const citizenExists = (citizenId?: string) => {
+        if (!citizenId) return false;
+        const c = normalize(citizenId);
+        return reps.some((r) => normalize(r.citizenId) === c);
+    };
+
+    const taxNumberExists = (tn?: string) => {
+        if (!tn) return false;
+        const t = normalize(tn);
+        return orgs.some((o) => normalize(o.taxNumber) === t);
     };
 
     // Helper to split a free-form address into Street / City / Country
@@ -202,12 +248,14 @@ const ShippingAgentsPage: React.FC = () => {
     // submit: criar organization + representative obrigatório (sem precisar nome da org no rep)
     // coerção para booleano — evita strings em atributos `disabled`
     // Organization email and phone are required per request
+    // require user to choose nationality (no default)
     const canSubmitOrg: boolean = !!(
         orgName.trim() &&
         orgTaxNumber.trim() &&
         orgEmail.trim() &&
         orgPhone.trim() &&
         repInitName.trim() &&
+        repInitNationality.trim() &&
         repInitCitizen.trim() &&
         repInitEmail.trim() &&
         repInitPhone.trim() &&
@@ -216,10 +264,23 @@ const ShippingAgentsPage: React.FC = () => {
 
     const validateOrganizationBeforeSubmit = (): string | null => {
         if (!isValidOrgTaxNumber(orgTaxNumber)) return 'Organization tax number is invalid.';
-        if (!isValidEmail(orgEmail)) return 'Organization email is invalid.';
+        if (taxNumberExists(orgTaxNumber)) return 'An organization with this tax number already exists.';
+        if (!isValidEmail(orgEmail)) return 'Organization email appears invalid.';
+        if (taxNumberExists(orgTaxNumber)) return 'An organization with this tax number already exists.'; // keep fallback (rare)
         if (!isValidPtMobile(orgPhone)) return 'Organization phone must start with 9 and have 9 digits.';
-        if (!isValidEmail(repInitEmail)) return 'Initial representative email is invalid.';
+        // Check if org phone exists already in other records
+        if (phoneExists(orgPhone)) return 'Organization phone is already associated with another organization or representative.';
+        if (!isValidEmail(repInitEmail)) return 'Initial representative email appears invalid.';
         if (!isValidPtMobile(repInitPhone)) return 'Initial representative phone must start with 9 and have 9 digits.';
+        // Check if rep phone exists already in other records
+        if (phoneExists(repInitPhone)) return 'Initial representative phone is already associated with another organization or representative.';
+        // Prevent using the same phone number for both the organization and the initial representative in the same form
+        if (normalizePhone(orgPhone) && normalizePhone(repInitPhone) && normalizePhone(orgPhone) === normalizePhone(repInitPhone)) {
+            return 'Organization phone and initial representative phone must be different.';
+        }
+        if (!repInitNationality.trim()) return 'Initial representative nationality is required.';
+        if (!isValidCitizenId(repInitCitizen)) return 'Initial representative Citizen ID format is invalid.';
+        if (citizenExists(repInitCitizen)) return 'A representative with this Citizen ID already exists.';
         return null;
     };
 
@@ -227,8 +288,15 @@ const ShippingAgentsPage: React.FC = () => {
         e.preventDefault();
         if (!canSubmitOrg) return;
 
+        // clear inline email errors before validating
+        setOrgEmailError(null);
+        setRepInitEmailError(null);
+
         const clientValidationError = validateOrganizationBeforeSubmit();
         if (clientValidationError) {
+            // If it's an email error, set the inline message under the corresponding field(s)
+            if (!isValidEmail(orgEmail)) setOrgEmailError('Organization email appears invalid.');
+            if (!isValidEmail(repInitEmail)) setRepInitEmailError('Initial representative email appears invalid.');
             setError(clientValidationError);
             return;
         }
@@ -253,8 +321,8 @@ const ShippingAgentsPage: React.FC = () => {
                     {
                         RepresentativeName: repInitName.trim(),
                         CitizenId: repInitCitizen.trim(),
-                        // The DTO requires RepresentativeNationality
-                        RepresentativeNationality: 'PT',
+                        // The DTO requires RepresentativeNationality (must be provided by user)
+                        RepresentativeNationality: repInitNationality.trim(),
                         RepresentativeEmail: repInitEmail.trim(),
                         RepresentativePhone: repInitPhone.trim(),
                     },
@@ -270,6 +338,7 @@ const ShippingAgentsPage: React.FC = () => {
             setOrgTaxNumber('');
             setRepInitName('');
             setRepInitCitizen('');
+            setRepInitNationality('');
             setRepInitEmail('');
             setRepInitPhone('');
             await fetchAll();
@@ -278,12 +347,12 @@ const ShippingAgentsPage: React.FC = () => {
             console.error('Organization create error:', e);
             const respData = e?.response?.data;
             const friendly = formatServerValidationError(respData);
-            const serverMsg = friendly || e?.message || 'Falha ao criar organização. Verifique os dados e tente novamente.';
+            const serverMsg = friendly || e?.message || 'Failed to create organization. Please check the data and try again.';
             setError(serverMsg);
-         } finally {
-             setSubmittingOrg(false);
-         }
-     };
+        } finally {
+            setSubmittingOrg(false);
+        }
+    };
 
     // submit: criar representante isolado (obrigatório organizationName)
     // coerção para booleano — evita strings em atributos `disabled`
@@ -316,13 +385,15 @@ const ShippingAgentsPage: React.FC = () => {
 
     const validateRepresentativeBeforeSubmit = (): string | null => {
         // Basic client-side checks mirroring server expectations to avoid 400 responses
-        if (repCitizen.trim().length < 8) return 'Citizen ID must be at least 8 characters.';
+        if (!isValidCitizenId(repCitizen)) return 'Citizen ID format is invalid; must have at least 8 alphanumeric characters.';
         // Phone validation: server's tests expect Portuguese mobile numbers starting with '9'
         const phone = repPhone.trim();
-        if (!/^\d{8,}$/.test(phone)) return 'Phone must contain at least 8 digits.';
+        if (!/^[0-9]{8,}$/.test(phone)) return 'Phone must contain at least 8 digits.';
         if (!phone.startsWith('9')) return 'Phone number must start with 9.';
+        if (phoneExists(repPhone)) return 'Phone is already associated with another organization or representative.';
+        if (citizenExists(repCitizen)) return 'A representative with this Citizen ID already exists.';
         // Email basic check (HTML input also enforces, but double-check)
-        if (repEmail.trim() && !/.+@.+\..+/.test(repEmail.trim())) return 'Email format looks invalid.';
+        if (repEmail.trim() && !isValidEmail(repEmail.trim())) return 'Provided email appears invalid.';
         return null;
     };
 
@@ -334,8 +405,12 @@ const ShippingAgentsPage: React.FC = () => {
             return;
         }
 
+        // clear inline email error
+        setRepEmailError(null);
+
         const clientValidationError = validateRepresentativeBeforeSubmit();
         if (clientValidationError) {
+            if (repEmail && !isValidEmail(repEmail)) setRepEmailError('Provided email appears invalid.');
             setError(clientValidationError);
             return;
         }
@@ -376,11 +451,11 @@ const ShippingAgentsPage: React.FC = () => {
             await fetchAll();
             setView('representatives');
         } catch (e: any) {
-            // Try to show server-provided message when available (axios style), friendly Portuguese
+            // Try to show server-provided message when available (axios style), friendly English
             console.error('Representative create error:', e);
             const respData = e?.response?.data;
             const friendly = formatServerValidationError(respData);
-            const serverMsg = friendly || e?.message || 'Falha ao criar representante. Por favor verifique os dados e tente novamente.';
+            const serverMsg = friendly || e?.message || 'Failed to create representative. Please check the data and try again.';
             setError(serverMsg);
         } finally {
             setSubmittingRep(false);
@@ -390,7 +465,7 @@ const ShippingAgentsPage: React.FC = () => {
     // Delete representative by citizenId (shown in UI as `rep.citizenId`)
     const handleDeleteRepresentative = async (citizenId: string) => {
         if (!citizenId) {
-            setError('Este representante não tem um Citizen ID associado — não é possível apagá-lo. Por favor verifique os dados.');
+            setError('This representative has no Citizen ID associated — it cannot be deleted. Please check the data.');
             return;
         }
         // Confirm with the user
@@ -417,7 +492,7 @@ const ShippingAgentsPage: React.FC = () => {
             setView('representatives');
             // Prefer server-provided message when available; format ProblemDetails into friendly text
             const serverFriendly = formatServerValidationError(resp.data);
-            const serverMsg = serverFriendly || (resp.data && (resp.data.message || resp.data) ? (resp.data.message ?? String(resp.data)) : `Representante com Citizen ID ${identifierToUse} eliminado.`);
+            const serverMsg = serverFriendly || (resp.data && (resp.data.message || resp.data) ? (resp.data.message ?? String(resp.data)) : `Representative with Citizen ID ${identifierToUse} deleted.`);
             setSuccessMsg(serverMsg as string);
             // Refresh from server to stay in sync (no full reload)
             await fetchAll();
@@ -430,9 +505,9 @@ const ShippingAgentsPage: React.FC = () => {
                 const { status, data } = e.response;
                 console.error('Server response on delete error:', status, data);
                 const friendly = formatServerValidationError(data);
-                setError(friendly || `Falha ao apagar representante (status ${status}).`);
+                setError(friendly || `Failed to delete representative (status ${status}).`);
             } else {
-                setError(e?.message ?? 'Falha ao apagar representante');
+                setError(e?.message ?? 'Failed to delete representative');
             }
          } finally {
              setDeletingRepId(null);
@@ -440,13 +515,16 @@ const ShippingAgentsPage: React.FC = () => {
     };
 
     const validateEditValues = (): string | null => {
-        if (!editingValues) return 'No data to save.';
-        if (!editingValues.name.trim()) return 'Representative name is required.';
-        const phone = (editingValues.phone ?? '').trim();
-        if (phone && !/^\d{8,}$/.test(phone)) return 'Phone must contain at least 8 digits.';
-        if (phone && !phone.startsWith('9')) return 'Phone number must start with 9.';
-        if (editingValues.email && editingValues.email.trim() && !/.+@.+\..+/.test(editingValues.email.trim())) return 'Email format looks invalid.';
-        return null;
+         if (!editingValues) return 'No data to save.';
+         if (!editingValues.name.trim()) return 'Representative name is required.';
+         if (!editingValues.nationality || !editingValues.nationality.trim()) return 'Nationality is required.';
+         const phone = (editingValues.phone ?? '').trim();
+         if (phone && !/^\d{8,}$/.test(phone)) return 'Phone must contain at least 8 digits.';
+         if (phone && !phone.startsWith('9')) return 'Phone number must start with 9.';
+        // Ensure phone uniqueness (allowing the rep to keep their own number)
+        if (phone && editingCitizenId && phoneExists(phone, editingCitizenId)) return 'Phone is already associated with another organization or representative.';
+         if (editingValues.email && editingValues.email.trim() && !/.+@.+\..+/.test(editingValues.email.trim())) return 'Email format looks invalid.';
+         return null;
     };
 
     const startEdit = (rep: Representative) => {
@@ -476,7 +554,7 @@ const ShippingAgentsPage: React.FC = () => {
         // Ensure OrganizationName is provided: the backend requires it and it's a common UX mistake to clear it.
         const orgNameTrimmed = (editingValues.organizationName ?? '').toString().trim();
         if (!orgNameTrimmed) {
-            setError('Por favor selecione uma organização existente antes de guardar. Se a organização não existir, crie-a primeiro.');
+            setError('Please select an existing organization before saving. If the organization does not exist, create it first.');
             return;
         }
 
@@ -487,7 +565,8 @@ const ShippingAgentsPage: React.FC = () => {
              const dto: any = {
                  RepresentativeName: editingValues.name.trim(),
                  CitizenId: citizenId, // must remain the same
-                 RepresentativeNationality: (editingValues.nationality ?? '').trim() || 'PT',
+                 // RepresentativeNationality is required in the edit form; use the provided value (no default)
+                 RepresentativeNationality: (editingValues.nationality ?? '').trim(),
                  RepresentativeEmail: (editingValues.email ?? '').trim(),
                  RepresentativePhone: (editingValues.phone ?? '').trim(),
                  OrganizationName: orgNameTrimmed,
@@ -507,7 +586,7 @@ const ShippingAgentsPage: React.FC = () => {
                  if (resp && typeof resp.data === 'string') serverMsg = resp.data as string;
                  else if (resp && resp.data && (resp.data.message || resp.data.title)) serverMsg = resp.data.message ?? resp.data.title;
              } catch { serverMsg = ''; }
-             if (!serverMsg) serverMsg = `Representante com Citizen ID ${citizenId} atualizado.`;
+             if (!serverMsg) serverMsg = `Representative with Citizen ID ${citizenId} updated.`;
              setSuccessMsg(serverMsg as string);
              // Sync with server
              await fetchAll();
@@ -517,7 +596,7 @@ const ShippingAgentsPage: React.FC = () => {
              console.error('Edit save error:', e);
              const respData = e?.response?.data;
              const friendly = formatServerValidationError(respData);
-             const serverMsg = friendly || e?.message || 'Falha ao atualizar representante. Por favor verifique os dados e tente novamente.';
+             const serverMsg = friendly || e?.message || 'Failed to update representative. Please check the data and try again.';
              setError(serverMsg);
          } finally {
              setSubmittingEdit(false);
@@ -532,16 +611,16 @@ const ShippingAgentsPage: React.FC = () => {
             const parts: string[] = [];
             // Friendly mapping for common fields
             if (respData.errors.OrganizationName) {
-                parts.push('Por favor selecione uma organização existente antes de submeter.');
+                parts.push('Please select an existing organization before submitting.');
             }
             if (respData.errors.CitizenId) {
-                parts.push('O Citizen ID fornecido é inválido.');
+                parts.push('The provided Citizen ID is invalid.');
             }
             if (respData.errors.RepresentativePhone) {
-                parts.push('O número de telefone é inválido. Deve começar por 9 e ter 9 dígitos.');
+                parts.push('The phone number is invalid. It must start with 9 and have 9 digits.');
             }
             if (respData.errors.RepresentativeEmail) {
-                parts.push('O email fornecido parece inválido.');
+                parts.push('The provided email appears invalid.');
             }
             // Append any remaining messages (generic fallback)
             for (const key of Object.keys(respData.errors)) {
@@ -642,10 +721,15 @@ const ShippingAgentsPage: React.FC = () => {
                                 className="p-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-maritime-500"
                                 placeholder="Email *"
                                 value={orgEmail}
-                                onChange={(e) => setOrgEmail(e.target.value)}
+                                onChange={(e) => { setOrgEmail(e.target.value); setOrgEmailError(null); }}
+                                onBlur={() => { if (orgEmail && !isValidEmail(orgEmail)) setOrgEmailError('Organization email appears invalid.'); }}
+                                onInvalid={(e: any) => { e.preventDefault(); if (!orgEmail) setOrgEmailError('Organization email is required.'); else setOrgEmailError('Organization email appears invalid.'); }}
                                 type="email"
                                 required
                             />
+                           {orgEmailError && (
+                                <p className="text-xs text-red-500 mt-1">{orgEmailError}</p>
+                           )}
                             <input
                                 className="p-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-maritime-500"
                                 placeholder="Phone *"
@@ -679,15 +763,26 @@ const ShippingAgentsPage: React.FC = () => {
                                 onChange={(e) => setRepInitCitizen(e.target.value)}
                                 required
                             />
-                            {/* Nationality is required by backend; using default 'PT' for now */}
+                            <input
+                                className="p-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-maritime-500"
+                                placeholder="Nationality *"
+                                value={repInitNationality}
+                                onChange={(e) => setRepInitNationality(e.target.value)}
+                                required
+                            />
                             <input
                                 className="p-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-maritime-500"
                                 placeholder="Rep Email *"
                                 value={repInitEmail}
-                                onChange={(e) => setRepInitEmail(e.target.value)}
+                                onChange={(e) => { setRepInitEmail(e.target.value); setRepInitEmailError(null); }}
+                                onBlur={() => { if (repInitEmail && !isValidEmail(repInitEmail)) setRepInitEmailError('Initial representative email appears invalid.'); }}
+                                onInvalid={(e: any) => { e.preventDefault(); if (!repInitEmail) setRepInitEmailError('Representative email is required.'); else setRepInitEmailError('Initial representative email appears invalid.'); }}
                                 type="email"
                                 required
                             />
+                           {repInitEmailError && (
+                                <p className="text-xs text-red-500 mt-1">{repInitEmailError}</p>
+                           )}
                             <input
                                 className="p-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-maritime-500"
                                 placeholder="Rep Phone *"
@@ -759,9 +854,14 @@ const ShippingAgentsPage: React.FC = () => {
                                 className="p-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-maritime-500"
                                 placeholder="Email"
                                 value={repEmail}
-                                onChange={(e) => setRepEmail(e.target.value)}
+                                onChange={(e) => { setRepEmail(e.target.value); setRepEmailError(null); }}
+                                onBlur={() => { if (repEmail && !isValidEmail(repEmail)) setRepEmailError('Provided email appears invalid.'); }}
+                                onInvalid={(e: any) => { e.preventDefault(); if (repEmail === '') setRepEmailError(null); else setRepEmailError('Provided email appears invalid.'); }}
                                 type="email"
                             />
+                           {repEmailError && (
+                                <p className="text-xs text-red-500 mt-1">{repEmailError}</p>
+                           )}
                             <input
                                 className="p-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-maritime-500"
                                 placeholder="Phone"
