@@ -364,7 +364,7 @@ export const getMyRole = async (): Promise<{ role: string }> => {
 
 export const activateUserAccount = async (token: string) => {
     try {
-        // This is an anonymous endpoint, no token is needed
+        // ✅ This endpoint NOW REQUIRES authentication (Firebase token is attached by interceptor)
         const response = await apiClient.get(`/auth/activate?token=${token}`);
         return response.data; // Will return { message: "Account activated..." }
     } catch (error) {
