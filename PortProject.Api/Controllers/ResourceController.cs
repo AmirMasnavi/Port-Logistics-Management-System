@@ -3,12 +3,14 @@ using Microsoft.AspNetCore.Mvc;
 using PortProject.Api.Application.Resources.DTOs;
 using PortProject.Api.Application.Resources.Services;
 using PortProject.Api.Domain.ResourceAggregate; // added for enums
+using Microsoft.AspNetCore.Authorization;
 
 namespace PortProject.Api.Controllers;
 
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize(Roles = "Administrator,LogisticsOperator")]
 public class ResourceController : ControllerBase
 {
     private readonly IResourceService _service;

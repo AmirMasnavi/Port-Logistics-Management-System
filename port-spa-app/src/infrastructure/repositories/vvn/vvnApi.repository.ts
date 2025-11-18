@@ -1,4 +1,6 @@
-import { apiClient } from '../../http/apiClient';
+//todo: solve this
+// import { apiClient } from '../../http/apiClient';
+import { apiClient } from '../../../services/apiService';
 import type {IVvnRepository} from '../../../app/vvn/vvn.repository';
 import type {VesselVisitNotification} from '../../../domain/vvn/vvn.model';
 import type {CreateVvnDto, ApproveVvnDto, RejectVvnDto} from './vvn.dto';

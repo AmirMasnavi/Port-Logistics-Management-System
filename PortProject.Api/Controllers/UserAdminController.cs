@@ -20,7 +20,7 @@ public class UserAdminController : ControllerBase
     }
 
     [HttpPost("assign-role")]
-    // [Authorize(Roles = "Administrator")] // We will add this in the NEXT step
+    [Authorize(Roles = "Administrator")]
     public async Task<IActionResult> AssignRole([FromBody] AssignRoleDto dto)
     {
         if (!Enum.TryParse<Role>(dto.Role, true, out var role))
