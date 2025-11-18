@@ -23,12 +23,7 @@ import {
     canManageVVN, // Ensure this is exported from permissions.ts
     canViewVisualization
 } from './auth/permissions';
-
-// We can create a simple placeholder for the dashboard page
-const DashboardPage = () => <div className="text-xl">Welcome to the Port Authority Dashboard!</div>;
-
-// Placeholder for the page we will build in US 3.1.5
-// const VesselVisitsPage = () => <div className="text-xl">Vessel Visits Page (Coming Soon!)</div>;
+import Dashboard from './pages/Dashboard';
 
 
 function App() {
@@ -56,7 +51,7 @@ function App() {
                     <Route element={<RequireAuth />}>
 
                         {/* --- Routes accessible to ALL authenticated users --- */}
-                        <Route path="/" element={<DashboardPage />} />
+                        <Route path="/" element={<Dashboard />} />
                         <Route path="/vessel-visits" element={<VesselVisitsPage />} />
 
                         {/* --- Role-Protected Routes for Visualization --- */}

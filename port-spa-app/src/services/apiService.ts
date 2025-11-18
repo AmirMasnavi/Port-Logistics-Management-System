@@ -431,5 +431,21 @@ export const getDockById = async (id: string): Promise<{ id: string; name: strin
     }
 };
 
+// Admin Stats API
+export interface AdminStats {
+    totalUsers: number;
+    activeUsers: number;
+    deactivatedUsers: number;
+    totalStaffMembers: number;
+    totalOrganizations: number;
+}
 
-
+export const getAdminStats = async (): Promise<AdminStats> => {
+    try {
+        const response = await apiClient.get<AdminStats>('/admin/stats');
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching admin statistics:', error);
+        throw error;
+    }
+};
