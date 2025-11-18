@@ -15,6 +15,12 @@ import waterNormalUrl from './textures/Water_002_NORM.jpg';
 import waterRoughnessUrl from './textures/Water_002_ROUGH.jpg';
 import waterDisplacementUrl from './textures/Water_002_DISP.png';
 import waterOccUrl from './textures/Water_002_OCC.jpg';
+import dockBaseUrl from './textures/dock/Material _25_Base_Color.png';
+import dockNormalUrl from './textures/dock/Material _25_Normal.png';
+import dockRoughnessUrl from './textures/dock/Material _25_Roughness.png';
+import dockHeightUrl from './textures/dock/Material _25_Height.png';
+import dockMetallicUrl from './textures/dock/Material _25_Metallic.png';
+import dockAoUrl from './textures/dock/Material _25_Mixed_AO.png';
 
 
 // Dynamically import all Tower_crane textures and group them by material and map type.
@@ -67,23 +73,91 @@ type ModelProps = {
 export const DockModel: React.FC<Omit<ModelProps, 'color'>> = ({ position, size, label }) => {
     const posts: number[] = [ -0.8, -0.4, 0, 0.4, 0.8 ];
 
-    // Render dock at half of the provided length (eixo X)
-    const lengthScale = 0.5;
-    const dockLength = size[0] * lengthScale;
+    // Load dock textures
+    const [dBase, dNormal, dRoughness, dHeight, dMetallic, dAo] = useTexture([
+        dockBaseUrl,
+        dockNormalUrl,
+        dockRoughnessUrl,
+        dockHeightUrl,
+        dockMetallicUrl,
+        dockAoUrl,
+    ]);
+
+    // Clone textures per instance
+    const dockTextures = React.useMemo(() => ({
+        base: dBase?.clone() ?? null,
+        normal: dNormal?.clone() ?? null,
+        roughness: dRoughness?.clone() ?? null,
+        height: dHeight?.clone() ?? null,
+        metallic: dMetallic?.clone() ?? null,
+        ao: dAo?.clone() ?? null,
+    }), [dBase, dNormal, dRoughness, dHeight, dMetallic, dAo]);
+
+    // Dispose on unmount
+    useEffect(() => {
+        return () => {
+            Object.values(dockTextures).forEach(t => t?.dispose());
+        };
+    }, [dockTextures]);
+
+    // Use the full size provided (no scaling)
+    const dockLength = 12;
+    const dockHeight = 3.3;
+    // Increase dock width significantly for better visibility
+    const widthScale = 1;
+    const dockWidth = size[2] * widthScale;
+
+    // Configure tiling
+    const TILE_SCALE = 25;
+    const repeatX = Math.max(1, dockLength / TILE_SCALE);
+    const repeatZ = Math.max(1, dockWidth / TILE_SCALE);
+
+    useEffect(() => {
+        const list = [dockTextures.base, dockTextures.normal, dockTextures.roughness, dockTextures.height, dockTextures.metallic, dockTextures.ao];
+        list.forEach(tex => {
+            if (!tex) return;
+            tex.wrapS = tex.wrapT = RepeatWrapping;
+            tex.repeat.set(repeatX, repeatZ);
+            tex.anisotropy = Math.max(tex.anisotropy ?? 0, 8);
+            tex.needsUpdate = true;
+        });
+        if (dockTextures.base && 'colorSpace' in dockTextures.base) (dockTextures.base as any).colorSpace = SRGBColorSpace;
+    }, [dockTextures, repeatX, repeatZ]);
+
+    const meshRef = React.useRef<Mesh | null>(null);
+
+    // Provide uv2 for AO
+    useEffect(() => {
+        const geom: any = meshRef.current?.geometry;
+        if (geom?.attributes?.uv && !geom.attributes.uv2) {
+            geom.setAttribute('uv2', new BufferAttribute(geom.attributes.uv.array, 2));
+        }
+    }, [meshRef]);
 
     return (
         <group position={position}>
-            {/* Plataforma */}
-            <mesh receiveShadow>
-                <boxGeometry args={[dockLength, Math.max(0.1, size[1]), size[2]]} />
-                <meshStandardMaterial color="#7f6a52" metalness={0.1} roughness={0.8} />
+            {/* Plataforma - positioned to sit on land surface */}
+            <mesh position={[-2.91, -3.3 + dockHeight / 2, 0]} receiveShadow ref={meshRef}>
+                <boxGeometry args={[dockLength, dockHeight, dockWidth]} />
+                <meshStandardMaterial 
+                    map={dockTextures.base as any}
+                    normalMap={dockTextures.normal as any}
+                    roughnessMap={dockTextures.roughness as any}
+                    displacementMap={dockTextures.height as any}
+                    displacementScale={0.01}
+                    metalnessMap={dockTextures.metallic as any}
+                    aoMap={dockTextures.ao as any}
+                    aoMapIntensity={0.3}
+                    metalness={0.2}
+                    roughness={0.8}
+                />
             </mesh>
 
             {/* Bolardos / postes */}
             {posts.map((p, i) => (
                 <mesh
                     key={i}
-                    position={[p * (dockLength / 2), size[1] / 2 + 0.15, size[2] / 2 - 0.5]}
+                    position={[p * (dockLength / 2) - 2.91, -1.5 + dockHeight / 2, dockWidth / 2 - 0.5]}
                     castShadow
                 >
                     <cylinderGeometry args={[0.08, 0.08, 0.3, 8]} />
@@ -93,7 +167,7 @@ export const DockModel: React.FC<Omit<ModelProps, 'color'>> = ({ position, size,
 
             {label && (
                 <Text
-                    position={[0, size[1] / 2 + 0.6, 0]}
+                    position={[0, dockHeight, 0]}
                     fontSize={0.4}
                     color="black"
                     anchorX="center"
@@ -160,25 +234,26 @@ export const YardModel: React.FC<Omit<ModelProps, 'color'>> = ({ position, size,
     }, [meshRef]);
 
     // Pequena espessura para o yard (bem fininho, só para não parecer folha)
-    const YARD_THICKNESS = 0.2;
+    const YARD_THICKNESS = 0.6;
 
     return (
         <group position={position}>
-            {/* Bloco de yard fininho, com textura em cima */}
-            <mesh position={[0, YARD_THICKNESS - 0.48, 0]} receiveShadow ref={meshRef}>
+            {/* Bloco de yard fininho, com textura em cima (mais escuro que a land) */}
+            <mesh position={[0, YARD_THICKNESS - 9.43, 0]} receiveShadow ref={meshRef}>
                 <boxGeometry args={[size[0], YARD_THICKNESS, size[2], segX, 1, segZ]} />
                 <meshStandardMaterial
                     side={DoubleSide}
-                    color="#ffffff"
+                    // same concrete texture as land, but slightly darker / rougher
+                    color="#d0d0d0"
                     map={ground.base as any}
                     normalMap={ground.normal as any}
                     roughnessMap={ground.roughness as any}
                     displacementMap={ground.height as any}
                     displacementScale={0.01}
                     aoMap={ground.ao as any}
-                    aoMapIntensity={0.2}
-                    metalness={0.03}
-                    roughness={0.88}
+                    aoMapIntensity={0.25}
+                    metalness={0.02}
+                    roughness={0.9}
                 />
             </mesh>
 
@@ -228,7 +303,7 @@ export const LandModel: React.FC<Omit<ModelProps, 'color'> & { isMiddle?: boolea
 
     // Ajustes específicos para a land do meio: mais comprida e mais estreita
     const [rawWidth, rawHeight, rawLength] = size;
-    const WIDTH_FACTOR = isMiddle ? 0.7 : 1.0;  // reduzir um pouco a largura
+    const WIDTH_FACTOR = isMiddle ? 0.75 : 1.0;  // reduzir bastante a largura da land do meio
     const LENGTH_FACTOR = isMiddle ? 1.3 : 1.0; // aumentar um pouco o comprimento
 
     const width = rawWidth * WIDTH_FACTOR;
@@ -236,7 +311,7 @@ export const LandModel: React.FC<Omit<ModelProps, 'color'> & { isMiddle?: boolea
     const length = rawLength * LENGTH_FACTOR;
 
     // Tiling configuration
-    const TILE_SCALE = 4; // adjust (smaller -> more repeats)
+    const TILE_SCALE = 35; // adjust (smaller -> more repeats)
     const repeatX = Math.max(1, width / TILE_SCALE);
     const repeatZ = Math.max(1, length / TILE_SCALE);
 
@@ -272,7 +347,7 @@ export const LandModel: React.FC<Omit<ModelProps, 'color'> & { isMiddle?: boolea
     return (
         <group position={position}>
             {/* Bloco de terreno com espessura */}
-            <mesh position={[0, LAND_THICKNESS - 6.25, 0]} receiveShadow ref={meshRef}>
+            <mesh position={[0, LAND_THICKNESS - 27, 0]} receiveShadow ref={meshRef}>
                 <boxGeometry args={[width, LAND_THICKNESS, length, segX, 1, segZ]} />
                 <meshStandardMaterial
                     side={DoubleSide}
