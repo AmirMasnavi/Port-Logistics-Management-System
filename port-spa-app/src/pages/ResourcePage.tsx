@@ -1,6 +1,6 @@
 ﻿import React, { useEffect, useMemo, useState } from 'react';
 import { apiClient, getResources } from '../services/apiService';
-import type { Resource } from '../types';
+import type { Resource } from '../domain/resource/resource.model';
 import { Search, SlidersHorizontal, Plus } from 'lucide-react';
 import StatCard from '../components/common/StatCard';
 import Modal from '../components/common/Modal';

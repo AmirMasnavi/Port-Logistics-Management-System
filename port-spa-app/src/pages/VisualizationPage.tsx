@@ -16,8 +16,8 @@ import type {
     VesselType,
     LayoutElement,
     VesselVisit,
-    Resource
 } from '../domain/types';
+import type { Resource } from '../domain/resource/resource.model';
 
 const VisualizationPage: React.FC = () => {
     const [layout, setLayout] = useState<PortLayout | null>(null); // Store response in PortLayout type
@@ -213,14 +213,15 @@ const VisualizationPage: React.FC = () => {
     }, [selectedLayout]); // Reacts to layout switching via selectedLayout dropdown
     
     const containerStyle: React.CSSProperties = {
-        height: 'calc(100vh - 180px)', // Ajuste a altura conforme necessário
+        height: '100%',
         width: '100%',
         backgroundColor: '#f0f0f0',
-        overflow: 'hidden' // Prevent the 3D canvas from overflowing horizontally when sidebar opens
+        overflowX: 'hidden'
     };
 
     return (
-        <div className="flex flex-col h-full bg-white rounded-lg shadow-md">
+        // Make this card full-bleed inside <main> by cancelling its padding (p-4 ~ 1rem)
+        <div className="flex flex-col h-full w-full bg-white rounded-lg shadow-md -m-4">
             <div className="p-4 border-b flex justify-between items-center">
                 <h2 className="text-xl font-semibold">Port 3D Visualization</h2>
                 <div className="flex items-center gap-4">
@@ -228,7 +229,7 @@ const VisualizationPage: React.FC = () => {
                     <select
                         id="layout-select"
                         value={selectedLayout}
-                        onChange={(e) => setSelectedLayout(e.target.value)} // Handle layout switching via selectedLayout dropdown
+                        onChange={(e) => setSelectedLayout(e.target.value)}
                         className="p-2 border rounded-md text-sm"
                     >
                         <option value="layout1">Layout 1 (Simple)</option>

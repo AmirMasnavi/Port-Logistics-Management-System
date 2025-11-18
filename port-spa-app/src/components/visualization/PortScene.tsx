@@ -11,13 +11,15 @@ import {
 import { useMemo } from 'react';
 import * as THREE from 'three';
 
+// Global scale factor to make the whole port layout "bigger" in world units
+const WORLD_SCALE = 3; // tweak this to 2, 3, 4... until the map feels right
+
 // This version correctly applies shadows to loaded models.
 const ImportedModel: React.FC<{
     modelUrl: string;
     position: [number, number, number];
     scale: [number, number, number] | number;
-    rotation?: [number, number, number];
-}> = ({ modelUrl, position, scale, rotation }) => {
+}> = ({ modelUrl, position, scale }) => {
     const { scene } = useGLTF(modelUrl);
 
     // We use useMemo to traverse the scene only once when it loads
@@ -36,7 +38,6 @@ const ImportedModel: React.FC<{
 
     // We now render the 'memoizedScene' which has shadows enabled
     return <primitive object={memoizedScene} position={position} scale={scale} />;
-    return <primitive object={scene} position={position} rotation={rotation as any} scale={scale as any} />;
 };
 
 interface PortSceneProps {
@@ -49,6 +50,62 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
     // Build a quick lookup by id for layout elements to avoid repeated finds
     const layoutMap = React.useMemo(() => new Map(layoutElements.map(el => [el.id, el])), [layoutElements]);
 
+    // Scale layout elements so docks, yards, land, water, buildings are larger and further apart
+    const scaledLayoutElements = React.useMemo(
+        () => layoutElements.map(el => ({
+            ...el,
+            position: [
+                el.position[0] * WORLD_SCALE,
+                el.position[1] * WORLD_SCALE,
+                el.position[2] * WORLD_SCALE,
+            ] as [number, number, number],
+            size: [
+                el.size[0] * WORLD_SCALE,
+                el.size[1] * WORLD_SCALE,
+                el.size[2] * WORLD_SCALE,
+            ] as [number, number, number],
+        })),
+        [layoutElements]
+    );
+
+    // Scale vessels (position + size)
+    const scaledVessels = React.useMemo(
+        () => vessels.map(v => ({
+            ...v,
+            position: [
+                v.position[0] * WORLD_SCALE,
+                v.position[1] * WORLD_SCALE,
+                v.position[2] * WORLD_SCALE,
+            ] as [number, number, number],
+            size: Array.isArray(v.size)
+                ? ([
+                    v.size[0] * WORLD_SCALE,
+                    v.size[1] * WORLD_SCALE,
+                    v.size[2] * WORLD_SCALE,
+                ] as [number, number, number])
+                : (v.size ?? 0.5) * WORLD_SCALE,
+        })),
+        [vessels]
+    );
+
+    // Scale resources (cranes)
+    const scaledResources = React.useMemo(
+        () => resources.map(r => ({
+            ...r,
+            position: [
+                r.position[0] * WORLD_SCALE,
+                r.position[1] * WORLD_SCALE,
+                r.position[2] * WORLD_SCALE,
+            ] as [number, number, number],
+            size: [
+                r.size[0] * WORLD_SCALE,
+                r.size[1] * WORLD_SCALE,
+                r.size[2] * WORLD_SCALE,
+            ] as [number, number, number],
+        })),
+        [resources]
+    );
+
     // Debugging info to help identify why cranes may not be rendered
     React.useEffect(() => {
         console.debug('PortScene: layoutElements count =', layoutElements.length);
@@ -60,22 +117,35 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
 
     return (
         // Ensure the Canvas will size to its parent container which should control layout
-        <Canvas className="w-full h-full" style={{ width: '100%', height: '100%' }} shadows camera={{ position: [0, 40, 50], fov: 50 }}>
+        <Canvas
+            className="w-full h-full"
+            style={{ width: '100%', height: '100%' }}
+            shadows
+            // Move the camera further back so the enlarged map fits nicely
+            camera={{ position: [0, 120 * WORLD_SCALE / 3, 200 * WORLD_SCALE / 3], fov: 60 }}
+        >
             <Sky sunPosition={[100, 20, 100]} />
             <ambientLight intensity={0.6} />
             <directionalLight
-                position={[50, 50, 25]}
+                position={[50 * WORLD_SCALE / 3, 50 * WORLD_SCALE / 3, 25 * WORLD_SCALE / 3]}
                 intensity={1.5}
                 castShadow
                 shadow-mapSize-width={2048}
                 shadow-mapSize-height={2048}
             />
 
-            <Grid infiniteGrid cellThickness={0} sectionThickness={0} sectionColor="gray" fadeDistance={100} />
+            <Grid
+                infiniteGrid
+                cellThickness={0}
+                sectionThickness={0}
+                sectionColor="gray"
+                // Increase fade distance for larger world
+                fadeDistance={100 * WORLD_SCALE}
+            />
 
             {/* Render layout.elements as base structures */}
             {/* 1. Renderizar Elementos do Layout Estático */}
-            {layoutElements.map(el => {
+            {scaledLayoutElements.map(el => {
                 switch (el.type) {
                     case 'dock':
                         return <DockModel key={el.id} position={el.position} size={el.size} label={el.name} />;
@@ -94,9 +164,9 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
 
             {/* Render vessels: imported model if available, else use CargoShipModel */}
             {/* 2. Renderizar Navios nos seus locais */}
-            {vessels.map(v => (
+            {scaledVessels.map(v => (
                 v.modelUrl ? (
-                    <ImportedModel key={v.id} modelUrl={v.modelUrl} position={v.position} scale={v.size} rotation={v.rotation} />
+                    <ImportedModel key={v.id} modelUrl={v.modelUrl} position={v.position} scale={v.size} />
                 ) : (
                     <CargoShipModel
                         key={v.id}
@@ -110,7 +180,7 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
 
             {/* Render cranes: imported model if available, else procedural based on area type */}
             {/* 3. Renderizar Recursos (Gruas) nos seus locais */}
-            {resources.map(r => {
+            {scaledResources.map(r => {
                 if (r.kind.toLowerCase().includes('crane')) {
                     // Resolve area robustly: try several guesses (r.id, r.code, r.assignedArea)
                     const resolveArea = (): LayoutElement | undefined => {
@@ -167,7 +237,7 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
                     // Optional debug marker to show expected position
                     const marker = showMarkers ? (
                         <mesh key={`marker-${r.id}-${r.code}`} position={r.position}>
-                            <sphereGeometry args={[0.3, 8, 6]} />
+                            <sphereGeometry args={[0.3 * WORLD_SCALE, 8, 6]} />
                             <meshStandardMaterial color="red" metalness={0.1} roughness={0.6} opacity={0.9} transparent={false} />
                         </mesh>
                     ) : null;
@@ -199,7 +269,8 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
                     MIDDLE: THREE.MOUSE.DOLLY,
                     RIGHT: THREE.MOUSE.ROTATE,
                 }}
-                maxDistance={50}
+                // Allow zooming further out for the larger world
+                maxDistance={50 * WORLD_SCALE}
                 minDistance={10}
                 rotateSpeed={0.20}
                 panSpeed={0.30}
