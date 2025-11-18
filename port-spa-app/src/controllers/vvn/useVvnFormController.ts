@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams} from 'react-router-dom';
-import { VvnService } from '../../../app/vvn/vvn.service';
-import { vvnApiRepository } from '../../../infrastructure/repositories/vvn/vvnApi.repository';
-import type { CreateVvnDto} from '../../../infrastructure/repositories/vvn/vvn.dto';
-import { useAuth } from '../../../auth/AuthProvider';
+import { VvnService } from '../../app/vvn/vvn.service';
+import { vvnApiRepository } from '../../infrastructure/repositories/vvn/vvnApi.repository';
+import type { CreateVvnDto} from '../../infrastructure/repositories/vvn/vvn.dto';
+import { useAuth } from '../../auth/AuthProvider';
 
 // Create the service instance
 const vvnService = new VvnService(vvnApiRepository);

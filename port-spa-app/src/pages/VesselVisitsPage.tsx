@@ -1,13 +1,13 @@
 import React from 'react';
-import { useVvnListController } from './controllers/useVvnListController';
-import VvnCard from './components/VvnCard';
-import VvnDetailsModal from './components/VvnDetailsModal';
-import VvnDecisionModal from './components/VvnDecisionModal';
-import ConfirmationModal from '../../components/common/ConfirmationModal';
-import StatCard from '../../components/common/StatCard';
+import { useVvnListController } from '../controllers/vvn/useVvnListController';
+import VvnCard from '../components/vvn/VvnCard';
+import VvnDetailsModal from '../components/vvn/VvnDetailsModal';
+import VvnDecisionModal from '../components/vvn/VvnDecisionModal';
+import ConfirmationModal from '../components/common/ConfirmationModal';
+import StatCard from '../components/common/StatCard';
 import { Search, SlidersHorizontal, Twitch } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import type { InternalRoleValue } from '../../services/apiService';
+import type { InternalRoleValue } from '../services/apiService';
 
 // Pure presentation component for the Vessel Visit list page.
 const VesselVisitNotificationPage: React.FC = () => {
