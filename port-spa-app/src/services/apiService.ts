@@ -14,6 +14,7 @@ import type {
 import type { Resource } from '../domain/resource/resource.model';
 import type { StorageArea, StorageAreaCreateDto } from '../domain/storageArea/storageArea.model';
 
+
 // --- New: internal role constants used by the SPA ---
 export const InternalRole = {
     Administrator: 'Administrator',
@@ -429,3 +430,6 @@ export const getDockById = async (id: string): Promise<{ id: string; name: strin
         throw error;
     }
 };
+
+
+

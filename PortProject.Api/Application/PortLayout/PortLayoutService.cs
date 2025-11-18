@@ -19,31 +19,49 @@ public class PortLayoutService : IPortLayoutService
         
         return layoutId.ToLower() switch
         {
-            _ => JsonSerializer.Serialize(GetLayout1(), options), // Layout 1 por defeito
+            _ => JsonSerializer.Serialize(GetRealisticLayout(), options),
         };
     }
-
-    // Small concrete type to represent layout elements (avoid anonymous-array typing issues)
+    
     private record LayoutElement(string Type, string Id, string? Name, double[] Position, double[] Size);
 
-    // Layout 1: Porto mais simples com 3 docas e 1 pátio.
-    private object GetLayout1()
+    /// <summary>
+    /// This method defines a more complex port layout based on the provided image.
+    /// It features a main pier extending into the water with surrounding land and facilities.
+    /// The land elements have been elevated to create a clear height difference from the water level.
+    /// </summary>
+    private object GetRealisticLayout()
     {
+        // Define a base height for the port ground level
+        const double portGroundY = 1.0;
+        const double portGroundHeight = 6.0;
+
         var elements = new LayoutElement[]
         {
-            // Elementos estáticos do cenário
-            new LayoutElement("water", "water_main", null, new double[] { 0, -0.1, 0 }, new double[] { 50, 0.1, 50 }),
-            new LayoutElement("land", "land_left", null, new double[] { -15, -0.05, 0 }, new double[] { 20, 0.1, 50 }),
-            new LayoutElement("building", "building_admin", null, new double[] { -20, 2, 0 }, new double[] { 5, 4, 10 }),
+            // --- Base Layers (Water and Land) ---
+            // Water remains at a low Y-level
+            new LayoutElement("water", "main_water", null, new double[] { 0, -0.1, 0 }, new double[] { 250, 0.1, 200 }),
+            
+            // Inland area is elevated
+            new LayoutElement("land", "inland_area", null, new double[] { 0, portGroundY, -110 }, new double[] { 250, portGroundHeight, 100 }),
 
-            // Elementos operacionais (onde os navios e gruas podem ser associados)
-            new LayoutElement("dock", "Dock A", "Dock A", new double[] { -6, 0, 15 }, new double[] { 2, 0.2, 10 }),
-            new LayoutElement("dock", "Dock B", "Dock B", new double[] { -6, 0, 0 }, new double[] { 2, 0.2, 12 }),
-            new LayoutElement("dock", "Dock C", "Dock C", new double[] { -6, 0, -15 }, new double[] { 2, 0.2, 10 }),
-            new LayoutElement("yard", "Yard A", "Yard A", new double[] { -15, 0, 0 }, new double[] { 10, 0.1, 40 }),
+            // --- Main Pier Structure (Elevated) ---
+            // Increase the length (X dimension) of the middle land (main pier land)
+            new LayoutElement("land", "main_pier_land", "Main Pier", new double[] { 0, portGroundY, 0 }, new double[] { 80, portGroundHeight, 120 }),
+            new LayoutElement("yard", "container_yard_1", "Container Yard", new double[] { 0, portGroundY + (portGroundHeight / 2) + 0.05, 0 }, new double[] { 55, 0.1, 115 }),
+            
+            // --- Docks on either side of the pier (Elevated) ---
+            // Set docks to half of their current length
+            new LayoutElement("dock", "Dock A", "Dock A", new double[] { -31, portGroundY, 0 }, new double[] { 1, portGroundHeight, 90 }),
+            new LayoutElement("dock", "Dock B", "Dock B", new double[] { 31, portGroundY, 0 }, new double[] { 0.5, portGroundHeight, 90 }),
+
+            // --- Inland Facilities (Elevated to sit on the new ground level) ---
+            new LayoutElement("yard", "bulk_storage_yard", "Bulk Yard", new double[] { -90, portGroundY + (portGroundHeight / 2) + 0.05, -100 }, new double[] { 60, 0.1, 50 }),
+            new LayoutElement("building", "admin_building", "Admin Building", new double[] { -100, portGroundY + (portGroundHeight / 2) + 2, -130 }, new double[] { 15, 4, 20 }),
+            new LayoutElement("building", "main_warehouse", "Warehouse 1", new double[] { 40, portGroundY + (portGroundHeight / 2) + 3, -115 }, new double[] { 50, 6, 25 }),
+            new LayoutElement("building", "silo_tanks", "Storage Tanks", new double[] { 100, portGroundY + (portGroundHeight / 2) + 8, -120 }, new double[] { 12, 16, 12 }),
         };
 
         return new { elements };
     }
-    
 }

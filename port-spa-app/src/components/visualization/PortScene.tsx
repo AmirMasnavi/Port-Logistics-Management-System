@@ -3,7 +3,8 @@ import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Grid, Sky } from '@react-three/drei';
 import { useGLTF } from '@react-three/drei';
 import { CargoShipModel } from "./CargoShipModel";
-import type { LayoutElement, RenderableVessel, RenderableResource } from '../../domain/types';
+import { ContainerModel } from './ContainerModel';
+import type { LayoutElement, RenderableVessel, RenderableResource, RenderableContainer } from '../../domain/types';
 import {
     DockModel, LandModel, WaterModel, YardModel, BuildingModel,
     STSCraneModel, YardCraneModel
@@ -13,6 +14,9 @@ import * as THREE from 'three';
 
 // Global scale factor to make the whole port layout "bigger" in world units
 const WORLD_SCALE = 3; // tweak this to 2, 3, 4... until the map feels right
+
+// Fator extra para aumentar o comprimento da land do meio do porto
+const MIDDLE_LAND_LENGTH_FACTOR = 1.5; // 1.0 = igual, 1.5 = +50%, 2.0 = dobro
 
 // This version correctly applies shadows to loaded models.
 const ImportedModel: React.FC<{
@@ -44,28 +48,86 @@ interface PortSceneProps {
     layoutElements: LayoutElement[];
     vessels: RenderableVessel[];
     resources: RenderableResource[];
+    containers?: RenderableContainer[]; // optional (defaults to [])
 }
 
-const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resources }) => {
+const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resources, containers }) => {
+    // Safe default for containers until backend integration is wired
+    const containerList = containers ?? [];
+
     // Build a quick lookup by id for layout elements to avoid repeated finds
     const layoutMap = React.useMemo(() => new Map(layoutElements.map(el => [el.id, el])), [layoutElements]);
 
+    // Criar uma versão ajustada dos layoutElements onde as duas lands trocam de posição
+    const swappedLayoutElements = React.useMemo(() => {
+        const cloned = layoutElements.map(el => ({ ...el }));
+        const landIndexes = cloned
+            .map((el, index) => ({ el, index }))
+            .filter(x => x.el.type === 'land');
+
+        if (landIndexes.length === 2) {
+            const [a, b] = landIndexes;
+            const tempPos = [...a.el.position] as [number, number, number];
+            const tempSize = [...a.el.size] as [number, number, number];
+            a.el.position = [...b.el.position] as [number, number, number];
+            a.el.size = [...b.el.size] as [number, number, number];
+            b.el.position = tempPos;
+            b.el.size = tempSize;
+        }
+
+        return cloned;
+    }, [layoutElements]);
+
+    // Identificar a "land do meio" de forma determinística: a land cujo X está mais próximo de 0
+    const middleLandId = React.useMemo(() => {
+        const lands = swappedLayoutElements.filter(el => el.type === 'land');
+        if (lands.length === 0) return undefined;
+        let best = lands[0];
+        let bestAbsX = Math.abs(lands[0].position[0]);
+        for (const el of lands) {
+            const absX = Math.abs(el.position[0]);
+            if (absX < bestAbsX) {
+                best = el;
+                bestAbsX = absX;
+            }
+        }
+        return best.id;
+    }, [swappedLayoutElements]);
+
     // Scale layout elements so docks, yards, land, water, buildings are larger and further apart
     const scaledLayoutElements = React.useMemo(
-        () => layoutElements.map(el => ({
-            ...el,
-            position: [
+        () => swappedLayoutElements.map(el => {
+            const basePosition: [number, number, number] = [
                 el.position[0] * WORLD_SCALE,
                 el.position[1] * WORLD_SCALE,
                 el.position[2] * WORLD_SCALE,
-            ] as [number, number, number],
-            size: [
+            ];
+            const baseSize: [number, number, number] = [
                 el.size[0] * WORLD_SCALE,
                 el.size[1] * WORLD_SCALE,
                 el.size[2] * WORLD_SCALE,
-            ] as [number, number, number],
-        })),
-        [layoutElements]
+            ];
+
+            // Se esta for a land do meio, aumentamos o comprimento (eixo Z)
+            if (el.type === 'land' && el.id === middleLandId) {
+                return {
+                    ...el,
+                    position: basePosition,
+                    size: [
+                        baseSize[0],
+                        baseSize[1],
+                        baseSize[2] * MIDDLE_LAND_LENGTH_FACTOR,
+                    ] as [number, number, number],
+                };
+            }
+
+            return {
+                ...el,
+                position: basePosition,
+                size: baseSize,
+            };
+        }),
+        [swappedLayoutElements, middleLandId]
     );
 
     // Scale vessels (position + size)
@@ -115,6 +177,16 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
     // Enable visual markers when URL contains ?debugCrane
     const showMarkers = typeof window !== 'undefined' && window.location.search.includes('debugCrane');
 
+    // Pre-index containers by yard id for fast lookup
+    const containersByYard = React.useMemo(() => {
+        const map = new Map<string, RenderableContainer[]>();
+        for (const c of containerList) {
+            if (!map.has(c.yardId)) map.set(c.yardId, []);
+            map.get(c.yardId)!.push(c);
+        }
+        return map;
+    }, [containerList]);
+
     return (
         // Ensure the Canvas will size to its parent container which should control layout
         <Canvas
@@ -130,8 +202,8 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
                 position={[50 * WORLD_SCALE / 3, 50 * WORLD_SCALE / 3, 25 * WORLD_SCALE / 3]}
                 intensity={1.5}
                 castShadow
-                shadow-mapSize-width={2048}
-                shadow-mapSize-height={2048}
+                shadow-mapSize-width={1024}
+                shadow-mapSize-height={1024}
             />
 
             <Grid
@@ -149,8 +221,27 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
                 switch (el.type) {
                     case 'dock':
                         return <DockModel key={el.id} position={el.position} size={el.size} label={el.name} />;
-                    case 'yard':
-                        return <YardModel key={el.id} position={el.position} size={el.size} label={el.name} />;
+                    case 'yard': {
+                        const yardContainers = containersByYard.get(el.id) ?? [];
+                        return (
+                            <group key={el.id}>
+                                <YardModel position={el.position} size={el.size} label={el.name} />
+                                {/* Dynamic containers from backend positioned relative to yard center */}
+                                {yardContainers.map(c => (
+                                    <ContainerModel
+                                        key={c.id}
+                                        position={[
+                                            el.position[0] + c.position[0] * WORLD_SCALE,
+                                            el.position[1] + c.position[1] * WORLD_SCALE,
+                                            el.position[2] + c.position[2] * WORLD_SCALE,
+                                        ]}
+                                        size={[c.size[0] * WORLD_SCALE, c.size[1] * WORLD_SCALE, c.size[2] * WORLD_SCALE]}
+                                        textureUrl={c.textureUrl}
+                                    />
+                                ))}
+                            </group>
+                        );
+                    }
                     case 'land':
                         return <LandModel key={el.id} position={el.position} size={el.size} />;
                     case 'water':
@@ -226,7 +317,7 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
 
                     const area = resolveArea();
                     if (!area) {
-                        console.warn('PortScene: could not find layout area for resource', r, '— tried id/code/assignedArea');
+                        console.warn('PortScene: could not find layout area for resource', r, '- tried id/code/assignedArea');
                         return null;
                     }
 

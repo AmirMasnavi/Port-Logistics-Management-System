@@ -75,6 +75,15 @@ export interface RenderableResource {
     modelUrl?: string; //  Optional GLTF/OBJ model path
 }
 
+export interface RenderableContainer {
+    id: string;
+    code: string;
+    yardId: string;
+    position: [number, number, number];
+    size: [number, number, number];
+    textureUrl: string;
+}
+
 
 export interface Dock {
     id: string;

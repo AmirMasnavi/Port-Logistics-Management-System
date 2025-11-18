@@ -7,3 +7,4 @@ declare module 'i18next' {
     resources: { translation: Record<string, any> };
   }
 }
+
