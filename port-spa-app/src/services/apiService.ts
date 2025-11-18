@@ -7,10 +7,13 @@ import type {
     VesselTypeCreateDto,
     PortLayout,
     VesselVisit,
-    Resource,
-    Dock, DockCreateDto,
-    StorageArea, StorageAreaCreateDto
+    Dock,
+    DockCreateDto,
 } from '../domain/types';
+
+import type { Resource } from '../domain/resource/resource.model';
+import type { StorageArea, StorageAreaCreateDto } from '../domain/storageArea/storageArea.model';
+
 
 // --- New: internal role constants used by the SPA ---
 export const InternalRole = {
@@ -424,6 +427,25 @@ export const getDockById = async (id: string): Promise<{ id: string; name: strin
         return response.data;
     } catch (error) {
         console.error('Error fetching dock by ID:', error);
+        throw error;
+    }
+};
+
+// Admin Stats API
+export interface AdminStats {
+    totalUsers: number;
+    activeUsers: number;
+    deactivatedUsers: number;
+    totalStaffMembers: number;
+    totalOrganizations: number;
+}
+
+export const getAdminStats = async (): Promise<AdminStats> => {
+    try {
+        const response = await apiClient.get<AdminStats>('/admin/stats');
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching admin statistics:', error);
         throw error;
     }
 };

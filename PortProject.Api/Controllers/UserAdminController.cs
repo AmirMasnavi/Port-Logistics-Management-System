@@ -66,4 +66,42 @@ public class UserAdminController : ControllerBase
             message = "User invited and email sent."
         });
     }
+
+    [HttpGet("stats")]
+    // [Authorize(Roles = "Administrator")] // Can be added for extra security
+    public async Task<IActionResult> GetAdminStats()
+    {
+        try
+        {
+            // Get total user count
+            var totalUsers = await _context.AppUsers.CountAsync();
+            
+            // Get active users count (users with status Activated)
+            var activeUsers = await _context.AppUsers
+                .CountAsync(u => u.Status == UserStatus.Activated);
+            
+            // Get deactivated users (users with status Deactivated)
+            var deactivatedUsers = await _context.AppUsers
+                .CountAsync(u => u.Status == UserStatus.Deactivated);
+            
+            // Get total staff members
+            var totalStaffMembers = await _context.StaffMembers.CountAsync();
+            
+            // Get total shipping agent organizations
+            var totalOrganizations = await _context.ShippingAgentOrganizations.CountAsync();
+            
+            return Ok(new
+            {
+                totalUsers,
+                activeUsers,
+                deactivatedUsers,
+                totalStaffMembers,
+                totalOrganizations
+            });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Failed to retrieve admin statistics", error = ex.Message });
+        }
+    }
 }

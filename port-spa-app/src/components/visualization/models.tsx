@@ -15,6 +15,14 @@ import waterNormalUrl from './textures/Water_002_NORM.jpg';
 import waterRoughnessUrl from './textures/Water_002_ROUGH.jpg';
 import waterDisplacementUrl from './textures/Water_002_DISP.png';
 import waterOccUrl from './textures/Water_002_OCC.jpg';
+import dockBaseUrl from './textures/dock/Material _25_Base_Color.png';
+import dockNormalUrl from './textures/dock/Material _25_Normal.png';
+import dockRoughnessUrl from './textures/dock/Material _25_Roughness.png';
+import dockHeightUrl from './textures/dock/Material _25_Height.png';
+import dockMetallicUrl from './textures/dock/Material _25_Metallic.png';
+import dockAoUrl from './textures/dock/Material _25_Mixed_AO.png';
+
+
 // Dynamically import all Tower_crane textures and group them by material and map type.
 // Filenames are expected like: Tower_crane_{MATERIAL}_{MapType}.png
 const towerCraneFiles = import.meta.glob('./textures/Tower_crane*.png', { eager: true, as: 'url' }) as Record<string, string>;
@@ -64,17 +72,94 @@ type ModelProps = {
 // Dock: plataforma longa com alguns postes/bolardos
 export const DockModel: React.FC<Omit<ModelProps, 'color'>> = ({ position, size, label }) => {
     const posts: number[] = [ -0.8, -0.4, 0, 0.4, 0.8 ];
+
+    // Load dock textures
+    const [dBase, dNormal, dRoughness, dHeight, dMetallic, dAo] = useTexture([
+        dockBaseUrl,
+        dockNormalUrl,
+        dockRoughnessUrl,
+        dockHeightUrl,
+        dockMetallicUrl,
+        dockAoUrl,
+    ]);
+
+    // Clone textures per instance
+    const dockTextures = React.useMemo(() => ({
+        base: dBase?.clone() ?? null,
+        normal: dNormal?.clone() ?? null,
+        roughness: dRoughness?.clone() ?? null,
+        height: dHeight?.clone() ?? null,
+        metallic: dMetallic?.clone() ?? null,
+        ao: dAo?.clone() ?? null,
+    }), [dBase, dNormal, dRoughness, dHeight, dMetallic, dAo]);
+
+    // Dispose on unmount
+    useEffect(() => {
+        return () => {
+            Object.values(dockTextures).forEach(t => t?.dispose());
+        };
+    }, [dockTextures]);
+
+    // Use the full size provided (no scaling)
+    const dockLength = 12;
+    const dockHeight = 3.3;
+    // Increase dock width significantly for better visibility
+    const widthScale = 1;
+    const dockWidth = size[2] * widthScale;
+
+    // Configure tiling
+    const TILE_SCALE = 25;
+    const repeatX = Math.max(1, dockLength / TILE_SCALE);
+    const repeatZ = Math.max(1, dockWidth / TILE_SCALE);
+
+    useEffect(() => {
+        const list = [dockTextures.base, dockTextures.normal, dockTextures.roughness, dockTextures.height, dockTextures.metallic, dockTextures.ao];
+        list.forEach(tex => {
+            if (!tex) return;
+            tex.wrapS = tex.wrapT = RepeatWrapping;
+            tex.repeat.set(repeatX, repeatZ);
+            tex.anisotropy = Math.max(tex.anisotropy ?? 0, 8);
+            tex.needsUpdate = true;
+        });
+        if (dockTextures.base && 'colorSpace' in dockTextures.base) (dockTextures.base as any).colorSpace = SRGBColorSpace;
+    }, [dockTextures, repeatX, repeatZ]);
+
+    const meshRef = React.useRef<Mesh | null>(null);
+
+    // Provide uv2 for AO
+    useEffect(() => {
+        const geom: any = meshRef.current?.geometry;
+        if (geom?.attributes?.uv && !geom.attributes.uv2) {
+            geom.setAttribute('uv2', new BufferAttribute(geom.attributes.uv.array, 2));
+        }
+    }, [meshRef]);
+
     return (
         <group position={position}>
-            {/* Plataforma */}
-            <mesh receiveShadow>
-                <boxGeometry args={[size[0], Math.max(0.1, size[1]), size[2]]} />
-                <meshStandardMaterial color="#7f6a52" metalness={0.1} roughness={0.8} />
+            {/* Plataforma - positioned to sit on land surface */}
+            <mesh position={[-2.91, -3.3 + dockHeight / 2, 0]} receiveShadow ref={meshRef}>
+                <boxGeometry args={[dockLength, dockHeight, dockWidth]} />
+                <meshStandardMaterial 
+                    map={dockTextures.base as any}
+                    normalMap={dockTextures.normal as any}
+                    roughnessMap={dockTextures.roughness as any}
+                    displacementMap={dockTextures.height as any}
+                    displacementScale={0.01}
+                    metalnessMap={dockTextures.metallic as any}
+                    aoMap={dockTextures.ao as any}
+                    aoMapIntensity={0.3}
+                    metalness={0.2}
+                    roughness={0.8}
+                />
             </mesh>
 
             {/* Bolardos / postes */}
             {posts.map((p, i) => (
-                <mesh key={i} position={[p * (size[0] / 2), size[1] / 2 + 0.15, size[2] / 2 - 0.5]} castShadow>
+                <mesh
+                    key={i}
+                    position={[p * (dockLength / 2) - 2.91, -1.5 + dockHeight / 2, dockWidth / 2 - 0.5]}
+                    castShadow
+                >
                     <cylinderGeometry args={[0.08, 0.08, 0.3, 8]} />
                     <meshStandardMaterial color="#222" metalness={0.6} roughness={0.4} />
                 </mesh>
@@ -82,7 +167,7 @@ export const DockModel: React.FC<Omit<ModelProps, 'color'>> = ({ position, size,
 
             {label && (
                 <Text
-                    position={[0, size[1] / 2 + 0.6, 0]}
+                    position={[0, dockHeight, 0]}
                     fontSize={0.4}
                     color="black"
                     anchorX="center"
@@ -98,39 +183,79 @@ export const DockModel: React.FC<Omit<ModelProps, 'color'>> = ({ position, size,
 
 // Yard: grande plano com pilhas de contentores coloridos
 export const YardModel: React.FC<Omit<ModelProps, 'color'>> = ({ position, size, label }) => {
-    // cria uma grelha de contentores dentro do yard
-    const cols = Math.max(1, Math.floor(size[2] / 3));
-    const rows = Math.max(1, Math.floor(size[0] / 3));
-    const colors = ['#ff7f50', '#ff6347', '#1e90ff', '#32cd32', '#ffd700', '#8a2be2'];
+    // --- LÓGICA DO CHÃO DO YARD (textura de betão) ---
+    const [base, normal, roughness, height, ao] = useTexture([
+        concreteBaseUrl,
+        concreteNormalUrl,
+        concreteRoughnessUrl,
+        concreteHeightUrl,
+        concreteAoUrl,
+    ]);
 
-    const stacks: React.ReactElement[] = [];
-    for (let r = 0; r < rows; r++) {
-        for (let c = 0; c < cols; c++) {
-            const stackHeight = Math.floor(Math.random() * 3) + 1; // 1..3
-            for (let h = 0; h < stackHeight; h++) {
-                const w = 2.4, d = 1.2, hh = 0.6;
-                const x = (r - rows/2) * 3 + w/2;
-                const z = (c - cols/2) * 1.5 + d/2;
-                const y = h * (hh + 0.05) + hh/2;
-                const color = colors[(r + c + h) % colors.length];
-                stacks.push(
-                    <mesh key={`${r}-${c}-${h}`} position={[x, y, z]} castShadow receiveShadow>
-                        <boxGeometry args={[w, hh, d]} />
-                        <meshStandardMaterial color={color} metalness={0.3} roughness={0.4} />
-                    </mesh>
-                );
-            }
+    const ground = React.useMemo(() => ({
+        base: base?.clone() ?? null,
+        normal: normal?.clone() ?? null,
+        roughness: roughness?.clone() ?? null,
+        height: height?.clone() ?? null,
+        ao: ao?.clone() ?? null,
+    }), [base, normal, roughness, height, ao]);
+
+    useEffect(() => {
+        return () => {
+            Object.values(ground).forEach(t => t?.dispose());
+        };
+    }, [ground]);
+
+    const TILE_SCALE = 4;
+    const repeatX = Math.max(1, size[0] / TILE_SCALE);
+    const repeatZ = Math.max(1, size[2] / TILE_SCALE);
+
+    useEffect(() => {
+        const list = [ground.base, ground.normal, ground.roughness, ground.height, ground.ao];
+        list.forEach(tex => {
+            if (!tex) return;
+            tex.wrapS = tex.wrapT = RepeatWrapping;
+            tex.repeat.set(repeatX, repeatZ);
+            tex.anisotropy = Math.max(tex.anisotropy ?? 0, 8);
+            tex.needsUpdate = true;
+        });
+        if (ground.base && 'colorSpace' in ground.base) (ground.base as any).colorSpace = SRGBColorSpace;
+    }, [ground.base, ground.normal, ground.roughness, ground.height, ground.ao, repeatX, repeatZ]);
+
+    const segX = Math.min(100, Math.ceil(size[0] / 2));
+    const segZ = Math.min(100, Math.ceil(size[2] / 2));
+    const meshRef = React.useRef<Mesh | null>(null);
+
+    useEffect(() => {
+        const geom: any = meshRef.current?.geometry;
+        if (geom?.attributes?.uv && !geom.attributes.uv2) {
+            geom.setAttribute('uv2', new BufferAttribute(geom.attributes.uv.array, 2));
         }
-    }
+    }, [meshRef]);
+
+    // Pequena espessura para o yard (bem fininho, só para não parecer folha)
+    const YARD_THICKNESS = 0.6;
 
     return (
         <group position={position}>
-            <mesh receiveShadow>
-                <boxGeometry args={[size[0], Math.max(0.1, size[1]), size[2]]} />
-                <meshStandardMaterial color="#3c6b5a" metalness={0.1} roughness={0.9} />
+            {/* Bloco de yard fininho, com textura em cima (mais escuro que a land) */}
+            <mesh position={[0, YARD_THICKNESS - 9.43, 0]} receiveShadow ref={meshRef}>
+                <boxGeometry args={[size[0], YARD_THICKNESS, size[2], segX, 1, segZ]} />
+                <meshStandardMaterial
+                    side={DoubleSide}
+                    // same concrete texture as land, but slightly darker / rougher
+                    color="#d0d0d0"
+                    map={ground.base as any}
+                    normalMap={ground.normal as any}
+                    roughnessMap={ground.roughness as any}
+                    displacementMap={ground.height as any}
+                    displacementScale={0.01}
+                    aoMap={ground.ao as any}
+                    aoMapIntensity={0.25}
+                    metalness={0.02}
+                    roughness={0.9}
+                />
             </mesh>
-
-            {stacks}
 
             {label && (
                 <Text
@@ -149,9 +274,9 @@ export const YardModel: React.FC<Omit<ModelProps, 'color'>> = ({ position, size,
 };
 
 // Land: grama / chão
-export const LandModel: React.FC<Omit<ModelProps, 'color'>> = ({ position, size }) => {
+export const LandModel: React.FC<Omit<ModelProps, 'color'> & { isMiddle?: boolean }> = ({ position, size, isMiddle }) => {
     // Load all available PBR maps (AO optional)
-    const [base, normal, roughness, height, ao] = useTexture([
+    const [base, normal, roughness, heightTex, ao] = useTexture([
         concreteBaseUrl,
         concreteNormalUrl,
         concreteRoughnessUrl,
@@ -165,10 +290,10 @@ export const LandModel: React.FC<Omit<ModelProps, 'color'>> = ({ position, size 
             base: base?.clone() ?? null,
             normal: normal?.clone() ?? null,
             roughness: roughness?.clone() ?? null,
-            height: height?.clone() ?? null,
+            height: heightTex?.clone() ?? null,
             ao: ao?.clone() ?? null,
         };
-    }, [base, normal, roughness, height, ao]);
+    }, [base, normal, roughness, heightTex, ao]);
     // Dispose cloned textures on unmount to avoid memory leaks when many LandModel tiles exist
     useEffect(() => {
         return () => {
@@ -176,12 +301,19 @@ export const LandModel: React.FC<Omit<ModelProps, 'color'>> = ({ position, size 
         };
     }, [cloned]);
 
-    
-    
+    // Ajustes específicos para a land do meio: mais comprida e mais estreita
+    const [rawWidth, rawHeight, rawLength] = size;
+    const WIDTH_FACTOR = isMiddle ? 0.75 : 1.0;  // reduzir bastante a largura da land do meio
+    const LENGTH_FACTOR = isMiddle ? 1.3 : 1.0; // aumentar um pouco o comprimento
+
+    const width = rawWidth * WIDTH_FACTOR;
+    const height = rawHeight;
+    const length = rawLength * LENGTH_FACTOR;
+
     // Tiling configuration
-    const TILE_SCALE = 4; // adjust (smaller -> more repeats)
-    const repeatX = Math.max(1, size[0] / TILE_SCALE);
-    const repeatZ = Math.max(1, size[2] / TILE_SCALE);
+    const TILE_SCALE = 35; // adjust (smaller -> more repeats)
+    const repeatX = Math.max(1, width / TILE_SCALE);
+    const repeatZ = Math.max(1, length / TILE_SCALE);
 
     useEffect(() => {
         const list = [cloned.base, cloned.normal, cloned.roughness, cloned.height, cloned.ao];
@@ -197,8 +329,8 @@ export const LandModel: React.FC<Omit<ModelProps, 'color'>> = ({ position, size 
     }, [cloned.base, cloned.normal, cloned.roughness, cloned.height, cloned.ao, repeatX, repeatZ]);
 
     // Subdivisions for displacement (cap to avoid huge geometries)
-    const segX = Math.min(100, Math.ceil(size[0] / 2));
-    const segZ = Math.min(100, Math.ceil(size[2] / 2));
+    const segX = Math.min(100, Math.ceil(width / 2));
+    const segZ = Math.min(100, Math.ceil(length / 2));
 
     const meshRef = React.useRef<Mesh | null>(null);
     useEffect(() => {
@@ -209,11 +341,14 @@ export const LandModel: React.FC<Omit<ModelProps, 'color'>> = ({ position, size 
         }
     }, [meshRef]);
 
+    // Espessura do terreno (altura do “bloco” de land) - usa a altura numérica, não a textura
+    const LAND_THICKNESS = Math.max(0.5, height);
+
     return (
         <group position={position}>
-            {/* Use a flat plane rotated to horizontal for proper UV tiling */}
-            <mesh ref={meshRef} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-                <planeGeometry args={[size[0], size[2], segX, segZ]} />
+            {/* Bloco de terreno com espessura */}
+            <mesh position={[0, LAND_THICKNESS - 27, 0]} receiveShadow ref={meshRef}>
+                <boxGeometry args={[width, LAND_THICKNESS, length, segX, 1, segZ]} />
                 <meshStandardMaterial
                     side={DoubleSide}
                     color="#f5f5f5" // brighten base
