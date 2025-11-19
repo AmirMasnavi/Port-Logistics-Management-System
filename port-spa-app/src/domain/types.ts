@@ -26,16 +26,20 @@ export interface VesselTypeCreateDto {
 
 // An element of the port layout returned by the PortLayout API
 export interface LayoutElement {
+    // O tipo define qual modelo 3D será usado (cumpre o requisito: docks, yards, warehouses)
     type: 'dock' | 'yard' | 'land' | 'water' | 'building' | string;
     id: string;
     name?: string;
+    // Coordenadas X, Y, Z vindas do backend
     position: [number, number, number];
+    // Dimensões Largura, Altura, Profundidade
     size: [number, number, number];
 }
 
+// A estrutura completa que a API devolve
 // The overall layout shape
 export interface PortLayout {
-    elements: LayoutElement[];
+    elements: LayoutElement[]; 
 }
 
 // Vessel visit DTO (simplified to the fields used by the visualization)
