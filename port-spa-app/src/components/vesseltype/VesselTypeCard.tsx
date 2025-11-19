@@ -1,6 +1,6 @@
 // src/presentation/vesselType/components/VesselTypeCard.tsx
 import React from 'react';
-import type { VesselType } from '../../../domain/vesselType/vesselType.model';
+import type { VesselType } from '../../domain/vesselType/vesselType.model';
 import { Package, Layers, Edit, Trash2 } from 'lucide-react';
 
 interface VesselTypeCardProps {
