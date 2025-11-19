@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { useTexture, Text } from '@react-three/drei';
-import { RepeatWrapping, BufferAttribute, SRGBColorSpace, DoubleSide, Mesh } from 'three';
+import { RepeatWrapping, ClampToEdgeWrapping, BufferAttribute, SRGBColorSpace, DoubleSide, Mesh } from 'three';
 import { useFrame } from '@react-three/fiber';
 
 
@@ -21,6 +21,12 @@ import dockRoughnessUrl from './textures/dock/Material _25_Roughness.png';
 import dockHeightUrl from './textures/dock/Material _25_Height.png';
 import dockMetallicUrl from './textures/dock/Material _25_Metallic.png';
 import dockAoUrl from './textures/dock/Material _25_Mixed_AO.png';
+
+// Import gantry crane textures for yard cranes
+import gantryBaseUrl from './textures/gantryCrane/maquina_portico_BaseColor.png';
+import gantryNormalUrl from './textures/gantryCrane/maquina_portico_Normal.png';
+import gantryRoughnessUrl from './textures/gantryCrane/maquina_portico_Roughness.png';
+import gantryMetallicUrl from './textures/gantryCrane/maquina_portico_Metallic.png';
 
 
 // Dynamically import all Tower_crane textures and group them by material and map type.
@@ -191,6 +197,8 @@ export const DockModel: React.FC<Omit<ModelProps, 'color'>> = ({ position, size,
     const dockDepth = size[0];      // X dimension (extends into water)
     const dockHeight = size[1];     // Y dimension (height)
     const dockLength = size[2];     // Z dimension (along pier)
+    const widthScale = 1;
+    const dockWidth = size[2] * widthScale;
 
     // Configure tiling
     const TILE_SCALE = 25;
@@ -943,34 +951,113 @@ export const STSCraneModel: React.FC<Omit<ModelProps, 'color'>> = ({ position, s
 
 // Yard Gantry Crane (grua de pátio) — pernas laterais e viga superior com trole
 export const YardCraneModel: React.FC<Omit<ModelProps, 'color'>> = ({ position, size, label, isNight = false }) => {
-    const legHeight = Math.max(20, size[1] * 6);
+    const legHeight = Math.max(25, size[1] * 6);
     const span = Math.max(3, size[0] * 0.9);
+    
+    // Increased dimensions for better visibility and realism
+    const legThickness = 5;      // Much thicker legs (was 0.25)
+    const beamHeight = 7;        // Taller beam (was 0.2)
+    const beamDepth = 7;         // Much deeper beam (was 0.6)
+    const trolleySize = 5;       // Larger trolley (was 0.5)
+    const trolleyHeight = 8;     // Taller trolley (was 0.2)
+
+    // Load gantry crane textures (NO displacement - causes problems)
+    const [gBase, gNormal, gRough, gMetal] = useTexture([
+        gantryBaseUrl,
+        gantryNormalUrl,
+        gantryRoughnessUrl,
+        gantryMetallicUrl,
+    ]);
+
+    // Configure textures - use ClampToEdgeWrapping to avoid tiling/repeating
+    useEffect(() => {
+        [gBase, gNormal, gRough, gMetal].forEach(tex => {
+            if (!tex) return;
+            tex.wrapS = tex.wrapT = ClampToEdgeWrapping;
+            tex.repeat.set(1, 1);
+            tex.anisotropy = 16;
+            tex.needsUpdate = true;
+        });
+        
+        if (gBase && 'colorSpace' in gBase) {
+            (gBase as any).colorSpace = SRGBColorSpace;
+        }
+    }, [gBase, gNormal, gRough, gMetal]);
 
     return (
         <group position={position}>
-            {/* Legs */}
-            <mesh position={[-span / 2, legHeight / 2, 0]} castShadow>
-                <boxGeometry args={[0.25, legHeight, 0.25]} />
-                <meshStandardMaterial color="yellow" metalness={0.6} roughness={0.4} />
+            {/* Left Leg - with properly tiled texture */}
+            <mesh position={[-span / 2, legHeight / 2, 0]} castShadow receiveShadow>
+                <boxGeometry args={[legThickness, legHeight, legThickness]} />
+                <meshStandardMaterial 
+                    map={gBase as any}
+                    normalMap={gNormal as any}
+                    roughnessMap={gRough as any}
+                    metalnessMap={gMetal as any}
+                    metalness={0.5}
+                    roughness={0.6}
+                />
             </mesh>
-            <mesh position={[span / 2, legHeight / 2, 0]} castShadow>
-                <boxGeometry args={[0.25, legHeight, 0.25]} />
-                <meshStandardMaterial color="yellow" metalness={0.6} roughness={0.4} />
+            
+            {/* Right Leg */}
+            <mesh position={[span / 2, legHeight / 2, 0]} castShadow receiveShadow>
+                <boxGeometry args={[legThickness, legHeight, legThickness]} />
+                <meshStandardMaterial 
+                    map={gBase as any}
+                    normalMap={gNormal as any}
+                    roughnessMap={gRough as any}
+                    metalnessMap={gMetal as any}
+                    metalness={0.5}
+                    roughness={0.6}
+                />
             </mesh>
 
             {/* Top beam */}
-            <mesh position={[0, legHeight - 0.15, 0]} castShadow>
-                <boxGeometry args={[span + 0.5, 0.2, 0.6]} />
-                <meshStandardMaterial color="yellow" metalness={0.6} roughness={0.4} />
+            <mesh position={[0, legHeight - beamHeight/2, 0]} castShadow receiveShadow>
+                <boxGeometry args={[span + 1.5, beamHeight, beamDepth]} />
+                <meshStandardMaterial 
+                    map={gBase as any}
+                    normalMap={gNormal as any}
+                    roughnessMap={gRough as any}
+                    metalnessMap={gMetal as any}
+                    metalness={0.5}
+                    roughness={0.6}
+                />
             </mesh>
 
             {/* Trolley */}
-            <mesh position={[0, legHeight - 0.45, 0]} castShadow>
-                <boxGeometry args={[0.5, 0.2, 0.5]} />
-                <meshStandardMaterial color="#333" metalness={0.7} roughness={0.3} />
+            <mesh position={[0, legHeight - beamHeight - trolleyHeight/2 - 0.2, 0]} castShadow receiveShadow>
+                <boxGeometry args={[trolleySize, trolleyHeight, trolleySize]} />
+                <meshStandardMaterial 
+                    color="#666666"
+                    map={gBase as any}
+                    normalMap={gNormal as any}
+                    roughnessMap={gRough as any}
+                    metalnessMap={gMetal as any}
+                    metalness={0.6}
+                    roughness={0.4}
+                />
+            </mesh>
+            
+            {/* Add cross-bracing for more realistic gantry crane structure */}
+            <mesh position={[-span / 4, legHeight / 2, 0]} castShadow>
+                <boxGeometry args={[span / 2, 0.3, 0.3]} />
+                <meshStandardMaterial 
+                    map={gBase as any}
+                    metalness={0.7} 
+                    roughness={0.3} 
+                />
+            </mesh>
+            <mesh position={[span / 4, legHeight / 2, 0]} castShadow>
+                <boxGeometry args={[span / 2, 0.3, 0.3]} />
+                <meshStandardMaterial 
+                    map={gBase as any}
+                    metalness={0.7} 
+                    roughness={0.3} 
+                />
             </mesh>
 
-            {/* NEW: Red warning lights on top of the crane legs */}
+            {/* Red warning lights on top of the crane legs */}
             <RedWarningLight 
                 position={[-span / 2, legHeight + 0.2, 0]} 
                 isNight={isNight}
@@ -982,12 +1069,12 @@ export const YardCraneModel: React.FC<Omit<ModelProps, 'color'>> = ({ position, 
 
             {label && (
                 <Text
-                    position={[0, legHeight + 0.3, 0]}
-                    fontSize={0.35}
-                    color="black"
+                    position={[0, legHeight + 0.8, 0]}
+                    fontSize={0.5}
+                    color="white"
                     anchorX="center"
-                    outlineWidth={0.02}
-                    outlineColor="white"
+                    outlineWidth={0.05}
+                    outlineColor="black"
                 >
                     {label}
                 </Text>

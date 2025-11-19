@@ -7,7 +7,7 @@ import { ContainerModel } from './ContainerModel';
 import type { LayoutElement, RenderableVessel, RenderableResource, RenderableContainer } from '../../domain/types';
 import {
     DockModel, LandModel, WaterModel, YardModel, BuildingModel,
-    STSCraneModel
+    STSCraneModel, YardCraneModel
 } from './models';
 import { useMemo } from 'react';
 import * as THREE from 'three';
@@ -614,9 +614,12 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
                     case 'yard': {
                         const yardContainers = containersByYard.get(el.id) ?? generateYardContainers(el.id);
 
-                        const tileCols = 2;
-                        const tileRows = 2;
-                        const gap = 5 * WORLD_SCALE;
+                        // NOTE: Each yard element (e.g., YARD-03-1) is already a subdivision from yardLayoutService
+                        // Here we further divide each subdivision into 4 visual tiles (2x2 grid) for better organization
+                        // This gives us visual separation within each subdivision
+                        const tileCols = 1;
+                        const tileRows = 1;
+                        const gap = 1.5 * WORLD_SCALE;  // Small gap between tiles for visual separation
                         const rawTileWidth = el.size[0] / tileCols;
                         const rawTileDepth = el.size[2] / tileRows;
                         const tileWidth = rawTileWidth - gap;
@@ -890,6 +893,7 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
                     if (area.type === 'yard') {
                         return (
                             <group key={`${r.id}-${r.code}`}>
+                                <YardCraneModel position={r.position} size={r.size} label={r.code} isNight={isNight} />
                                 {marker}
                             </group>
                         );
