@@ -30,7 +30,7 @@ export interface CreateVvnDto {
 
 export interface ApproveVvnDto {
     officerId: string;
-    dockId: string;
+    dockName: string;
 }
 
 export interface RejectVvnDto {

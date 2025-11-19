@@ -35,7 +35,8 @@ namespace PortProject.Api.Infrastructure.Repositories
         public async Task<List<Dock>> GetByIdsAsync(List<DockId> ids)
         {
             var idValues = ids.Select(i => i.Value).ToList();
-            return await _set.AsNoTracking().Where(d => idValues.Contains(d.Id.Value)).ToListAsync();
+            var allDocks = await _set.AsNoTracking().ToListAsync();
+            return allDocks.Where(d => idValues.Contains(d.Id.Value)).ToList();
         }
 
         public async Task<Dock?> GetByNameAsync(DockName name)

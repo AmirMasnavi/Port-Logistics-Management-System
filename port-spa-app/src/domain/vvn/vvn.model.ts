@@ -39,6 +39,7 @@ export interface VesselVisitNotification {
     vesselImo: string;
     submittedBy: string;
     assignedDockId: string | null;
+    assignedDockName: string | null;
     cargo: Cargo;
     crewMembers: CrewMember[];
     decisionLog: DecisionLogEntry[];

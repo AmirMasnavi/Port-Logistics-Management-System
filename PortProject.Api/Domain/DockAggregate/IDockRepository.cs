@@ -5,6 +5,7 @@ namespace PortProject.Api.Domain.DockAggregate
 {
     public interface IDockRepository : IRepository<Dock, DockId>
     {
+        Task<Dock?> GetByNameAsync(DockName name);
         Task<List<Dock>> GetByIdsAsync(List<DockId> ids);
         Task<List<Dock>> GetAllAsync();
         Task<Dock> UpdateAsync(Dock dock);
