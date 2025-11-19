@@ -5,6 +5,30 @@ import type { CreateShippingAgentOrganizationDto, CreateShippingAgentRepresentat
 
 const service = new ShippingAgentService(shippingAgentApiRepository);
 
+// Default sample values (can be overridden by user afterwards)
+const DEFAULT_ORG_FORM = {
+  orgName: 'Atlantic Maritime Logistics',
+  orgAddress: 'Rua do Porto 123, Porto, Portugal',
+  orgEmail: 'contact@atlantic-maritime.example',
+  orgPhone: '912345678',
+  orgTaxNumber: '501234567',
+  repInitName: 'João Silva',
+  // corrigido CitizenId default (removidos hífens) para formato simples válido
+  repInitCitizen: 'AB12345678',
+  repInitNationality: 'Portuguese',
+  repInitEmail: 'joao.silva@atlantic-maritime.example',
+  repInitPhone: '923456789'
+};
+const DEFAULT_REP_FORM = {
+  repName: 'Maria Santos',
+  // corrigido CitizenId default secundário
+  repCitizen: 'CD23456789',
+  repNationality: 'Portuguese',
+  repEmail: 'maria.santos@atlantic-maritime.example',
+  repPhone: '934567890',
+  repOrgName: 'Atlantic Maritime Logistics'
+};
+
 // Helper normalizers (kept local; some validation logic is in service but uniqueness requires current state)
 const normalize = (s?: string) => {
   const str = (s ?? '').toString().normalize('NFD');
@@ -263,6 +287,37 @@ export const useShippingAgentsPageController = () => {
     } finally { setSubmittingEdit(false); }
   };
 
+  // Apply & reset helpers for default sample data
+  const applyOrgDefaults = () => {
+    setOrgName(DEFAULT_ORG_FORM.orgName);
+    setOrgAddress(DEFAULT_ORG_FORM.orgAddress);
+    setOrgEmail(DEFAULT_ORG_FORM.orgEmail); setOrgEmailError(null);
+    setOrgPhone(DEFAULT_ORG_FORM.orgPhone);
+    setOrgTaxNumber(DEFAULT_ORG_FORM.orgTaxNumber);
+    setRepInitName(DEFAULT_ORG_FORM.repInitName);
+    setRepInitCitizen(DEFAULT_ORG_FORM.repInitCitizen);
+    setRepInitNationality(DEFAULT_ORG_FORM.repInitNationality);
+    setRepInitEmail(DEFAULT_ORG_FORM.repInitEmail); setRepInitEmailError(null);
+    setRepInitPhone(DEFAULT_ORG_FORM.repInitPhone);
+  };
+  const resetOrgForm = () => {
+    setOrgName(''); setOrgAddress(''); setOrgEmail(''); setOrgPhone(''); setOrgTaxNumber('');
+    setRepInitName(''); setRepInitCitizen(''); setRepInitNationality(''); setRepInitEmail(''); setRepInitPhone('');
+    setOrgEmailError(null); setRepInitEmailError(null); setError(null);
+  };
+  const applyRepDefaults = () => {
+    setRepName(DEFAULT_REP_FORM.repName);
+    setRepCitizen(DEFAULT_REP_FORM.repCitizen);
+    setRepNationality(DEFAULT_REP_FORM.repNationality);
+    setRepEmail(DEFAULT_REP_FORM.repEmail); setRepEmailError(null);
+    setRepPhone(DEFAULT_REP_FORM.repPhone);
+    setRepOrgName(DEFAULT_REP_FORM.repOrgName);
+  };
+  const resetRepForm = () => {
+    setRepName(''); setRepCitizen(''); setRepNationality(''); setRepEmail(''); setRepPhone(''); setRepOrgName('');
+    setRepEmailError(null); setError(null);
+  };
+
   // Filtering
   const filteredOrgs = useMemo(() => {
     const q = normalize(query);
@@ -314,5 +369,7 @@ export const useShippingAgentsPageController = () => {
     handleCreateOrganization, handleCreateRepresentative, handleDeleteRepresentative,
     // Utilities maybe needed by page (original kept)
     isValidEmail, isValidPtMobile,
+    // New helpers exposed to UI
+    applyOrgDefaults, resetOrgForm, applyRepDefaults, resetRepForm,
   };
 };
