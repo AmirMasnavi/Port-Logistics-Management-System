@@ -2,6 +2,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Layout from './components/layout/Layout';
 import VesselTypesPage from './pages/VesselTypesPage';
+import VesselsPage from './pages/VesselsPage';
 import VisualizationPage from './pages/VisualizationPage';
 import ShippingAgentOrganization from "./pages/ShippingAgentOrganization.tsx";
 import {setupApiInterceptor} from "./services/apiService.ts";
@@ -14,6 +15,7 @@ import RequireAuth from './auth/RequireAuth';
 import PortFacilitiesPage from './pages/PortFacilitiesPage';
 import RoleProtectedRoute from './auth/RoleProtectedRoute'; // Our new component to check the user's role
 import ResourcePage from './pages/ResourcePage';
+
 
 // --- Centralized Permission Sets ---
 import {
@@ -62,6 +64,7 @@ function App() {
                         {/* --- Role-Protected Routes for Port Managers (Admin, Officer) --- */}
                         <Route element={<RoleProtectedRoute allowedRoles={canManagePort} />}>
                             <Route path="/vessel-types" element={<VesselTypesPage />} />
+                            <Route path="/vessels" element={<VesselsPage />} />
                             <Route path="/shippingagentorganization" element={<ShippingAgentOrganization />} />
                         </Route>
 
