@@ -65,12 +65,99 @@ type ModelProps = {
     color?: string;
     label?: string;
     rotation?: [number, number, number];
+    isNight?: boolean; // NEW: Tell models if it's nighttime
+};
+
+// NEW: Street Lamp Component - Optimized for performance
+const StreetLamp: React.FC<{ position: [number, number, number]; isNight: boolean }> = ({ position, isNight }) => {
+    // Removed flickering animation for better performance
+    
+    return (
+        <group position={position}>
+            {/* Lamp Post - simplified geometry, no shadows */}
+            <mesh position={[0, 6, 0]}>
+                <cylinderGeometry args={[0.3, 0.3, 12, 6]} /> {/* Reduced segments from 8 to 6 */}
+                <meshStandardMaterial color="#2a2a2a" metalness={0.8} roughness={0.3} />
+            </mesh>
+            
+            {/* Lamp Head - simplified geometry, no shadows */}
+            <mesh position={[0, 12, 0]}>
+                <sphereGeometry args={[0.8, 12, 12]} /> {/* Reduced segments from 16 to 12 */}
+                <meshStandardMaterial 
+                    color={isNight ? "#ffaa00" : "#444"} 
+                    emissive={isNight ? "#ffaa00" : "#000000"}
+                    emissiveIntensity={isNight ? 3.0 : 0}
+                    metalness={0.2}
+                    roughness={0.4}
+                />
+            </mesh>
+            
+            {/* The actual light source - optimized settings */}
+            {isNight && (
+                <pointLight
+                    position={[0, 12, 0]}
+                    color="#ffcc66"
+                    intensity={20} // Increased to compensate for fewer lights
+                    distance={70} // Increased range
+                    decay={2}
+                    castShadow={false} // DISABLED shadows for performance
+                />
+            )}
+        </group>
+    );
+};
+
+// NEW: Red Warning Light - Like on tall buildings/cranes - MUCH BIGGER!
+const RedWarningLight: React.FC<{ position: [number, number, number]; isNight: boolean }> = ({ position, isNight }) => {
+    const lightRef = useRef<any>(null);
+    const meshRef = useRef<any>(null);
+    
+    // Make it blink on/off like real warning lights
+    useFrame(({ clock }) => {
+        if (!isNight) return;
+        const blink = Math.sin(clock.getElapsedTime() * 3) > 0;
+        if (lightRef.current) {
+            lightRef.current.intensity = blink ? 100 : 0; // 5x stronger (was 20)
+        }
+        if (meshRef.current && meshRef.current.material) {
+            meshRef.current.material.emissiveIntensity = blink ? 8 : 1;
+        }
+    });
+    
+    return (
+        <group position={position}>
+            {/* Red sphere - MUCH BIGGER - no shadow casting for performance */}
+            <mesh ref={meshRef} receiveShadow>
+                <sphereGeometry args={[0.8, 16, 16]} />
+                <meshStandardMaterial 
+                    color="#ff0000"
+                    emissive={isNight ? "#ff0000" : "#330000"}
+                    emissiveIntensity={isNight ? 8 : 0}
+                    metalness={0.3}
+                    roughness={0.2}
+                />
+            </mesh>
+            
+            {/* The blinking red light - no shadows for performance */}
+            {isNight && (
+                <pointLight
+                    ref={lightRef}
+                    position={[0, 0, 0]}
+                    color="#ff0000"
+                    intensity={100}
+                    distance={300}
+                    decay={2}
+                    castShadow={false} // No shadows for warning lights - improves performance
+                />
+            )}
+        </group>
+    );
 };
 
 // --- Componentes Específicos do Porto (mais detalhados) ---
 
 // Dock: plataforma longa com alguns postes/bolardos
-export const DockModel: React.FC<Omit<ModelProps, 'color'>> = ({ position, size, label }) => {
+export const DockModel: React.FC<Omit<ModelProps, 'color'>> = ({ position, size, label, isNight = false }) => {
     const posts: number[] = [ -0.8, -0.4, 0, 0.4, 0.8 ];
 
     // Load dock textures
@@ -136,7 +223,7 @@ export const DockModel: React.FC<Omit<ModelProps, 'color'>> = ({ position, size,
 
     return (
         <group position={position}>
-            {/* Plataforma - positioned to sit on land surface */}
+            {/* Plataforma - positioned to sit on land surface - DARKER AT NIGHT */}
             <mesh position={[-2.91, -3.3 + dockHeight / 2, 0]} receiveShadow ref={meshRef}>
                 <boxGeometry args={[dockLength, dockHeight, dockWidth]} />
                 <meshStandardMaterial 
@@ -150,6 +237,9 @@ export const DockModel: React.FC<Omit<ModelProps, 'color'>> = ({ position, size,
                     aoMapIntensity={0.3}
                     metalness={0.2}
                     roughness={0.8}
+                    // Reduce brightness at night
+                    emissive={isNight ? "#000000" : "#000000"}
+                    emissiveIntensity={0}
                 />
             </mesh>
 
@@ -164,6 +254,24 @@ export const DockModel: React.FC<Omit<ModelProps, 'color'>> = ({ position, size,
                     <meshStandardMaterial color="#222" metalness={0.6} roughness={0.4} />
                 </mesh>
             ))}
+
+            {/* RED WARNING LIGHTS at dock corners - KEEP THESE! */}
+            <RedWarningLight 
+                position={[-dockLength / 2 - 2.91, -1.5 + dockHeight / 2, dockWidth / 2 + 0.5]}
+                isNight={isNight}
+            />
+            <RedWarningLight 
+                position={[dockLength / 2 - 2.91, -1.5 + dockHeight / 2, dockWidth / 2 + 0.5]}
+                isNight={isNight}
+            />
+            <RedWarningLight 
+                position={[-dockLength / 2 - 2.91, -1.5 + dockHeight / 2, -dockWidth / 2 - 0.5]}
+                isNight={isNight}
+            />
+            <RedWarningLight 
+                position={[dockLength / 2 - 2.91, -1.5 + dockHeight / 2, -dockWidth / 2 - 0.5]}
+                isNight={isNight}
+            />
 
             {label && (
                 <Text
@@ -274,7 +382,7 @@ export const YardModel: React.FC<Omit<ModelProps, 'color'>> = ({ position, size,
 };
 
 // Land: grama / chão
-export const LandModel: React.FC<Omit<ModelProps, 'color'> & { isMiddle?: boolean }> = ({ position, size, isMiddle }) => {
+export const LandModel: React.FC<Omit<ModelProps, 'color'> & { isMiddle?: boolean; isNight?: boolean }> = ({ position, size, isMiddle, isNight = false }) => {
     // Load all available PBR maps (AO optional)
     const [base, normal, roughness, heightTex, ao] = useTexture([
         concreteBaseUrl,
@@ -331,22 +439,34 @@ export const LandModel: React.FC<Omit<ModelProps, 'color'> & { isMiddle?: boolea
     // Subdivisions for displacement (cap to avoid huge geometries)
     const segX = Math.min(100, Math.ceil(width / 2));
     const segZ = Math.min(100, Math.ceil(length / 2));
-
     const meshRef = React.useRef<Mesh | null>(null);
+
     useEffect(() => {
-        // Provide uv2 for AO
         const geom: any = meshRef.current?.geometry;
         if (geom?.attributes?.uv && !geom.attributes.uv2) {
             geom.setAttribute('uv2', new BufferAttribute(geom.attributes.uv.array, 2));
         }
     }, [meshRef]);
 
-    // Espessura do terreno (altura do “bloco” de land) - usa a altura numérica, não a textura
+    // Espessura do terreno (altura do "bloco" de land) - usa a altura numérica, não a textura
     const LAND_THICKNESS = Math.max(0.5, height);
+
+    // Add strategic lamps near dock areas only - SIMPLE & FAST
+    // Just 4 fixed lamps per land area, close together near the dock edge
+    const landLamps: Array<[number, number, number]> = [
+        // Front-left corner
+        [-width / 4, LAND_THICKNESS - 27, -length / 2 + 5],
+        // Front-center-left
+        [-width / 8, LAND_THICKNESS - 27, -length / 2 + 5],
+        // Front-center-right
+        [width / 8, LAND_THICKNESS - 27, -length / 2 + 5],
+        // Front-right corner
+        [width / 4, LAND_THICKNESS - 27, -length / 2 + 5],
+    ];
 
     return (
         <group position={position}>
-            {/* Bloco de terreno com espessura */}
+            {/* Bloco de terreno com espessura - DARKER AT NIGHT */}
             <mesh position={[0, LAND_THICKNESS - 27, 0]} receiveShadow ref={meshRef}>
                 <boxGeometry args={[width, LAND_THICKNESS, length, segX, 1, segZ]} />
                 <meshStandardMaterial
@@ -361,10 +481,20 @@ export const LandModel: React.FC<Omit<ModelProps, 'color'> & { isMiddle?: boolea
                     aoMapIntensity={0.15}
                     metalness={0.03}
                     roughness={0.85}
-                    emissive="#f0f0f0"
-                    emissiveIntensity={0.2}
+                    // Remove emissive glow at night so it's darker
+                    emissive={isNight ? "#000000" : "#f0f0f0"}
+                    emissiveIntensity={isNight ? 0 : 0.2}
                 />
             </mesh>
+
+            {/* Strategic street lamps near dock areas */}
+            {landLamps.map((lampPos, i) => (
+                <StreetLamp 
+                    key={`land-lamp-${i}`}
+                    position={lampPos}
+                    isNight={isNight}
+                />
+            ))}
         </group>
     );
 };
@@ -609,7 +739,7 @@ export const VesselModel: React.FC<Omit<ModelProps, 'color'>> = ({ position, siz
 };
 
 // Ship-to-Shore Crane (grua de cais) — duas torres, viga superior e trole simples
-export const STSCraneModel: React.FC<Omit<ModelProps, 'color'>> = ({ position, size, label }) => {
+export const STSCraneModel: React.FC<Omit<ModelProps, 'color'>> = ({ position, size, label, isNight = false }) => {
     const towerHeight = Math.max(3, size[1] * 8);
     const span = Math.max(4, size[2] * 1.2);
 
@@ -787,6 +917,16 @@ export const STSCraneModel: React.FC<Omit<ModelProps, 'color'>> = ({ position, s
                 <meshStandardMaterial map={uvTex.base as any} transparent={true} opacity={0.95} side={DoubleSide} />
             </mesh>
 
+            {/* NEW: Red warning lights on top of both towers - like on real cranes! */}
+            <RedWarningLight 
+                position={[-span / 2 + 0.3, towerHeight + 0.2, 0]} 
+                isNight={isNight}
+            />
+            <RedWarningLight 
+                position={[span / 2 - 0.3, towerHeight + 0.2, 0]} 
+                isNight={isNight}
+            />
+
             {label && (
                 <Text
                     position={[0, towerHeight + 0.4, 0]}
@@ -804,7 +944,7 @@ export const STSCraneModel: React.FC<Omit<ModelProps, 'color'>> = ({ position, s
 };
 
 // Yard Gantry Crane (grua de pátio) — pernas laterais e viga superior com trole
-export const YardCraneModel: React.FC<Omit<ModelProps, 'color'>> = ({ position, size, label }) => {
+export const YardCraneModel: React.FC<Omit<ModelProps, 'color'>> = ({ position, size, label, isNight = false }) => {
     const legHeight = Math.max(20, size[1] * 6);
     const span = Math.max(3, size[0] * 0.9);
 
@@ -831,6 +971,16 @@ export const YardCraneModel: React.FC<Omit<ModelProps, 'color'>> = ({ position, 
                 <boxGeometry args={[0.5, 0.2, 0.5]} />
                 <meshStandardMaterial color="#333" metalness={0.7} roughness={0.3} />
             </mesh>
+
+            {/* NEW: Red warning lights on top of the crane legs */}
+            <RedWarningLight 
+                position={[-span / 2, legHeight + 0.2, 0]} 
+                isNight={isNight}
+            />
+            <RedWarningLight 
+                position={[span / 2, legHeight + 0.2, 0]} 
+                isNight={isNight}
+            />
 
             {label && (
                 <Text
