@@ -1,6 +1,6 @@
 ﻿import React from 'react';
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls, Grid, Sky } from '@react-three/drei';
+import { OrbitControls, Grid, Environment, Sky } from '@react-three/drei';
 import { useGLTF } from '@react-three/drei';
 import { CargoShipModel } from "./CargoShipModel";
 import { ContainerModel } from './ContainerModel';
@@ -11,7 +11,6 @@ import {
 } from './models';
 import { useMemo } from 'react';
 import * as THREE from 'three';
-import { Environment } from '@react-three/drei';
 
 // Global scale factor to make the whole port layout "bigger" in world units
 const WORLD_SCALE = 3; // tweak this to 2, 3, 4... until the map feels right
@@ -537,10 +536,11 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
             </div>
 
             <Canvas className="w-full h-full" shadows camera={{ position: [0, 40, 50], fov: 50 }}>
-
-                {/* Realistic Sky that reacts to our sun position */}
-                <Sky sunPosition={sunPosition} />
-
+                
+                <Sky
+                sunPosition={sunPosition}    
+                />
+                
                 {/* PBR Reflections (Makes the water and metal cranes look AMAZING) */}
                 <Environment preset="sunset" />
 
@@ -705,7 +705,7 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
                     case 'water':
                         return <WaterModel key={el.id} position={el.position} size={el.size} />;
                     case 'building':
-                        return <BuildingModel key={el.id} position={el.position} size={el.size} label={el.name} />;
+                        return <BuildingModel key={el.id} position={el.position} size={el.size} label={el.name} rotation={el.rotation} />;
                     default:
                         return null;
                 }
@@ -884,7 +884,7 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
                     if (area.type === 'dock') {
                         return (
                             <group key={`${r.id}-${r.code}`}>
-                                <STSCraneModel position={r.position} size={r.size} label={r.code} isNight={isNight} />
+                                <STSCraneModel position={r.position} size={r.size} label={r.kind} isNight={isNight} />
                                 {marker}
                             </group>
                         );
@@ -893,7 +893,7 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
                     if (area.type === 'yard') {
                         return (
                             <group key={`${r.id}-${r.code}`}>
-                                <YardCraneModel position={r.position} size={r.size} label={r.code} isNight={isNight} />
+                                <YardCraneModel position={r.position} size={r.size} label={r.kind} isNight={isNight} />
                                 {marker}
                             </group>
                         );
@@ -910,9 +910,9 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
                 }}
                 // Allow zooming further out for the larger world
                 maxDistance={50 * WORLD_SCALE}
-                minDistance={10}
+                minDistance={20}
                 rotateSpeed={0.20}
-                panSpeed={0.30}
+                panSpeed={0.50}
             />
         </Canvas>
         </div>

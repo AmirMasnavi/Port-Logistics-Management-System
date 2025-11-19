@@ -34,6 +34,8 @@ export interface LayoutElement {
     position: [number, number, number];
     // Dimensões Largura, Altura, Profundidade
     size: [number, number, number];
+    // Optional rotation [x, y, z] in radians
+    rotation?: [number, number, number];
 }
 
 // A estrutura completa que a API devolve
