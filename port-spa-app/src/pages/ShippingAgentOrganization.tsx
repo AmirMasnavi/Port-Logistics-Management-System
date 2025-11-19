@@ -30,7 +30,9 @@ const ShippingAgentsPage: React.FC = () => {
         setOrgEmailError, setRepInitEmailError, setRepEmailError,
         startEdit, cancelEdit, handleEditChange, saveEdit,
         handleCreateOrganization, handleCreateRepresentative, handleDeleteRepresentative,
-        isValidEmail
+        isValidEmail,
+        // new helpers
+        applyOrgDefaults, resetOrgForm, applyRepDefaults, resetRepForm
     } = useShippingAgentsPageController();
 
     return (
@@ -94,7 +96,13 @@ const ShippingAgentsPage: React.FC = () => {
                 {/* Área de criação */}
                 {view === 'organizations' ? (
                     <form onSubmit={handleCreateOrganization} className="mb-6 space-y-4">
-                        <h2 className="text-lg font-semibold">Create Organization + Initial Representative</h2>
+                        <div className="flex items-center justify-between">
+                          <h2 className="text-lg font-semibold">Create Organization + Initial Representative</h2>
+                          <div className="flex gap-2">
+                            <button type="button" onClick={applyOrgDefaults} className="px-3 py-1 rounded text-xs bg-gray-100 hover:bg-gray-200">Use defaults</button>
+                            <button type="button" onClick={resetOrgForm} className="px-3 py-1 rounded text-xs bg-gray-100 hover:bg-gray-200">Clear</button>
+                          </div>
+                        </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <input
                                 className="p-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-maritime-500"
@@ -194,7 +202,13 @@ const ShippingAgentsPage: React.FC = () => {
                     </form>
                 ) : (
                     <form onSubmit={handleCreateRepresentative} className="mb-6 space-y-4">
-                        <h2 className="text-lg font-semibold">Create Representative (link by Organization Name)</h2>
+                        <div className="flex items-center justify-between">
+                          <h2 className="text-lg font-semibold">Create Representative (link by Organization Name)</h2>
+                          <div className="flex gap-2">
+                            <button type="button" onClick={applyRepDefaults} className="px-3 py-1 rounded text-xs bg-gray-100 hover:bg-gray-200">Use defaults</button>
+                            <button type="button" onClick={resetRepForm} className="px-3 py-1 rounded text-xs bg-gray-100 hover:bg-gray-200">Clear</button>
+                          </div>
+                        </div>
 
                         <div>
                             <input
