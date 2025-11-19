@@ -100,17 +100,15 @@ export const DockModel: React.FC<Omit<ModelProps, 'color'>> = ({ position, size,
         };
     }, [dockTextures]);
 
-    // Use the full size provided (no scaling)
-    const dockLength = 12;
-    const dockHeight = 3.3;
-    // Increase dock width significantly for better visibility
-    const widthScale = 1;
-    const dockWidth = size[2] * widthScale;
+    // Use the size provided from layout: [depth, height, length]
+    const dockDepth = size[0];      // X dimension (extends into water)
+    const dockHeight = size[1];     // Y dimension (height)
+    const dockLength = size[2];     // Z dimension (along pier)
 
     // Configure tiling
     const TILE_SCALE = 25;
-    const repeatX = Math.max(1, dockLength / TILE_SCALE);
-    const repeatZ = Math.max(1, dockWidth / TILE_SCALE);
+    const repeatX = Math.max(1, dockDepth / TILE_SCALE);
+    const repeatZ = Math.max(1, dockLength / TILE_SCALE);
 
     useEffect(() => {
         const list = [dockTextures.base, dockTextures.normal, dockTextures.roughness, dockTextures.height, dockTextures.metallic, dockTextures.ao];
@@ -137,8 +135,8 @@ export const DockModel: React.FC<Omit<ModelProps, 'color'>> = ({ position, size,
     return (
         <group position={position}>
             {/* Plataforma - positioned to sit on land surface */}
-            <mesh position={[-2.91, -3.3 + dockHeight / 2, 0]} receiveShadow ref={meshRef}>
-                <boxGeometry args={[dockLength, dockHeight, dockWidth]} />
+            <mesh position={[0, 0, 0]} receiveShadow ref={meshRef}>
+                <boxGeometry args={[dockDepth, dockHeight, dockLength]} />
                 <meshStandardMaterial 
                     map={dockTextures.base as any}
                     normalMap={dockTextures.normal as any}
@@ -157,7 +155,7 @@ export const DockModel: React.FC<Omit<ModelProps, 'color'>> = ({ position, size,
             {posts.map((p, i) => (
                 <mesh
                     key={i}
-                    position={[p * (dockLength / 2) - 2.91, -1.5 + dockHeight / 2, dockWidth / 2 - 0.5]}
+                    position={[dockDepth / 2 - 0.5, dockHeight / 2, p * (dockLength / 2)]}
                     castShadow
                 >
                     <cylinderGeometry args={[0.08, 0.08, 0.3, 8]} />

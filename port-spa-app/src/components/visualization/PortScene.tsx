@@ -374,12 +374,6 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
             {scaledLayoutElements.map(el => {
                 switch (el.type) {
                     case 'dock': {
-                        // Split each dock into smaller sections along Z-axis with X-axis spacing
-                        console.log(`Processing dock ${el.id}:`, {
-                            name: el.name,
-                            position: el.position,
-                            size: el.size
-                        });
                         
                         const numSplits = 1;
                         const gapZ = 5 * WORLD_SCALE; // Gap along Z (depth)
@@ -395,7 +389,7 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
                         // Add extra offset for Dock B to move it away from land
                         const dockBOffset = isDockB ? 2 * WORLD_SCALE : 0;
                         
-                        console.log(`  isDockB: ${isDockB}, dockBOffset: ${dockBOffset}`);
+                        
                         
                         const dockSplits: React.ReactElement[] = [];
                         for (let i = 0; i < numSplits; i++) {
@@ -407,8 +401,6 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
                                 el.position[1],
                                 finalZ,
                             ];
-                            
-                            console.log(`  Split ${i + 1}: offsetZ=${offsetZ}, finalX=${finalX}, finalZ=${finalZ}, splitPosition:`, splitPosition);
                             
                             dockSplits.push(
                                 <DockModel 

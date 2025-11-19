@@ -96,12 +96,6 @@ const Dashboard: React.FC = () => {
         });
     };
 
-    const handleViewToggle = () => {
-        setViewAsRole(prev =>
-            prev === 'ShippingAgentRepresentative' ? 'PortAuthorityOfficer' : 'ShippingAgentRepresentative'
-        );
-    };
-
     const handleRoleBadgeClick = (role: 'PortAuthorityOfficer' | 'LogisticsOperator' | 'ShippingAgentRepresentative' | 'Administrator') => {
         if (internalRole === 'Administrator') {
             setViewAsRole(role);
@@ -286,15 +280,6 @@ const Dashboard: React.FC = () => {
                     <h1 className="text-3xl font-bold text-gray-900">{getDashboardTitle()}</h1>
                     <p className="text-gray-600 mt-1">{getDashboardSubtitle()}</p>
                 </div>
-                {internalRole === 'Administrator' && (
-                    <button
-                        onClick={handleViewToggle}
-                        className="btn btn-secondary text-sm px-4 py-2"
-                        title="Switch View"
-                    >
-                        {viewAsRole === 'ShippingAgentRepresentative' ? 'View as Officer' : 'View as Agent'}
-                    </button>
-                )}
             </div>
 
             {/* Role Badges */}
