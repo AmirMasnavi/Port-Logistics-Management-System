@@ -7,10 +7,11 @@ import { ContainerModel } from './ContainerModel';
 import type { LayoutElement, RenderableVessel, RenderableResource, RenderableContainer } from '../../domain/types';
 import {
     DockModel, LandModel, WaterModel, YardModel, BuildingModel,
-    STSCraneModel, YardCraneModel
+    STSCraneModel
 } from './models';
 import { useMemo } from 'react';
 import * as THREE from 'three';
+import { Environment } from '@react-three/drei';
 
 // Global scale factor to make the whole port layout "bigger" in world units
 const WORLD_SCALE = 3; // tweak this to 2, 3, 4... until the map feels right
@@ -65,6 +66,32 @@ function seededRandom(seed: string) {
 }
 
 const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resources, containers }) => {
+    // 1. State for the time of day (0 to 24 hours)
+    const [hour, setHour] = React.useState(12); // Start at noon
+    const [isPanelHovered, setIsPanelHovered] = React.useState(false);
+    const [isCompactMode, setIsCompactMode] = React.useState(true); // Start in compact mode
+    
+    // 2. Calculate Sun Position based on hour
+    // This moves the sun in an arc over the scene
+    const sunPosition = React.useMemo(() => {
+        const angle = ((hour - 6) / 12) * Math.PI; // Map 6am-6pm to 0-PI radians
+        const x = Math.cos(angle) * 100;
+        const y = Math.sin(angle) * 100;
+        return [x, Math.max(y, -10), 50] as [number, number, number]; // Keep z fixed mostly
+    }, [hour]);
+    // 3. Determine if it is night time (simplified logic)
+    const isNight = hour < 6 || hour > 18;
+    // 4. Sun Color (Warm at sunset, White at noon, Dark at night)
+    const lightIntensity = React.useMemo(() => {
+        if (isNight) return 0; // Sun is off at night
+        // Peak intensity at noon (hour 12), lower at 6 and 18
+        return Math.max(0, Math.sin(((hour - 6) / 12) * Math.PI) * 2);
+    }, [hour, isNight]);
+    // 5. Ambient light color (Much darker at night for realistic darkness)
+    const ambientIntensity = isNight ? 0.15 : 0.5; // Much darker at night!
+    const ambientColor = isNight ? "#0a0f1a" : "#ffffff"; // Almost black-blue for night
+    
+    
     // Safe default for containers until backend integration is wired
     const containerList = containers ?? [];
 
@@ -342,23 +369,193 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
     const hasBackendYards = scaledLayoutElements.some(el => el.type === 'yard');
 
     return (
-        // Ensure the Canvas will size to its parent container which should control layout
-        <Canvas
-            className="w-full h-full"
-            style={{ width: '100%', height: '100%' }}
-            shadows
-            // Move the camera further back so the enlarged map fits nicely
-            camera={{ position: [0, 120 * WORLD_SCALE / 3, 200 * WORLD_SCALE / 3], fov: 60 }}
-        >
-            <Sky sunPosition={[100, 20, 100]} />
-            <ambientLight intensity={0.6} />
-            <directionalLight
-                position={[50 * WORLD_SCALE / 3, 50 * WORLD_SCALE / 3, 25 * WORLD_SCALE / 3]}
-                intensity={1.5}
-                castShadow
-                shadow-mapSize-width={1024}
-                shadow-mapSize-height={1024}
-            />
+        <div className="relative w-full h-full">
+            {/* --- COMPACT/DETAILED TIME PANEL WITH TOGGLE --- */}
+            <div 
+                className="absolute top-6 right-6 z-10 backdrop-blur-xl bg-gradient-to-br from-white/30 to-white/10 border border-white/20 rounded-2xl shadow-2xl overflow-hidden transition-all duration-300 ease-in-out"
+                onMouseEnter={() => setIsPanelHovered(true)}
+                onMouseLeave={() => setIsPanelHovered(false)}
+                style={{ 
+                    opacity: isPanelHovered ? 1 : 0.3,
+                    transform: isPanelHovered ? 'scale(1)' : 'scale(0.95)',
+                    width: isCompactMode ? '180px' : '320px',
+                }}
+            >
+                {/* Gradient overlay for depth */}
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-purple-500/5 to-pink-500/10 pointer-events-none"></div>
+                
+                {/* Content */}
+                <div className="relative p-4">
+                    {/* COMPACT MODE */}
+                    {isCompactMode ? (
+                        <>
+                            {/* Icon and Compact Time */}
+                            <div className="flex items-center justify-between mb-3">
+                                <div className="text-2xl">
+                                    {isNight ? "🌙" : hour >= 6 && hour <= 8 ? "🌅" : hour >= 17 && hour <= 19 ? "🌇" : "☀️"}
+                                </div>
+                                <div className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                                    {Math.floor(hour).toString().padStart(2, '0')}:{Math.floor((hour % 1) * 60).toString().padStart(2, '0')}
+                                </div>
+                            </div>
+
+                            {/* Compact Slider */}
+                            <input
+                                type="range"
+                                min="0"
+                                max="24"
+                                step="0.1"
+                                value={hour}
+                                onChange={(e) => setHour(parseFloat(e.target.value))}
+                                className="w-full h-2 rounded-full appearance-none cursor-pointer mb-2"
+                                style={{
+                                    background: `linear-gradient(to right, 
+                                        #1e3a8a 0%, 
+                                        #3b82f6 12.5%, 
+                                        #fbbf24 25%, 
+                                        #f59e0b 50%, 
+                                        #f97316 75%, 
+                                        #1e40af 87.5%, 
+                                        #1e3a8a 100%)`
+                                }}
+                            />
+
+                            {/* Compact Status */}
+                            <div className={`flex items-center justify-center gap-1 px-2 py-1 rounded-lg text-xs font-medium ${
+                                isNight ? 'bg-indigo-500/20 text-indigo-700' : 'bg-amber-500/20 text-amber-700'
+                            }`}>
+                                <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{
+                                    backgroundColor: isNight ? '#6366f1' : '#f59e0b'
+                                }}></span>
+                                {isNight ? "Night" : "Day"}
+                            </div>
+
+                            {/* Expand Button */}
+                            <button
+                                onClick={() => setIsCompactMode(false)}
+                                className="absolute -top-0.5 right-2 w-6 h-6 flex items-center justify-center text-gray-600 hover:text-gray-800 transition-colors"
+                                title="Show details"
+                            >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
+                                </svg>
+                            </button>
+                        </>
+                    ) : (
+                        /* DETAILED MODE */
+                        <>
+                            {/* Collapse Button */}
+                            <button
+                                onClick={() => setIsCompactMode(true)}
+                                className="absolute top-3 right-3 w-6 h-6 flex items-center justify-center text-gray-600 hover:text-gray-800 transition-colors"
+                                title="Minimize"
+                            >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                                </svg>
+                            </button>
+
+                            {/* Icon and Title */}
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="text-3xl">
+                                    {isNight ? "🌙" : hour >= 6 && hour <= 8 ? "🌅" : hour >= 17 && hour <= 19 ? "🌇" : "☀️"}
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-bold text-gray-800 leading-tight">Time Control</h3>
+                                    <p className="text-xs text-gray-600">
+                                        {hour >= 0 && hour < 6 ? "Deep Night" : 
+                                         hour >= 6 && hour < 8 ? "Sunrise" : 
+                                         hour >= 8 && hour < 12 ? "Morning" : 
+                                         hour >= 12 && hour < 17 ? "Afternoon" : 
+                                         hour >= 17 && hour < 19 ? "Sunset" : "Night"}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Time Display */}
+                            <div className="mb-4 text-center">
+                                <div className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                                    {Math.floor(hour).toString().padStart(2, '0')}:{Math.floor((hour % 1) * 60).toString().padStart(2, '0')}
+                                </div>
+                                <div className="text-xs text-gray-500 mt-1">24-Hour Format</div>
+                            </div>
+
+                            {/* Slider with gradient track */}
+                            <div className="relative mb-4">
+                                <input
+                                    type="range"
+                                    min="0"
+                                    max="24"
+                                    step="0.1"
+                                    value={hour}
+                                    onChange={(e) => setHour(parseFloat(e.target.value))}
+                                    className="w-full h-2 rounded-full appearance-none cursor-pointer"
+                                    style={{
+                                        background: `linear-gradient(to right, 
+                                            #1e3a8a 0%, 
+                                            #3b82f6 12.5%, 
+                                            #fbbf24 25%, 
+                                            #f59e0b 50%, 
+                                            #f97316 75%, 
+                                            #1e40af 87.5%, 
+                                            #1e3a8a 100%)`
+                                    }}
+                                />
+                                {/* Time markers */}
+                                <div className="flex justify-between text-xs text-gray-500 mt-2 px-1">
+                                    <span>00:00</span>
+                                    <span>06:00</span>
+                                    <span>12:00</span>
+                                    <span>18:00</span>
+                                    <span>24:00</span>
+                                </div>
+                            </div>
+
+                            {/* Status Badge */}
+                            <div className={`flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                                isNight 
+                                    ? 'bg-indigo-500/20 text-indigo-700 border border-indigo-500/30' 
+                                    : 'bg-amber-500/20 text-amber-700 border border-amber-500/30'
+                            }`}>
+                                <span className="w-2 h-2 rounded-full animate-pulse" style={{
+                                    backgroundColor: isNight ? '#6366f1' : '#f59e0b'
+                                }}></span>
+                                {isNight ? "Street Lights Active" : "Sun Shadows Active"}
+                            </div>
+                        </>
+                    )}
+
+                    {/* Hint text */}
+                    {!isPanelHovered && (
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                            <div className="text-xs text-gray-600 font-medium bg-white/60 px-3 py-1 rounded-full">
+                                Hover to adjust
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            <Canvas className="w-full h-full" shadows camera={{ position: [0, 40, 50], fov: 50 }}>
+
+                {/* Realistic Sky that reacts to our sun position */}
+                <Sky sunPosition={sunPosition} />
+
+                {/* PBR Reflections (Makes the water and metal cranes look AMAZING) */}
+                <Environment preset="sunset" />
+
+                <ambientLight intensity={ambientIntensity} color={ambientColor} />
+
+                {/* The Sun */}
+                <directionalLight
+                    position={sunPosition}
+                    intensity={lightIntensity}
+                    castShadow
+                    shadow-mapSize-width={2048}
+                    shadow-mapSize-height={2048}
+                    // Important: Stop shadows from being calculated when sun is "off" to save performance
+                    visible={!isNight}
+                />
 
             <Grid
                 infiniteGrid
@@ -407,7 +604,8 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
                                     key={`${el.id}_D${i + 1}`} 
                                     position={splitPosition} 
                                     size={[adjustedLength, el.size[1], adjustedDepth]}
-                                    label={`${el.name} ${i + 1}`} 
+                                    label={`${el.name} ${i + 1}`}
+                                    isNight={isNight}
                                 />
                             );
                         }
@@ -474,6 +672,7 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
                                             position={tileCenter}
                                             size={[tileWidth, el.size[1], tileDepth]}
                                             label={el.name}
+                                            isNight={isNight}
                                         />
                                         {/* Containers centered on this tile, limited by yard capacity */}
                                         {visibleContainers.map(c => (
@@ -499,7 +698,7 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
                         return <group key={el.id}>{tiles}</group>;
                     }
                     case 'land':
-                        return <LandModel key={el.id} position={el.position} size={el.size} isMiddle={el.id === middleLandId} />;
+                        return <LandModel key={el.id} position={el.position} size={el.size} isMiddle={el.id === middleLandId} isNight={isNight} />;
                     case 'water':
                         return <WaterModel key={el.id} position={el.position} size={el.size} />;
                     case 'building':
@@ -574,6 +773,7 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
                                     position={tileCenter}
                                     size={[tileWidth, 0.5 * WORLD_SCALE, tileDepth]}
                                     label={`Demo Yard ${tileIndex}`}
+                                    isNight={isNight}
                                 />
                                 {visibleDemoContainers.map(cObj => (
                                     <ContainerModel
@@ -681,7 +881,7 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
                     if (area.type === 'dock') {
                         return (
                             <group key={`${r.id}-${r.code}`}>
-                                <STSCraneModel position={r.position} size={r.size} label={r.code} />
+                                <STSCraneModel position={r.position} size={r.size} label={r.code} isNight={isNight} />
                                 {marker}
                             </group>
                         );
@@ -690,7 +890,6 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
                     if (area.type === 'yard') {
                         return (
                             <group key={`${r.id}-${r.code}`}>
-                                <YardCraneModel position={r.position} size={r.size} label={r.code} />
                                 {marker}
                             </group>
                         );
@@ -712,6 +911,7 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
                 panSpeed={0.30}
             />
         </Canvas>
+        </div>
     );
 };
 

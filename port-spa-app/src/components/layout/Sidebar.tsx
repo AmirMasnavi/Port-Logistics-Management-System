@@ -134,9 +134,12 @@ const Sidebar: React.FC<SidebarProps> = ({
                 {/* Vessel Visits: Everyone */}
                 <NavItem to="/vessel-visits" label={t('nav.vesselVisits')} icon={Ship} isExpanded={isExpanded} />
                 
-                {/* Vessel Types: Admin & Officer */}
+                {/* Vessel Types & Vessels: Admin & Officer */}
                 {canManagePort.has(internalRole || '') && (
-                    <NavItem to="/vessel-types" label={t('nav.vesselTypes')} icon={Anchor} isExpanded={isExpanded} />
+                    <>
+                        <NavItem to="/vessel-types" label={t('nav.vesselTypes')} icon={Anchor} isExpanded={isExpanded} />
+                        <NavItem to="/vessels" label="Vessels" icon={Ship} isExpanded={isExpanded} />
+                    </>
                 )}
                 {/* Port Facilities & Docks: Admin, Officer, Logistics */}
                 {canViewPlanning.has(internalRole || '') && (
