@@ -1,5 +1,4 @@
-
-                using System;
+using System;
                 using System.Collections.Generic;
                 using System.Linq;
                 using System.Threading.Tasks;
@@ -46,8 +45,8 @@
                         {
                             if (name == null || string.IsNullOrWhiteSpace(name.Value))
                                 throw new ArgumentException("Nome inválido.", nameof(name));
-                
-                            return await _set.FirstOrDefaultAsync(v => v.Name.Value == name.Value);
+
+                            return await _set.AsNoTracking().FirstOrDefaultAsync(v => v.Name.Value == name.Value);
                         }
                 
                         public async Task<IEnumerable<VesselType>> SearchByCriteriaAsync(string? searchTerm = null)

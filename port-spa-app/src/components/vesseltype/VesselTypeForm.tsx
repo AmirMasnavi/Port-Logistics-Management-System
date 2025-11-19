@@ -1,8 +1,8 @@
 // src/presentation/vesselType/components/VesselTypeForm.tsx
 import React, { useState } from 'react';
-import { vesselTypeService } from '../../../app/vesselType/vesselType.service.instance';
-import type { VesselType } from '../../../domain/vesselType/vesselType.model';
-import type { CreateVesselTypeDto } from '../../../infrastructure/repositories/vesselType/vesselType.dto';
+import { vesselTypeService } from '../../app/vesselType/vesselType.service.instance';
+import type { VesselType } from '../../domain/vesselType/vesselType.model';
+import type { CreateVesselTypeDto } from '../../infrastructure/repositories/vesselType/vesselType.dto';
 
 interface VesselTypeFormProps {
     onClose: () => void;
