@@ -1,0 +1,216 @@
+import React, { useState, useEffect } from 'react';
+import { dockService } from '../../app/dock/dock.service.instance';
+import { getAllVesselTypes } from '../../services/apiService'; // Importar o serviço para buscar tipos
+import type { Dock } from '../../domain/dock/dock.model';
+import type { DockCreateDto } from '../../infrastructure/repositories/dock/dock.dto';
+import type { VesselType } from '../../domain/types'; // Importar o tipo VesselType
+
+interface DockFormProps {
+    onClose: () => void;
+    onSuccess: (newDock: Dock) => void;
+    initialData?: Dock | null;
+}
+
+const DockForm: React.FC<DockFormProps> = ({ onClose, onSuccess, initialData }) => {
+    // 1. Estado para armazenar os tipos de navio disponíveis
+    const [availableVesselTypes, setAvailableVesselTypes] = useState<VesselType[]>([]);
+    const [loadingTypes, setLoadingTypes] = useState(false);
+
+    const [formData, setFormData] = useState<DockCreateDto>(
+        initialData ? {
+            id: initialData.id,
+            name: initialData.name,
+            locationZone: initialData.locationZone,
+            locationSection: initialData.locationSection,
+            lengthInMeters: initialData.lengthInMeters,
+            depthInMeters: initialData.depthInMeters,
+            maxDraftInMeters: initialData.maxDraftInMeters,
+            numberOfSTSCranes: initialData.numberOfSTSCranes,
+            allowedVesselTypeIds: initialData.allowedVesselTypeIds || [],
+        } : {
+            id: '',
+            name: '',
+            locationZone: '',
+            locationSection: '',
+            lengthInMeters: 0,
+            depthInMeters: 0,
+            maxDraftInMeters: 0,
+            numberOfSTSCranes: 0,
+            allowedVesselTypeIds: [],
+        }
+    );
+
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const numberFields = new Set([
+        'lengthInMeters', 'depthInMeters', 'maxDraftInMeters', 'numberOfSTSCranes'
+    ]);
+
+    // 2. Buscar os tipos de navio ao carregar o formulário
+    useEffect(() => {
+        const fetchTypes = async () => {
+            setLoadingTypes(true);
+            try {
+                const types = await getAllVesselTypes();
+                setAvailableVesselTypes(types);
+            } catch (err) {
+                console.error("Erro ao carregar tipos de navio", err);
+                // Não bloqueamos o formulário, mas o utilizador não vai ver a lista
+            } finally {
+                setLoadingTypes(false);
+            }
+        };
+        fetchTypes();
+    }, []);
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({
+            ...prev,
+            [name]: numberFields.has(name) ? (value === '' ? 0 : Number(value)) : value,
+        }));
+    };
+
+    // 3. Manipular a seleção das checkboxes
+    const handleVesselTypeToggle = (vesselTypeId: string) => {
+        setFormData(prev => {
+            const currentIds = prev.allowedVesselTypeIds || [];
+            const exists = currentIds.includes(vesselTypeId);
+
+            let newIds;
+            if (exists) {
+                // Se já existe, remove
+                newIds = currentIds.filter(id => id !== vesselTypeId);
+            } else {
+                // Se não existe, adiciona
+                newIds = [...currentIds, vesselTypeId];
+            }
+
+            return { ...prev, allowedVesselTypeIds: newIds };
+        });
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsSubmitting(true);
+        setError(null);
+
+        try {
+            let resultDock: Dock;
+            if (initialData) {
+                resultDock = await dockService.updateDock(initialData.id, formData);
+            } else {
+                resultDock = await dockService.createDock(formData);
+            }
+            setIsSubmitting(false);
+            onSuccess(resultDock);
+            onClose();
+        } catch (err: any) {
+            const errorMessage = err.response?.data?.message || err.message || 'Failed to save dock.';
+            setError(errorMessage);
+            setIsSubmitting(false);
+        }
+    };
+
+    return (
+        <form onSubmit={handleSubmit} className="space-y-4">
+            {error && <div className="text-red-600 bg-red-100 p-3 rounded-lg text-sm">{error}</div>}
+
+            {!initialData && (
+                <div>
+                    <label className="block text-sm font-medium text-gray-700">ID (Optional/Auto)</label>
+                    <input
+                        type="text"
+                        name="id"
+                        value={formData.id}
+                        onChange={handleChange}
+                        className="mt-1 p-2 w-full border border-gray-300 rounded-lg"
+                        placeholder="Leave empty if generated by backend"
+                    />
+                </div>
+            )}
+
+            <div>
+                <label className="block text-sm font-medium text-gray-700">Name</label>
+                <input type="text" name="name" value={formData.name} onChange={handleChange} className="mt-1 p-2 w-full border border-gray-300 rounded-lg" required />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+                <div>
+                    <label className="block text-sm font-medium text-gray-700">Zone</label>
+                    <input type="text" name="locationZone" value={formData.locationZone} onChange={handleChange} className="mt-1 p-2 w-full border border-gray-300 rounded-lg" required />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700">Section</label>
+                    <input type="text" name="locationSection" value={formData.locationSection} onChange={handleChange} className="mt-1 p-2 w-full border border-gray-300 rounded-lg" required />
+                </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+                <div>
+                    <label className="block text-sm font-medium text-gray-700">Length (m)</label>
+                    <input type="number" name="lengthInMeters" value={formData.lengthInMeters} onChange={handleChange} className="mt-1 p-2 w-full border border-gray-300 rounded-lg" required min="0" />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700">Depth (m)</label>
+                    <input type="number" name="depthInMeters" value={formData.depthInMeters} onChange={handleChange} className="mt-1 p-2 w-full border border-gray-300 rounded-lg" required min="0" />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700">Max Draft (m)</label>
+                    <input type="number" name="maxDraftInMeters" value={formData.maxDraftInMeters} onChange={handleChange} className="mt-1 p-2 w-full border border-gray-300 rounded-lg" required min="0" />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700">STS Cranes</label>
+                    <input type="number" name="numberOfSTSCranes" value={formData.numberOfSTSCranes} onChange={handleChange} className="mt-1 p-2 w-full border border-gray-300 rounded-lg" required min="0" />
+                </div>
+            </div>
+
+            {/* 4. NOVA SECÇÃO: Lista de Checkboxes para Tipos de Navio */}
+            <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Allowed Vessel Types
+                </label>
+
+                {loadingTypes ? (
+                    <div className="text-sm text-gray-500">Loading vessel types...</div>
+                ) : availableVesselTypes.length === 0 ? (
+                    <div className="text-sm text-amber-600 bg-amber-50 p-2 rounded">
+                        No vessel types defined in the system. Please create vessel types first.
+                    </div>
+                ) : (
+                    <div className="max-h-48 overflow-y-auto border border-gray-300 rounded-lg p-3 bg-gray-50">
+                        <div className="space-y-2">
+                            {availableVesselTypes.map((vt) => (
+                                <label key={vt.id} className="flex items-center space-x-3 cursor-pointer hover:bg-gray-100 p-1 rounded">
+                                    <input
+                                        type="checkbox"
+                                        value={vt.id}
+                                        checked={(formData.allowedVesselTypeIds || []).includes(vt.id)}
+                                        onChange={() => handleVesselTypeToggle(vt.id)}
+                                        className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                    />
+                                    <span className="text-sm text-gray-900">
+                                        {vt.name} 
+                                    </span>
+                                </label>
+                            ))}
+                        </div>
+                    </div>
+                )}
+                <p className="text-xs text-gray-500 mt-1">
+                    {`Selecionados: ${(formData.allowedVesselTypeIds || []).length}`}
+                </p>
+            </div>
+
+            <div className="flex justify-end space-x-2 pt-2">
+                <button type="button" onClick={onClose} className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg">Cancel</button>
+                <button type="submit" disabled={isSubmitting} className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg disabled:opacity-50">
+                    {isSubmitting ? 'Saving...' : (initialData ? 'Update' : 'Create')}
+                </button>
+            </div>
+        </form>
+    );
+};
+
+export default DockForm;

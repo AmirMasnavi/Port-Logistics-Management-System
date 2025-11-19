@@ -24,7 +24,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
                                                                  isDestructive = false,
                                                              }) => {
     // If caller passed a recognisable key we translate it; otherwise we fall back to a sensible default
-    const confirmLabel = confirmText === 'Confirm' ? t('button.confirm') : t(confirmText);
+    const confirmLabel = confirmText === 'Confirm' ? t('Confirm') : t(confirmText);
 
     return (
         <Modal isOpen={isOpen} onClose={onClose} title={title} showFooter={false}>
