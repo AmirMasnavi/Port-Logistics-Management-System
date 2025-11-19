@@ -1,72 +1,91 @@
-// Create new file: PortProject.Api/Controllers/AuthController.cs
-
+// File: `PortProject.Api/Controllers/AuthController.cs`
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using PortProject.Api.Models;
 using PortProject.Api.Domain.AppUserAggregate;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
-using System.Security.Claims; // Needed for User.Identity
-using PortProject.Api.Domain.ShippingAgentRepresentativeAggregate; // <-- ADD THIS
+using System.Security.Claims;
+using PortProject.Api.Domain.ShippingAgentRepresentativeAggregate;
 using PortProject.Api.Application.ShippingAgentsOrganization.DTOs;
+using System;
 
 [ApiController]
 [Route("api/auth")]
-[Authorize] // IMPORTANT: User must be logged in with Firebase to call this
+[Authorize]
 public class AuthController : ControllerBase
 {
     private readonly PortProjectContext _context;
     private readonly IShippingAgentRepresentativeRepository _repRepository;
+    private readonly ILogger<AuthController> _logger;
 
-    public AuthController(PortProjectContext context, IShippingAgentRepresentativeRepository repRepository)
+    public AuthController(
+        PortProjectContext context,
+        IShippingAgentRepresentativeRepository repRepository,
+        ILogger<AuthController> logger)
     {
         _context = context;
         _repRepository = repRepository;
+        _logger = logger;
     }
 
     [HttpGet("my-role")]
     public async Task<IActionResult> GetMyRole()
     {
-        // Get the email from the validated Firebase token
-        // 'Name' claim usually holds the email for Firebase tokens
-        var email = User.FindFirstValue(ClaimTypes.Email) ?? User.FindFirstValue("email");
+        string? email = null;
 
-        if (string.IsNullOrWhiteSpace(email))
+        try
         {
-            return BadRequest(new { message = "Email claim not found in token." });
-        }
+            email = User.FindFirstValue(ClaimTypes.Email) ?? User.FindFirstValue("email");
 
-        var user = await _context.AppUsers.FindAsync(email.ToLowerInvariant());
+            if (string.IsNullOrWhiteSpace(email))
+            {
+                return BadRequest(new { message = "Email claim not found in token." });
+            }
 
-        // AC: If the user has no assigned role (not in our table)
-        if (user == null)
-        {
-            return Forbid(); // 403 Forbidden
-        }
+            var normalizedEmail = email.ToLowerInvariant();
 
-        // AC: By default, the users are set to a “deactivated” status
-        if (user.Status == UserStatus.Deactivated)
-        {
-            return Forbid(); // 403 Forbidden
-        }
-        
-        // If the user is a rep, find their Citizen ID
-        string? citizenId = null;
-        if (user.Role == Role.ShippingAgentRepresentative) {
-            try { 
-                var rep = await _repRepository.GetByEmailAsync(new RepresentativeEmail(email)); 
-                if (rep != null) {
-                                citizenId = rep.CitizenId.Value;
+            // Usa FirstOrDefaultAsync para evitar dependência do key do FindAsync
+            var user = await _context.AppUsers
+                .FirstOrDefaultAsync(u => u.Email == normalizedEmail);
+
+            if (user == null)
+            {
+                return Forbid(); // 403
+            }
+
+            if (user.Status == UserStatus.Deactivated)
+            {
+                return Forbid(); // 403
+            }
+
+            string? citizenId = null;
+
+            if (user.Role == Role.ShippingAgentRepresentative)
+            {
+                try
+                {
+                    var rep = await _repRepository.GetByEmailAsync(new RepresentativeEmail(email));
+                    if (rep != null && rep.CitizenId != null)
+                    {
+                        citizenId = rep.CitizenId.Value;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // Não falhar a request por problemas ao obter o rep; regista e prossegue sem citizenId
+                    _logger.LogWarning(ex, "Falha ao obter ShippingAgentRepresentative para email {Email}", email);
                 }
             }
-            catch (Exception)
-            {
-                // Could not create RepresentativeEmail (invalid format) or other error.
-                // Log this, but proceed without a citizenId.
-            }
-        }
 
-        // Success: User is found and activated
-        return Ok(new { role = user.Role.ToString(), citizenId = citizenId });
+            return Ok(new { role = user.Role.ToString(), citizenId });
+        }
+        catch (Exception ex)
+        {
+            // Regista e devolve 500 genérico para não expor detalhes internos
+            _logger.LogError(ex, "Erro inesperado em GetMyRole para email {Email}", email ?? "(n/a)");
+            return StatusCode(500, new { message = "Erro interno do servidor." });
+        }
     }
 }
