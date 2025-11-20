@@ -1,0 +1,139 @@
+@startuml
+!theme plain
+autonumber
+
+box "Backend System (Sistema AIT)" #LightBlue
+    participant "HTTP Request" as HttpRequest
+    participant "Route" as Route
+    participant "Controller" as Controller
+    participant "DTO" as Dto
+    participant "Service Interface" as ServiceInterface
+    participant "Service Implementation" as ServiceImpl
+    box "Persistence" #LightGreen
+        participant "Data Model" as DataModel
+        participant "Aggregate" as Aggregate
+        participant "Value Object" as ValueObject
+        participant "Entity" as Entity
+        participant "Repository Interface" as RepoInterface
+        participant "Repository Implementation" as RepoImpl
+    end box
+end box
+
+' Approve / Reject flow
+HttpRequest -> Route : 1.1: PATCH /api/notifications/{id}/approve OR /api/notifications/{id}/reject
+activate HttpRequest
+Route -> Controller : 1.2: Invoke ApproveVvn / RejectVvn
+activate Route
+Controller -> Dto : 1.3: Map request body (ApproveVvnDto { officerId, dockId } / RejectVvnDto { officerId, reason })
+activate Controller
+Dto --> Controller : 1.4: Mapped data
+deactivate Dto
+Controller -> ServiceInterface : 1.5: Call ApproveAsync/RejectAsync
+activate ServiceInterface
+ServiceInterface -> ServiceImpl : 1.6: Delegate to implementation
+activate ServiceImpl
+
+' Load current aggregate via repository
+ServiceImpl -> RepoInterface : 1.7: GetById(notificationId)
+activate RepoInterface
+RepoInterface -> RepoImpl : 1.8: Delegate to implementation
+activate RepoImpl
+RepoImpl -> DataModel : 1.8.1: Query data model (VesselVisitNotification + DecisionLog)
+activate DataModel
+DataModel --> RepoImpl : 1.8.2: Data model mapped to entity
+deactivate DataModel
+RepoImpl --> RepoInterface : 1.9: Entity returned
+deactivate RepoImpl
+RepoInterface --> ServiceImpl : 1.10: Entity returned
+deactivate RepoInterface
+
+' Apply decision in domain aggregate
+ServiceImpl -> Aggregate : 1.11: Call Approve(officerId, dockId) OR Reject(officerId, reason)
+activate Aggregate
+Aggregate -> ValueObject : 1.11.1: Create DecisionLogEntry (timestamp, officerId, outcome, reason?/dockId?)
+activate ValueObject
+ValueObject --> Aggregate : 1.11.2: DecisionLogEntry appended
+deactivate ValueObject
+Aggregate -> Entity : 1.11.3: Update entity state (status, assignedDockId)
+activate Entity
+Entity --> Aggregate : 1.11.4: Entity updated
+deactivate Entity
+Aggregate --> ServiceImpl : 1.11.5: Aggregate updated
+deactivate Aggregate
+
+' Persist updated aggregate
+ServiceImpl -> RepoInterface : 1.12: UpdateAsync(aggregate)
+activate RepoInterface
+RepoInterface -> RepoImpl : 1.13: Delegate to implementation
+activate RepoImpl
+RepoImpl -> DataModel : 1.13.1: Map aggregate (including DecisionLog) to data model
+activate DataModel
+DataModel --> RepoImpl : 1.13.2: Data model mapped
+deactivate DataModel
+RepoImpl --> RepoInterface : 1.14: Data persisted
+deactivate RepoImpl
+RepoInterface --> ServiceImpl : 1.15: Persist confirmed
+deactivate RepoInterface
+
+ServiceImpl --> ServiceInterface : 1.16: Return DTO/Result
+deactivate ServiceImpl
+ServiceInterface --> Controller : 1.17: Return DTO/Result
+deactivate ServiceInterface
+Controller --> HttpRequest : 1.18: HTTP 200 OK / 204 No Content
+deactivate Controller
+deactivate Route
+HttpRequest --> : 1.19: HTTP Response
+deactivate HttpRequest
+
+' SAR update (representative updates a rejected notification)
+HttpRequest -> Route : 2.1: PUT /api/notifications/{id}
+activate HttpRequest
+Route -> Controller : 2.2: Invoke UpdateAsync
+activate Route
+Controller -> Dto : 2.3: Map request body (CreateVvnDto)
+activate Controller
+Dto --> Controller : 2.4: Mapped update data
+deactivate Dto
+Controller -> ServiceInterface : 2.5: Call UpdateAsync
+activate ServiceInterface
+ServiceInterface -> ServiceImpl : 2.6: Delegate to implementation
+activate ServiceImpl
+ServiceImpl -> RepoInterface : 2.7: GetById(notificationId)
+activate RepoInterface
+RepoInterface -> RepoImpl : 2.8: Delegate to implementation
+activate RepoImpl
+RepoImpl -> DataModel : 2.8.1: Query data model
+activate DataModel
+DataModel --> RepoImpl : 2.8.2: Data model mapped
+deactivate DataModel
+RepoImpl --> RepoInterface : 2.9: Entity returned
+deactivate RepoImpl
+RepoInterface --> ServiceImpl : 2.10: Entity returned
+deactivate RepoInterface
+ServiceImpl -> Aggregate : 2.11: Apply UpdateDetails(...) on aggregate
+activate Aggregate
+Aggregate --> ServiceImpl : 2.12: Aggregate updated
+deactivate Aggregate
+ServiceImpl -> RepoInterface : 2.13: UpdateAsync(aggregate)
+activate RepoInterface
+RepoInterface -> RepoImpl : 2.14: Delegate to implementation
+activate RepoImpl
+RepoImpl -> DataModel : 2.14.1: Map aggregate to data model
+activate DataModel
+DataModel --> RepoImpl : 2.14.2: Data mapped
+deactivate DataModel
+RepoImpl --> RepoInterface : 2.15: Data persisted
+deactivate RepoImpl
+RepoInterface --> ServiceImpl : 2.16: Persist confirmed
+deactivate RepoInterface
+ServiceImpl --> ServiceInterface : 2.17: Return DTO
+deactivate ServiceImpl
+ServiceInterface --> Controller : 2.18: Return DTO
+deactivate ServiceInterface
+Controller --> HttpRequest : 2.19: HTTP 200 OK
+deactivate Controller
+deactivate Route
+HttpRequest --> : 2.20: HTTP Response
+deactivate HttpRequest
+
+@enduml

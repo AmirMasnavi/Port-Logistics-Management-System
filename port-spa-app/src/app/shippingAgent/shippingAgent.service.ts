@@ -22,6 +22,30 @@ export class ShippingAgentService {
   isValidCitizenId(v: string): boolean { const s = (v ?? '').toString().trim(); return s.length >= 8 && /^[A-Za-z0-9.-]+$/.test(s); }
   isValidOrgTaxNumber(v: string): boolean { const val = v.trim().toUpperCase(); return (/^[1-9][0-9]{8}$/.test(val) || /^[A-Z]{2}[0-9A-Z]{8,12}$/.test(val) || /^[A-Z0-9]{8,15}$/.test(val)); }
 
+  private normalizeEmail(value: string | null | undefined): string {
+    return (value ?? '').trim().toLowerCase();
+  }
+
+  private async ensureEmailIsUnique(normalizedEmail: string, options?: { ignoreRepresentativeCitizenId?: string }): Promise<void> {
+    if (!normalizedEmail) return;
+
+    const { organizations, representatives } = await this.fetchAll();
+
+    const emailInOrgs = organizations.some(o => this.normalizeEmail((o as any).email ?? (o as any).Email) === normalizedEmail);
+
+    const emailInReps = representatives.some(r => {
+      const repEmail = this.normalizeEmail((r as any).email ?? (r as any).RepresentativeEmail);
+      const repCitizenId = (r as any).citizenId ?? (r as any).CitizenId;
+      if (!repEmail) return false;
+      if (options?.ignoreRepresentativeCitizenId && repCitizenId === options.ignoreRepresentativeCitizenId) return false;
+      return repEmail === normalizedEmail;
+    });
+
+    if (emailInOrgs || emailInReps) {
+      throw new ShippingAgentValidationError('Email already exists.');
+    }
+  }
+
   validateCreateOrganization(dto: CreateShippingAgentOrganizationDto) {
     if (!dto.LegalName.trim()) throw new ShippingAgentValidationError('Organization name is required.');
     if (!this.isValidOrgTaxNumber(dto.TaxNumber)) throw new ShippingAgentValidationError('Organization tax number is invalid.');
@@ -33,12 +57,37 @@ export class ShippingAgentService {
       if (!this.isValidCitizenId(rep.CitizenId)) throw new ShippingAgentValidationError('Initial representative Citizen ID format is invalid.');
       if (!rep.RepresentativeNationality.trim()) throw new ShippingAgentValidationError('Initial representative nationality is required.');
       if (!this.isValidPtMobile(rep.RepresentativePhone)) throw new ShippingAgentValidationError('Initial representative phone must start with 9 and have 9 digits.');
+      // Use the same general email validation helper for representatives
       if (!this.isValidEmail(rep.RepresentativeEmail)) throw new ShippingAgentValidationError('Initial representative email appears invalid.');
     }
   }
 
   async createOrganization(dto: CreateShippingAgentOrganizationDto): Promise<ShippingAgentOrganization> {
     this.validateCreateOrganization(dto);
+
+    const orgEmailNorm = this.normalizeEmail(dto.Email);
+    const repEmailsNorm = dto.Representatives.map(r => this.normalizeEmail(r.RepresentativeEmail));
+
+    // Check for duplicates within the DTO itself (organization vs representatives and between representatives)
+    const seen = new Set<string>();
+    if (orgEmailNorm) {
+      seen.add(orgEmailNorm);
+    }
+    for (const emailNorm of repEmailsNorm) {
+      if (!emailNorm) continue;
+      if (seen.has(emailNorm)) {
+        throw new ShippingAgentValidationError('Organization and representative emails must be unique.');
+      }
+      seen.add(emailNorm);
+    }
+
+    // Check against existing data
+    await this.ensureEmailIsUnique(orgEmailNorm);
+    for (const emailNorm of repEmailsNorm) {
+      if (!emailNorm) continue;
+      await this.ensureEmailIsUnique(emailNorm);
+    }
+
     return this.repo.createOrganization(dto);
   }
 
@@ -54,6 +103,10 @@ export class ShippingAgentService {
 
   async createRepresentative(dto: CreateShippingAgentRepresentativeDto): Promise<ShippingAgentRepresentative> {
     this.validateCreateRepresentative(dto);
+
+    const normalizedEmail = this.normalizeEmail(dto.RepresentativeEmail);
+    await this.ensureEmailIsUnique(normalizedEmail);
+
     return this.repo.createRepresentative(dto);
   }
 
@@ -63,6 +116,10 @@ export class ShippingAgentService {
 
   async updateRepresentative(citizenId: string, dto: UpdateShippingAgentRepresentativeDto): Promise<ShippingAgentRepresentative> {
     this.validateUpdateRepresentative(dto);
+
+    const normalizedEmail = this.normalizeEmail(dto.RepresentativeEmail);
+    await this.ensureEmailIsUnique(normalizedEmail, { ignoreRepresentativeCitizenId: citizenId });
+
     return this.repo.updateRepresentative(citizenId, dto);
   }
 

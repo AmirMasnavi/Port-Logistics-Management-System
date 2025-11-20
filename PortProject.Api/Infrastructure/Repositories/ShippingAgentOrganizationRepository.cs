@@ -47,5 +47,20 @@ namespace PortProject.Api.Infrastructure.Repositories
         {
             return await _context.Set<ShippingAgentOrganization>().ToListAsync(ct);
         }
+
+        public async Task<bool> ExistsByEmailAsync(string email)
+        {
+            return await _context.ShippingAgentOrganizations.AnyAsync(o => o.Email == email);
+        }
+
+        public async Task<bool> ExistsByPhoneAsync(string phone)
+        {
+            return await _context.ShippingAgentOrganizations.AnyAsync(o => o.Phone == phone);
+        }
+
+        public async Task<bool> ExistsByAddressAsync(Address address)
+        {
+            return await _context.ShippingAgentOrganizations.AnyAsync(o => o.Address != null && o.Address.Street == address.Street && o.Address.City == address.City && o.Address.Country == address.Country);
+        }
     }
 }

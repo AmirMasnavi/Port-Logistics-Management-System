@@ -1,0 +1,47 @@
+@startuml
+!theme plain
+autonumber
+
+box "Backend System (REST API)" #LightBlue
+    participant "HTTP Request" as HttpRequest
+    participant "Route" as Route
+    participant "VesselVisitNotification\nController" as Controller
+    participant "VesselVisitNotification\nService" as Service
+    box "Domain" #LightGreen
+        participant "VesselVisitNotification\nAggregate" as Aggregate
+    end box
+    participant "VesselVisitNotification\nRepository" as Repository
+end box
+
+HttpRequest -> Route : 1.1: PUT /api/notifications/{id}
+activate HttpRequest
+Route -> Controller : 1.2: Invoke Update(id, dto)
+activate Route
+Controller -> Service : 1.3: UpdateAsync(id, dto)
+activate Controller
+activate Service
+
+Service -> Repository : 1.4: GetByIdAsync(id)
+activate Repository
+Repository --> Service : 1.5: (aggregate)
+deactivate Repository
+
+Service -> Aggregate : 1.6: UpdateDetails(...)
+activate Aggregate
+Aggregate --> Service : 1.7: (state checked & updated)
+deactivate Aggregate
+
+Service -> Repository : 1.8: SaveChangesAsync()
+activate Repository
+Repository --> Service : 1.9: (persisted)
+deactivate Repository
+
+Service --> Controller : 1.10: VesselVisitNotificationDto
+deactivate Service
+Controller --> HttpRequest : 1.11: HTTP 200 OK
+deactivate Controller
+deactivate Route
+HttpRequest --> : 1.12: HTTP Response
+deactivate HttpRequest
+
+@enduml
