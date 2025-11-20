@@ -5,10 +5,3 @@
     capacity: number;
     currentOccupancy: number;
 }
-
-export interface StorageAreaCreateDto {
-    type: string;
-    location: string;
-    capacity: number;
-    currentOccupancy: number;
-}

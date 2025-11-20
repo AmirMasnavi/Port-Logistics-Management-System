@@ -1,6 +1,10 @@
 ﻿import React, { useState } from 'react';
-import { apiClient } from '../services/apiService';
+import { StorageAreaService } from '../app/storageArea/storageArea.service';
+import { storageAreaApiRepository } from '../infrastructure/repositories/storageArea/storageAreaApi.repository';
 import type { StorageArea } from '../domain/storageArea/storageArea.model';
+
+// Initialize StorageAreaService
+const storageAreaService = new StorageAreaService(storageAreaApiRepository);
 
 interface EditStorageAreaFormProps {
     area: StorageArea;
@@ -31,20 +35,13 @@ const EditStorageAreaForm: React.FC<EditStorageAreaFormProps> = ({ area, onClose
         setLoading(true);
         setError(null);
 
-        // Validation
-        if (formData.currentOccupancy > formData.capacity) {
-            setError('Current occupancy cannot exceed capacity.');
-            setLoading(false);
-            return;
-        }
-
         try {
-            const response = await apiClient.put<StorageArea>(`/StorageArea/${area.code}`, formData);
-            onSuccess(response.data);
+            const updated = await storageAreaService.updateStorageArea(area.code, formData);
+            onSuccess(updated);
             onClose();
         } catch (err: any) {
             console.error('Failed to update storage area', err);
-            const msg = err?.response?.data?.message || err?.response?.data || 'Failed to update storage area.';
+            const msg = err?.message || err?.response?.data?.message || err?.response?.data || 'Failed to update storage area.';
             setError(typeof msg === 'string' ? msg : 'Failed to update storage area.');
         } finally {
             setLoading(false);

@@ -1,10 +1,17 @@
 ﻿import React, { useEffect, useMemo, useState } from 'react';
-import { apiClient, getResources, getAllStorageAreas } from '../services/apiService';
+import { ResourceService } from '../app/resource/resource.service';
+import { resourceApiRepository } from '../infrastructure/repositories/resource/resourceApi.repository';
+import { StorageAreaService } from '../app/storageArea/storageArea.service';
+import { storageAreaApiRepository } from '../infrastructure/repositories/storageArea/storageAreaApi.repository';
 import type { Resource } from '../domain/resource/resource.model';
 import type { StorageArea } from '../domain/storageArea/storageArea.model';
 import { Search, SlidersHorizontal, Plus, Pencil, RefreshCw } from 'lucide-react';
 import StatCard from '../components/common/StatCard';
 import Modal from '../components/common/Modal';
+
+// Initialize services
+const resourceService = new ResourceService(resourceApiRepository);
+const storageAreaService = new StorageAreaService(storageAreaApiRepository);
 
 // Simple enums mirroring backend (ResourceKind, ResourceStatus)
 const RESOURCE_KINDS = ['Crane', 'Truck', 'Other'] as const;
@@ -86,7 +93,7 @@ const ResourcePage: React.FC = () => {
         setLoading(true);
         setError(null);
         try {
-            const data = await getResources();
+            const data = await resourceService.fetchAllResources();
             setResources(data);
         } catch (err: any) {
             console.error('Failed to fetch resources', err);
@@ -99,7 +106,7 @@ const ResourcePage: React.FC = () => {
     const loadStorageAreas = async () => {
         setLoadingAreas(true);
         try {
-            const data = await getAllStorageAreas();
+            const data = await storageAreaService.fetchAllStorageAreas();
             setStorageAreas(data);
         } catch (err: any) {
             console.error('Failed to fetch storage areas', err);
@@ -208,7 +215,7 @@ const ResourcePage: React.FC = () => {
                 otherGenericValue: form.kind === 'Other' ? Number(form.otherGenericValue) : null,
             };
 
-            await apiClient.post<Resource>('/Resource', payload);
+            await resourceService.createResource(payload);
             setSuccessMessage('Resource created successfully.');
             setForm(initialFormState);
             setIsCreateModalOpen(false);
@@ -216,7 +223,7 @@ const ResourcePage: React.FC = () => {
         } catch (err: any) {
             console.error('Failed to create resource', err);
             // Attempt to extract backend error message
-            const msg = err?.response?.data?.message || err?.response?.data || 'Failed to create resource.';
+            const msg = err?.message || err?.response?.data?.message || err?.response?.data || 'Failed to create resource.';
             if (typeof msg === 'string') {
                 setCreateError(msg);
             } else {
@@ -348,14 +355,14 @@ const ResourcePage: React.FC = () => {
                 otherGenericValue: editForm.kind === 'Other' ? Number(editForm.otherGenericValue) : null,
             };
 
-            await apiClient.put<Resource>(`/Resource/${editingResource.code}`, payload);
+            await resourceService.updateResource(editingResource.code, payload);
             setSuccessMessage('Resource updated successfully.');
             setIsEditModalOpen(false);
             setEditingResource(null);
             await loadResources();
         } catch (err: any) {
             console.error('Failed to update resource', err);
-            const msg = err?.response?.data?.message || err?.response?.data || 'Failed to update resource.';
+            const msg = err?.message || err?.response?.data?.message || err?.response?.data || 'Failed to update resource.';
             if (typeof msg === 'string') {
                 setEditError(msg);
             } else {
@@ -382,14 +389,14 @@ const ResourcePage: React.FC = () => {
         setSuccessMessage(null);
 
         try {
-            await apiClient.patch(`/Resource/${statusResource.code}/status`, { NewStatus: newStatus });
+            await resourceService.updateResourceStatus(statusResource.code, newStatus);
             setSuccessMessage('Resource status updated successfully.');
             setIsStatusModalOpen(false);
             setStatusResource(null);
             await loadResources();
         } catch (err: any) {
             console.error('Failed to update status', err);
-            const msg = err?.response?.data?.message || err?.response?.data || 'Failed to update status.';
+            const msg = err?.message || err?.response?.data?.message || err?.response?.data || 'Failed to update status.';
             if (typeof msg === 'string') {
                 setStatusError(msg);
             } else {
