@@ -29,17 +29,24 @@ namespace PortProject.Api.Application.ShippingAgentsRepresentative.Services
         public async Task<ShippingAgentRepresentative> CreateRepresentativeAsync(CreateShippingAgentRepresentativeDto dto)
         {
             var citizenId = new CitizenId(dto.CitizenId);
-            
-            // Check if a representative with this citizen ID already exists
+            var repEmailVo = new RepresentativeEmail(dto.RepresentativeEmail);
+
+            // Unicidade de CitizenId (entre representantes)
             if (await _representativeRepository.ExistsByCitizenIdAsync(citizenId))
                 throw new InvalidOperationException($"A representative with citizen ID '{dto.CitizenId}' already exists.");
-            
+
+            // Unicidade de Email (entre representantes e organizações)
+            if (await _representativeRepository.ExistsByEmailAsync(repEmailVo))
+                throw new InvalidOperationException($"Email '{dto.RepresentativeEmail}' already exists on another representative.");
+            if ((await _organizationRepository.GetAllAsync()).Any(o => string.Equals(o.Email, dto.RepresentativeEmail, StringComparison.OrdinalIgnoreCase)))
+                throw new InvalidOperationException($"Email '{dto.RepresentativeEmail}' already exists on an organization.");
+
             var representative = new ShippingAgentRepresentative(
                 citizenId,
                 new RepresentativeName(dto.RepresentativeName),
                 new RepresentativePhone(dto.RepresentativePhone),
                 new RepresentativeNationality(dto.RepresentativeNationality),
-                new RepresentativeEmail(dto.RepresentativeEmail)
+                repEmailVo
             );
             
             // If OrganizationName is provided, look up the organization by name and attach

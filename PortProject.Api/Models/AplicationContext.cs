@@ -345,7 +345,12 @@ public class PortProjectContext : DbContext
             ab.Property(a => a.Street).HasColumnName("Address_Street");
             ab.Property(a => a.City).HasColumnName("Address_City");
             ab.Property(a => a.Country).HasColumnName("Address_Country");
+            ab.HasIndex(a => new { a.Street, a.City, a.Country }).IsUnique();
         });
+
+        orgBuilder.HasIndex(o => o.TaxNumber).IsUnique();
+        orgBuilder.HasIndex(o => o.Email).IsUnique();
+        orgBuilder.HasIndex(o => o.Phone).IsUnique();
 
         // 4. Configure the one-to-many relationship with Representatives
         // This assumes ShippingAgentRepresentative has a foreign key property pointing back to the organization.
