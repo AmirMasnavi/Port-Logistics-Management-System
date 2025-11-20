@@ -1,6 +1,6 @@
 /*
-    IARTI - PROLOG SCHEDULING SERVER (v2)
- 
+    IARTI - PROLOG SCHEDULING SERVER (v3 - Integrated)
+    Includes US 3.4.2 (Optimal) and US 3.4.4 (Heuristic)
 */
 
 % --- 1. HTTP Server Libraries ---
@@ -10,11 +10,11 @@
 :- use_module(library(http/http_json)).
 :- use_module(library(http/http_cors)).
 
-% --- 2. Scheduling Logic (from logicEx.txt / TP Support) ---
+% --- 2. SHARED Scheduling Logic ---
 :- dynamic vessel/5.
 :- dynamic shortest_delay/2.
 
-% sequence_temporization/2: Calculates the timeline for a given sequence
+% sequence_temporization/2: Calculates the timeline
 sequence_temporization(LV, SeqTriplets) :-
     sequence_temporization1(0, LV, SeqTriplets).
 
@@ -23,24 +23,24 @@ sequence_temporization1(EndPrevSeq, [V|LV], [(V, TInUnload, TEndLoad)|SeqTriplet
     (   (TIn > EndPrevSeq, !, TInUnload is TIn)
     ;   TInUnload is EndPrevSeq + 1
     ),
-    % TEndLoad is TInUnload + Duration - 1. (e.g. 10 + 8 - 1 = 17)
-    % This represents the interval [10, 17], which has a duration of 8.
     TEndLoad is TInUnload + TUnload + TLoad - 1,
     sequence_temporization1(TEndLoad, LV, SeqTriplets).
 sequence_temporization1(_, [], []).
 
-% sum_delays/2: Calculates the total delay for a scheduled sequence
+% sum_delays/2: Calculates total delay
 sum_delays([], 0).
 sum_delays([(V, _, TEndLoad)|LV], S) :-
     vessel(V, _, TDep, _, _),
-    TPossibleDep is TEndLoad + 1, % When the vessel *actually* departs
+    TPossibleDep is TEndLoad + 1,
     (   (TPossibleDep > TDep, !, SV is TPossibleDep - TDep)
     ;   SV is 0
     ),
     sum_delays(LV, SLV),
     S is SV + SLV.
 
-% obtain_seq_shortest_delay/2: Finds the best permutation
+% ============================================================
+% ALGORITHM 1: OPTIMAL (US 3.4.2) - Slow but Perfect
+% ============================================================
 obtain_seq_shortest_delay(SeqBetterTriplets, SShortestDelay) :-
     findall(V, vessel(V, _, _, _, _), LV),
     (   obtain_seq_shortest_delay1(LV)
@@ -50,11 +50,11 @@ obtain_seq_shortest_delay(SeqBetterTriplets, SShortestDelay) :-
 
 obtain_seq_shortest_delay1(LV) :-
     asserta(shortest_delay(_, 100000)), 
-    permutation(LV, SeqV),
+    permutation(LV, SeqV),          % <--- THE BOTTLENECK (Try every combination)
     sequence_temporization(SeqV, SeqTriplets),
     sum_delays(SeqTriplets, S),
     compare_shortest_delay(SeqTriplets, S),
-    fail. % Force backtracking
+    fail. 
 
 compare_shortest_delay(SeqTriplets, S) :-
     shortest_delay(_, SLower),
@@ -63,73 +63,142 @@ compare_shortest_delay(SeqTriplets, S) :-
     ;   true
     ).
 
+% ============================================================
+% ALGORITHM 2: HEURISTIC (US 3.4.4) - Fast but Approximation
+% ============================================================
+
+% 1. Comparator: Decides who comes first.
+% Rule: Earlier Arrival First. If tie, Earlier Deadline First.
+compare_vessels(Order, V1, V2) :-
+    vessel(V1, Arr1, Dep1, _, _),
+    vessel(V2, Arr2, Dep2, _, _),
+    (   Arr1 < Arr2 -> Order = <
+    ;   Arr1 > Arr2 -> Order = >
+    ;   (Dep1 < Dep2 -> Order = < ; Order = >) % Tie-breaker
+    ).
+
+% 2. Main Heuristic Predicate
+obtain_heuristic_schedule(SeqTriplets, TotalDelay) :-
+    findall(V, vessel(V, _, _, _, _), LV),
+    
+    % HERE IS THE MAGIC: Sort instead of Permutation
+    predsort(compare_vessels, LV, SortedVessels),
+    
+    sequence_temporization(SortedVessels, SeqTriplets),
+    sum_delays(SeqTriplets, TotalDelay).
+
+
 % --- 3. HTTP Server Implementation ---
 
 :- set_setting(http:cors, [*]).
 
-:- http_handler('/api/schedule', handle_schedule_request, [method(post)]).
+% I created two endpoints so you can call them separately from C#
+:- http_handler('/api/schedule/optimal', handle_schedule_optimal, [method(post)]).
+:- http_handler('/api/schedule/heuristic', handle_schedule_heuristic, [method(post)]).
 
 server(Port) :-
     http_server(http_dispatch, [port(Port)]).
 
-handle_schedule_request(Request) :-
+% --- HANDLER 1: OPTIMAL ---
+handle_schedule_optimal(Request) :-
     cors_enable(Request, [methods([post])]),
-    
-    % Reads the JSON array `[ {...}, {...} ]` into a Prolog list of json terms
-    % `JSON_Data` will be `[ json([id=..., ...]), json([id=..., ...]) ]`
     http_read_json(Request, JSON_Data, [json_object(list)]),
-    
     process_vessels(JSON_Data),
     
+    % Measure Time (Server Side)
+    get_time(Ti),
     obtain_seq_shortest_delay(SeqBetterTriplets, SShortestDelay),
+    get_time(Tf),
+    Tempo is Tf - Ti,
     
     retractall(vessel(_, _, _, _, _)),
-    
-    % Convert the schedule triplets [('id', 10, 17)] into JSON
-    % We need to format this ourselves for the C# code to understand it
     format_schedule_json(SeqBetterTriplets, ScheduleJSON),
 
-    % Send the JSON object back to the C# API
+    % Print to Server Terminal
+    write('Request handled: OPTIMAL. Time: '), write(Tempo), nl,
+
     reply_json(json{
         schedule: ScheduleJSON, 
-        delay: SShortestDelay
+        delay: SShortestDelay,
+        execution_time: Tempo,
+        type: "optimal"
     }).
 
-% --- THIS IS THE CORRECTED PREDICATE ---
-process_vessels([]). % Base case: empty list
+% --- HANDLER 2: HEURISTIC ---
+handle_schedule_heuristic(Request) :-
+    cors_enable(Request, [methods([post])]),
+    http_read_json(Request, JSON_Data, [json_object(list)]),
+    process_vessels(JSON_Data),
+    
+    % Measure Time (Server Side)
+    get_time(Ti),
+    obtain_heuristic_schedule(SeqBetterTriplets, SShortestDelay),
+    get_time(Tf),
+    Tempo is Tf - Ti,
+    
+    retractall(vessel(_, _, _, _, _)),
+    format_schedule_json(SeqBetterTriplets, ScheduleJSON),
+
+    % Print to Server Terminal
+    write('Request handled: HEURISTIC. Time: '), write(Tempo), nl,
+
+    reply_json(json{
+        schedule: ScheduleJSON, 
+        delay: SShortestDelay,
+        execution_time: Tempo,
+        type: "heuristic"
+    }).
+
+% --- HELPERS ---
+process_vessels([]). 
 process_vessels([VesselJSON | Rest]) :-
-    % VesselJSON is a term like: json([id='...', estimatedArrival='10', ...])
-    
-    % --- THIS IS THE FIX ---
-    % We must destructure the term to get the list inside
     VesselJSON = json(DataList), 
-    
-    % Now we can use member/2 on the DataList
     member(id=VesselRef, DataList),
     member(estimatedArrival=ArrivalStr, DataList),
     member(estimatedDeparture=DepartureStr, DataList),
     member(unloadingTime=UnloadingTime, DataList),
     member(loadingTime=LoadingTime, DataList),     
-    
-    % Convert string values to the atoms/numbers Prolog needs
     atom_string(VesselAtom, VesselRef),
     atom_number(ArrivalStr, ArrivalTime),
     atom_number(DepartureStr, DepartureTime),
-    
-    % Create the fact for the algorithm to use
     asserta(vessel(VesselAtom, ArrivalTime, DepartureTime, UnloadingTime, LoadingTime)),
-    
     process_vessels(Rest).
 
-% --- NEW HELPER ---
-% Converts the Prolog triplet list [ (Atom, Start, End), ... ]
-% into a JSON list [ ["Atom", Start, End], ... ]
-% This is what the C# `PrologScheduleResponse` class expects.
 format_schedule_json([], []).
 format_schedule_json([(Vessel, Start, End) | RestTriplets], [ [VesselStr, Start, End] | RestJSON ]) :-
-    atom_string(Vessel, VesselStr), % Convert the vessel atom back to a string for JSON
+    atom_string(Vessel, VesselStr),
     format_schedule_json(RestTriplets, RestJSON).
 
-
-% --- 4. Server Auto-Start ---
 :- server(5001).
+
+
+% ============================================================
+% 5. PERFORMANCE TESTS (TERMINAL USE)
+% ============================================================
+
+% Teste 1: OPTIMAL (Seu código original)
+teste_performance(SequenciaOtima, AtrasoMinimo) :-
+    get_time(Ti),
+    obtain_seq_shortest_delay(SequenciaOtima, AtrasoMinimo),
+    get_time(Tf),
+    Tempo is Tf - Ti,
+    
+    write('--- RESULTADO OPTIMAL (US 3.4.2) ---'), nl,
+    write('Melhor Sequencia: '), write(SequenciaOtima), nl,
+    write('Menor Atraso Total: '), write(AtrasoMinimo), nl,
+    write('Tempo de execucao (s): '), write(Tempo), nl,
+    write('------------------------------------------'), nl.
+
+% Teste 2: HEURISTIC (US 3.4.4 - Novo)
+teste_performance_heuristic(SequenciaHeuristica, Atraso) :-
+    get_time(Ti),
+    % Chamamos o novo predicado aqui
+    obtain_heuristic_schedule(SequenciaHeuristica, Atraso),
+    get_time(Tf),
+    Tempo is Tf - Ti,
+    
+    write('--- RESULTADO HEURISTICA (US 3.4.4) ---'), nl,
+    write('Sequencia Gerada: '), write(SequenciaHeuristica), nl,
+    write('Atraso Total: '), write(Atraso), nl,
+    write('Tempo de execucao (s): '), write(Tempo), nl,
+    write('------------------------------------------'), nl.
