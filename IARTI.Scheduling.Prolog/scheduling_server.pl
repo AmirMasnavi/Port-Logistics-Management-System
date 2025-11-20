@@ -1,6 +1,6 @@
 /*
-    IARTI - PROLOG SCHEDULING SERVER (v3 - Integrated)
-    Includes US 3.4.2 (Optimal) and US 3.4.4 (Heuristic)
+    IARTI - PROLOG SCHEDULING SERVER (v4 - Multi-Crane)
+    Includes US 3.4.2 (Optimal), US 3.4.4 (Heuristic), and US 3.4.5 (Multi-Crane)
 */
 
 % --- 1. HTTP Server Libraries ---
@@ -13,6 +13,7 @@
 % --- 2. SHARED Scheduling Logic ---
 :- dynamic vessel/5.
 :- dynamic shortest_delay/2.
+max_cranes(2). % Constraint for US 3.4.5 (Multi-Crane)
 
 % sequence_temporization/2: Calculates the timeline
 sequence_temporization(LV, SeqTriplets) :-
@@ -87,6 +88,51 @@ obtain_heuristic_schedule(SeqTriplets, TotalDelay) :-
     sequence_temporization(SortedVessels, SeqTriplets),
     sum_delays(SeqTriplets, TotalDelay).
 
+% ============================================================
+% ALGORITHM 3: MULTI-CRANE (US 3.4.5) - Dynamic Crane Allocation
+% ============================================================
+
+% calculate_duration/4: Calculates operation duration with multiple cranes
+% Duration is divided by number of cranes and rounded up
+calculate_duration(Unload, Load, Cranes, Duration) :-
+    Duration is ceiling((Unload + Load) / Cranes).
+
+% find_min_cranes/5: Finds minimum cranes needed to meet deadline
+% Tries from 1 crane up to max_cranes to find optimal allocation
+find_min_cranes(StartTime, Unload, Load, Deadline, SelectedCranes) :-
+    max_cranes(Max),
+    between(1, Max, C),
+    calculate_duration(Unload, Load, C, Dur),
+    EndsAt is StartTime + Dur - 1,
+    (EndsAt =< Deadline -> SelectedCranes = C ; C = Max), !.
+
+% schedule_multicrane/4: Generates schedule with variable crane allocation
+schedule_multicrane(_, [], [], 0).
+schedule_multicrane(EndPrev, [V|RestV], [Trip|RestTrips], TotalDelay) :-
+    vessel(V, Arr, Deadline, Unload, Load),
+    (Arr > EndPrev -> Start is Arr ; Start is EndPrev + 1),
+    
+    find_min_cranes(Start, Unload, Load, Deadline, Cranes),
+    calculate_duration(Unload, Load, Cranes, Dur),
+    End is Start + Dur - 1,
+    
+    % Calculate Delay for this vessel
+    ActualDeparture is End + 1,
+    (ActualDeparture > Deadline -> Delay is ActualDeparture - Deadline ; Delay is 0),
+    
+    % Create JSON Object with crane information
+    atom_string(V, VStr),
+    Trip = json([vessel=VStr, start=Start, end=End, cranes=Cranes, delay=Delay]),
+    
+    schedule_multicrane(End, RestV, RestTrips, RestDelay),
+    TotalDelay is Delay + RestDelay.
+
+% obtain_multicrane_schedule/2: Main predicate for multi-crane scheduling
+obtain_multicrane_schedule(ScheduleJSON, TotalDelay) :-
+    findall(V, vessel(V, _, _, _, _), LV),
+    predsort(compare_vessels, LV, SortedVessels), % Use Heuristic Sort order
+    schedule_multicrane(0, SortedVessels, ScheduleJSON, TotalDelay).
+
 
 % --- 3. HTTP Server Implementation ---
 
@@ -95,6 +141,7 @@ obtain_heuristic_schedule(SeqTriplets, TotalDelay) :-
 % I created two endpoints so you can call them separately from C#
 :- http_handler('/api/schedule/optimal', handle_schedule_optimal, [method(post)]).
 :- http_handler('/api/schedule/heuristic', handle_schedule_heuristic, [method(post)]).
+:- http_handler('/api/schedule/multicrane', handle_schedule_multicrane, [method(post)]).
 
 server(Port) :-
     http_server(http_dispatch, [port(Port)]).
@@ -149,6 +196,31 @@ handle_schedule_heuristic(Request) :-
         type: "heuristic"
     }).
 
+% --- HANDLER 3: MULTI-CRANE ---
+handle_schedule_multicrane(Request) :-
+    cors_enable(Request, [methods([post])]),
+    http_read_json(Request, JSON_Data, [json_object(list)]),
+    process_vessels(JSON_Data),
+    
+    % Measure Time (Server Side)
+    get_time(Ti),
+    obtain_multicrane_schedule(SeqBetterTriplets, SShortestDelay),
+    get_time(Tf),
+    Tempo is Tf - Ti,
+    
+    retractall(vessel(_, _, _, _, _)),
+    format_schedule_json(SeqBetterTriplets, ScheduleJSON),
+
+    % Print to Server Terminal
+    write('Request handled: MULTI-CRANE. Time: '), write(Tempo), nl,
+
+    reply_json(json{
+        schedule: ScheduleJSON, 
+        delay: SShortestDelay,
+        execution_time: Tempo,
+        type: "multicrane"
+    }).
+
 % --- HELPERS ---
 process_vessels([]). 
 process_vessels([VesselJSON | Rest]) :-
@@ -200,5 +272,18 @@ teste_performance_heuristic(SequenciaHeuristica, Atraso) :-
     write('--- RESULTADO HEURISTICA (US 3.4.4) ---'), nl,
     write('Sequencia Gerada: '), write(SequenciaHeuristica), nl,
     write('Atraso Total: '), write(Atraso), nl,
+    write('Tempo de execucao (s): '), write(Tempo), nl,
+    write('------------------------------------------'), nl.
+
+% Teste 3: MULTI-CRANE (US 3.4.5 - Novo)
+teste_performance_multicrane(SequenciaMulticrane, AtrasoTotal) :-
+    get_time(Ti),
+    obtain_multicrane_schedule(SequenciaMulticrane, AtrasoTotal),
+    get_time(Tf),
+    Tempo is Tf - Ti,
+    
+    write('--- RESULTADO MULTI-CRANE (US 3.4.5) ---'), nl,
+    write('Sequencia Gerada: '), write(SequenciaMulticrane), nl,
+    write('Atraso Total: '), write(AtrasoTotal), nl,
     write('Tempo de execucao (s): '), write(Tempo), nl,
     write('------------------------------------------'), nl.
