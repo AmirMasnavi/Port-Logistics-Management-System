@@ -56,18 +56,39 @@ namespace PortProject.Api.Application.ShippingAgentsOrganization.Services
 
             var legalName = new LegalName(dto.LegalName);
             var tax = new TaxNumber(dto.TaxNumber);
+            var street = dto.Street?.Trim();
+            var city = dto.City?.Trim();
+            var country = dto.Country?.Trim();
+            var address = new Address(street, city, country);
 
-            if (await _repository.ExistsByLegalNameAsync(legalName))
-                throw new InvalidOperationException($"An organization with legal name '{dto.LegalName}' already exists.");
+            var normalizedEmail = dto.Email?.Trim().ToLowerInvariant();
+            dto.Email = normalizedEmail ?? string.Empty;
 
-            if (await _repository.ExistsByTaxNumberAsync(tax))
-                throw new InvalidOperationException($"An organization with tax number '{dto.TaxNumber}' already exists.");
+            if (await _repository.ExistsByEmailAsync(dto.Email))
+                throw new InvalidOperationException($"An organization with email '{dto.Email}' already exists.");
+            if (await _repository.ExistsByPhoneAsync(dto.Phone))
+                throw new InvalidOperationException($"An organization with phone '{dto.Phone}' already exists.");
+            if (await _repository.ExistsByAddressAsync(address))
+                throw new InvalidOperationException($"An organization with the same address already exists.");
+
+            // Validate representatives uniqueness (CitizenId & Email not present in reps or org emails)
+            var existingOrgEmails = (await _repository.GetAllAsync()).Select(o => o.Email).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var existingRepEmails = (await _repService.GetAllAsync()).Select(r => r.RepresentativeEmail).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var existingRepCitizenIds = (await _repService.GetAllAsync()).Select(r => r.CitizenId).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var rep in dto.Representatives)
+            {
+                if (existingRepCitizenIds.Contains(rep.CitizenId))
+                    throw new InvalidOperationException($"A representative with citizen ID '{rep.CitizenId}' already exists.");
+                if (existingRepEmails.Contains(rep.RepresentativeEmail) || existingOrgEmails.Contains(rep.RepresentativeEmail))
+                    throw new InvalidOperationException($"Email '{rep.RepresentativeEmail}' already exists in another representative or organization.");
+            }
 
             var org = new ShippingAgentOrganization(
                 OrganizationId.NewId(),
                 legalName,
                 new AlternativeName(dto.AlternativeName),
-                new Address(dto.Street, dto.City, dto.Country),
+                address,
                 tax,
                 dto.Email,
                 dto.Phone

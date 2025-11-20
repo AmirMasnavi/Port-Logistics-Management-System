@@ -22,7 +22,7 @@ namespace PortProject.Api.Controllers
     /// Creates a new Shipping Agent Representative. Requires OrganizationName in the request body.
         /// </summary>
         [HttpPost]
-        public async Task<ActionResult<string>> CreateRepresentative(CreateShippingAgentRepresentativeDto dto)
+        public async Task<ActionResult<ShippingAgentRepresentativeDto>> CreateRepresentative(CreateShippingAgentRepresentativeDto dto)
         {
             if (string.IsNullOrWhiteSpace(dto.OrganizationName))
                 return BadRequest(new { message = "OrganizationName is required to create a representative." });
@@ -30,7 +30,20 @@ namespace PortProject.Api.Controllers
             try
             {
                 var representative = await _service.CreateRepresentativeAsync(dto);
-                return CreatedAtAction(nameof(GetRepresentativeById), new { id = representative.RepresentativeId?.Value.ToString() }, $"{representative.RepresentativeName?.Value} registered successfully!");
+
+                var createdDto = new ShippingAgentRepresentativeDto
+                {
+                    RepresentativeId = representative.RepresentativeId.Value.ToString(),
+                    OrganizationId = representative.OrganizationId?.Value.ToString() ?? string.Empty,
+                    RepresentativeName = representative.RepresentativeName.Value,
+                    CitizenId = representative.CitizenId.Value,
+                    RepresentativeNationality = representative.RepresentativeNationality.Value,
+                    RepresentativeEmail = representative.RepresentativeEmail.Value,
+                    RepresentativePhone = representative.RepresentativePhone.Value
+                };
+
+                // Usa CreatedAtAction com action alvo que tem parâmetro 'id'
+                return CreatedAtAction(nameof(GetRepresentativeById), new { id = createdDto.RepresentativeId }, createdDto);
             }
             catch (KeyNotFoundException ex)
             {
@@ -39,6 +52,14 @@ namespace PortProject.Api.Controllers
             catch (ArgumentException ex)
             {
                 return BadRequest(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Conflict(new { message = ex.Message });
+            }
+            catch (Microsoft.EntityFrameworkCore.DbUpdateException dbEx)
+            {
+                return Conflict(new { message = "Database constraint violation (likely duplicate email or citizen id).", detail = dbEx.InnerException?.Message ?? dbEx.Message });
             }
         }
 
@@ -77,7 +98,7 @@ namespace PortProject.Api.Controllers
         /// <summary>
         /// Retrieves a Shipping Agent Representative by their ID.
         /// </summary>
-        [HttpGet("{citizenId}")]
+        [HttpGet("{id}")]
         public async Task<ActionResult<ShippingAgentRepresentativeDto>> GetRepresentativeById(string id)
         {
             var resultDto = await _service.GetByCitizenIdAsync(id);

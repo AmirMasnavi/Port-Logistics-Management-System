@@ -10,11 +10,12 @@ namespace PortProject.Api.Domain.ShippingAgentRepresentativeAggregate
 
         public RepresentativeEmail(string value)
         {
-            if (string.IsNullOrWhiteSpace(value))
+            var normalized = value?.Trim().ToLowerInvariant();
+            if (string.IsNullOrWhiteSpace(normalized))
                 throw new ArgumentException("Email cannot be empty.", nameof(value));
-            if (!Regex.IsMatch(value, @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
+            if (!Regex.IsMatch(normalized, @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
                 throw new ArgumentException("Invalid email format.", nameof(value));
-            Value = value;
+            Value = normalized;
         }
 
         public override bool Equals(object obj) => obj is RepresentativeEmail other && Value.Equals(other.Value);
