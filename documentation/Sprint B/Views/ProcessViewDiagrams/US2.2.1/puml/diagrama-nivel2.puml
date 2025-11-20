@@ -1,0 +1,18 @@
+@startuml
+!theme plain
+autonumber
+
+actor "Port Authority Officer" as Officer
+participant "User Interface\n(UI)" as UI
+participant "Backend Service\n(Port System)" as Backend
+
+Officer -> UI : 1: create or update vessel type
+activate UI
+UI -> Backend : 1.1: Request (CreateVesselType / UpdateVesselType)
+activate Backend
+Backend --> UI : 1.2: Response (VesselTypeDto)
+deactivate Backend
+UI --> Officer : 1.3: Display confirmation
+deactivate UI
+
+@enduml

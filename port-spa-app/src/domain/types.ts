@@ -49,6 +49,7 @@ export interface VesselVisit {
     id: string;
     vesselImo: string;
     assignedDockId?: string | null;
+    assignedDockName?: string | null;
     status?: string;
 }
 

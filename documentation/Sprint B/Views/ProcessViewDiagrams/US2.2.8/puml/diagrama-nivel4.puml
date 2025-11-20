@@ -1,0 +1,58 @@
+@startuml
+!theme plain
+autonumber
+
+box "Backend System (REST API)" #LightBlue
+    participant "HTTP Request" as HttpRequest
+    participant "Route" as Route
+    participant "VesselVisitNotification\nController" as Controller
+    participant "IVesselVisitNotification\nService" as IService
+    participant "VesselVisitNotification\nService" as ServiceImpl
+    box "Domain / Persistence" #LightGreen
+        participant "VesselVisitNotification\nAggregate" as Aggregate
+        participant "ContainerCode\nValue Object" as ValueObject
+        participant "IVesselVisitNotification\nRepository" as IRepo
+        participant "VesselVisitNotification\nRepository" as RepoImpl
+    end box
+end box
+
+HttpRequest -> Route : 1.1: POST /api/notifications
+activate HttpRequest
+Route -> Controller : 1.2: Invoke Create(dto)
+activate Route
+Controller -> IService : 1.3: CreateAsync(dto)
+activate Controller
+activate IService
+IService -> ServiceImpl : 1.4: CreateAsync(dto)
+activate ServiceImpl
+
+ServiceImpl -> ValueObject : 1.5: new ContainerCode(code)
+activate ValueObject
+ValueObject --> ServiceImpl : 1.6: (validation OK)
+deactivate ValueObject
+
+ServiceImpl -> Aggregate : 1.7: Create(...)
+activate Aggregate
+Aggregate --> ServiceImpl : 1.8: (status="InProgress")
+deactivate Aggregate
+
+ServiceImpl -> IRepo : 1.9: AddAsync(aggregate)
+activate IRepo
+IRepo -> RepoImpl : 1.10: AddAsync(aggregate)
+activate RepoImpl
+RepoImpl --> IRepo : 1.11: (persisted)
+deactivate RepoImpl
+IRepo --> ServiceImpl : 1.12: (complete)
+deactivate IRepo
+
+ServiceImpl --> IService : 1.13: VesselVisitNotificationDto
+deactivate ServiceImpl
+IService --> Controller : 1.14: VesselVisitNotificationDto
+deactivate IService
+Controller --> HttpRequest : 1.15: HTTP 201 Created
+deactivate Controller
+deactivate Route
+HttpRequest --> : 1.16: HTTP Response
+deactivate HttpRequest
+
+@enduml

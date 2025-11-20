@@ -66,7 +66,7 @@ export class VvnService {
     }
 
     async approveVvn(businessId: string, dto: ApproveVvnDto): Promise<void> {
-        if (!dto.dockId) {
+        if (!dto.dockName) {
             throw new VvnValidationError('A dock must be assigned for approval.');
         }
         return this.vvnRepo.approve(businessId, dto);

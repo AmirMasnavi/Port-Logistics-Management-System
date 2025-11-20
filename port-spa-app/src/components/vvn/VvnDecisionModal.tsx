@@ -59,14 +59,14 @@ const VvnDecisionModal: React.FC<VvnDecisionModalProps> = ({
                                                                onConfirmReject
                                                            }) => {
     // State for the form fields
-    const [dockId, setDockId] = useState('');
+    const [dockName, setDockName] = useState('');
     const [reason, setReason] = useState('');
     const [error, setError] = useState<string | null>(null);
 
     // Reset form when modal opens
     useEffect(() => {
         if (isOpen) {
-            setDockId('');
+            setDockName('');
             setReason('');
             setError(null);
         }
@@ -79,11 +79,11 @@ const VvnDecisionModal: React.FC<VvnDecisionModalProps> = ({
         const officerId = "OFFICER-001";
 
         if (action === 'approve') {
-            if (!dockId) {
-                setError('Dock ID is required to approve.');
+            if (!dockName) {
+                setError('Dock name is required to approve.');
                 return;
             }
-            onConfirmApprove(vvn.businessId, { officerId, dockId });
+            onConfirmApprove(vvn.businessId, { officerId, dockName });
         }
 
         if (action === 'reject') {
@@ -132,7 +132,7 @@ const VvnDecisionModal: React.FC<VvnDecisionModalProps> = ({
                     {error && <div className="text-red-600 p-2 text-sm">{error}</div>}
 
                     {action === 'approve' && (
-                        <Input label="Dock to Assign" id="dockId" value={dockId} onChange={(e) => setDockId(e.target.value)} placeholder="e.g., Dock A" required />
+                        <Input label="Dock to Assign" id="dockName" value={dockName} onChange={(e) => setDockName(e.target.value)} placeholder="e.g., Dock A" required />
                     )}
                     {action === 'reject' && (
                         <Textarea label="Reason for Rejection" id="reason" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g., Missing cargo details..." required />

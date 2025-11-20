@@ -13,15 +13,19 @@ public class VesselVisitNotificationService : IVesselVisitNotificationService
 {
     private readonly IVesselVisitNotificationRepository _vvnRepo;
     private readonly PortProjectContext _context;
-    
-    // --- ADD THIS REPO ---
     private readonly IShippingAgentRepresentativeRepository _repRepo;
+    private readonly IDockRepository _dockRepo;
 
-    public VesselVisitNotificationService(IVesselVisitNotificationRepository vvnRepo, PortProjectContext context, IShippingAgentRepresentativeRepository repRepo)
+    public VesselVisitNotificationService(
+        IVesselVisitNotificationRepository vvnRepo, 
+        PortProjectContext context, 
+        IShippingAgentRepresentativeRepository repRepo,
+        IDockRepository dockRepo)
     {
         _vvnRepo = vvnRepo;
         _context = context;
         _repRepo = repRepo;
+        _dockRepo = dockRepo;
     }
 
 
@@ -119,12 +123,12 @@ public class VesselVisitNotificationService : IVesselVisitNotificationService
         if (notification.Status != NotificationStatus.Submitted)
             throw new InvalidOperationException("Only submitted notifications can be approved.");
         
-        // Validate that the dock exists before assigning
-        var dockExists = await _context.Docks.AnyAsync(d => d.Id == new DockId(dto.DockId));
-        if (!dockExists)
-            throw new ArgumentException($"Dock with ID '{dto.DockId}' does not exist.");
+        // Resolve dock name to dock ID
+        var dock = await _dockRepo.GetByNameAsync(new DockName(dto.DockName));
+        if (dock == null)
+            throw new ArgumentException($"Dock with name '{dto.DockName}' does not exist.");
         
-        notification.Approve(new MecanographicNumber(dto.OfficerId), new DockId(dto.DockId));
+        notification.Approve(new MecanographicNumber(dto.OfficerId), dock.Id);
         await _context.SaveChangesAsync();
 
         return await MapToDtoAsync(notification);
@@ -245,7 +249,15 @@ public class VesselVisitNotificationService : IVesselVisitNotificationService
         var rep = await _repRepo.GetByIdAsync(entity.SubmittedBy);
         var submittedByName = rep?.RepresentativeName.Value ?? "Unknown Representative";
 
-        return MapCore(entity, submittedByName);
+        // Load dock name if assigned
+        string? dockName = null;
+        if (entity.AssignedDockId != null)
+        {
+            var dock = await _dockRepo.GetByIdAsync(entity.AssignedDockId);
+            dockName = dock?.Name.Value;
+        }
+
+        return MapCore(entity, submittedByName, dockName);
     }
 
     private async Task<List<VesselVisitNotificationDto>> MapListToDtoAsync(IEnumerable<Domain.VesselVisitNotificationAggregate.VesselVisitNotification> entities)
@@ -266,6 +278,17 @@ public class VesselVisitNotificationService : IVesselVisitNotificationService
             .Where(r => r.RepresentativeId != null && repIds.Contains(r.RepresentativeId))
             .ToDictionary(r => r.RepresentativeId!, r => r.RepresentativeName.Value);
 
+        // Collect all distinct dock IDs referenced by the notifications
+        var dockIds = entityList
+            .Where(e => e.AssignedDockId != null)
+            .Select(e => e.AssignedDockId!)
+            .Distinct()
+            .ToList();
+
+        // Load all needed docks in one go
+        var docks = await _dockRepo.GetByIdsAsync(dockIds);
+        var dockLookup = docks.ToDictionary(d => d.Id, d => d.Name.Value);
+
         // Map each notification using the resolved name (or fallback if not found)
         var dtos = entityList
             .Select(e =>
@@ -273,14 +296,21 @@ public class VesselVisitNotificationService : IVesselVisitNotificationService
                 var name = repLookup.TryGetValue(e.SubmittedBy, out var repName)
                     ? repName
                     : "Unknown Representative";
-                return MapCore(e, name);
+                
+                string? dockName = null;
+                if (e.AssignedDockId != null && dockLookup.TryGetValue(e.AssignedDockId, out var dn))
+                {
+                    dockName = dn;
+                }
+                
+                return MapCore(e, name, dockName);
             })
             .ToList();
 
         return dtos;
     }
 
-    private static VesselVisitNotificationDto MapCore(Domain.VesselVisitNotificationAggregate.VesselVisitNotification entity, string submittedByName)
+    private static VesselVisitNotificationDto MapCore(Domain.VesselVisitNotificationAggregate.VesselVisitNotification entity, string submittedByName, string? dockName)
     {
         return new VesselVisitNotificationDto
         {
@@ -291,6 +321,7 @@ public class VesselVisitNotificationService : IVesselVisitNotificationService
             VesselImo = entity.VesselId.Value,
             SubmittedBy = submittedByName,
             AssignedDockId = entity.AssignedDockId?.Value,
+            AssignedDockName = dockName,
             Cargo = new CargoDto
             {
                 Description = entity.Cargo.Description,

@@ -3,5 +3,5 @@
 public class ApproveVvnDto
 {
     public string OfficerId { get; set; }
-    public string DockId { get; set; }
+    public string DockName { get; set; }
 }

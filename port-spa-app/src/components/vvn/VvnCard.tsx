@@ -44,7 +44,7 @@ const VvnCard: React.FC<VvnCardProps> = ({
     // Card data (Unchanged)
     const title = `Vessel: ${vvn.vesselImo}`; //
     const arrivalDate = formatDate(vvn.estimatedArrival); //
-    const dock = vvn.assignedDockId || 'N/A'; //
+    const dock = vvn.assignedDockName || vvn.assignedDockId || 'N/A'; //
     // submittedBy now contains the representative's name (not an internal GUID)
     const submittedBy = vvn.submittedBy; //
 
