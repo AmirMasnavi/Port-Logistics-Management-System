@@ -1,0 +1,85 @@
+@startuml
+!theme plain
+autonumber
+
+box "Backend System (Sistema AIT)" #LightBlue
+    participant "HTTP Request" as HttpRequest
+    participant "Route" as Route
+    participant "Controller" as Controller
+    participant "DTO" as Dto
+    participant "Service" as Service
+    box "Persistence" #LightGreen
+        participant "Data Model" as DataModel
+        participant "Aggregate" as Aggregate
+        participant "Value Object" as ValueObject
+        participant "Entity" as Entity
+    end box
+    participant "Repository" as Repository
+end box
+
+HttpRequest -> Route : 1.1: PATCH /api/notifications/{id}/approve OR /api/notifications/{id}/reject
+activate HttpRequest
+Route -> Controller : 1.2: Invoke ApproveVvn / RejectVvn
+activate Route
+Controller -> Dto : 1.3: Map request body (ApproveVvnDto { officerId, dockId } / RejectVvnDto { officerId, reason })
+activate Controller
+Dto --> Controller : 1.4: Mapped data
+deactivate Dto
+Controller -> Service : 1.5: Process decision
+activate Service
+Service -> Aggregate : 1.6: Load and update aggregate
+activate Aggregate
+Aggregate -> ValueObject : 1.6.1: Create DecisionLogEntry (timestamp, officerId, outcome, reason?/dockId?)
+activate ValueObject
+ValueObject --> Aggregate : 1.6.2: DecisionLogEntry appended
+deactivate ValueObject
+Aggregate -> Entity : 1.6.3: Update entity state (status, assignedDockId)
+activate Entity
+Entity --> Aggregate : 1.6.4: Entity updated
+deactivate Entity
+Aggregate --> Service : 1.6.5: Aggregate updated
+deactivate Aggregate
+Service -> Repository : 1.7: Persist aggregate (notification + decision log + assigned dock)
+activate Repository
+Repository -> DataModel : 1.7.1: Map aggregate to data model
+activate DataModel
+DataModel --> Repository : 1.7.2: Data model mapped
+deactivate DataModel
+Repository --> Service : 1.8: Data persisted
+deactivate Repository
+Service --> Controller : 1.9: Response data (VesselVisitNotificationDto)
+deactivate Service
+Controller --> HttpRequest : 1.10: HTTP 200 OK / 204 No Content
+deactivate Controller
+deactivate Route
+HttpRequest --> : 1.11: HTTP Response
+deactivate HttpRequest
+
+' SAR may update a rejected notification
+HttpRequest -> Route : 2.1: PUT /api/notifications/{id}
+activate HttpRequest
+Route -> Controller : 2.2: Invoke Update (PUT)
+activate Route
+Controller -> Dto : 2.3: Map request body (CreateVvnDto)
+activate Controller
+Dto --> Controller : 2.4: Mapped update data
+deactivate Dto
+Controller -> Service : 2.5: Process update -> UpdateAsync(id, dto)
+activate Service
+Service -> Aggregate : 2.6: Load and apply UpdateDetails
+activate Aggregate
+Aggregate --> Service : 2.7: Aggregate updated with new data
+deactivate Aggregate
+Service -> Repository : 2.8: Persist updated aggregate
+activate Repository
+Repository --> Service : 2.9: Update persisted
+deactivate Repository
+Service --> Controller : 2.10: Response data (VesselVisitNotificationDto)
+deactivate Service
+Controller --> HttpRequest : 2.11: HTTP 200 OK
+deactivate Controller
+deactivate Route
+HttpRequest --> : 2.12: HTTP Response
+deactivate HttpRequest
+
+@enduml

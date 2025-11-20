@@ -1,0 +1,18 @@
+@startuml
+!theme plain
+autonumber
+
+actor "Shipping Agent Representative" as Rep
+participant "User Interface\n(UI)" as UI
+participant "Backend Service\n(Port System)" as Backend
+
+Rep -> UI : 1: view submitted vessel visit notifications
+activate UI
+UI -> Backend : 1.1: Request (GetNotifications with filters)
+activate Backend
+Backend --> UI : 1.2: Response (List<VesselVisitNotificationDto>)
+deactivate Backend
+UI --> Rep : 1.3: Display filtered list with status, dock, and rejection reason
+deactivate UI
+
+@enduml

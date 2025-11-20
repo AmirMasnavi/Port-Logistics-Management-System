@@ -1,4 +1,5 @@
-import { apiClient } from '../../http/apiClient';
+//import { apiClient } from '../../http/apiClient';
+import { apiClient } from '../../../services/apiService.ts';
 import type { IVesselTypeRepository } from '../../../app/vesselType/vesselType.repository';
 import type { VesselType } from '../../../domain/vesselType/vesselType.model';
 import type { CreateVesselTypeDto, UpdateVesselTypeDto } from './vesselType.dto';
