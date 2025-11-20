@@ -34,17 +34,20 @@ public class StorageAreaTest : IClassFixture<IntegrationTestsWebApplicationFacto
             new StorageArea(
                 new StorageAreaLocation(10, 20),
                 StorageAreaType.Yard, 
-                new StorageCapacity(100)
+                new StorageCapacity(100),
+                new StorageAreaCurrentOccupancy(10)
             ),
             new StorageArea(
                 new StorageAreaLocation(30, 40), 
                 StorageAreaType.Warehouse, 
-                new StorageCapacity(200)
+                new StorageCapacity(200),
+                new StorageAreaCurrentOccupancy(50)
             ),
             new StorageArea(
                 new StorageAreaLocation(50, 60), 
                 StorageAreaType.Yard, 
-                new StorageCapacity(150)
+                new StorageCapacity(150),
+                new StorageAreaCurrentOccupancy(25)
             ),
         });
         db.SaveChanges();
@@ -54,16 +57,16 @@ public class StorageAreaTest : IClassFixture<IntegrationTestsWebApplicationFacto
     public async Task Get_StorageAreaById_ReturnsCorrectStorageArea()
     {
         // Arrange
-        int storageAreaId;
+        string storageAreaCode;
         using (var scope = _factory.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<PortProjectContext>();
             ReinitializeStorageAreasDb(db);
-            storageAreaId = db.StorageAreas.First().Id.Value;
+            storageAreaCode = db.StorageAreas.First().Code;
         }
 
         // Act
-        var response = await _client.GetAsync($"/api/StorageArea/{storageAreaId}");
+        var response = await _client.GetAsync($"/api/StorageArea/{storageAreaCode}");
 
         // Assert
         response.EnsureSuccessStatusCode();
@@ -71,7 +74,7 @@ public class StorageAreaTest : IClassFixture<IntegrationTestsWebApplicationFacto
         var storageArea = JsonConvert.DeserializeObject<StorageAreaDto>(responseBody);
 
         Assert.NotNull(storageArea);
-        Assert.Equal(storageAreaId.ToString(), storageArea.Id);
+        Assert.Equal(storageAreaCode, storageArea.Code);
         Assert.NotNull(storageArea.Type);
     }
 
@@ -86,7 +89,7 @@ public class StorageAreaTest : IClassFixture<IntegrationTestsWebApplicationFacto
         }
 
         // Act
-        var response = await _client.GetAsync("/api/StorageArea/99999");
+        var response = await _client.GetAsync("/api/StorageArea/NONEXISTENT-CODE");
 
         // Assert
         Assert.Equal(System.Net.HttpStatusCode.NotFound, response.StatusCode);
@@ -104,9 +107,10 @@ public class StorageAreaTest : IClassFixture<IntegrationTestsWebApplicationFacto
 
         var newStorageArea = new CreateStorageAreaDto
         {
-            Location = "70, 80",  // Use coordinate format instead of "D4"
+            Location = "70, 80",
             Type = "Yard",
-            Capacity = 250
+            Capacity = 250,
+            CurrentOccupancy = 0
         };
 
         var jsonContent = JsonConvert.SerializeObject(newStorageArea);
@@ -121,10 +125,13 @@ public class StorageAreaTest : IClassFixture<IntegrationTestsWebApplicationFacto
         var createdStorageArea = JsonConvert.DeserializeObject<StorageAreaDto>(responseBody);
 
         Assert.NotNull(createdStorageArea);
-        Assert.Contains("70", createdStorageArea.Location);  // Check if coordinates are present
+        Assert.NotNull(createdStorageArea.Code);
+        Assert.StartsWith("YARD-", createdStorageArea.Code); // Code should be auto-generated based on type
+        Assert.Contains("70", createdStorageArea.Location);
         Assert.Contains("80", createdStorageArea.Location);
         Assert.Equal("Yard", createdStorageArea.Type);
         Assert.Equal(250, createdStorageArea.Capacity);
+        Assert.Equal(0, createdStorageArea.CurrentOccupancy);
     }
 
     [Fact]
@@ -139,9 +146,10 @@ public class StorageAreaTest : IClassFixture<IntegrationTestsWebApplicationFacto
 
         var newStorageArea = new CreateStorageAreaDto
         {
-            Location = "90, 100",  // Use coordinate format instead of "E5"
+            Location = "90, 100",
             Type = "Warehouse",
-            Capacity = 300
+            Capacity = 300,
+            CurrentOccupancy = 0
         };
 
         var jsonContent = JsonConvert.SerializeObject(newStorageArea);
@@ -156,10 +164,13 @@ public class StorageAreaTest : IClassFixture<IntegrationTestsWebApplicationFacto
         var createdStorageArea = JsonConvert.DeserializeObject<StorageAreaDto>(responseBody);
 
         Assert.NotNull(createdStorageArea);
-        Assert.Contains("90", createdStorageArea.Location);  // Check if coordinates are present
+        Assert.NotNull(createdStorageArea.Code);
+        Assert.StartsWith("WAREHOUSE-", createdStorageArea.Code); // Code should be auto-generated based on type
+        Assert.Contains("90", createdStorageArea.Location);
         Assert.Contains("100", createdStorageArea.Location);
         Assert.Equal("Warehouse", createdStorageArea.Type);
         Assert.Equal(300, createdStorageArea.Capacity);
+        Assert.Equal(0, createdStorageArea.CurrentOccupancy);
     }
 
     [Fact]
@@ -176,7 +187,8 @@ public class StorageAreaTest : IClassFixture<IntegrationTestsWebApplicationFacto
         {
             Location = "",
             Type = "Yard",
-            Capacity = 100
+            Capacity = 100,
+            CurrentOccupancy = 0
         };
 
         var jsonContent = JsonConvert.SerializeObject(invalidStorageArea);
@@ -203,7 +215,8 @@ public class StorageAreaTest : IClassFixture<IntegrationTestsWebApplicationFacto
         {
             Location = null,
             Type = "Yard",
-            Capacity = 100
+            Capacity = 100,
+            CurrentOccupancy = 0
         };
 
         var jsonContent = JsonConvert.SerializeObject(invalidStorageArea);
@@ -230,7 +243,8 @@ public class StorageAreaTest : IClassFixture<IntegrationTestsWebApplicationFacto
         {
             Location = "110, 120",  // Use valid coordinate format
             Type = "Yard",
-            Capacity = 0  // Invalid: zero capacity
+            Capacity = 0,  // Invalid: zero capacity
+            CurrentOccupancy = 0
         };
 
         var jsonContent = JsonConvert.SerializeObject(invalidStorageArea);
@@ -257,7 +271,8 @@ public class StorageAreaTest : IClassFixture<IntegrationTestsWebApplicationFacto
         {
             Location = "130, 140",  // Use valid coordinate format
             Type = "Yard",
-            Capacity = -50  // Invalid: negative capacity
+            Capacity = -50,  // Invalid: negative capacity
+            CurrentOccupancy = 0
         };
 
         var jsonContent = JsonConvert.SerializeObject(invalidStorageArea);
@@ -284,7 +299,8 @@ public class StorageAreaTest : IClassFixture<IntegrationTestsWebApplicationFacto
         {
             Location = "150, 160",  // Use valid coordinate format
             Type = "InvalidType",  // Invalid: not a valid StorageAreaType
-            Capacity = 100
+            Capacity = 100,
+            CurrentOccupancy = 0
         };
 
         var jsonContent = JsonConvert.SerializeObject(invalidStorageArea);

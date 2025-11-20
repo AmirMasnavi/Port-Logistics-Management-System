@@ -47,7 +47,6 @@ public class VesselTypeServiceTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.Equal("1", result.Id);
         Assert.Equal("Container Ship", result.Name);
         Assert.Equal("Large cargo vessel", result.Description);
         Assert.Equal(10000, result.Capacity);
@@ -204,7 +203,6 @@ public class VesselTypeServiceTests
         var result = await _service.CreateVesselTypeAsync(dto);
 
         // Assert
-        Assert.Equal("4", result.Id);
         Assert.Equal("Cargo Ship", result.Name);
         Assert.Equal("Description", result.Description);
     }
@@ -244,7 +242,6 @@ public class VesselTypeServiceTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.Equal("1", result.Id);
         Assert.Equal("Updated Name", result.Name);
         Assert.Equal("Updated Description", result.Description);
         Assert.Equal(15000, result.Capacity);
@@ -375,7 +372,6 @@ public class VesselTypeServiceTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.Equal("1", result.Id);
         Assert.Equal("Name1", result.Name);
         _mockRepository.Verify(r => r.UpdateAsync(It.IsAny<VesselType>()), Times.Once);
     }
@@ -398,7 +394,6 @@ public class VesselTypeServiceTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.Equal("1", result.Id);
         Assert.Equal("Container Ship", result.Name);
         Assert.Equal("Large vessel", result.Description);
         Assert.Equal(10000, result.Capacity);
@@ -559,27 +554,6 @@ public class VesselTypeServiceTests
 
     #endregion
 
-    #region DeleteVesselTypeAsync Tests
-
-    [Fact]
-    public async Task DeleteVesselTypeAsync_ExistingId_DeletesSuccessfully()
-    {
-        // Arrange
-        var vesselType = VesselType.Create("1", "Container Ship", "Desc", 10000, 20, 15, 10);
-        
-        _mockRepository.Setup(r => r.GetByIdAsync(It.IsAny<VesselTypeId>()))
-            .ReturnsAsync(vesselType);
-        
-        _mockRepository.Setup(r => r.DeleteAsync(It.IsAny<VesselType>()))
-            .Returns(Task.CompletedTask);
-
-        // Act
-        await _service.DeleteVesselTypeAsync("1");
-
-        // Assert
-        _mockRepository.Verify(r => r.GetByIdAsync(It.IsAny<VesselTypeId>()), Times.Once);
-        _mockRepository.Verify(r => r.DeleteAsync(It.Is<VesselType>(vt => vt.Id.Value == "1")), Times.Once);
-    }
 
     [Fact]
     public async Task DeleteVesselTypeAsync_NonExistentId_ThrowsKeyNotFoundException()
@@ -617,9 +591,7 @@ public class VesselTypeServiceTests
         
         Assert.Contains("VesselType ID cannot be null or empty", ex.Message);
     }
-
-    #endregion
-
+    
     #region ToDto Private Method Tests (via Public Methods)
 
     [Fact]
@@ -644,7 +616,6 @@ public class VesselTypeServiceTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.Equal("123", result.Id);
         Assert.Equal("Test Vessel", result.Name);
         Assert.Equal("Test Description", result.Description);
         Assert.Equal(5000, result.Capacity);

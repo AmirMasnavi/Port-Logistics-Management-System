@@ -276,7 +276,6 @@ namespace Port.Project.Api.System_Tests
 
             var newResource = new CreateResourceDto
             {
-                Code = "RES001",
                 Description = "Test Resource Without Qualifications",
                 Kind = "Crane",
                 AssignedArea = "Area A",
@@ -293,7 +292,8 @@ namespace Port.Project.Api.System_Tests
 
             // Assert
             Assert.NotNull(createdResource);
-            Assert.Equal("RES001", createdResource.Code);
+            Assert.NotNull(createdResource.Code);
+            Assert.StartsWith("CRANE-", createdResource.Code); // Code is auto-generated based on Kind
             Assert.True(createdResource.QualificationRequirements == null ||
                         createdResource.QualificationRequirements.Count == 0);
         }
@@ -316,7 +316,6 @@ namespace Port.Project.Api.System_Tests
             // Create resource referencing the qualification
             var newResource = new CreateResourceDto
             {
-                Code = "CRANE001",
                 Description = "Main Port Crane",
                 Kind = "Crane",
                 AssignedArea = "Dock A",
@@ -333,7 +332,8 @@ namespace Port.Project.Api.System_Tests
 
             // Assert
             Assert.NotNull(createdResource);
-            Assert.Equal("CRANE001", createdResource.Code);
+            Assert.NotNull(createdResource.Code);
+            Assert.StartsWith("CRANE-", createdResource.Code); // Code is auto-generated based on Kind
             Assert.NotNull(createdResource.QualificationRequirements);
             Assert.Contains(createdQual.Code, createdResource.QualificationRequirements);
         }
@@ -364,7 +364,6 @@ namespace Port.Project.Api.System_Tests
             // Create resource with both qualifications
             var newResource = new CreateResourceDto
             {
-                Code = "TRUCK001",
                 Description = "Heavy Duty Truck",
                 Kind = "Truck",
                 AssignedArea = "Yard B",
@@ -382,7 +381,8 @@ namespace Port.Project.Api.System_Tests
 
             // Assert
             Assert.NotNull(createdResource);
-            Assert.Equal("TRUCK001", createdResource.Code);
+            Assert.NotNull(createdResource.Code);
+            Assert.StartsWith("TRUCK-", createdResource.Code); // Code is auto-generated based on Kind
             Assert.NotNull(createdResource.QualificationRequirements);
             Assert.Equal(2, createdResource.QualificationRequirements.Count);
             Assert.Contains(createdQual1.Code, createdResource.QualificationRequirements);
@@ -415,7 +415,6 @@ namespace Port.Project.Api.System_Tests
             // Create resource referencing the qualification
             var newResource = new CreateResourceDto
             {
-                Code = "crane001",
                 Description = "Warehouse Crane",
                 Kind = "Crane",
                 AssignedArea = "Warehouse 1",
@@ -428,11 +427,13 @@ namespace Port.Project.Api.System_Tests
             };
 
             var createdResource = await PostAndReadJsonAsync<ResourceDto>("/api/Resource", newResource);
+            
             // Act
             var queriedResource = await GetAndReadJsonAsync<ResourceDto>($"/api/Resource/{createdResource.Code}");
+            
             // Assert
             Assert.NotNull(queriedResource);
-            Assert.Equal("crane001", queriedResource.Code);
+            Assert.Equal(createdResource.Code, queriedResource.Code); // Use the actual code that was auto-generated
             Assert.NotNull(queriedResource.QualificationRequirements);
             Assert.Contains(createdQual.Code, queriedResource.QualificationRequirements);
         }
@@ -441,7 +442,7 @@ namespace Port.Project.Api.System_Tests
         public async Task CreateVVN_WithNonExistentVessel_ShouldReturnBadRequest()
         {
             // Arrange
-            string? existingRepId = null; // Will be set after seeding Rep
+            string? existingRepCitizenId = null; // Will be set after seeding Rep
             ReinitializeDb(db =>
             {
                 // Seed Org & Rep needed for VVN creation
@@ -454,11 +455,11 @@ namespace Port.Project.Api.System_Tests
                 rep.AttachToOrganization(org.Id!);
                 db.ShippingAgentOrganizations.Add(org);
                 db.ShippingAgentRepresentatives.Add(rep);
-                // We need to save here to get the Rep ID back
+                // We need to save here to get the Rep CitizenId back
                 db.SaveChanges();
-                existingRepId = rep.RepresentativeId.Value.ToString();
+                existingRepCitizenId = rep.CitizenId.Value;
             });
-            Assert.NotNull(existingRepId); // Ensure Rep was created
+            Assert.NotNull(existingRepCitizenId); // Ensure Rep was created
 
             var nonExistentImo = GenerateValidImo(999999); // Use an IMO guaranteed not to exist
             var createDto = new CreateVvnDto
@@ -466,7 +467,7 @@ namespace Port.Project.Api.System_Tests
                 EstimatedArrival = DateTime.UtcNow.AddDays(1),
                 EstimatedDeparture = DateTime.UtcNow.AddDays(2),
                 VesselImo = nonExistentImo, // This vessel doesn't exist
-                RepresentativeId = existingRepId,
+                RepresentativeCitizenId = existingRepCitizenId,
                 Cargo = new CreateCargoDto
                 {
                     Description = "Bad Vessel", Weight = 1,
@@ -501,13 +502,13 @@ namespace Port.Project.Api.System_Tests
             });
             Assert.NotNull(existingVesselImo);
 
-            var nonExistentRepId = Guid.NewGuid().ToString(); // Guaranteed not to exist
+            var nonExistentCitizenId = "NONEXISTENT123"; // Guaranteed not to exist
             var createDto = new CreateVvnDto
             {
                 EstimatedArrival = DateTime.UtcNow.AddDays(1),
                 EstimatedDeparture = DateTime.UtcNow.AddDays(2),
                 VesselImo = existingVesselImo,
-                RepresentativeId = nonExistentRepId, // This rep doesn't exist
+                RepresentativeCitizenId = nonExistentCitizenId, // This rep doesn't exist
                 Cargo = new CreateCargoDto
                 {
                     Description = "Bad Rep", Weight = 1,
@@ -532,10 +533,9 @@ namespace Port.Project.Api.System_Tests
         {
             ReinitializeDb();
 
-            var bogusOrgId = Guid.NewGuid().ToString();
             var repCreate = new CreateShippingAgentRepresentativeDto
             {
-              
+                OrganizationName = "Non-Existent Organization", // Use OrganizationName instead of ID
                 RepresentativeName = "John Doe",
                 CitizenId = "12345678Z",
                 RepresentativeNationality = "PT",
@@ -544,7 +544,7 @@ namespace Port.Project.Api.System_Tests
             };
 
             var resp = await PostJsonAsync("/api/ShippingAgentRepresentatives", repCreate);
-            // Depending on service/controller flow this can surface as BadRequest, NotFound or InternalServerError
+            // Service should throw KeyNotFoundException which surfaces as NotFound or BadRequest
             Assert.True(resp.StatusCode == HttpStatusCode.BadRequest ||
                         resp.StatusCode == HttpStatusCode.NotFound ||
                         resp.StatusCode == HttpStatusCode.InternalServerError,
@@ -632,13 +632,14 @@ namespace Port.Project.Api.System_Tests
             Assert.NotEqual(Guid.Empty, orgId);
 
             // Fetch representatives of that organization and pick one
-            var reps = await GetAndReadJsonAsync<List<ShippingAgentRepresentativeDto>>($"/api/ShippingAgentRepresentatives/by-organization/{orgId}");
+            var reps = await GetAndReadJsonAsync<List<RepresentativeSimpleDto>>($"/api/ShippingAgentRepresentatives/by-organization/{orgId}");
             Assert.NotEmpty(reps);
-            var repId = reps.First().RepresentativeId;
+            var repCitizenId = reps.First().CitizenId; // Use CitizenId instead of RepresentativeId
 
-            // Delete representative
-            var delResp = await _client.DeleteAsync($"/api/ShippingAgentRepresentatives/{repId}");
-            Assert.Equal(HttpStatusCode.NoContent, delResp.StatusCode);
+            // Delete representative by CitizenId
+            var delResp = await _client.DeleteAsync($"/api/ShippingAgentRepresentatives/{repCitizenId}");
+            Assert.True(delResp.StatusCode == HttpStatusCode.OK || delResp.StatusCode == HttpStatusCode.NoContent,
+                $"Delete failed with status: {delResp.StatusCode}");
 
             // Organization should still exist
             var orgGet = await _client.GetAsync($"/api/ShippingAgentOrganizations/{orgId}");

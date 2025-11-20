@@ -32,17 +32,11 @@ public class StorageAreaServiceTest
         {
             Type = "Yard",
             Location = "10, 10",
-            Capacity = 500
+            Capacity = 500,
+            CurrentOccupancy = 0
         };
 
         _mockRepository.Setup(r => r.AddAsync(It.IsAny<DomainStorageArea>()))
-            .Callback<DomainStorageArea>(sa =>
-            {
-                var idProp = typeof(DomainStorageArea).GetProperty("Id");
-                var idType = idProp.PropertyType;
-                var idInstance = Activator.CreateInstance(idType, 1);
-                idProp.SetValue(sa, idInstance);
-            })
             .Returns(Task.CompletedTask);
         _mockContext.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(1);
@@ -55,9 +49,11 @@ public class StorageAreaServiceTest
         Assert.Equal(dto.Type, result.Type);
         Assert.Equal("(10, 10)", result.Location);
         Assert.Equal(dto.Capacity, result.Capacity);
-        Assert.Equal("1", result.Id);
+        Assert.Equal(dto.CurrentOccupancy, result.CurrentOccupancy);
+        Assert.NotNull(result.Code);
+        Assert.StartsWith("YARD-", result.Code); // Code should be auto-generated based on type
         _mockRepository.Verify(r => r.AddAsync(It.IsAny<DomainStorageArea>()), Times.Once);
-        _mockContext.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+        _mockContext.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Exactly(2)); // Called twice: once to save entity, once to update code
     }
 
     [Fact]
@@ -76,7 +72,8 @@ public class StorageAreaServiceTest
         {
             Type = "",
             Location = "10, 10",
-            Capacity = 500
+            Capacity = 500,
+            CurrentOccupancy = 0
         };
         await Assert.ThrowsAsync<ArgumentException>(() => _service.CreateStorageAreaAsync(dto));
         _mockRepository.Verify(r => r.AddAsync(It.IsAny<DomainStorageArea>()), Times.Never);
@@ -89,7 +86,8 @@ public class StorageAreaServiceTest
         {
             Type = "   ",
             Location = "10, 10",
-            Capacity = 500
+            Capacity = 500,
+            CurrentOccupancy = 0
         };
         await Assert.ThrowsAsync<ArgumentException>(() => _service.CreateStorageAreaAsync(dto));
         _mockRepository.Verify(r => r.AddAsync(It.IsAny<DomainStorageArea>()), Times.Never);
@@ -102,7 +100,8 @@ public class StorageAreaServiceTest
         {
             Type = "Yard",
             Location = "",
-            Capacity = 500
+            Capacity = 500,
+            CurrentOccupancy = 0
         };
         await Assert.ThrowsAsync<ArgumentException>(() => _service.CreateStorageAreaAsync(dto));
         _mockRepository.Verify(r => r.AddAsync(It.IsAny<DomainStorageArea>()), Times.Never);
@@ -115,7 +114,8 @@ public class StorageAreaServiceTest
         {
             Type = "Yard",
             Location = "   ",
-            Capacity = 500
+            Capacity = 500,
+            CurrentOccupancy = 0
         };
         await Assert.ThrowsAsync<ArgumentException>(() => _service.CreateStorageAreaAsync(dto));
         _mockRepository.Verify(r => r.AddAsync(It.IsAny<DomainStorageArea>()), Times.Never);
@@ -128,7 +128,8 @@ public class StorageAreaServiceTest
         {
             Type = "Yard",
             Location = "10, 10",
-            Capacity = -1
+            Capacity = -1,
+            CurrentOccupancy = 0
         };
         await Assert.ThrowsAsync<ArgumentException>(() => _service.CreateStorageAreaAsync(dto));
         _mockRepository.Verify(r => r.AddAsync(It.IsAny<DomainStorageArea>()), Times.Never);
@@ -141,7 +142,8 @@ public class StorageAreaServiceTest
         {
             Type = "Yard",
             Location = "10, 10",
-            Capacity = 0
+            Capacity = 0,
+            CurrentOccupancy = 0
         };
         await Assert.ThrowsAsync<ArgumentException>(() => _service.CreateStorageAreaAsync(dto));
         _mockRepository.Verify(r => r.AddAsync(It.IsAny<DomainStorageArea>()), Times.Never);
