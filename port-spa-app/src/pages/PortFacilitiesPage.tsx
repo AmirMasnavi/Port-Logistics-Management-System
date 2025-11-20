@@ -1,11 +1,15 @@
 ﻿import React, { useEffect, useState, useMemo } from 'react';
-import { getAllStorageAreas } from '../services/apiService';
+import { StorageAreaService } from '../app/storageArea/storageArea.service';
+import { storageAreaApiRepository } from '../infrastructure/repositories/storageArea/storageAreaApi.repository';
 import type { StorageArea } from '../domain/storageArea/storageArea.model';
 import Modal from '../components/common/Modal';
 import CreateStorageAreaForm from './CreateStorageAreaForm';
 import EditStorageAreaForm from './EditStorageAreaForm';
 import StatCard from '../components/common/StatCard';
 import { Pencil, Search, SlidersHorizontal } from 'lucide-react';
+
+// Initialize StorageAreaService
+const storageAreaService = new StorageAreaService(storageAreaApiRepository);
 
 const PortFacilitiesPage: React.FC = () => {
     const [areas, setAreas] = useState<StorageArea[]>([]);
@@ -28,7 +32,7 @@ const PortFacilitiesPage: React.FC = () => {
     const fetchAreas = async () => {
         try {
             setLoading(true);
-            const data = await getAllStorageAreas();
+            const data = await storageAreaService.fetchAllStorageAreas();
             setAreas(data);
             setError(null);
         } catch (err) {

@@ -4,13 +4,15 @@
 import {
     getPortLayout,
     getApprovedVesselVisits,
-    getResources,
     getAllVesselTypes,
     getVesselByImo,
     getDockById,
     getAllDocks,
-    getAllStorageAreas
 } from '../services/apiService';
+import { StorageAreaService } from '../app/storageArea/storageArea.service';
+import { storageAreaApiRepository } from '../infrastructure/repositories/storageArea/storageAreaApi.repository';
+import { ResourceService } from '../app/resource/resource.service';
+import { resourceApiRepository } from '../infrastructure/repositories/resource/resourceApi.repository';
 import { generateDockLayout } from '../services/dockLayoutService';
 import { generateYardLayout } from '../services/yardLayoutService';
 import { generateWarehouseLayout } from '../services/warehouseLayoutService';
@@ -23,6 +25,10 @@ import { generateWarehouseLayout } from '../services/warehouseLayoutService';
         VesselVisit,
     } from '../domain/types';
     import type { Resource } from '../domain/resource/resource.model';
+
+    // Initialize services
+    const storageAreaService = new StorageAreaService(storageAreaApiRepository);
+    const resourceService = new ResourceService(resourceApiRepository);
     
     const VisualizationPage: React.FC = () => {
         const [layout, setLayout] = useState<PortLayout | null>(null); // Store response in PortLayout type
@@ -42,10 +48,10 @@ import { generateWarehouseLayout } from '../services/warehouseLayoutService';
                     const [layoutData, approvedVisits, allResources, vesselTypes, backendDocks, backendStorageAreas] = await Promise.all([
                         getPortLayout(selectedLayout),
                         getApprovedVesselVisits(),
-                        getResources(),
+                        resourceService.fetchAllResources(),
                         getAllVesselTypes(),
                         getAllDocks(), // Fetch docks from backend
-                        getAllStorageAreas(), // Fetch storage areas (yards + warehouses) from backend
+                        storageAreaService.fetchAllStorageAreas(), // Fetch storage areas using service
                     ]);
 
                     console.log('Backend docks fetched:', backendDocks);
