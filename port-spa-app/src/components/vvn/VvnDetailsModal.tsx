@@ -65,7 +65,7 @@ const VvnDetailsModal: React.FC<VvnDetailsModalProps> = ({ isOpen, onClose, vvn 
                 <SectionTitle icon={Ship} title="Visit Details" />
                 <div className="grid grid-cols-2 gap-4">
                     <DetailItem icon={Ship} label="IMO Number" value={vvn.vesselImo} />
-                    <DetailItem icon={Anchor} label="Assigned Dock" value={vvn.assignedDockId} />
+                    <DetailItem icon={Anchor} label="Assigned Dock" value={vvn.assignedDockName || vvn.assignedDockId} />
                     <DetailItem icon={Calendar} label="Estimated Arrival" value={formatDateTime(vvn.estimatedArrival)} />
                     <DetailItem icon={Calendar} label="Estimated Departure" value={formatDateTime(vvn.estimatedDeparture)} />
                 </div>

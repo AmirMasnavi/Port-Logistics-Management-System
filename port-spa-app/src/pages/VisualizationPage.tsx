@@ -1,4 +1,4 @@
-﻿    import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
     import PortScene from '../components/visualization/PortScene';
     
 import {
@@ -13,6 +13,7 @@ import {
 } from '../services/apiService';
 import { generateDockLayout } from '../services/dockLayoutService';
 import { generateYardLayout } from '../services/yardLayoutService';
+import { generateWarehouseLayout } from '../services/warehouseLayoutService';
     import type {
         PortLayout,
         RenderableVessel,
@@ -56,17 +57,22 @@ import { generateYardLayout } from '../services/yardLayoutService';
                     // Generate dynamic yard layout elements from backend storage areas (Type = "Yard")
                     const dynamicYardElements = generateYardLayout(backendStorageAreas);
                     
+                    // Generate dynamic warehouse layout elements from backend storage areas (Type = "Warehouse")
+                    const dynamicWarehouseElements = generateWarehouseLayout(backendStorageAreas);
+                    
                     console.log('Dynamic dock elements generated:', dynamicDockElements);
                     console.log('Dynamic yard elements generated:', dynamicYardElements);
+                    console.log('Dynamic warehouse elements generated:', dynamicWarehouseElements);
                     
-                    // Remove static docks and yards from layout and add dynamic ones
-                    const layoutElementsWithoutDocksAndYards = layoutData.elements.filter(
-                        el => el.type !== 'dock' && el.type !== 'yard'
+                    // Remove static docks, yards, and buildings from layout and add dynamic ones
+                    const layoutElementsWithoutDynamicTypes = layoutData.elements.filter(
+                        el => el.type !== 'dock' && el.type !== 'yard' && el.type !== 'building'
                     );
                     const finalLayoutElements = [
-                        ...layoutElementsWithoutDocksAndYards, 
+                        ...layoutElementsWithoutDynamicTypes, 
                         ...dynamicDockElements,
-                        ...dynamicYardElements
+                        ...dynamicYardElements,
+                        ...dynamicWarehouseElements
                     ];
                     
                     console.log('Final layout elements:', finalLayoutElements);

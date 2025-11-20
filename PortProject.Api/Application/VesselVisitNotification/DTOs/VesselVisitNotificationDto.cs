@@ -9,6 +9,7 @@ public class VesselVisitNotificationDto
     public string VesselImo { get; set; }
     public string SubmittedBy { get; set; }
     public String? AssignedDockId { get; set; }
+    public String? AssignedDockName { get; set; }
     public CargoDto Cargo { get; set; }
     public List<CrewMemberDto> CrewMembers { get; set; }
     public List<DecisionLogEntryDto> DecisionLog { get; set; }

@@ -1,7 +1,10 @@
 import React, { useEffect, useRef } from 'react';
 import { useTexture, Text } from '@react-three/drei';
 import { RepeatWrapping, ClampToEdgeWrapping, BufferAttribute, SRGBColorSpace, DoubleSide, Mesh } from 'three';
-import { useFrame } from '@react-three/fiber';
+import { useFrame, useLoader } from '@react-three/fiber';
+import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
+import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
+import { Box3, Vector3 } from 'three';
 
 
 // Import texture assets from the local textures folder so Vite resolves them correctly
@@ -22,11 +25,14 @@ import dockHeightUrl from './textures/dock/Material _25_Height.png';
 import dockMetallicUrl from './textures/dock/Material _25_Metallic.png';
 import dockAoUrl from './textures/dock/Material _25_Mixed_AO.png';
 
-// Import gantry crane textures for yard cranes
-import gantryBaseUrl from './textures/gantryCrane/maquina_portico_BaseColor.png';
-import gantryNormalUrl from './textures/gantryCrane/maquina_portico_Normal.png';
-import gantryRoughnessUrl from './textures/gantryCrane/maquina_portico_Roughness.png';
-import gantryMetallicUrl from './textures/gantryCrane/maquina_portico_Metallic.png';
+// Gantry crane assets (FBX model + JPG textures)
+import gantryFbxUrl from './textures/gantryCrane/Gantry crane.fbx';
+import gantryMetalJpgUrl from './textures/gantryCrane/Metal-2.jpg';
+import gantryRustJpgUrl from './textures/gantryCrane/rust_painted_0019_01_crop.jpg';
+
+// Warehouse assets - using direct paths that Vite will resolve
+const warehouseObjUrl = new URL('./textures/Warehouse/warehouse.obj', import.meta.url).href;
+import warehouseDiffUrl from './textures/Warehouse/warewhouse_Diff.jpg';
 
 
 // Dynamically import all Tower_crane textures and group them by material and map type.
@@ -197,8 +203,6 @@ export const DockModel: React.FC<Omit<ModelProps, 'color'>> = ({ position, size,
     const dockDepth = size[0];      // X dimension (extends into water)
     const dockHeight = size[1];     // Y dimension (height)
     const dockLength = size[2];     // Z dimension (along pier)
-    const widthScale = 1;
-    const dockWidth = size[2] * widthScale;
 
     // Configure tiling
     const TILE_SCALE = 25;
@@ -261,21 +265,23 @@ export const DockModel: React.FC<Omit<ModelProps, 'color'>> = ({ position, size,
                 </mesh>
             ))}
 
-            {/* RED WARNING LIGHTS at dock corners - KEEP THESE! */}
+            {/* RED WARNING LIGHTS at dock corners - dynamically positioned at the 4 vertices */}
+            {/* The dock is a box with dimensions [dockDepth (X), dockHeight (Y), dockLength (Z)] */}
+            {/* Position lights slightly above the dock surface and at each corner */}
             <RedWarningLight 
-                position={[-dockLength / 2 - 2.91, -1.5 + dockHeight / 2, dockWidth / 2 + 0.5]}
+                position={[-dockDepth / 2, dockHeight / 2 + 0.5, -dockLength / 2]}
                 isNight={isNight}
             />
             <RedWarningLight 
-                position={[dockLength / 2 - 2.91, -1.5 + dockHeight / 2, dockWidth / 2 + 0.5]}
+                position={[dockDepth / 2, dockHeight / 2 + 0.5, -dockLength / 2]}
                 isNight={isNight}
             />
             <RedWarningLight 
-                position={[-dockLength / 2 - 2.91, -1.5 + dockHeight / 2, -dockWidth / 2 - 0.5]}
+                position={[-dockDepth / 2, dockHeight / 2 + 0.5, dockLength / 2]}
                 isNight={isNight}
             />
             <RedWarningLight 
-                position={[dockLength / 2 - 2.91, -1.5 + dockHeight / 2, -dockWidth / 2 - 0.5]}
+                position={[dockDepth / 2, dockHeight / 2 + 0.5, dockLength / 2]}
                 isNight={isNight}
             />
 
@@ -347,7 +353,7 @@ export const YardModel: React.FC<Omit<ModelProps, 'color'>> = ({ position, size,
         }
     }, [meshRef]);
 
-    // Pequena espessura para o yard (bem fininho, só para não parecer folha)
+    // Pequena espessura para o yard (fininho, só para não parecer folha)
     const YARD_THICKNESS = 0.6;
 
     return (
@@ -418,7 +424,7 @@ export const LandModel: React.FC<Omit<ModelProps, 'color'> & { isMiddle?: boolea
     // Ajustes específicos para a land do meio: mais comprida e mais estreita
     const [rawWidth, rawHeight, rawLength] = size;
     const WIDTH_FACTOR = isMiddle ? 0.75 : 1.0;  // reduzir bastante a largura da land do meio
-    const LENGTH_FACTOR = isMiddle ? 1.3 : 1.0; // aumentar um pouco o comprimento
+    const LENGTH_FACTOR = isMiddle ? 1 : 1.0; // aumentar um pouco o comprimento
 
     const width = rawWidth * WIDTH_FACTOR;
     const height = rawHeight;
@@ -667,26 +673,117 @@ export const WaterModel: React.FC<Omit<ModelProps, 'color'>> = ({ position, size
 };
 
 // Building: simples com janelas (material diferente)
-export const BuildingModel: React.FC<Omit<ModelProps, 'color'>> = ({ position, size, label }) => (
-    <group position={position}>
-        <mesh castShadow receiveShadow>
-            <boxGeometry args={[size[0], size[1], size[2]]} />
-            <meshStandardMaterial color="#708090" metalness={0.2} roughness={0.6} />
-        </mesh>
-        {label && (
-            <Text
-                position={[0, size[1] / 2 + 0.6, 0]}
-                fontSize={0.35}
-                color="black"
-                anchorX="center"
-                outlineWidth={0.02}
-                outlineColor="white"
-            >
-                {label}
-            </Text>
-        )}
-    </group>
-);
+export const BuildingModel: React.FC<Omit<ModelProps, 'color'>> = ({ position, size, label, rotation }) => {
+    const [warehouseObj, setWarehouseObj] = React.useState<any>(null);
+    const [diffTexture] = useTexture([warehouseDiffUrl]);
+
+    // Adjust building Y position to sit on ground properly
+    const BUILDING_Y_OFFSET = -9; // Lowered buildings (change this value to adjust)
+    const adjustedPosition: [number, number, number] = [position[0], position[1] + BUILDING_Y_OFFSET, position[2]];
+
+    // Clone and configure the diffuse texture
+    const tex = React.useMemo(() => diffTexture?.clone() ?? null, [diffTexture]);
+
+    useEffect(() => {
+        if (tex) {
+            tex.wrapS = tex.wrapT = RepeatWrapping;
+            tex.anisotropy = 16;
+            if ('colorSpace' in tex) (tex as any).colorSpace = SRGBColorSpace;
+            tex.needsUpdate = true;
+        }
+        return () => { tex?.dispose(); };
+    }, [tex]);
+
+    // Load OBJ and apply materials + textures
+    useEffect(() => {
+        if (!tex) return;
+
+        // Load OBJ directly and apply our texture manually
+        const objLoader = new OBJLoader();
+
+        objLoader.load(
+            warehouseObjUrl,
+            (obj) => {
+                // Clone to avoid mutating cached version
+                const clonedObj = obj.clone(true);
+
+                // Force apply texture to ALL materials found in the model
+                clonedObj.traverse((child: any) => {
+                    if (child.isMesh) {
+                        child.castShadow = true;
+                        child.receiveShadow = true;
+
+                        // Replace/update material with texture
+                        if (child.material) {
+                            if (Array.isArray(child.material)) {
+                                // Handle material arrays
+                                child.material = child.material.map((mat: any) => {
+                                    const newMat = mat.clone();
+                                    newMat.map = tex;
+                                    newMat.color.set(0xffffff); // Ensure white base color for texture
+                                    newMat.needsUpdate = true;
+                                    return newMat;
+                                });
+                            } else {
+                                // Single material
+                                const mat = child.material;
+                                mat.map = tex;
+                                mat.color.set(0xffffff); // Ensure white base color for texture
+                                mat.needsUpdate = true;
+                            }
+                        }
+                    }
+                });
+
+                // Scale to match requested size
+                try {
+                    const bbox = new Box3().setFromObject(clonedObj);
+                    const sizeVec = new Vector3();
+                    bbox.getSize(sizeVec);
+                    const targetHeight = size[1] || 10;
+                    const modelHeight = sizeVec.y || 1;
+                    const scale = targetHeight / modelHeight;
+                    clonedObj.scale.setScalar(scale);
+                } catch (e) {
+                    console.warn('Failed to scale warehouse model:', e);
+                }
+
+                setWarehouseObj(clonedObj);
+            },
+            undefined,
+            (error) => {
+                console.error('Error loading warehouse OBJ:', error);
+            }
+        );
+    }, [tex, size]);
+
+    return (
+        <group position={adjustedPosition} rotation={rotation}>
+            {/* Render the warehouse OBJ if loaded, otherwise show fallback box */}
+            {warehouseObj ? (
+                <primitive object={warehouseObj} />
+            ) : (
+                <mesh castShadow receiveShadow>
+                    <boxGeometry args={[size[0], size[1], size[2]]} />
+                    <meshStandardMaterial color="#708090" metalness={0.2} roughness={0.6} />
+                </mesh>
+            )}
+
+            {label && (
+                <Text
+                    position={[0, size[1] / 2 + 0.6, 0]}
+                    fontSize={0.35}
+                    color="black"
+                    anchorX="center"
+                    outlineWidth={0.02}
+                    outlineColor="white"
+                >
+                    {label}
+                </Text>
+            )}
+        </group>
+    );
+};
 
 // Vessel: casco, ponte, chaminé — mais parecido com um navio
 export const VesselModel: React.FC<Omit<ModelProps, 'color'>> = ({ position, size, label, rotation }) => {
@@ -951,130 +1048,159 @@ export const STSCraneModel: React.FC<Omit<ModelProps, 'color'>> = ({ position, s
 
 // Yard Gantry Crane (grua de pátio) — pernas laterais e viga superior com trole
 export const YardCraneModel: React.FC<Omit<ModelProps, 'color'>> = ({ position, size, label, isNight = false }) => {
-    const legHeight = Math.max(25, size[1] * 6);
+    // Basic layout values (used as fallback sizing)
+    const legHeight = 50;
     const span = Math.max(3, size[0] * 0.9);
     
-    // Increased dimensions for better visibility and realism
-    const legThickness = 5;      // Much thicker legs (was 0.25)
-    const beamHeight = 7;        // Taller beam (was 0.2)
-    const beamDepth = 7;         // Much deeper beam (was 0.6)
-    const trolleySize = 5;       // Larger trolley (was 0.5)
-    const trolleyHeight = 8;     // Taller trolley (was 0.2)
+    // Load the FBX model and the new JPG textures
+    // The FBX loader can sometimes return an array or a single Group/Object3D.
+    // Cast to `any` and handle both cases below to avoid TS errors when calling `clone`.
+    const fbx = useLoader(FBXLoader, gantryFbxUrl) as any;
+    const [gRust, gMetal] = useTexture([gantryRustJpgUrl, gantryMetalJpgUrl]);
 
-    // Load gantry crane textures (NO displacement - causes problems)
-    const [gBase, gNormal, gRough, gMetal] = useTexture([
-        gantryBaseUrl,
-        gantryNormalUrl,
-        gantryRoughnessUrl,
-        gantryMetallicUrl,
-    ]);
+    // Clone textures to avoid shared state between instances
+    const textures = React.useMemo(() => ({
+        rust: gRust?.clone() ?? null,
+        metal: gMetal?.clone() ?? null,
+    }), [gRust, gMetal]);
 
-    // Configure textures - use ClampToEdgeWrapping to avoid tiling/repeating
+    // Configure texture settings
     useEffect(() => {
-        [gBase, gNormal, gRough, gMetal].forEach(tex => {
+        [textures.rust, textures.metal].forEach(tex => {
             if (!tex) return;
             tex.wrapS = tex.wrapT = ClampToEdgeWrapping;
-            tex.repeat.set(1, 1);
             tex.anisotropy = 16;
             tex.needsUpdate = true;
+            if ('colorSpace' in tex) (tex as any).colorSpace = SRGBColorSpace;
         });
+    }, [textures.rust, textures.metal]);
+
+    // Dispose textures on unmount
+    useEffect(() => {
+        return () => {
+            textures.rust?.dispose();
+            textures.metal?.dispose();
+        };
+    }, [textures]);
+
+    // Prepare a cloned/processed FBX object that we can scale and texture
+    const [fbxObj, setFbxObj] = React.useState<any>(null);
+    
+    useEffect(() => {
+        if (!fbx || !textures.rust) return;
         
-        if (gBase && 'colorSpace' in gBase) {
-            (gBase as any).colorSpace = SRGBColorSpace;
+        // The loader may return an array (e.g. [Group]) or a single object.
+        const source = Array.isArray(fbx) ? fbx[0] : fbx;
+        if (!source) return;
+        // Prefer using clone(true) when available, otherwise use the source directly.
+        const obj = typeof source.clone === 'function' ? source.clone(true) : source;
+
+        // Apply textures/material tweaks to every mesh found
+        obj.traverse((child: any) => {
+            if (child.isMesh) {
+                child.castShadow = true;
+                child.receiveShadow = true;
+                
+                // Clone the material to avoid shared state
+                if (child.material) {
+                    // Handle both single materials and material arrays
+                    if (Array.isArray(child.material)) {
+                        child.material = child.material.map((mat: any) => {
+                            const clonedMat = mat.clone();
+                            // Apply textures
+                            if (textures.rust) clonedMat.map = textures.rust;
+                            if (textures.metal) clonedMat.metalnessMap = textures.metal;
+                            // Set sensible PBR defaults
+                            if (clonedMat.metalness === 0 || clonedMat.metalness === undefined) clonedMat.metalness = 0.3;
+                            if (clonedMat.roughness === 1 || clonedMat.roughness === undefined) clonedMat.roughness = 0.6;
+                            clonedMat.needsUpdate = true;
+                            return clonedMat;
+                        });
+                    } else {
+                        const clonedMat = child.material.clone();
+                        // Apply textures
+                        if (textures.rust) clonedMat.map = textures.rust;
+                        if (textures.metal) clonedMat.metalnessMap = textures.metal;
+                        // Set sensible PBR defaults
+                        if (clonedMat.metalness === 0 || clonedMat.metalness === undefined) clonedMat.metalness = 0.3;
+                        if (clonedMat.roughness === 1 || clonedMat.roughness === undefined) clonedMat.roughness = 0.6;
+                        clonedMat.needsUpdate = true;
+                        child.material = clonedMat;
+                    }
+                }
+            }
+        });
+
+        // Scale the FBX to roughly match the requested height (size[1])
+        try {
+            const bbox = new Box3().setFromObject(obj);
+            const sizeBox = new Vector3();
+            bbox.getSize(sizeBox);
+            const modelHeight = sizeBox.y || 1;
+            const targetHeight = Math.max(legHeight, size[1] ?? legHeight);
+            const scale = targetHeight / modelHeight;
+            obj.scale.setScalar(scale);
+        } catch (e) {
+            console.warn('Failed to scale gantry crane FBX:', e);
         }
-    }, [gBase, gNormal, gRough, gMetal]);
+
+        setFbxObj(obj);
+        
+        // Cleanup: dispose cloned object when dependencies change
+        return () => {
+            obj.traverse((child: any) => {
+                if (child.isMesh) {
+                    child.geometry?.dispose();
+                    if (Array.isArray(child.material)) {
+                        child.material.forEach((mat: any) => mat?.dispose());
+                    } else {
+                        child.material?.dispose();
+                    }
+                }
+            });
+        };
+    }, [fbx, textures.rust, textures.metal, size[1]]);
 
     return (
         <group position={position}>
-            {/* Left Leg - with properly tiled texture */}
-            <mesh position={[-span / 2, legHeight / 2, 0]} castShadow receiveShadow>
-                <boxGeometry args={[legThickness, legHeight, legThickness]} />
-                <meshStandardMaterial 
-                    map={gBase as any}
-                    normalMap={gNormal as any}
-                    roughnessMap={gRough as any}
-                    metalnessMap={gMetal as any}
-                    metalness={0.5}
-                    roughness={0.6}
-                />
-            </mesh>
-            
-            {/* Right Leg */}
-            <mesh position={[span / 2, legHeight / 2, 0]} castShadow receiveShadow>
-                <boxGeometry args={[legThickness, legHeight, legThickness]} />
-                <meshStandardMaterial 
-                    map={gBase as any}
-                    normalMap={gNormal as any}
-                    roughnessMap={gRough as any}
-                    metalnessMap={gMetal as any}
-                    metalness={0.5}
-                    roughness={0.6}
-                />
-            </mesh>
+            {/* Render the FBX if available; otherwise fall back to simple box-based crane */}
+            {fbxObj ? (
+                <primitive object={fbxObj} />
+            ) : (
+                <>
+                    <mesh position={[ -span / 2, legHeight / 2, 0]} castShadow receiveShadow>
+                        <boxGeometry args={[4, legHeight, 4]} />
+                        <meshStandardMaterial color="#777" metalness={0.5} roughness={0.6} />
+                    </mesh>
+                    <mesh position={[ span / 2, legHeight / 2, 0]} castShadow receiveShadow>
+                        <boxGeometry args={[4, legHeight, 4]} />
+                        <meshStandardMaterial color="#777" metalness={0.5} roughness={0.6} />
+                    </mesh>
+                    <mesh position={[0, legHeight - 3.5, 0]} castShadow receiveShadow>
+                        <boxGeometry args={[span + 1.5, 7, 6]} />
+                        <meshStandardMaterial color="#777" metalness={0.5} roughness={0.6} />
+                    </mesh>
+                </>
+            )}
 
-            {/* Top beam */}
-            <mesh position={[0, legHeight - beamHeight/2, 0]} castShadow receiveShadow>
-                <boxGeometry args={[span + 1.5, beamHeight, beamDepth]} />
-                <meshStandardMaterial 
-                    map={gBase as any}
-                    normalMap={gNormal as any}
-                    roughnessMap={gRough as any}
-                    metalnessMap={gMetal as any}
-                    metalness={0.5}
-                    roughness={0.6}
-                />
-            </mesh>
-
-            {/* Trolley */}
-            <mesh position={[0, legHeight - beamHeight - trolleyHeight/2 - 0.2, 0]} castShadow receiveShadow>
-                <boxGeometry args={[trolleySize, trolleyHeight, trolleySize]} />
-                <meshStandardMaterial 
-                    color="#666666"
-                    map={gBase as any}
-                    normalMap={gNormal as any}
-                    roughnessMap={gRough as any}
-                    metalnessMap={gMetal as any}
-                    metalness={0.6}
-                    roughness={0.4}
-                />
-            </mesh>
-            
-            {/* Add cross-bracing for more realistic gantry crane structure */}
-            <mesh position={[-span / 4, legHeight / 2, 0]} castShadow>
-                <boxGeometry args={[span / 2, 0.3, 0.3]} />
-                <meshStandardMaterial 
-                    map={gBase as any}
-                    metalness={0.7} 
-                    roughness={0.3} 
-                />
-            </mesh>
-            <mesh position={[span / 4, legHeight / 2, 0]} castShadow>
-                <boxGeometry args={[span / 2, 0.3, 0.3]} />
-                <meshStandardMaterial 
-                    map={gBase as any}
-                    metalness={0.7} 
-                    roughness={0.3} 
-                />
-            </mesh>
-
-            {/* Red warning lights on top of the crane legs */}
+            {/* Red warning lights on top of gantry crane */}
             <RedWarningLight 
-                position={[-span / 2, legHeight + 0.2, 0]} 
+                position={[-span / 2 - 16, legHeight + 0.25, 0]} 
                 isNight={isNight}
             />
             <RedWarningLight 
-                position={[span / 2, legHeight + 0.2, 0]} 
+                position={[span / 2 + 11.5, legHeight+ 0.25, 0]} 
                 isNight={isNight}
             />
 
             {label && (
                 <Text
-                    position={[0, legHeight + 0.8, 0]}
-                    fontSize={0.5}
-                    color="white"
+                    position={[0, legHeight + 0.4, 0]}
+                    fontSize={0.35}
+                    color="black"
                     anchorX="center"
-                    outlineWidth={0.05}
-                    outlineColor="black"
+                    outlineWidth={0.02}
+                    outlineColor="white"
                 >
                     {label}
                 </Text>
