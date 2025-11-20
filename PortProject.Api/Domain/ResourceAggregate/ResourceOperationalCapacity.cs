@@ -1,4 +1,4 @@
-﻿namespace PortProject.Api.Domain.ResourceAggregate;
+﻿﻿namespace PortProject.Api.Domain.ResourceAggregate;
     
     public class ResourceOperationalCapacity
     {
@@ -15,8 +15,8 @@
         public string? Unit { get; private set; }
         public double? GenericValue { get; private set; }
     
-        // Para EF
-        protected ResourceOperationalCapacity() { }
+        // For EF Core - must be public for EF to materialize owned types
+        public ResourceOperationalCapacity() { }
     
         private ResourceOperationalCapacity(
             ResourceKind kind,
