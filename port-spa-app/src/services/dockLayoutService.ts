@@ -16,8 +16,8 @@ export const generateDockLayout = (docks: Dock[]): LayoutElement[] => {
     const dockElements: LayoutElement[] = [];
     
     // Port layout constants (from PortLayoutService.cs)
-    const portGroundY = 1.0;
-    const portGroundHeight = 6.0;
+    const portGroundY = 0.41;
+    const portGroundHeight = 1.2;
     
     // Main pier land: position [0, 1.0, 0], size [80, 6.0, 120]
     // This means the main pier extends:
@@ -25,13 +25,14 @@ export const generateDockLayout = (docks: Dock[]): LayoutElement[] => {
     // - Z: from -60 to +60 (length of 120)
     
     // Docks should be positioned at the edges of this land mass
-    const mainPierLeftEdge = -40;  // Left edge X coordinate
-    const mainPierRightEdge = 40;   // Right edge X coordinate
-    const mainPierFrontEdge = 60;   // Front edge Z coordinate (towards water)
+    const mainPierLeftEdge = -34.5;  // Left edge X coordinate
+    const mainPierRightEdge = 34.5;   // Right edge X coordinate
+    const mainPierFrontEdge = -56.5;   // Front edge Z coordinate (towards water)
     
     const dockY = portGroundY;
     const dockHeight = portGroundHeight;
     const spacingBetweenDocks = 10; // Increased spacing between docks for clear separation
+    const spacingBetweenDocksFront = 135; // More spacing for front edge docks
     
     // Strategy based on number of docks:
     // 1-3 docks: Place on left edge of main pier
@@ -43,8 +44,8 @@ export const generateDockLayout = (docks: Dock[]): LayoutElement[] => {
         let currentZ = -40; // Start from a clear position
         
         docks.forEach((dock) => {
-            const dockLength = Math.min(dock.lengthInMeters || 50, 120); // Máximo de 120 metros
-            const dockDepth = dock.depthInMeters || 15;
+            const dockLength = Math.min(dock.lengthInMeters || 30, 30); // Máximo de 30 metros
+            const dockDepth = 12;
             
             const positionX = mainPierLeftEdge; // At the left edge
             const positionZ = currentZ + (dockLength / 2); // Center of the dock
@@ -71,8 +72,8 @@ export const generateDockLayout = (docks: Dock[]): LayoutElement[] => {
         // Left edge docks
         let currentLeftZ = -40; // Start position along Z axis
         leftDocks.forEach((dock) => {
-            const dockLength = Math.min(dock.lengthInMeters || 50, 120); // Máximo de 120 metros
-            const dockDepth = dock.depthInMeters || 15;
+            const dockLength = Math.min(dock.lengthInMeters || 30, 30); // Máximo de 30 metros
+            const dockDepth = 12;
             
             const positionX = mainPierLeftEdge;
             const positionZ = currentLeftZ + (dockLength / 2); // Center position
@@ -94,8 +95,8 @@ export const generateDockLayout = (docks: Dock[]): LayoutElement[] => {
         // Right edge docks
         let currentRightZ = -40;
         rightDocks.forEach((dock) => {
-            const dockLength = Math.min(dock.lengthInMeters || 50, 120); // Máximo de 120 metros
-            const dockDepth = dock.depthInMeters || 15;
+            const dockLength = Math.min(dock.lengthInMeters || 30, 30); // Máximo de 30 metros
+            const dockDepth = 12;
             
             const positionX = mainPierRightEdge;
             const positionZ = currentRightZ + (dockLength / 2); // Center position
@@ -124,8 +125,8 @@ export const generateDockLayout = (docks: Dock[]): LayoutElement[] => {
         // Left edge
         let currentLeftZ = -40;
         leftDocks.forEach((dock) => {
-            const dockLength = Math.min(dock.lengthInMeters || 50, 120); // Máximo de 120 metros
-            const dockDepth = dock.depthInMeters || 15;
+            const dockLength = Math.min(dock.lengthInMeters || 30, 30); // Máximo de 30 metros
+            const dockDepth = 12;
             
             const positionZ = currentLeftZ + (dockLength / 2);
             
@@ -136,16 +137,14 @@ export const generateDockLayout = (docks: Dock[]): LayoutElement[] => {
                 position: [mainPierLeftEdge, dockY, positionZ],
                 size: [dockDepth, dockHeight, dockLength]
             });
-            
-            console.log(`Positioning dock ${dock.name} on LEFT edge with ${spacingBetweenDocks}m spacing`);
             currentLeftZ += dockLength + spacingBetweenDocks;
         });
         
         // Right edge
         let currentRightZ = -40;
         rightDocks.forEach((dock) => {
-            const dockLength = Math.min(dock.lengthInMeters || 50, 120); // Máximo de 120 metros
-            const dockDepth = dock.depthInMeters || 15;
+            const dockLength = Math.min(dock.lengthInMeters || 30, 30); // Máximo de 30 metros
+            const dockDepth = 12;
             
             const positionZ = currentRightZ + (dockLength / 2);
             
@@ -162,10 +161,10 @@ export const generateDockLayout = (docks: Dock[]): LayoutElement[] => {
         });
         
         // Front edge (perpendicular orientation)
-        let currentFrontX = -40;
+        let currentFrontX = -105;
         frontDocks.forEach((dock) => {
-            const dockLength = Math.min(dock.lengthInMeters || 50, 120); // Máximo de 120 metros
-            const dockDepth = dock.depthInMeters || 15;
+            const dockLength = Math.min(dock.lengthInMeters || 30, 30); // Máximo de 30 metros
+            const dockDepth = 12;
             
             const positionX = currentFrontX + (dockLength / 2);
             
@@ -178,7 +177,7 @@ export const generateDockLayout = (docks: Dock[]): LayoutElement[] => {
             });
             
             console.log(`Positioning dock ${dock.name} on FRONT edge with ${spacingBetweenDocks}m spacing`);
-            currentFrontX += dockLength + spacingBetweenDocks;
+            currentFrontX += dockLength + spacingBetweenDocksFront;
         });
     }
     

@@ -1,17 +1,16 @@
 ﻿import React from 'react';
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls, Grid, Sky } from '@react-three/drei';
+import { OrbitControls, Grid, Environment, Sky } from '@react-three/drei';
 import { useGLTF } from '@react-three/drei';
 import { CargoShipModel } from "./CargoShipModel";
 import { ContainerModel } from './ContainerModel';
 import type { LayoutElement, RenderableVessel, RenderableResource, RenderableContainer } from '../../domain/types';
 import {
     DockModel, LandModel, WaterModel, YardModel, BuildingModel,
-    STSCraneModel
+    STSCraneModel, YardCraneModel
 } from './models';
 import { useMemo } from 'react';
 import * as THREE from 'three';
-import { Environment } from '@react-three/drei';
 
 // Global scale factor to make the whole port layout "bigger" in world units
 const WORLD_SCALE = 3; // tweak this to 2, 3, 4... until the map feels right
@@ -537,10 +536,11 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
             </div>
 
             <Canvas className="w-full h-full" shadows camera={{ position: [0, 40, 50], fov: 50 }}>
-
-                {/* Realistic Sky that reacts to our sun position */}
-                <Sky sunPosition={sunPosition} />
-
+                
+                <Sky
+                sunPosition={sunPosition}    
+                />
+                
                 {/* PBR Reflections (Makes the water and metal cranes look AMAZING) */}
                 <Environment preset="sunset" />
 
@@ -571,12 +571,6 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
             {scaledLayoutElements.map(el => {
                 switch (el.type) {
                     case 'dock': {
-                        // Split each dock into smaller sections along Z-axis with X-axis spacing
-                        console.log(`Processing dock ${el.id}:`, {
-                            name: el.name,
-                            position: el.position,
-                            size: el.size
-                        });
                         
                         const numSplits = 1;
                         const gapZ = 5 * WORLD_SCALE; // Gap along Z (depth)
@@ -592,7 +586,7 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
                         // Add extra offset for Dock B to move it away from land
                         const dockBOffset = isDockB ? 2 * WORLD_SCALE : 0;
                         
-                        console.log(`  isDockB: ${isDockB}, dockBOffset: ${dockBOffset}`);
+                        
                         
                         const dockSplits: React.ReactElement[] = [];
                         for (let i = 0; i < numSplits; i++) {
@@ -604,8 +598,6 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
                                 el.position[1],
                                 finalZ,
                             ];
-                            
-                            console.log(`  Split ${i + 1}: offsetZ=${offsetZ}, finalX=${finalX}, finalZ=${finalZ}, splitPosition:`, splitPosition);
                             
                             dockSplits.push(
                                 <DockModel 
@@ -622,9 +614,12 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
                     case 'yard': {
                         const yardContainers = containersByYard.get(el.id) ?? generateYardContainers(el.id);
 
-                        const tileCols = 2;
-                        const tileRows = 2;
-                        const gap = 5 * WORLD_SCALE;
+                        // NOTE: Each yard element (e.g., YARD-03-1) is already a subdivision from yardLayoutService
+                        // Here we further divide each subdivision into 4 visual tiles (2x2 grid) for better organization
+                        // This gives us visual separation within each subdivision
+                        const tileCols = 1;
+                        const tileRows = 1;
+                        const gap = 1.5 * WORLD_SCALE;  // Small gap between tiles for visual separation
                         const rawTileWidth = el.size[0] / tileCols;
                         const rawTileDepth = el.size[2] / tileRows;
                         const tileWidth = rawTileWidth - gap;
@@ -710,7 +705,7 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
                     case 'water':
                         return <WaterModel key={el.id} position={el.position} size={el.size} />;
                     case 'building':
-                        return <BuildingModel key={el.id} position={el.position} size={el.size} label={el.name} />;
+                        return <BuildingModel key={el.id} position={el.position} size={el.size} label={el.name} rotation={el.rotation} />;
                     default:
                         return null;
                 }
@@ -889,7 +884,7 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
                     if (area.type === 'dock') {
                         return (
                             <group key={`${r.id}-${r.code}`}>
-                                <STSCraneModel position={r.position} size={r.size} label={r.code} isNight={isNight} />
+                                <STSCraneModel position={r.position} size={r.size} label={r.kind} isNight={isNight} />
                                 {marker}
                             </group>
                         );
@@ -898,6 +893,7 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
                     if (area.type === 'yard') {
                         return (
                             <group key={`${r.id}-${r.code}`}>
+                                <YardCraneModel position={r.position} size={r.size} label={r.kind} isNight={isNight} />
                                 {marker}
                             </group>
                         );
@@ -914,9 +910,9 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
                 }}
                 // Allow zooming further out for the larger world
                 maxDistance={50 * WORLD_SCALE}
-                minDistance={10}
+                minDistance={20}
                 rotateSpeed={0.20}
-                panSpeed={0.30}
+                panSpeed={0.50}
             />
         </Canvas>
         </div>

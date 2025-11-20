@@ -1,16 +1,19 @@
-﻿    import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
     import PortScene from '../components/visualization/PortScene';
     
-    import {
-        getPortLayout,
-        getApprovedVesselVisits,
-        getResources,
-        getAllVesselTypes,
-        getVesselByImo,
-        getDockById,
-        getAllDocks
-    } from '../services/apiService';
-    import { generateDockLayout } from '../services/dockLayoutService';
+import {
+    getPortLayout,
+    getApprovedVesselVisits,
+    getResources,
+    getAllVesselTypes,
+    getVesselByImo,
+    getDockById,
+    getAllDocks,
+    getAllStorageAreas
+} from '../services/apiService';
+import { generateDockLayout } from '../services/dockLayoutService';
+import { generateYardLayout } from '../services/yardLayoutService';
+import { generateWarehouseLayout } from '../services/warehouseLayoutService';
     import type {
         PortLayout,
         RenderableVessel,
@@ -36,24 +39,41 @@
                     // Implement getPortLayout(layoutId) API call
                     // Fetch approved vessel visits via getApprovedVesselVisits()
                     // 1. Buscar todos os dados em paralelo
-                    const [layoutData, approvedVisits, allResources, vesselTypes, backendDocks] = await Promise.all([
+                    const [layoutData, approvedVisits, allResources, vesselTypes, backendDocks, backendStorageAreas] = await Promise.all([
                         getPortLayout(selectedLayout),
                         getApprovedVesselVisits(),
                         getResources(),
                         getAllVesselTypes(),
                         getAllDocks(), // Fetch docks from backend
+                        getAllStorageAreas(), // Fetch storage areas (yards + warehouses) from backend
                     ]);
-    
+
                     console.log('Backend docks fetched:', backendDocks);
-    
+                    console.log('Backend storage areas fetched:', backendStorageAreas);
+
                     // Generate dynamic dock layout elements from backend docks
                     const dynamicDockElements = generateDockLayout(backendDocks);
                     
-                    console.log('Dynamic dock elements generated:', dynamicDockElements);
+                    // Generate dynamic yard layout elements from backend storage areas (Type = "Yard")
+                    const dynamicYardElements = generateYardLayout(backendStorageAreas);
                     
-                    // Remove static docks from layout and add dynamic ones
-                    const layoutElementsWithoutDocks = layoutData.elements.filter(el => el.type !== 'dock');
-                    const finalLayoutElements = [...layoutElementsWithoutDocks, ...dynamicDockElements];
+                    // Generate dynamic warehouse layout elements from backend storage areas (Type = "Warehouse")
+                    const dynamicWarehouseElements = generateWarehouseLayout(backendStorageAreas);
+                    
+                    console.log('Dynamic dock elements generated:', dynamicDockElements);
+                    console.log('Dynamic yard elements generated:', dynamicYardElements);
+                    console.log('Dynamic warehouse elements generated:', dynamicWarehouseElements);
+                    
+                    // Remove static docks, yards, and buildings from layout and add dynamic ones
+                    const layoutElementsWithoutDynamicTypes = layoutData.elements.filter(
+                        el => el.type !== 'dock' && el.type !== 'yard' && el.type !== 'building'
+                    );
+                    const finalLayoutElements = [
+                        ...layoutElementsWithoutDynamicTypes, 
+                        ...dynamicDockElements,
+                        ...dynamicYardElements,
+                        ...dynamicWarehouseElements
+                    ];
                     
                     console.log('Final layout elements:', finalLayoutElements);
                     
@@ -67,6 +87,7 @@
                     // Log layout structure for debugging
                     console.debug('Port layout elements:', updatedLayout.elements);
                     console.debug('Dynamic docks created:', dynamicDockElements.length);
+                    console.debug('Dynamic yards created:', dynamicYardElements.length);
                     console.debug('Approved vessel visits from API:', approvedVisits);
     
                     // Extract layout.elements and map by ID
@@ -167,57 +188,176 @@
                     // Fetch and render cranes (procedural geometry)
                     // Fetch resources via getResources() and filter by crane type
                     // 3. Processar Recursos (Gruas)
+                    console.log('=== CRANE PROCESSING DEBUG ===');
+                    console.log('Total resources fetched:', allResources.length);
+                    console.log('All resources:', allResources);
+                    
                     const renderableResources: RenderableResource[] = [];
                     for (const r of (allResources as Resource[])) {
-                        if (!r.assignedArea || !r.kind.toLowerCase().includes('crane')) continue;
+                        console.log(`Processing resource: ${r.code}, kind: ${r.kind}, assignedArea: ${r.assignedArea}`);
+                        
+                        if (!r.assignedArea) {
+                            console.warn(`Resource ${r.code} has no assignedArea - SKIPPING`);
+                            continue;
+                        }
+                        
+                        if (!r.kind.toLowerCase().includes('crane')) {
+                            console.log(`Resource ${r.code} is not a crane (kind: ${r.kind}) - SKIPPING`);
+                            continue;
+                        }
+                        
+                        console.log(`✓ Resource ${r.code} is a crane with assigned area ${r.assignedArea}`);
     
                         // Try to match assignedArea to layout element by id first
+                        // For yards, the assignedArea might be the base code (e.g., "YARD-01") 
+                        // but the layout now has subdivisions (e.g., "YARD-01-1", "YARD-01-2", etc.)
                         let area = layoutElementsMap.get(r.assignedArea!);
-    
+                        console.log(`  Trying to match assignedArea "${r.assignedArea}" in layoutElementsMap...`);
+                        console.log(`  Direct match result:`, area);
+                        
+                        // If no direct match, try finding a subdivision with this base code
+                        if (!area) {
+                            // Try to find any yard subdivision that starts with this assignedArea
+                            const possibleSubdivision = finalLayoutElements.find((el: LayoutElement) => 
+                                el.type === 'yard' && 
+                                (el.id === r.assignedArea || el.id.startsWith(r.assignedArea + '-'))
+                            );
+                            
+                            if (possibleSubdivision) {
+                                console.log(`  Found yard subdivision match: ${possibleSubdivision.id}`);
+                                area = possibleSubdivision;
+                            }
+                        }
+
                         // Fallback: some resources store assignedArea as a GUID while layout elements use the dock name.
                         // Try resolving with getDockById and match by name if initial lookup failed.
                         if (!area) {
+                            console.log(`  No direct match. Attempting getDockById fallback...`);
                             try {
                                 const dockDto = await getDockById(r.assignedArea!);
+                                console.log(`  getDockById returned:`, dockDto);
                                 if (dockDto?.name) {
-                                    area = layoutElementsMap.get(dockDto.name) || layoutData.elements.find((el: LayoutElement) => el.name === dockDto.name);
+                                    area = layoutElementsMap.get(dockDto.name) || finalLayoutElements.find((el: LayoutElement) => el.name === dockDto.name);
+                                    console.log(`  Matched by dock name "${dockDto.name}":`, area);
                                 }
                             } catch (err) {
                                 console.warn('Could not resolve resource.assignedArea to layout element:', r.assignedArea, err);
                             }
                         }
-    
-                        if (!area) continue; // still couldn't resolve area
-    
-                        let resourceSize: [number, number, number];
-                        let resourcePosition: [number, number, number];
-    
-                        if (area.type === 'dock') {
-                            // Ship-to-Shore (STS) Crane
-                            // Use a small base height: models scale internally (e.g. towerHeight = size[1] * 8)
-                            resourceSize = [1, 1.2, area.size[2] * 0.8]; // thin, moderate height, span-wise length
-                            resourcePosition = [area.position[0], resourceSize[1] / 2, area.position[2]];
-                        } else if (area.type === 'yard') {
-                            // Yard Crane (RTG/RMG)
-                            resourceSize = [area.size[0] * 0.8, 1.2, 1]; // wide, moderate height, thin
-                            resourcePosition = [area.position[0], resourceSize[1] / 2, area.position[2]];
-                        } else {
-                            // Don't render cranes for unknown area types; skip this resource but continue processing others
+
+                        if (!area) {
+                            console.error(`✗ Could not resolve area for crane ${r.code} - SKIPPING. Available layout element IDs:`, Array.from(layoutElementsMap.keys()));
                             continue;
                         }
+                        
+                        console.log(`  ✓ Successfully resolved area:`, area);
     
-                        renderableResources.push({
-                            id: area.id,
-                            code: r.code,
-                            kind: r.kind,
-                            position: resourcePosition,
-                            size: resourceSize,
-                            modelUrl: r.kind.toLowerCase().includes('sts') ? '/models/sts-crane.glb' : undefined
-                        } as RenderableResource);
+                        // Check if this is a yard - if so, we need to find all subdivisions and create a crane for each
+                        const isYard = area.type === 'yard';
+                        let areasToProcess: LayoutElement[] = [area];
+                        
+                        if (isYard) {
+                            // Extract the base yard code by removing any subdivision suffix (-1, -2, -3, -4)
+                            // Examples: "YARD-01-1" -> "YARD-01", "YARD-01" -> "YARD-01", "YARD-03" -> "YARD-03"
+                            const baseYardCode = r.assignedArea!.replace(/-[1-4]$/, '');
+                            
+                            console.log(`  This is a YARD crane. Base yard code extracted: "${baseYardCode}" from assignedArea "${r.assignedArea}"`);
+                            console.log(`  Original crane resource code: ${r.code}`);
+                            console.log(`  Looking for subdivisions: ${baseYardCode}-1, ${baseYardCode}-2, ${baseYardCode}-3, ${baseYardCode}-4`);
+                            
+                            // Find all 4 subdivisions of this yard (baseCode-1, baseCode-2, baseCode-3, baseCode-4)
+                            // NOTE: We only look for subdivisions (-1, -2, -3, -4), NOT the base code itself
+                            // because yards are always subdivided into 4 sections by yardLayoutService
+                            const subdivisions = finalLayoutElements.filter((el: LayoutElement) => 
+                                el.type === 'yard' && 
+                                (el.id === `${baseYardCode}-1` || 
+                                 el.id === `${baseYardCode}-2` || 
+                                 el.id === `${baseYardCode}-3` || 
+                                 el.id === `${baseYardCode}-4`)
+                            );
+                            
+                            console.log(`  Available yard IDs in layout:`, finalLayoutElements.filter(e => e.type === 'yard').map(e => e.id));
+                            
+                            if (subdivisions.length === 4) {
+                                console.log(`  ✓ Found all 4 yard subdivisions for base yard "${baseYardCode}":`, subdivisions.map(s => s.id));
+                                console.log(`  Will create 4 crane instances (one per subdivision)`);
+                                areasToProcess = subdivisions;
+                            } else if (subdivisions.length > 0) {
+                                console.warn(`  ⚠ Found only ${subdivisions.length}/4 subdivisions for "${baseYardCode}":`, subdivisions.map(s => s.id));
+                                areasToProcess = subdivisions;
+                            } else {
+                                console.error(`  ✗ No subdivisions found for base yard "${baseYardCode}"!`);
+                                console.error(`  Expected to find: ${baseYardCode}-1, ${baseYardCode}-2, ${baseYardCode}-3, ${baseYardCode}-4`);
+                                console.error(`  This shouldn't happen - check yardLayoutService.ts`);
+                                // Fallback to original area
+                            }
+                        } else {
+                            console.log(`  This is a DOCK crane (not subdivided)`);
+                        }
+                        
+                        // Process each area (for yards, this will be all 4 subdivisions)
+                        for (const processArea of areasToProcess) {
+                            let resourceSize: [number, number, number];
+                            let resourcePosition: [number, number, number];
+
+                            if (processArea.type === 'dock') {
+                                // Ship-to-Shore (STS) Crane
+                                console.log(`  Area type is 'dock' - creating STS crane`);
+                                // Use a small base height: models scale internally (e.g. towerHeight = size[1] * 8)
+                                resourceSize = [1, 1.2, processArea.size[2] * 0.8]; // thin, moderate height, span-wise length
+                                resourcePosition = [processArea.position[0], resourceSize[1] / 2, processArea.position[2]];
+                            } else if (processArea.type === 'yard') {
+                                // Yard Crane (RTG/RMG)
+                                console.log(`  Area type is 'yard' - creating yard crane for ${processArea.id}`);
+                                resourceSize = [processArea.size[0] * 0.95, 2.5, 3]; // wide, moderate height, thin
+                                resourcePosition = [processArea.position[0], resourceSize[1] / 2, processArea.position[2]];
+                            } else {
+                                // Don't render cranes for unknown area types; skip this resource but continue processing others
+                                console.warn(`  Area type is '${processArea.type}' - not supported for cranes, SKIPPING`);
+                                continue;
+                            }
+                            
+                            console.log(`  Calculated position for ${processArea.id}:`, resourcePosition);
+                            console.log(`  Calculated size:`, resourceSize);
+
+                            const renderableResource = {
+                                id: processArea.id,
+                                code: `${r.code}@${processArea.id}`, // Unique code for each subdivision
+                                kind: r.kind,
+                                position: resourcePosition,
+                                size: resourceSize,
+                                modelUrl: r.kind.toLowerCase().includes('sts') ? '/models/sts-crane.glb' : undefined
+                            } as RenderableResource;
+                            
+                            console.log(`  ✓✓ ADDED renderable resource:`, renderableResource);
+                            renderableResources.push(renderableResource);
+                        }
                     }
-    
+
                     // DEBUG: log constructed renderable resources to help diagnose missing cranes
+                    console.log('=== FINAL RENDERABLE RESOURCES ===');
                     console.debug('VisualizationPage: constructed renderableResources =', renderableResources);
+                    console.log('Total renderable cranes:', renderableResources.length);
+                    
+                    // Group by original resource code to show duplication
+                    const cranesByOriginalCode = new Map<string, RenderableResource[]>();
+                    renderableResources.forEach(r => {
+                        const originalCode = r.code.split('@')[0]; // Extract base code before @
+                        if (!cranesByOriginalCode.has(originalCode)) {
+                            cranesByOriginalCode.set(originalCode, []);
+                        }
+                        cranesByOriginalCode.get(originalCode)!.push(r);
+                    });
+                    
+                    console.log('=== CRANE DUPLICATION SUMMARY ===');
+                    cranesByOriginalCode.forEach((cranes, originalCode) => {
+                        if (cranes.length > 1) {
+                            console.log(`📦 Crane "${originalCode}" was duplicated into ${cranes.length} instances:`);
+                            cranes.forEach(c => console.log(`   - ${c.code} at area ${c.id}`));
+                        } else {
+                            console.log(`📦 Crane "${originalCode}" has 1 instance at area ${cranes[0].id}`);
+                        }
+                    });
     
                     setResources(renderableResources);
     
