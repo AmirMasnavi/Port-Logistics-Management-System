@@ -25,18 +25,18 @@ public class ResourceControllerTest
         // Arrange
         var createDto = new CreateResourceDto()
         {
-            Code = "RES123",
             Description = "A resource for testing",
             Kind = "Crane",
             Status = "Active",
             SetupTimeMinutes = 0,
             OperationalWindowStart = new TimeOnly(8, 0),
-            OperationalWindowEnd = new TimeOnly(18, 0)
+            OperationalWindowEnd = new TimeOnly(18, 0),
+            AverageContainersPerHour = 10
         };
 
         var expected = new ResourceDto
         {
-            Code = "RES123",
+            Code = "res001", // generated code example
             Description = "A resource for testing",
             Kind = "Crane",
             AssignedArea = null,
@@ -49,7 +49,7 @@ public class ResourceControllerTest
         };
 
         _mockResourceService
-            .Setup(s => s.CreateResourceAsync(It.Is<CreateResourceDto>(d => d.Code == createDto.Code && d.Description == createDto.Description)))
+            .Setup(s => s.CreateResourceAsync(It.Is<CreateResourceDto>(d => d.Description == createDto.Description)))
             .ReturnsAsync(expected);
 
         var controller = new PortProject.Api.Controllers.ResourceController(_mockResourceService.Object);
@@ -91,13 +91,13 @@ public class ResourceControllerTest
         // Arrange
         var createDto = new CreateResourceDto()
         {
-            Code = "RES_ERR",
             Description = "Invalid",
             Kind = "Crane",
             Status = "Active",
             SetupTimeMinutes = 0,
             OperationalWindowStart = new TimeOnly(8, 0),
-            OperationalWindowEnd = new TimeOnly(18, 0)
+            OperationalWindowEnd = new TimeOnly(18, 0),
+            AverageContainersPerHour = 10
         };
 
         _mockResourceService
