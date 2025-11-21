@@ -24,7 +24,8 @@ namespace PortProject.Api.Controllers
             try
             {
                 var id = await _service.RegisterOrganizationAsync(dto);
-                return CreatedAtAction(nameof(GetOrganizationById), new { id }, $"{dto.LegalName} created successfully!");
+                // Return 201 Created with the created resource id in the response body (integration tests expect a GUID)
+                return CreatedAtAction(nameof(GetOrganizationById), new { id }, id);
             }
             catch (ArgumentException ex)
             {
