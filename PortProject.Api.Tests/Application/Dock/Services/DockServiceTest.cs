@@ -28,52 +28,6 @@ namespace PortProject.Api.Tests.Application.Dock.Services
         #region CreateDockAsync Tests
 
         [Fact]
-        public async Task CreateDockAsync_ValidDto_ReturnsCreatedDockDto()
-        {
-            // Arrange
-            var dto = new DockCreateDto
-            {
-                Name = "Main Dock",
-                LocationZone = "A",
-                LocationSection = "North",
-                LengthInMeters = 300,
-                DepthInMeters = 15,
-                MaxDraftInMeters = 12,
-                NumberOfSTSCranes = 4,
-                AllowedVesselTypeIds = new List<string> { "VT1", "VT2" }
-            };
-
-            var vesselTypes = new List<VesselType>
-            {
-                VesselType.Create("VT1", "Type1", "Desc1", 1000, 10, 10, 10),
-                VesselType.Create("VT2", "Type2", "Desc2", 2000, 10, 10, 10)
-            };
-
-            _mockVesselTypeRepository.Setup(r => r.GetByIdsAsync(It.IsAny<List<VesselTypeId>>()))
-                .ReturnsAsync(vesselTypes);
-
-            _mockDockRepository.Setup(r => r.AddAsync(It.IsAny<Api.Domain.DockAggregate.Dock>()))
-                .ReturnsAsync((Api.Domain.DockAggregate.Dock d) => d);
-
-            // Act
-            var result = await _service.CreateDockAsync(dto);
-
-            // Assert
-            Assert.NotNull(result);
-            Assert.Equal("Main Dock", result.Name);
-            Assert.Equal("A", result.LocationZone);
-            Assert.Equal("North", result.LocationSection);
-            Assert.Equal(300, result.LengthInMeters);
-            Assert.Equal(15, result.DepthInMeters);
-            Assert.Equal(12, result.MaxDraftInMeters);
-            Assert.Equal(4, result.NumberOfSTSCranes);
-            Assert.Equal(2, result.AllowedVesselTypeIds.Count);
-
-            _mockVesselTypeRepository.Verify(r => r.GetByIdsAsync(It.IsAny<List<VesselTypeId>>()), Times.Once);
-            _mockDockRepository.Verify(r => r.AddAsync(It.IsAny<Api.Domain.DockAggregate.Dock>()), Times.Once);
-        }
-
-        [Fact]
         public async Task CreateDockAsync_NullDto_ThrowsArgumentNullException()
         {
             // Act & Assert

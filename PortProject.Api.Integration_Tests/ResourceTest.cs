@@ -119,7 +119,6 @@ public class ResourceTest : IClassFixture<IntegrationTestsWebApplicationFactory<
         // Arrange
         var newResource = new CreateResourceDto
         {
-            Code = "crane002",
             Description = "Secondary Dock Crane",
             Kind = "Crane",
             AssignedArea = "Dock B",
@@ -142,7 +141,8 @@ public class ResourceTest : IClassFixture<IntegrationTestsWebApplicationFactory<
         var createdResource = JsonConvert.DeserializeObject<ResourceDto>(responseBody);
 
         Assert.NotNull(createdResource);
-        Assert.Equal("crane002", createdResource.Code);
+        Assert.False(string.IsNullOrWhiteSpace(createdResource.Code));
+        Assert.StartsWith("res", createdResource.Code); // auto-generated prefix
         Assert.Equal("Secondary Dock Crane", createdResource.Description);
         Assert.Equal("Crane", createdResource.Kind);
         Assert.Equal("Dock B", createdResource.AssignedArea);
@@ -155,7 +155,6 @@ public class ResourceTest : IClassFixture<IntegrationTestsWebApplicationFactory<
         // Arrange
         var newResource = new CreateResourceDto
         {
-            Code = "truck002",
             Description = "Cargo Transport Truck",
             Kind = "Truck",
             AssignedArea = "Yard A",
@@ -179,7 +178,7 @@ public class ResourceTest : IClassFixture<IntegrationTestsWebApplicationFactory<
         var createdResource = JsonConvert.DeserializeObject<ResourceDto>(responseBody);
 
         Assert.NotNull(createdResource);
-        Assert.Equal("truck002", createdResource.Code);
+        Assert.StartsWith("res", createdResource.Code);
         Assert.Equal("Cargo Transport Truck", createdResource.Description);
         Assert.Equal("Truck", createdResource.Kind);
         Assert.Equal(8, createdResource.ContainersPerTrip);
@@ -192,7 +191,6 @@ public class ResourceTest : IClassFixture<IntegrationTestsWebApplicationFactory<
         // Arrange
         var newResource = new CreateResourceDto
         {
-            Code = "loader001",
             Description = "Cargo Loader",
             Kind = "Other",
             AssignedArea = "Warehouse A",
@@ -216,75 +214,11 @@ public class ResourceTest : IClassFixture<IntegrationTestsWebApplicationFactory<
         var createdResource = JsonConvert.DeserializeObject<ResourceDto>(responseBody);
 
         Assert.NotNull(createdResource);
-        Assert.Equal("loader001", createdResource.Code);
+        Assert.StartsWith("res", createdResource.Code);
         Assert.Equal("Cargo Loader", createdResource.Description);
         Assert.Equal("Other", createdResource.Kind);
         Assert.Equal("pallets", createdResource.OtherUnit);
         Assert.Equal(100.0, createdResource.OtherGenericValue);
-    }
-
-    [Fact]
-    public async Task Post_EmptyCode_ReturnsBadRequest()
-    {
-        // Arrange
-        using (var scope = _factory.Services.CreateScope())
-        {
-            var db = scope.ServiceProvider.GetRequiredService<PortProjectContext>();
-            ReinitializeResourcesDb(db);
-        }
-
-        var invalidResource = new CreateResourceDto
-        {
-            Code = "",
-            Description = "Test Resource",
-            Kind = "Crane",
-            Status = "Active",
-            SetupTimeMinutes = 30,
-            OperationalWindowStart = new TimeOnly(8, 0),
-            OperationalWindowEnd = new TimeOnly(18, 0),
-            AverageContainersPerHour = 50
-        };
-
-        var jsonContent = JsonConvert.SerializeObject(invalidResource);
-        var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
-
-        // Act
-        HttpResponseMessage response = await _client.PostAsync("/api/Resource", content);
-
-        // Assert
-        Assert.Equal(System.Net.HttpStatusCode.BadRequest, response.StatusCode);
-    }
-
-    [Fact]
-    public async Task Post_NullCode_ReturnsBadRequest()
-    {
-        // Arrange
-        using (var scope = _factory.Services.CreateScope())
-        {
-            var db = scope.ServiceProvider.GetRequiredService<PortProjectContext>();
-            ReinitializeResourcesDb(db);
-        }
-
-        var invalidResource = new CreateResourceDto
-        {
-            Code = null!,
-            Description = "Test Resource",
-            Kind = "Crane",
-            Status = "Active",
-            SetupTimeMinutes = 30,
-            OperationalWindowStart = new TimeOnly(8, 0),
-            OperationalWindowEnd = new TimeOnly(18, 0),
-            AverageContainersPerHour = 50
-        };
-
-        var jsonContent = JsonConvert.SerializeObject(invalidResource);
-        var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
-
-        // Act
-        HttpResponseMessage response = await _client.PostAsync("/api/Resource", content);
-
-        // Assert
-        Assert.Equal(System.Net.HttpStatusCode.BadRequest, response.StatusCode);
     }
 
     [Fact]
@@ -299,7 +233,6 @@ public class ResourceTest : IClassFixture<IntegrationTestsWebApplicationFactory<
 
         var invalidResource = new CreateResourceDto
         {
-            Code = "crane003",
             Description = "",
             Kind = "Crane",
             Status = "Active",
@@ -331,7 +264,6 @@ public class ResourceTest : IClassFixture<IntegrationTestsWebApplicationFactory<
 
         var invalidResource = new CreateResourceDto
         {
-            Code = "resource001",
             Description = "Test Resource",
             Kind = "InvalidKind",
             Status = "Active",
@@ -362,7 +294,6 @@ public class ResourceTest : IClassFixture<IntegrationTestsWebApplicationFactory<
 
         var invalidResource = new CreateResourceDto
         {
-            Code = "crane004",
             Description = "Test Crane",
             Kind = "Crane",
             Status = "InvalidStatus",
@@ -394,7 +325,6 @@ public class ResourceTest : IClassFixture<IntegrationTestsWebApplicationFactory<
 
         var invalidResource = new CreateResourceDto
         {
-            Code = "crane005",
             Description = "Test Crane",
             Kind = "Crane",
             Status = "Active",

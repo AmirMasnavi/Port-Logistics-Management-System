@@ -1,4 +1,4 @@
-﻿namespace PortProject.Api.Domain.ResourceAggregate;
+﻿﻿namespace PortProject.Api.Domain.ResourceAggregate;
 
 public class ResourceOperationalWindow
 {
@@ -6,8 +6,8 @@ public class ResourceOperationalWindow
     public TimeOnly EndTime { get; private set; }
     
     
-    // For EF
-    private ResourceOperationalWindow() { }
+    // For EF Core - must be public or protected for EF to materialize owned types
+    public ResourceOperationalWindow() { }
     
     
     public ResourceOperationalWindow(TimeOnly startTime, TimeOnly endTime)

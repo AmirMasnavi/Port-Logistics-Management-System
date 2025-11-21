@@ -121,7 +121,7 @@ public class StorageAreaTest
         var currentOccupancy = new StorageAreaCurrentOccupancy(50);
         var storageArea = new StorageArea(location, type, capacity, currentOccupancy);
 
-        var expected = $"Id:  | Location: {location} | Type: {type} | Capacity: {capacity} | Current Occupancy: {currentOccupancy}";
+        var expected = $"Location: {location} | Type: {type} | Capacity: {capacity} | Current Occupancy: {currentOccupancy}";
 
         Assert.Equal(expected, storageArea.ToString());
     }

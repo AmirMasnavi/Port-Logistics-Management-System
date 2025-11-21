@@ -65,6 +65,32 @@ function seededRandom(seed: string) {
 }
 
 const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resources, containers }) => {
+    // 🚢 DEBUG: Log props received by PortScene
+    console.log('🎬 ========== PortScene RENDER ==========');
+    console.log('🎬 PortScene received props:');
+    console.log('  - layoutElements count:', layoutElements.length);
+    console.log('  - vessels count:', vessels.length);
+    console.log('  - resources count:', resources.length);
+    console.log('  - containers count:', containers?.length || 0);
+    console.log('🚢 Vessels array received:', vessels);
+    
+    if (vessels.length > 0) {
+        console.log('🚢 First vessel details:', vessels[0]);
+        vessels.forEach((v, idx) => {
+            console.log(`🚢 Vessel ${idx + 1}:`, {
+                id: v.id,
+                name: v.name,
+                imo: v.imo,
+                position: v.position,
+                size: v.size,
+                rotation: v.rotation,
+                modelUrl: v.modelUrl
+            });
+        });
+    } else {
+        console.warn('⚠️ PortScene received ZERO vessels!');
+    }
+    
     // 1. State for the time of day (0 to 24 hours)
     const [hour, setHour] = React.useState(12); // Start at noon
     const [isPanelHovered, setIsPanelHovered] = React.useState(false);
