@@ -242,6 +242,23 @@ export const useShippingAgentsPageController = () => {
     } finally { setDeletingRepId(null); }
   };
 
+  // Confirmed deletion invoked programmatically (no browser confirm) - useful when the page shows its own ConfirmationModal
+  const confirmDeleteRepresentative = async (citizenId: string) => {
+    if (!citizenId) { setError('This representative has no Citizen ID associated — it cannot be deleted.'); return; }
+    try {
+      setDeletingRepId(citizenId);
+      await service.deleteRepresentative(citizenId);
+      const target = normalize(citizenId.toString().trim());
+      setReps(prev => prev.filter(r => normalize(r.citizenId) !== target));
+      setView('representatives');
+      setSuccessMsg(`Representative with Citizen ID ${citizenId} deleted.`);
+      await fetchAll();
+      window.setTimeout(() => setSuccessMsg(null), 3500);
+    } catch (e: any) {
+      const msg = mapServerError(e) || e?.message || 'Failed to delete representative'; setError(msg);
+    } finally { setDeletingRepId(null); }
+  };
+
   // Editing representative
   const validateEditValues = (): string | null => {
     if (!editingValues) return 'No data to save.';
@@ -368,6 +385,7 @@ export const useShippingAgentsPageController = () => {
     setOrgEmailError, setRepInitEmailError, setRepEmailError,
     startEdit, cancelEdit, handleEditChange, saveEdit,
     handleCreateOrganization, handleCreateRepresentative, handleDeleteRepresentative,
+    confirmDeleteRepresentative,
     // Utilities maybe needed by page (original kept)
     isValidEmail, isValidPtMobile,
     // New helpers exposed to UI
