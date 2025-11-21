@@ -345,7 +345,12 @@ public class PortProjectContext : DbContext
             ab.Property(a => a.Street).HasColumnName("Address_Street");
             ab.Property(a => a.City).HasColumnName("Address_City");
             ab.Property(a => a.Country).HasColumnName("Address_Country");
+            ab.HasIndex(a => new { a.Street, a.City, a.Country }).IsUnique();
         });
+
+        orgBuilder.HasIndex(o => o.TaxNumber).IsUnique();
+        orgBuilder.HasIndex(o => o.Email).IsUnique();
+        orgBuilder.HasIndex(o => o.Phone).IsUnique();
 
         // 4. Configure the one-to-many relationship with Representatives
         // This assumes ShippingAgentRepresentative has a foreign key property pointing back to the organization.
@@ -540,24 +545,24 @@ public class PortProjectContext : DbContext
             .HasColumnName("AssignedArea")
             .HasMaxLength(100);
 
-        // Description as owned value object
-        resourceBuilder.OwnsOne(r => r.Description, db =>
-        {
-            db.Property(p => p.Description)
-                .HasColumnName("Description")
-                .HasMaxLength(255)
-                .IsRequired();
-        });
+        // Description as a simple value conversion (not owned type)
+        resourceBuilder.Property(r => r.Description)
+            .HasConversion(
+                desc => desc.Description,
+                val => new PortProject.Api.Domain.ResourceAggregate.ResourceDescription(val))
+            .HasColumnName("Description")
+            .HasMaxLength(255)
+            .IsRequired();
 
-        // SetupTime as owned value object
-        resourceBuilder.OwnsOne(r => r.SetupTime, sb =>
-        {
-            sb.Property(p => p.Minutes)
-                .HasColumnName("SetupTimeMinutes")
-                .IsRequired();
-        });
+        // SetupTime as a simple value conversion (not owned type)
+        resourceBuilder.Property(r => r.SetupTime)
+            .HasConversion(
+                st => st.Minutes,
+                val => new PortProject.Api.Domain.ResourceAggregate.ResourceSetupTime(val))
+            .HasColumnName("SetupTimeMinutes")
+            .IsRequired();
 
-        // OperationalWindow as owned value object (TimeOnly via converter)
+        // OperationalWindow as owned value object (maps to 2 columns)
         resourceBuilder.OwnsOne(r => r.OperationalWindow, wb =>
         {
             wb.Property(p => p.StartTime)
@@ -569,7 +574,7 @@ public class PortProjectContext : DbContext
                 .HasColumnName("OperationalEnd")
                 .HasConversion(timeConverter)
                 .IsRequired();
-        });
+        }).Navigation(r => r.OperationalWindow).IsRequired();
 
         // OperationalCapacity as owned value object
         resourceBuilder.OwnsOne(r => r.OperationalCapacity, cb =>
@@ -594,7 +599,7 @@ public class PortProjectContext : DbContext
 
             cb.Property(p => p.GenericValue)
                 .HasColumnName("CapacityValue");
-        });
+        }).Navigation(r => r.OperationalCapacity).IsRequired();
         
         resourceBuilder
             .HasMany(r => r.Qualifications)

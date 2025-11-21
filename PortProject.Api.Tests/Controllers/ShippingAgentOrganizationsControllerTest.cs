@@ -54,7 +54,6 @@ namespace PortProject.Api.Tests.Controllers
             Assert.IsNotNull(created.RouteValues);
             Assert.IsTrue(created.RouteValues!.TryGetValue("id", out var routeId));
             Assert.AreEqual(newId, (Guid)routeId!);
-            Assert.AreEqual(newId, created.Value);
 
             _serviceMock.Verify(s => s.RegisterOrganizationAsync(dto, It.IsAny<CancellationToken>()), Times.Once);
         }

@@ -12,8 +12,6 @@ import type {
     DockCreateDto,
 } from '../domain/types';
 
-import type { Resource } from '../domain/resource/resource.model';
-import type { StorageArea, StorageAreaCreateDto } from '../domain/storageArea/storageArea.model';
 
 // --- Internal Role Constants ---
 export const InternalRole = {
@@ -210,17 +208,6 @@ export const createDock = async (dockData: DockCreateDto): Promise<Dock> => {
     return response.data;
 };
 
-// Storage Areas
-export const getAllStorageAreas = async (): Promise<StorageArea[]> => {
-    const response = await apiClient.get<StorageArea[]>(`/StorageArea`);
-    return response.data;
-};
-
-export const createStorageArea = async (data: StorageAreaCreateDto): Promise<StorageArea> => {
-    const response = await apiClient.post<StorageArea>(`/StorageArea`, data);
-    return response.data;
-};
-
 // Shipping Agents
 export const getAllShippingAgentOrganizations = async (): Promise<any[]> => {
     try {
@@ -316,10 +303,6 @@ export const getApprovedVesselVisits = async (): Promise<VesselVisit[]> => {
     return response.data;
 };
 
-export const getResources = async (): Promise<Resource[]> => {
-    const response = await apiClient.get<Resource[]>(`/Resource`);
-    return response.data;
-};
 
 export const getVesselByImo = async (imo: string) => {
     const response = await apiClient.get(`/Vessel/${imo}`);

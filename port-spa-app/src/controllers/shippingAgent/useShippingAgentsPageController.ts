@@ -86,6 +86,7 @@ export const useShippingAgentsPageController = () => {
       const { organizations, representatives } = await service.fetchAll();
       setOrgs(organizations);
       setReps(representatives);
+      (globalThis as any).shippingAgentCache = { orgs: organizations, reps: representatives };
     } catch (e: any) {
       setError(e?.message || 'Failed to fetch data. Please try again later.');
     } finally { setLoading(false); }

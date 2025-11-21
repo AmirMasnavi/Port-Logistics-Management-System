@@ -35,6 +35,8 @@ namespace PortProject.Api.Domain.ShippingAgentOrganizationAggregate
         Task<ShippingAgentOrganization?> GetByLegalNameAsync(LegalName legalName);
 
         Task<IEnumerable<ShippingAgentOrganization>> GetAllAsync(CancellationToken ct = default);
-
+        Task<bool> ExistsByEmailAsync(string email);
+        Task<bool> ExistsByPhoneAsync(string phone);
+        Task<bool> ExistsByAddressAsync(Address address);
     }
 }
