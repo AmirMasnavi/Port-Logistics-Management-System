@@ -145,10 +145,17 @@ export const useShippingAgentsPageController = () => {
     return null;
   };
 
-  const handleCreateOrganization = async (e: React.FormEvent) => {
-    e.preventDefault(); if (!canSubmitOrg) return;
+  const handleCreateOrganization = async (e?: React.FormEvent): Promise<boolean> => {
+    if (e && typeof (e as any).preventDefault === 'function') (e as any).preventDefault();
+    if (!canSubmitOrg) return false;
     setOrgEmailError(null); setRepInitEmailError(null); setError(null);
-    const clientErr = validateOrganizationBeforeSubmit(); if (clientErr) { if (!isValidEmail(orgEmail)) setOrgEmailError('Organization email appears invalid.'); if (!isValidEmail(repInitEmail)) setRepInitEmailError('Initial representative email appears invalid.'); setError(clientErr); return; }
+    const clientErr = validateOrganizationBeforeSubmit();
+    if (clientErr) {
+      if (!isValidEmail(orgEmail)) setOrgEmailError('Organization email appears invalid.');
+      if (!isValidEmail(repInitEmail)) setRepInitEmailError('Initial representative email appears invalid.');
+      setError(clientErr);
+      return false;
+    }
     setSubmittingOrg(true);
     try {
       const addr = parseAddress(orgAddress);
@@ -174,8 +181,10 @@ export const useShippingAgentsPageController = () => {
       await service.createOrganization(payload);
       setOrgName(''); setOrgAddress(''); setOrgEmail(''); setOrgPhone(''); setOrgTaxNumber(''); setRepInitName(''); setRepInitCitizen(''); setRepInitNationality(''); setRepInitEmail(''); setRepInitPhone('');
       await fetchAll(); setView('organizations');
+      return true;
     } catch (e: any) {
-      const msg = mapServerError(e) || e?.message || 'Failed to create organization. Please check the data and try again.'; setError(msg);
+      const msg = (typeof mapServerError === 'function' ? mapServerError(e) : null) || e?.message || 'Failed to create organization. Please check the data and try again.'; setError(msg);
+      return false;
     } finally { setSubmittingOrg(false); }
   };
 

@@ -7,9 +7,7 @@
 	
 	<s:String x:Key="/Default/Environment/UnitTesting/CreateUnitTestDialog/TestProjectMapping/=0F2E08FE_002D7B5B_002D4453_002DA5B9_002DFEC4B18303CD/@EntryIndexedValue">FD418360-4188-4E62-8D8C-B5610A1B84E9</s:String>
 	<s:String x:Key="/Default/Environment/UnitTesting/CreateUnitTestDialog/TestTemplateMapping/=MSTest/@EntryIndexedValue">d6790ab7-33c2-4425-b2c9-51480cd1a852</s:String>
-	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=60f22596_002D73d4_002D4d5f_002Da165_002D0dc00d05790c/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="All tests from &amp;lt;Port.Project.Api.System_Tests&amp;gt;" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
-  &lt;Project Location="/home/leonor/RiderProjects/LEI-SEM5-PI-2025-26-3DL-02/Port.Project.Api.System_Tests" Presentation="&amp;lt;Port.Project.Api.System_Tests&amp;gt;" /&gt;
-&lt;/SessionState&gt;</s:String>
+	
 	
 	
 	
