@@ -34,7 +34,7 @@ namespace PortProject.Api.Tests.Controllers
             // Arrange
             var dto = new CreateShippingAgentRepresentativeDto
             {
-                
+                OrganizationName = "Test Organization",
                 CitizenId = "12345678Z",
                 RepresentativeName = "Ana Silva",
                 RepresentativeEmail = "ana@example.com",
@@ -42,120 +42,187 @@ namespace PortProject.Api.Tests.Controllers
                 RepresentativeNationality = "PT"
             };
 
-            var expected = new ShippingAgentRepresentativeDto
-            {
-                RepresentativeId = Guid.NewGuid().ToString(),
-                RepresentativeName = dto.RepresentativeName,
-                RepresentativeEmail = dto.RepresentativeEmail
-            };
+            var mockRepresentative = new PortProject.Api.Domain.ShippingAgentRepresentativeAggregate.ShippingAgentRepresentative(
+                new PortProject.Api.Domain.ShippingAgentRepresentativeAggregate.CitizenId(dto.CitizenId),
+                new PortProject.Api.Domain.ShippingAgentRepresentativeAggregate.RepresentativeName(dto.RepresentativeName),
+                new PortProject.Api.Domain.ShippingAgentRepresentativeAggregate.RepresentativePhone(dto.RepresentativePhone),
+                new PortProject.Api.Domain.ShippingAgentRepresentativeAggregate.RepresentativeNationality(dto.RepresentativeNationality),
+                new PortProject.Api.Domain.ShippingAgentRepresentativeAggregate.RepresentativeEmail(dto.RepresentativeEmail)
+            );
+            
+            // Attach to organization
+            mockRepresentative.AttachToOrganization(new PortProject.Api.Domain.ShippingAgentOrganizationAggregate.OrganizationId(Guid.NewGuid()));
 
-          
+            _repServiceMock
+                .Setup(s => s.CreateRepresentativeAsync(It.IsAny<CreateShippingAgentRepresentativeDto>()))
+                .ReturnsAsync(mockRepresentative);
 
             // Act
             var result = await _controller.CreateRepresentative(dto);
 
             // Assert
             var created = result.Result as CreatedAtActionResult;
-            Assert.IsNotNull(created, "Deve retornar CreatedAtActionResult.");
+            Assert.IsNotNull(created, "Should return CreatedAtActionResult.");
             Assert.AreEqual(nameof(ShippingAgentRepresentativesController.GetRepresentativeById), created!.ActionName);
-            Assert.AreEqual(expected, created.Value);
             Assert.IsTrue(created.RouteValues!.ContainsKey("id"));
-            Assert.AreEqual(expected.RepresentativeId, created.RouteValues["id"]);
+            
+            var createdDto = created.Value as ShippingAgentRepresentativeDto;
+            Assert.IsNotNull(createdDto);
+            Assert.AreEqual(dto.CitizenId, createdDto!.CitizenId);
+            Assert.AreEqual(dto.RepresentativeName, createdDto.RepresentativeName);
+            Assert.AreEqual(dto.RepresentativeEmail, createdDto.RepresentativeEmail);
+        }
+
+        [TestMethod]
+        public async Task CreateRepresentative_WithoutOrganizationName_ShouldReturnBadRequest()
+        {
+            // Arrange
+            var dto = new CreateShippingAgentRepresentativeDto
+            {
+                CitizenId = "12345678Z",
+                RepresentativeName = "Ana Silva",
+                RepresentativeEmail = "ana@example.com",
+                RepresentativePhone = "912345678",
+                RepresentativeNationality = "PT"
+                // Missing OrganizationName
+            };
+
+            // Act
+            var result = await _controller.CreateRepresentative(dto);
+
+            // Assert
+            var badRequest = result.Result as BadRequestObjectResult;
+            Assert.IsNotNull(badRequest, "Should return BadRequest when OrganizationName is missing.");
+        }
+
+        [TestMethod]
+        public async Task CreateRepresentative_DuplicateEmail_ShouldReturnConflict()
+        {
+            // Arrange
+            var dto = new CreateShippingAgentRepresentativeDto
+            {
+                OrganizationName = "Test Organization",
+                CitizenId = "12345678Z",
+                RepresentativeName = "Ana Silva",
+                RepresentativeEmail = "ana@example.com",
+                RepresentativePhone = "912345678",
+                RepresentativeNationality = "PT"
+            };
+            _repServiceMock.Setup(s => s.CreateRepresentativeAsync(It.IsAny<CreateShippingAgentRepresentativeDto>()))
+                .ThrowsAsync(new InvalidOperationException("Email 'ana@example.com' already exists."));
+
+            // Act
+            var result = await _controller.CreateRepresentative(dto);
+
+            // Assert
+            var conflict = result.Result as ConflictObjectResult;
+            Assert.IsNotNull(conflict);
+            var msgProp = conflict!.Value?.GetType().GetProperty("message");
+            var message = msgProp?.GetValue(conflict.Value)?.ToString() ?? string.Empty;
+            StringAssert.Contains(message, "already exists");
         }
 
 
         // ---------- PUT UpdateRepresentative ----------
 
         [TestMethod]
-        public async Task UpdateRepresentative_WhenFound_ShouldReturnOkWithUpdatedDto()
+        public async Task UpdateRepresentative_WhenFound_ShouldReturnOkWithMessage()
         {
             // Arrange
-            var id = Guid.NewGuid().ToString();
-            var dto = new CreateShippingAgentRepresentativeDto { RepresentativeName = "Ana" };
+            var citizenId = "12345678Z";
+            var dto = new CreateShippingAgentRepresentativeDto 
+            { 
+                RepresentativeName = "Ana Updated",
+                OrganizationName = "Test Org"
+            };
 
             var updated = new ShippingAgentRepresentativeDto
             {
-                RepresentativeId = id,
+                CitizenId = citizenId,
                 RepresentativeName = "Ana Updated"
             };
 
             _repServiceMock
-                .Setup(s => s.UpdateRepresentativeAsync(id, dto))
+                .Setup(s => s.UpdateRepresentativeByCitizenIdAsync(citizenId, dto))
                 .ReturnsAsync(updated);
 
             // Act
-            var result = await _controller.UpdateRepresentative(id, dto);
+            var result = await _controller.UpdateRepresentative(citizenId, dto);
 
             // Assert
             var ok = result.Result as OkObjectResult;
             Assert.IsNotNull(ok);
-            Assert.AreSame(updated, ok!.Value);
+            Assert.IsInstanceOfType(ok!.Value, typeof(string));
+            StringAssert.Contains((string)ok.Value!, citizenId);
 
-            _repServiceMock.Verify(s => s.UpdateRepresentativeAsync(id, dto), Times.Once);
+            _repServiceMock.Verify(s => s.UpdateRepresentativeByCitizenIdAsync(citizenId, dto), Times.Once);
         }
 
         [TestMethod]
         public async Task UpdateRepresentative_WhenNotFound_ShouldReturnNotFound()
         {
             // Arrange
-            var id = Guid.NewGuid().ToString();
+            var citizenId = "NONEXISTENT";
             var dto = new CreateShippingAgentRepresentativeDto();
 
             _repServiceMock
-                .Setup(s => s.UpdateRepresentativeAsync(id, dto))
+                .Setup(s => s.UpdateRepresentativeByCitizenIdAsync(citizenId, dto))
                 .ReturnsAsync((ShippingAgentRepresentativeDto)null);
 
             // Act
-            var result = await _controller.UpdateRepresentative(id, dto);
+            var result = await _controller.UpdateRepresentative(citizenId, dto);
 
             // Assert
             var nf = result.Result as NotFoundObjectResult;
             Assert.IsNotNull(nf);
-            StringAssert.Contains((string)nf!.Value!, id);
+            StringAssert.Contains((string)nf!.Value!, citizenId);
 
-            _repServiceMock.Verify(s => s.UpdateRepresentativeAsync(id, dto), Times.Once);
+            _repServiceMock.Verify(s => s.UpdateRepresentativeByCitizenIdAsync(citizenId, dto), Times.Once);
         }
 
         // ---------- DELETE DeleteRepresentative ----------
 
         [TestMethod]
-        public async Task DeleteRepresentative_WhenFound_ShouldReturnNoContent()
+        public async Task DeleteRepresentative_WhenFound_ShouldReturnOkWithMessage()
         {
             // Arrange
-            var id = Guid.NewGuid().ToString();
+            var citizenId = "12345678Z";
 
             _repServiceMock
-                .Setup(s => s.DeleteRepresentativeAsync(id))
+                .Setup(s => s.DeleteRepresentativeByCitizenIdAsync(citizenId))
                 .ReturnsAsync(true);
 
             // Act
-            var result = await _controller.DeleteRepresentative(id);
+            var result = await _controller.DeleteRepresentative(citizenId);
 
             // Assert
-            Assert.IsInstanceOfType(result, typeof(NoContentResult));
+            var ok = result as OkObjectResult;
+            Assert.IsNotNull(ok);
+            Assert.IsInstanceOfType(ok!.Value, typeof(string));
+            StringAssert.Contains((string)ok.Value!, citizenId);
 
-            _repServiceMock.Verify(s => s.DeleteRepresentativeAsync(id), Times.Once);
+            _repServiceMock.Verify(s => s.DeleteRepresentativeByCitizenIdAsync(citizenId), Times.Once);
         }
 
         [TestMethod]
         public async Task DeleteRepresentative_WhenNotFound_ShouldReturnNotFound()
         {
             // Arrange
-            var id = Guid.NewGuid().ToString();
+            var citizenId = "NONEXISTENT";
 
             _repServiceMock
-                .Setup(s => s.DeleteRepresentativeAsync(id))
+                .Setup(s => s.DeleteRepresentativeByCitizenIdAsync(citizenId))
                 .ReturnsAsync(false);
 
             // Act
-            var result = await _controller.DeleteRepresentative(id);
+            var result = await _controller.DeleteRepresentative(citizenId);
 
             // Assert
             var nf = result as NotFoundObjectResult;
             Assert.IsNotNull(nf);
-            StringAssert.Contains((string)nf!.Value!, id);
+            StringAssert.Contains((string)nf!.Value!, citizenId);
 
-            _repServiceMock.Verify(s => s.DeleteRepresentativeAsync(id), Times.Once);
+            _repServiceMock.Verify(s => s.DeleteRepresentativeByCitizenIdAsync(citizenId), Times.Once);
         }
 
         // ---------- GET GetRepresentativeById ----------
@@ -163,38 +230,43 @@ namespace PortProject.Api.Tests.Controllers
         [TestMethod]
         public async Task GetRepresentativeById_WhenFound_ShouldReturnOk()
         {
-            var id = Guid.NewGuid().ToString();
-            var dto = new ShippingAgentRepresentativeDto { RepresentativeId = id, RepresentativeName = "Maria" };
+            var citizenId = "12345678Z";
+            var dto = new ShippingAgentRepresentativeDto 
+            { 
+                RepresentativeId = Guid.NewGuid().ToString(), 
+                CitizenId = citizenId,
+                RepresentativeName = "Maria" 
+            };
 
             _repServiceMock
-                .Setup(s => s.GetByIdAsync(id))
+                .Setup(s => s.GetByCitizenIdAsync(citizenId))
                 .ReturnsAsync(dto);
 
-            var result = await _controller.GetRepresentativeById(id);
+            var result = await _controller.GetRepresentativeById(citizenId);
 
             var ok = result.Result as OkObjectResult;
             Assert.IsNotNull(ok);
             Assert.AreSame(dto, ok!.Value);
 
-            _repServiceMock.Verify(s => s.GetByIdAsync(id), Times.Once);
+            _repServiceMock.Verify(s => s.GetByCitizenIdAsync(citizenId), Times.Once);
         }
 
         [TestMethod]
         public async Task GetRepresentativeById_WhenNotFound_ShouldReturnNotFound()
         {
-            var id = Guid.NewGuid().ToString();
+            var citizenId = "NONEXISTENT";
 
             _repServiceMock
-                .Setup(s => s.GetByIdAsync(id))
+                .Setup(s => s.GetByCitizenIdAsync(citizenId))
                 .ReturnsAsync((ShippingAgentRepresentativeDto)null);
 
-            var result = await _controller.GetRepresentativeById(id);
+            var result = await _controller.GetRepresentativeById(citizenId);
 
             var nf = result.Result as NotFoundObjectResult;
             Assert.IsNotNull(nf);
-            StringAssert.Contains((string)nf!.Value!, id);
+            StringAssert.Contains((string)nf!.Value!, citizenId);
 
-            _repServiceMock.Verify(s => s.GetByIdAsync(id), Times.Once);
+            _repServiceMock.Verify(s => s.GetByCitizenIdAsync(citizenId), Times.Once);
         }
 
         // ---------- GET GetAllRepresentatives ----------
@@ -202,14 +274,14 @@ namespace PortProject.Api.Tests.Controllers
         [TestMethod]
         public async Task GetAllRepresentatives_ShouldReturnOkWithList()
         {
-            var list = new List<ShippingAgentRepresentativeDto>
+            var list = new List<RepresentativeSimpleDto>
             {
-                new ShippingAgentRepresentativeDto { RepresentativeId = Guid.NewGuid().ToString(), RepresentativeName = "A" },
-                new ShippingAgentRepresentativeDto { RepresentativeId = Guid.NewGuid().ToString(), RepresentativeName = "B" }
+                new RepresentativeSimpleDto { Name = "A", CitizenId = "12345678A" },
+                new RepresentativeSimpleDto { Name = "B", CitizenId = "12345678B" }
             };
 
             _repServiceMock
-                .Setup(s => s.GetAllAsync())
+                .Setup(s => s.GetAllSimplifiedAsync())
                 .ReturnsAsync(list);
 
             var result = await _controller.GetAllRepresentatives();
@@ -218,7 +290,7 @@ namespace PortProject.Api.Tests.Controllers
             Assert.IsNotNull(ok);
             Assert.AreSame(list, ok!.Value);
 
-            _repServiceMock.Verify(s => s.GetAllAsync(), Times.Once);
+            _repServiceMock.Verify(s => s.GetAllSimplifiedAsync(), Times.Once);
         }
 
         // ---------- GET GetRepresentativesByOrganizationId ----------
@@ -227,13 +299,13 @@ namespace PortProject.Api.Tests.Controllers
         public async Task GetRepresentativesByOrganizationId_ShouldReturnOkWithList()
         {
             var orgId = Guid.NewGuid().ToString();
-            var list = new List<ShippingAgentRepresentativeDto>
+            var list = new List<RepresentativeSimpleDto>
             {
-                new ShippingAgentRepresentativeDto { RepresentativeId = "1", RepresentativeName = "A" }
+                new RepresentativeSimpleDto { Name = "A", CitizenId = "12345678A" }
             };
 
             _repServiceMock
-                .Setup(s => s.GetByOrganizationIdAsync(orgId))
+                .Setup(s => s.GetSimplifiedByOrganizationIdAsync(orgId))
                 .ReturnsAsync(list);
 
             var result = await _controller.GetRepresentativesByOrganizationId(orgId);
@@ -242,7 +314,7 @@ namespace PortProject.Api.Tests.Controllers
             Assert.IsNotNull(ok);
             Assert.AreSame(list, ok!.Value);
 
-            _repServiceMock.Verify(s => s.GetByOrganizationIdAsync(orgId), Times.Once);
+            _repServiceMock.Verify(s => s.GetSimplifiedByOrganizationIdAsync(orgId), Times.Once);
         }
     }
 }

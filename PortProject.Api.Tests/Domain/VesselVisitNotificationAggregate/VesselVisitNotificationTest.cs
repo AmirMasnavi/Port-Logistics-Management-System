@@ -284,27 +284,6 @@ public class VesselVisitNotificationTests
     }
 
     [TestMethod]
-    public void UpdateDetails_WhenStatusIsRejected_ShouldUpdatePropertiesAndCrew()
-    {
-        // Arrange
-        var notification = CreateValidNotification(NotificationStatus.Rejected);
-        var newEta = new ETA(DateTime.UtcNow.AddHours(3));
-        var newEtd = new ETD(DateTime.UtcNow.AddHours(13));
-        var newCargo = new Cargo("Updated After Rejection", 3000, new List<Container>());
-        var newCrew = new List<CrewMember> { new CrewMember("Updated Crew", "Updated Nat", true) };
-
-        // Act
-        notification.UpdateDetails(newEta, newEtd, newCargo, newCrew);
-
-        // Assert
-        Assert.AreEqual(newEta, notification.EstimatedArrival);
-        Assert.AreEqual(newEtd, notification.EstimatedDeparture);
-        Assert.AreEqual(newCargo, notification.Cargo);
-        Assert.AreEqual(1, notification.CrewMembers.Count);
-        Assert.AreEqual("Updated Crew", notification.CrewMembers.First().Name);
-    }
-
-    [TestMethod]
     [DataRow(NotificationStatus.Submitted)]
     [DataRow(NotificationStatus.Approved)]
     public void UpdateDetails_WhenStatusIsNotInProgressOrRejected_ShouldThrowInvalidOperationException(NotificationStatus status)

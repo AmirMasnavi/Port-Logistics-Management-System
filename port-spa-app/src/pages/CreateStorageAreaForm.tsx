@@ -1,6 +1,11 @@
 ﻿import React, { useState } from 'react';
-import { createStorageArea } from '../services/apiService';
-import type { StorageArea, StorageAreaCreateDto } from '../domain/types';
+import { StorageAreaService } from '../app/storageArea/storageArea.service';
+import { storageAreaApiRepository } from '../infrastructure/repositories/storageArea/storageAreaApi.repository';
+import type { StorageArea } from '../domain/storageArea/storageArea.model';
+import type { StorageAreaCreateDto } from '../infrastructure/repositories/storageArea/storageArea.dto';
+
+// Initialize StorageAreaService
+const storageAreaService = new StorageAreaService(storageAreaApiRepository);
 
 interface CreateStorageAreaFormProps {
     onClose: () => void;
@@ -39,7 +44,7 @@ const CreateStorageAreaForm: React.FC<CreateStorageAreaFormProps> = ({ onClose, 
         setError(null);
 
         try {
-            const created = await createStorageArea(formData);
+            const created = await storageAreaService.createStorageArea(formData);
             onSuccess(created);
             onClose();
         } catch (err) {

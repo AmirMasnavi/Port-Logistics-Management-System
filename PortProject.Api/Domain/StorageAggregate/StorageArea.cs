@@ -85,7 +85,7 @@ namespace PortProject.Api.Domain.StorageAggregate
 
         public override string ToString()
         {
-            return $"Id: {Id} | Location: {Location} | Type: {Type} | Capacity: {Capacity} | Current Occupancy: {CurrentOccupancy}";
+            return $"Location: {Location} | Type: {Type} | Capacity: {Capacity} | Current Occupancy: {CurrentOccupancy}";
         }
     }    
 }

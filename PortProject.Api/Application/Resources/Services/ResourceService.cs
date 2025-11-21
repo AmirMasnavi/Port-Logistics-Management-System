@@ -1,4 +1,4 @@
-﻿using System.Linq;
+﻿﻿using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using PortProject.Api.Application.Resources.DTOs;
 using PortProject.Api.Domain.ResourceAggregate;
@@ -230,23 +230,66 @@ public class ResourceService : IResourceService
     public async Task<IEnumerable<ResourceDto>> GetAllAsync(string? code, string? description, ResourceKind? kind,
         ResourceStatus? status)
     {
-        var resource = await _resourceRepository.GetAllAsync(code, description, kind, status);
+        var resources = await _resourceRepository.GetAllAsync(code, description, kind, status);
 
-        return resource.Select(sm => new ResourceDto() {
-            Code = sm.Code?.ToString() ?? string.Empty,
-            Description = sm.Description?.ToString() ?? string.Empty,
-            Kind = sm.Kind.ToString(),
-            AssignedArea = sm.AssignedArea,
-            Status = sm.Status.ToString(),
-            SetupTimeMinutes = sm.SetupTime?.Minutes ?? 0,
-            OperationalWindowStart = sm.OperationalWindow != null
-                ? sm.OperationalWindow.StartTime.ToString("HH:mm")
-                : string.Empty,
-            OperationalWindowEnd = sm.OperationalWindow != null
-                ? sm.OperationalWindow.EndTime.ToString("HH:mm")
-                : string.Empty,
-            QualificationRequirements = sm.QualificationRequirements?.ToList() ?? new List<string>()
-        });
+        var dtos = new List<ResourceDto>();
+        
+        foreach (var sm in resources)
+        {
+            // Debug: Check if value objects are null
+            Console.WriteLine($"=== Resource Code: {sm.Code?.Value ?? "NULL"} ===");
+            Console.WriteLine($"Description object: {(sm.Description == null ? "NULL" : "NOT NULL")}");
+            Console.WriteLine($"Description value: {sm.Description?.Description ?? "NULL"}");
+            Console.WriteLine($"SetupTime object: {(sm.SetupTime == null ? "NULL" : "NOT NULL")}");
+            Console.WriteLine($"SetupTime minutes: {sm.SetupTime?.Minutes.ToString() ?? "NULL"}");
+            Console.WriteLine($"OperationalWindow object: {(sm.OperationalWindow == null ? "NULL" : "NOT NULL")}");
+            Console.WriteLine($"OperationalWindow StartTime: {(sm.OperationalWindow != null ? sm.OperationalWindow.StartTime.ToString("HH:mm") : "NULL")}");
+            Console.WriteLine($"OperationalWindow EndTime: {(sm.OperationalWindow != null ? sm.OperationalWindow.EndTime.ToString("HH:mm") : "NULL")}");
+            Console.WriteLine($"OperationalCapacity object: {(sm.OperationalCapacity == null ? "NULL" : "NOT NULL")}");
+            Console.WriteLine($"OperationalCapacity Kind: {(sm.OperationalCapacity != null ? sm.OperationalCapacity.Kind.ToString() : "NULL")}");
+            Console.WriteLine($"OperationalCapacity AvgContainersPerHour: {sm.OperationalCapacity?.AverageContainersPerHour?.ToString() ?? "NULL"}");
+            Console.WriteLine($"=========================================");
+            
+            var dto = new ResourceDto
+            {
+                Code = sm.Code?.Value ?? string.Empty,
+                Description = sm.Description?.Description ?? string.Empty,
+                Kind = sm.Kind.ToString(),
+                AssignedArea = sm.AssignedArea,
+                Status = sm.Status.ToString(),
+                SetupTimeMinutes = sm.SetupTime?.Minutes ?? 0,
+                OperationalWindowStart = sm.OperationalWindow != null
+                    ? sm.OperationalWindow.StartTime.ToString("HH:mm")
+                    : string.Empty,
+                OperationalWindowEnd = sm.OperationalWindow != null
+                    ? sm.OperationalWindow.EndTime.ToString("HH:mm")
+                    : string.Empty,
+                QualificationRequirements = sm.QualificationRequirements?.ToList() ?? new List<string>()
+            };
+            
+            // Map capacity fields based on kind
+            if (sm.OperationalCapacity != null)
+            {
+                switch (sm.Kind)
+                {
+                    case ResourceKind.Crane:
+                        dto.AverageContainersPerHour = sm.OperationalCapacity.AverageContainersPerHour;
+                        break;
+                    case ResourceKind.Truck:
+                        dto.ContainersPerTrip = sm.OperationalCapacity.ContainersPerTrip;
+                        dto.AverageSpeedKmh = sm.OperationalCapacity.AverageSpeedKmh;
+                        break;
+                    case ResourceKind.Other:
+                        dto.OtherUnit = sm.OperationalCapacity.Unit;
+                        dto.OtherGenericValue = sm.OperationalCapacity.GenericValue;
+                        break;
+                }
+            }
+            
+            dtos.Add(dto);
+        }
+
+        return dtos;
     }
 
     public async Task<ResourceDto?> EditResourceAsync(string code, EditResourceDto dto)

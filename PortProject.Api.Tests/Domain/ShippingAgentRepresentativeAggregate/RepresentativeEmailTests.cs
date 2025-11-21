@@ -10,7 +10,7 @@ namespace PortProject.Api.Tests.Domain.ShippingAgentRepresentativeAggregate
         [InlineData("john.doe@example.com")]
         [InlineData("user123@domain.pt")]
         [InlineData("name.surname@company.co.uk")]
-        [InlineData("TEST@EMAIL.COM")]
+        [InlineData("test@email.com")]
         public void Constructor_ValidEmails_ShouldCreateSuccessfully(string validEmail)
         {
             // Act

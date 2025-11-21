@@ -4,13 +4,15 @@
 import {
     getPortLayout,
     getApprovedVesselVisits,
-    getResources,
     getAllVesselTypes,
     getVesselByImo,
     getDockById,
     getAllDocks,
-    getAllStorageAreas
 } from '../services/apiService';
+import { StorageAreaService } from '../app/storageArea/storageArea.service';
+import { storageAreaApiRepository } from '../infrastructure/repositories/storageArea/storageAreaApi.repository';
+import { ResourceService } from '../app/resource/resource.service';
+import { resourceApiRepository } from '../infrastructure/repositories/resource/resourceApi.repository';
 import { generateDockLayout } from '../services/dockLayoutService';
 import { generateYardLayout } from '../services/yardLayoutService';
 import { generateWarehouseLayout } from '../services/warehouseLayoutService';
@@ -23,6 +25,10 @@ import { generateWarehouseLayout } from '../services/warehouseLayoutService';
         VesselVisit,
     } from '../domain/types';
     import type { Resource } from '../domain/resource/resource.model';
+
+    // Initialize services
+    const storageAreaService = new StorageAreaService(storageAreaApiRepository);
+    const resourceService = new ResourceService(resourceApiRepository);
     
     const VisualizationPage: React.FC = () => {
         const [layout, setLayout] = useState<PortLayout | null>(null); // Store response in PortLayout type
@@ -36,20 +42,30 @@ import { generateWarehouseLayout } from '../services/warehouseLayoutService';
                 setLoading(true);
                 setError(null);
                 try {
+                    console.log('🚀 ========== STARTING DATA FETCH ==========');
+                    console.log('📍 Selected layout:', selectedLayout);
+                    
                     // Implement getPortLayout(layoutId) API call
                     // Fetch approved vessel visits via getApprovedVesselVisits()
                     // 1. Buscar todos os dados em paralelo
                     const [layoutData, approvedVisits, allResources, vesselTypes, backendDocks, backendStorageAreas] = await Promise.all([
                         getPortLayout(selectedLayout),
                         getApprovedVesselVisits(),
-                        getResources(),
+                        resourceService.fetchAllResources(),
                         getAllVesselTypes(),
                         getAllDocks(), // Fetch docks from backend
-                        getAllStorageAreas(), // Fetch storage areas (yards + warehouses) from backend
+                        storageAreaService.fetchAllStorageAreas(), // Fetch storage areas using service
                     ]);
 
-                    console.log('Backend docks fetched:', backendDocks);
-                    console.log('Backend storage areas fetched:', backendStorageAreas);
+                    console.log('📦 ========== DATA FETCHED FROM BACKEND ==========');
+                    console.log('📍 Layout data:', layoutData);
+                    console.log('🚢 Approved visits count:', approvedVisits.length);
+                    console.log('🚢 Approved visits details:', approvedVisits);
+                    console.log('🏗️ Backend docks count:', backendDocks.length);
+                    console.log('🏗️ Backend docks details:', backendDocks);
+                    console.log('⚙️ Resources count:', allResources.length);
+                    console.log('🏷️ Vessel types count:', vesselTypes.length);
+                    console.log('📦 Storage areas count:', backendStorageAreas.length);
 
                     // Generate dynamic dock layout elements from backend docks
                     const dynamicDockElements = generateDockLayout(backendDocks);
@@ -95,95 +111,163 @@ import { generateWarehouseLayout } from '../services/warehouseLayoutService';
                     const vesselTypesMap = new Map<string, VesselType>(vesselTypes.map((vt: VesselType) => [vt.id, vt]));
     
                     // 2. Processar Navios (Vessels)
+                    console.log('🚢 ========== PROCESSING VESSELS ==========');
+                    console.log('🚢 Total approved visits to process:', approvedVisits.length);
+                    
                     const renderableVessels: RenderableVessel[] = [];
+                    
                     for (const visit of approvedVisits as VesselVisit[]) {
+                        console.log(`\n🚢 --- Processing Visit ${visit.id} ---`);
+                        console.log('  Full visit object:', visit);
+                        console.log('  assignedDockId:', visit.assignedDockId);
+                        console.log('  vesselImo:', visit.vesselImo);
+                        console.log('  status:', visit.status);
+                        
                         // Apenas visualizar navios que têm uma doca atribuída
-                        if (visit.assignedDockId) {
-                            // Match assignedDockId to layout element by ID
-                            // Primeiro tentamos encontrar a doca diretamente pelo ID retornado na layout
-                            let dock = layoutElementsMap.get(visit.assignedDockId);
-    
-                            // Se não houver correspondência direta (por exemplo o backend devolve um GUID de Dock),
-                            // tentamos consultar o endpoint /api/Dock/{id} para obter o nome da doca e procurar pelo elemento do layout
-                            
-                            // If no match, resolve dock name via getDockById(visit.assignedDockId)
-                            if (!dock) {
-                                try {
-                                    const dockDto = await getDockById(visit.assignedDockId);
-                                    // O layout usa ids textuais como "Dock A" — o backend devolve Id (GUID) e Name (ex. "Dock A").
-                                    // Procuramos pelo elemento com id igual ao name ou com name igual ao name.
-                                    if (dockDto?.name) {
-                                        dock = layoutElementsMap.get(dockDto.name) || layoutData.elements.find((el: LayoutElement) => el.name === dockDto.name);
-                                    }
-                                } catch (err) {
-                                    // Se o backend não encontrar a doca ou ocorrer erro, apenas ignoramos e não renderizamos este navio
-                                    console.warn('Could not resolve assignedDockId to layout element:', visit.assignedDockId, err);
-                                }
-                            }
-    
-                            if (dock && dock.type === 'dock') {
-                                // Fetch vessel details via getVesselByImo(visit.vesselImo)
-                                const vesselDetails = await getVesselByImo(visit.vesselImo);
-                                
-                                // Fetch vessel types via getAllVesselTypes() and map size
-                                const vesselType = vesselTypesMap.get(vesselDetails.vesselTypeId ?? '');
-    
-                                // Compute vessel size from vesselType.maxBays and maxRows
-                                // Estimar o tamanho do navio a partir do seu tipo (simplificado)
-                                const vesselSize: [number, number, number] = [
-                                    vesselType ? vesselType.maxBays * 0.9 : 10, // Comprimento (Length)
-                                    6, // Altura (Height) - valor fixo
-                                    vesselType ? vesselType.maxRows * 0.9 : 3  // Largura (Width)
-                                ];
-    
-                                // Position vessels relative to dock geometry
-                                // Calcular a posição do navio para atracar ao lado da doca
-                                const vesselPositionComputed: [number, number, number] = [
-                                    dock.position[0] - (dock.size[0] / 2) - (vesselSize[2] / 2) - 0.2, // X: ao lado da doca
-                                    vesselSize[1] / 2, // Y: para o navio "flutuar" no plano
-                                    dock.position[2] // Z: alinhado com o centro da doca
-                                ];
-    
-                                // Determine if the visit provides an absolute position override (array or separate coords)
-                                let visitPosition: [number, number, number] | undefined = undefined;
-                                if ((visit as any).position && Array.isArray((visit as any).position) && (visit as any).position.length === 3) {
-                                    visitPosition = (visit as any).position as [number, number, number];
-                                } else if ((visit as any).position_x != null && (visit as any).position_y != null && (visit as any).position_z != null) {
-                                    visitPosition = [(visit as any).position_x, (visit as any).position_y, (visit as any).position_z];
-                                }
-    
-                                // Base position: either the visit-provided absolute position, or the computed one
-                                const basePosition: [number, number, number] = visitPosition ?? vesselPositionComputed;
-    
-                                // Apply optional offsets (visit.offset_x/offset_y/offset_z or visit.offset.{x,y,z})
-                                const offsetX = (visit as any).offset_x ?? (visit as any).offset?.x ?? 0;
-                                const offsetY = (visit as any).offset_y ?? (visit as any).offset?.y ?? 0;
-                                const offsetZ = (visit as any).offset_z ?? (visit as any).offset?.z ?? 0;
-    
-                                const finalPosition: [number, number, number] = [
-                                    basePosition[1] + offsetX,
-                                    basePosition[1] + offsetY,
-                                    basePosition[2] + offsetZ,
-                                ];
-    
-                                // Use procedural geometry for vessels (position now honors overrides/offsets)
-                                // Force rotation: 90° to the left (negative Y rotation)
-                                const left90 = -Math.PI / 2; // -1.57079632679
-                                const rotation: [number, number, number] = [0, left90, 0];
-    
-                                renderableVessels.push({
-                                    id: visit.id,
-                                    imo: visit.vesselImo,
-                                    name: vesselDetails.name,
-                                    position: finalPosition,
-                                    size: vesselSize,
-                                    modelUrl: vesselType?.modelPath ?? undefined, // Optional model path
-                                    rotation,
-                                });
-                            }
+                        if (!visit.assignedDockId) {
+                            console.warn(`  ⚠️ No assignedDockId - SKIPPING this vessel`);
+                            continue;
                         }
+                        
+                        // Match assignedDockId to layout element by ID (GUID)
+                        // O dockLayoutService já usa o GUID como id do elemento de layout
+                        let dock = layoutElementsMap.get(visit.assignedDockId);
+                        
+                        console.log(`  🔍 Looking for dock with ID: ${visit.assignedDockId}`);
+                        console.log(`  Direct GUID match result:`, dock ? `✓ Found dock "${dock.name}"` : '✗ Not found');
+
+                        // Se não encontrar diretamente pelo GUID, o dock pode não existir no backend
+                        // ou o layout pode não ter sido carregado corretamente
+                        if (!dock) {
+                            console.error(`  ❌ Could not find dock with ID ${visit.assignedDockId} in layout`);
+                            console.error(`  Available dock IDs in layout (${layoutElementsMap.size} total):`, 
+                                Array.from(layoutElementsMap.entries())
+                                    .filter(([_, el]) => el.type === 'dock')
+                                    .map(([id, el]) => `\n    - ${id} (name: "${el.name}")`)
+                                    .join('')
+                            );
+                            console.error(`  🔍 Checking if assignedDockId exists in backendDocks...`);
+                            const dockExistsInBackend = backendDocks.find(d => d.id === visit.assignedDockId);
+                            if (dockExistsInBackend) {
+                                console.error(`  ✓ Dock EXISTS in backend: ${dockExistsInBackend.name}`);
+                                console.error(`  ❌ BUT was NOT added to layout! Check dockLayoutService.`);
+                            } else {
+                                console.error(`  ✗ Dock does NOT exist in backend. Invalid assignedDockId!`);
+                            }
+                            continue;
+                        }
+
+                        if (dock.type !== 'dock') {
+                            console.warn(`  ⚠️ Element ${visit.assignedDockId} is not a dock (type: ${dock.type}). Skipping vessel.`);
+                            continue;
+                        }
+                        
+                        console.log(`  ✓ Dock found and validated: "${dock.name}" (type: ${dock.type})`);
+                        console.log(`  Dock position:`, dock.position);
+                        console.log(`  Dock size:`, dock.size);
+                        
+                        // Fetch vessel details via getVesselByImo(visit.vesselImo)
+                        console.log(`  📡 Fetching vessel details for IMO: ${visit.vesselImo}...`);
+                        const vesselDetails = await getVesselByImo(visit.vesselImo);
+                        
+                        if (!vesselDetails) {
+                            console.error(`  ❌ Could not fetch vessel details for IMO ${visit.vesselImo}. API returned null/undefined.`);
+                            continue;
+                        }
+                        
+                        console.log(`  ✓ Vessel details fetched:`, vesselDetails);
+                        console.log(`    - Name: ${vesselDetails.name}`);
+                        console.log(`    - VesselTypeId: ${vesselDetails.vesselTypeId}`);
+                        
+                        // Fetch vessel types via getAllVesselTypes() and map size
+                        const vesselType = vesselTypesMap.get(vesselDetails.vesselTypeId ?? '');
+                        
+                        if (vesselDetails.vesselTypeId && !vesselType) {
+                            console.warn(`  ⚠️ Vessel type ${vesselDetails.vesselTypeId} not found in vesselTypesMap`);
+                        }
+                        
+                        console.log(`  Vessel type:`, vesselType || 'Using defaults');
+
+                        // VESSEL SIZE MULTIPLIER: Increase this to make vessels bigger
+                        const VESSEL_SIZE_MULTIPLIER = 20.0; // Default was 0.9, now 3x bigger!
+
+                        // Compute vessel size from vesselType.maxBays and maxRows
+                        // Estimar o tamanho do navio a partir do seu tipo (simplificado)
+                        const vesselSize: [number, number, number] = [
+                            vesselType ? vesselType.maxBays * VESSEL_SIZE_MULTIPLIER : 30, // Comprimento (Length) - increased from 10
+                            18, // Altura (Height) - increased from 6
+                            vesselType ? vesselType.maxRows * VESSEL_SIZE_MULTIPLIER : 9  // Largura (Width) - increased from 3
+                        ];
+                        
+                        console.log(`  Calculated vessel size (with ${VESSEL_SIZE_MULTIPLIER}x multiplier):`, vesselSize);
+
+                        // Position vessels relative to dock geometry
+                        // Calcular a posição do navio para atracar ao lado da doca
+                        const vesselPositionComputed: [number, number, number] = [
+                            dock.position[0] - (dock.size[0] / 2) - (vesselSize[2] / 2) - 0.2, // X: ao lado da doca
+                            vesselSize[1] / 2, // Y: para o navio "flutuar" no plano
+                            dock.position[2] // Z: alinhado com o centro da doca
+                        ];
+                        
+                        console.log(`  Computed vessel position:`, vesselPositionComputed);
+
+                        // Determine if the visit provides an absolute position override (array or separate coords)
+                        let visitPosition: [number, number, number] | undefined = undefined;
+                        if ((visit as any).position && Array.isArray((visit as any).position) && (visit as any).position.length === 3) {
+                            visitPosition = (visit as any).position as [number, number, number];
+                        } else if ((visit as any).position_x != null && (visit as any).position_y != null && (visit as any).position_z != null) {
+                            visitPosition = [(visit as any).position_x, (visit as any).position_y, (visit as any).position_z];
+                        }
+
+                        // Base position: either the visit-provided absolute position, or the computed one
+                        const basePosition: [number, number, number] = visitPosition ?? vesselPositionComputed;
+
+                        // Apply optional offsets (visit.offset_x/offset_y/offset_z or visit.offset.{x,y,z})
+                        const offsetX = (visit as any).offset_x ?? (visit as any).offset?.x ?? 0;
+                        const offsetY = (visit as any).offset_y ?? (visit as any).offset?.y ?? 0;
+                        const offsetZ = (visit as any).offset_z ?? (visit as any).offset?.z ?? 0;
+
+                        const finalPosition: [number, number, number] = [
+                            basePosition[0] + offsetX,
+                            basePosition[1] + offsetY,
+                            basePosition[2] + offsetZ,
+                        ];
+                        
+                        console.log(`  Final vessel position (with offsets):`, finalPosition);
+
+                        // Use procedural geometry for vessels (position now honors overrides/offsets)
+                        // Force rotation: 90° to the left (negative Y rotation)
+                        const left90 = -Math.PI / 2; // -1.57079632679
+                        const rotation: [number, number, number] = [0, left90, 0];
+
+                        const renderableVessel = {
+                            id: visit.id,
+                            imo: visit.vesselImo,
+                            name: vesselDetails.name,
+                            position: finalPosition,
+                            size: vesselSize,
+                            modelUrl: vesselType?.modelPath ?? undefined, // Optional model path
+                            rotation,
+                        };
+                        
+                        console.log(`  ✅ VESSEL ADDED TO RENDERABLE LIST:`);
+                        console.log(`    - ID: ${renderableVessel.id}`);
+                        console.log(`    - Name: ${renderableVessel.name}`);
+                        console.log(`    - IMO: ${renderableVessel.imo}`);
+                        console.log(`    - Position:`, renderableVessel.position);
+                        console.log(`    - Size:`, renderableVessel.size);
+                        console.log(`    - Rotation:`, renderableVessel.rotation);
+                        console.log(`    - ModelUrl:`, renderableVessel.modelUrl || 'None (procedural)');
+                        
+                        renderableVessels.push(renderableVessel);
                     }
+                    
+                    console.log('\n🚢 ========== VESSEL PROCESSING COMPLETE ==========');
+                    console.log(`🚢 Total vessels added: ${renderableVessels.length} out of ${approvedVisits.length} visits`);
+                    console.log('🚢 Final renderable vessels array:', renderableVessels);
+                    
                     setVessels(renderableVessels);
+                    console.log('🚢 Vessels state updated via setVessels()');
     
                     // Fetch and render cranes (procedural geometry)
                     // Fetch resources via getResources() and filter by crane type

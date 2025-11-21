@@ -132,6 +132,7 @@ namespace PortProject.Api.Application.ShippingAgentsOrganization.Services
         {
             return new ShippingAgentOrganizationDto
             {
+                Id = org.Id?.Value.ToString() ?? string.Empty,
                 LegalName = org.LegalName?.Value ?? string.Empty,
                 AlternativeName = org.AlternativeName?.Value ?? string.Empty,
                 Street = org.Address?.Street ?? string.Empty,

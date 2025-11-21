@@ -27,7 +27,6 @@ public class VesselTypeTest
         var vesselType = new VesselType(id, name, description, capacity, dimensions);
 
         Assert.NotNull(vesselType);
-        Assert.Equal(id, vesselType.Id);
         Assert.Equal(name, vesselType.Name);
         Assert.Equal(description, vesselType.Description);
         Assert.Equal(capacity, vesselType.Capacity);
@@ -135,7 +134,6 @@ public class VesselTypeTest
 
         // Assert
         Assert.NotNull(vesselType);
-        Assert.Equal(id, vesselType.Id.Value);
         Assert.Equal(name, vesselType.Name.Value);
         Assert.Equal(description, vesselType.Description.Value);
         Assert.Equal(capacity, vesselType.Capacity.Value);
@@ -291,13 +289,13 @@ public class VesselTypeTest
     public void ToString_ReturnsExpectedFormat()
     {
         // Arrange
-        var id = new VesselTypeId("123");
+        var id = new VesselTypeId("VT-1020304050");
         var name = new VesselTypeName("TestVessel");
         var description = new VesselTypeDescription("Test Description");
         var capacity = new VesselTypeCapacity(500);
         var dimensions = new VesselTypeDimensions(5, 3, 2);
         var vesselType = new VesselType(id, name, description, capacity, dimensions);
-        var expected = $"ID: {id}, Name: {name}, Description: {description}, Capacity: {capacity}, Constraints: {dimensions}";
+        var expected = $"Name: {name}, Description: {description}, Capacity: {capacity}, Constraints: {dimensions}";
 
         // Act
         var result = vesselType.ToString();

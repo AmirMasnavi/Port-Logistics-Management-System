@@ -94,7 +94,7 @@ namespace PortProject.Api.Domain.VesselTypeAggregate
 
         public override string ToString()
         {
-            return $"ID: {Id}, Name: {Name}, Description: {Description}, Capacity: {Capacity}, Constraints: {OperationalConstraints}";
+            return $"Name: {Name}, Description: {Description}, Capacity: {Capacity}, Constraints: {OperationalConstraints}";
         }
     }
 }
