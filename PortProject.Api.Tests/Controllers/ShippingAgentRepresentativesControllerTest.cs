@@ -95,6 +95,33 @@ namespace PortProject.Api.Tests.Controllers
             Assert.IsNotNull(badRequest, "Should return BadRequest when OrganizationName is missing.");
         }
 
+        [TestMethod]
+        public async Task CreateRepresentative_DuplicateEmail_ShouldReturnConflict()
+        {
+            // Arrange
+            var dto = new CreateShippingAgentRepresentativeDto
+            {
+                OrganizationName = "Test Organization",
+                CitizenId = "12345678Z",
+                RepresentativeName = "Ana Silva",
+                RepresentativeEmail = "ana@example.com",
+                RepresentativePhone = "912345678",
+                RepresentativeNationality = "PT"
+            };
+            _repServiceMock.Setup(s => s.CreateRepresentativeAsync(It.IsAny<CreateShippingAgentRepresentativeDto>()))
+                .ThrowsAsync(new InvalidOperationException("Email 'ana@example.com' already exists."));
+
+            // Act
+            var result = await _controller.CreateRepresentative(dto);
+
+            // Assert
+            var conflict = result.Result as ConflictObjectResult;
+            Assert.IsNotNull(conflict);
+            var msgProp = conflict!.Value?.GetType().GetProperty("message");
+            var message = msgProp?.GetValue(conflict.Value)?.ToString() ?? string.Empty;
+            StringAssert.Contains(message, "already exists");
+        }
+
 
         // ---------- PUT UpdateRepresentative ----------
 
