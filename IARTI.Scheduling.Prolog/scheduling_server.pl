@@ -98,13 +98,24 @@ calculate_duration(Unload, Load, Cranes, Duration) :-
     Duration is ceiling((Unload + Load) / Cranes).
 
 % find_min_cranes/5: Finds minimum cranes needed to meet deadline
-% Tries from 1 crane up to max_cranes to find optimal allocation
 find_min_cranes(StartTime, Unload, Load, Deadline, SelectedCranes) :-
+    find_min_cranes_recursive(StartTime, Unload, Load, Deadline, 1, SelectedCranes).
+
+% Helper recursivo
+find_min_cranes_recursive(StartTime, Unload, Load, Deadline, CurrentCranes, SelectedCranes) :-
     max_cranes(Max),
-    between(1, Max, C),
-    calculate_duration(Unload, Load, C, Dur),
+    calculate_duration(Unload, Load, CurrentCranes, Dur),
     EndsAt is StartTime + Dur - 1,
-    (EndsAt =< Deadline -> SelectedCranes = C ; C = Max), !.
+    
+    (   EndsAt =< Deadline -> 
+        SelectedCranes = CurrentCranes, !  % Encontrou, corta a procura
+    ;   
+        CurrentCranes < Max ->
+        NextCranes is CurrentCranes + 1,
+        find_min_cranes_recursive(StartTime, Unload, Load, Deadline, NextCranes, SelectedCranes)
+    ;
+        SelectedCranes = Max % Atingiu o máximo, usa o máximo
+    ).
 
 % schedule_multicrane/4: Generates schedule with variable crane allocation
 schedule_multicrane(_, [], [], 0).
