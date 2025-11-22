@@ -4,7 +4,6 @@ import { getAllVesselTypes } from '../../services/apiService';
 import type { Dock } from '../../domain/dock/dock.model';
 import type { DockCreateDto } from '../../infrastructure/repositories/dock/dock.dto';
 import type { VesselType } from '../../domain/types';
-// 1. Importar ícones para as setas do dropdown
 import { ChevronDown, ChevronUp } from 'lucide-react';
 
 interface DockFormProps {
@@ -16,8 +15,6 @@ interface DockFormProps {
 const DockForm: React.FC<DockFormProps> = ({ onClose, onSuccess, initialData }) => {
     const [availableVesselTypes, setAvailableVesselTypes] = useState<VesselType[]>([]);
     const [loadingTypes, setLoadingTypes] = useState(false);
-
-    // 2. Estado para controlar se a lista de tipos está aberta ou fechada
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
     const [formData, setFormData] = useState<DockCreateDto>(
@@ -112,7 +109,6 @@ const DockForm: React.FC<DockFormProps> = ({ onClose, onSuccess, initialData }) 
         }
     };
 
-    // Helper para mostrar quantos estão selecionados no cabeçalho
     const selectedCount = (formData.allowedVesselTypeIds || []).length;
 
     return (
@@ -121,8 +117,9 @@ const DockForm: React.FC<DockFormProps> = ({ onClose, onSuccess, initialData }) 
 
             {!initialData && (
                 <div>
-                    <label className="block text-sm font-medium text-gray-700">ID (Optional)</label>
+                    <label htmlFor="dockId" className="block text-sm font-medium text-gray-700">ID (Optional)</label>
                     <input
+                        id="dockId"
                         type="text"
                         name="id"
                         value={formData.id}
@@ -134,43 +131,101 @@ const DockForm: React.FC<DockFormProps> = ({ onClose, onSuccess, initialData }) 
             )}
 
             <div>
-                <label className="block text-sm font-medium text-gray-700">Name</label>
-                <input type="text" name="name" value={formData.name} onChange={handleChange} className="mt-1 p-2 w-full border border-gray-300 rounded-lg" required />
+                <label htmlFor="dockName" className="block text-sm font-medium text-gray-700">Name</label>
+                <input
+                    id="dockName"
+                    type="text"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    className="mt-1 p-2 w-full border border-gray-300 rounded-lg"
+                    required
+                />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
                 <div>
-                    <label className="block text-sm font-medium text-gray-700">Zone</label>
-                    <input type="text" name="locationZone" value={formData.locationZone} onChange={handleChange} className="mt-1 p-2 w-full border border-gray-300 rounded-lg" required />
+                    <label htmlFor="locationZone" className="block text-sm font-medium text-gray-700">Zone</label>
+                    <input
+                        id="locationZone"
+                        type="text"
+                        name="locationZone"
+                        value={formData.locationZone}
+                        onChange={handleChange}
+                        className="mt-1 p-2 w-full border border-gray-300 rounded-lg"
+                        required
+                    />
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-gray-700">Section</label>
-                    <input type="text" name="locationSection" value={formData.locationSection} onChange={handleChange} className="mt-1 p-2 w-full border border-gray-300 rounded-lg" required />
+                    <label htmlFor="locationSection" className="block text-sm font-medium text-gray-700">Section</label>
+                    <input
+                        id="locationSection"
+                        type="text"
+                        name="locationSection"
+                        value={formData.locationSection}
+                        onChange={handleChange}
+                        className="mt-1 p-2 w-full border border-gray-300 rounded-lg"
+                        required
+                    />
                 </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
                 <div>
-                    <label className="block text-sm font-medium text-gray-700">Length (m)</label>
-                    <input type="number" name="lengthInMeters" value={formData.lengthInMeters} onChange={handleChange} className="mt-1 p-2 w-full border border-gray-300 rounded-lg" required min="0" />
+                    <label htmlFor="lengthInMeters" className="block text-sm font-medium text-gray-700">Length (m)</label>
+                    <input
+                        id="lengthInMeters"
+                        type="number"
+                        name="lengthInMeters"
+                        value={formData.lengthInMeters}
+                        onChange={handleChange}
+                        className="mt-1 p-2 w-full border border-gray-300 rounded-lg"
+                        required
+                        min="0"
+                    />
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-gray-700">Depth (m)</label>
-                    <input type="number" name="depthInMeters" value={formData.depthInMeters} onChange={handleChange} className="mt-1 p-2 w-full border border-gray-300 rounded-lg" required min="0" />
+                    <label htmlFor="depthInMeters" className="block text-sm font-medium text-gray-700">Depth (m)</label>
+                    <input
+                        id="depthInMeters"
+                        type="number"
+                        name="depthInMeters"
+                        value={formData.depthInMeters}
+                        onChange={handleChange}
+                        className="mt-1 p-2 w-full border border-gray-300 rounded-lg"
+                        required
+                        min="0"
+                    />
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-gray-700">Max Draft (m)</label>
-                    <input type="number" name="maxDraftInMeters" value={formData.maxDraftInMeters} onChange={handleChange} className="mt-1 p-2 w-full border border-gray-300 rounded-lg" required min="0" />
+                    <label htmlFor="maxDraftInMeters" className="block text-sm font-medium text-gray-700">Max Draft (m)</label>
+                    <input
+                        id="maxDraftInMeters"
+                        type="number"
+                        name="maxDraftInMeters"
+                        value={formData.maxDraftInMeters}
+                        onChange={handleChange}
+                        className="mt-1 p-2 w-full border border-gray-300 rounded-lg"
+                        required
+                        min="0"
+                    />
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-gray-700">STS Cranes</label>
-                    <input type="number" name="numberOfSTSCranes" value={formData.numberOfSTSCranes} onChange={handleChange} className="mt-1 p-2 w-full border border-gray-300 rounded-lg" required min="0" />
+                    <label htmlFor="numberOfSTSCranes" className="block text-sm font-medium text-gray-700">STS Cranes</label>
+                    <input
+                        id="numberOfSTSCranes"
+                        type="number"
+                        name="numberOfSTSCranes"
+                        value={formData.numberOfSTSCranes}
+                        onChange={handleChange}
+                        className="mt-1 p-2 w-full border border-gray-300 rounded-lg"
+                        required
+                        min="0"
+                    />
                 </div>
             </div>
 
-            {/* 4. SECÇÃO ATUALIZADA: Dropdown de Checkboxes */}
             <div className="border border-gray-300 rounded-lg overflow-hidden">
-                {/* Cabeçalho clicável */}
                 <button
                     type="button"
                     onClick={() => setIsDropdownOpen(!isDropdownOpen)}
@@ -184,7 +239,6 @@ const DockForm: React.FC<DockFormProps> = ({ onClose, onSuccess, initialData }) 
                                 : `${selectedCount} type${selectedCount > 1 ? 's' : ''} selected`}
                         </span>
                     </div>
-                    {/* Ícone muda conforme estado */}
                     {isDropdownOpen ? (
                         <ChevronUp className="w-5 h-5 text-gray-500" />
                     ) : (
@@ -192,7 +246,6 @@ const DockForm: React.FC<DockFormProps> = ({ onClose, onSuccess, initialData }) 
                     )}
                 </button>
 
-                {/* Conteúdo Condicional (só aparece se isDropdownOpen === true) */}
                 {isDropdownOpen && (
                     <div className="p-3 bg-white border-t border-gray-200 max-h-60 overflow-y-auto">
                         {loadingTypes ? (
