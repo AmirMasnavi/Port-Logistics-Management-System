@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { shippingAgentApiRepository } from '../../infrastructure/repositories/shippingAgent/shippingAgentApi.repository';
-import { ShippingAgentService } from '../../app/shippingAgent/shippingAgent.service';
+import type { FormEvent } from 'react';
+import { shippingAgentService } from '../../app/shippingAgent/shippingAgent.service.instance';
+import { mapServerError as infraMapServerError } from '../../infrastructure/http/errorMapper';
 import type { CreateShippingAgentOrganizationDto, CreateShippingAgentRepresentativeDto, UpdateShippingAgentRepresentativeDto } from '../../infrastructure/repositories/shippingAgent/shippingAgent.dto';
-
-const service = new ShippingAgentService(shippingAgentApiRepository);
 
 // Default sample values (can be overridden by user afterwards)
 const DEFAULT_ORG_FORM = {
@@ -83,7 +82,7 @@ export const useShippingAgentsPageController = () => {
     try {
       setLoading(true);
       setError(null);
-      const { organizations, representatives } = await service.fetchAll();
+      const { organizations, representatives } = await shippingAgentService.fetchAll();
       setOrgs(organizations);
       setReps(representatives);
       (globalThis as any).shippingAgentCache = { orgs: organizations, reps: representatives };
@@ -120,10 +119,10 @@ export const useShippingAgentsPageController = () => {
   };
 
   // Service-level validators reused for UI gating
-  const isValidOrgTaxNumber = (v: string) => service.isValidOrgTaxNumber(v);
-  const isValidPtMobile = (v: string) => service.isValidPtMobile(v);
-  const isValidEmail = (v: string) => service.isValidEmail(v);
-  const isValidCitizenId = (v: string) => service.isValidCitizenId(v);
+  const isValidOrgTaxNumber = (v: string) => shippingAgentService.isValidOrgTaxNumber(v);
+  const isValidPtMobile = (v: string) => shippingAgentService.isValidPtMobile(v);
+  const isValidEmail = (v: string) => shippingAgentService.isValidEmail(v);
+  const isValidCitizenId = (v: string) => shippingAgentService.isValidCitizenId(v);
 
   const canSubmitOrg: boolean = !!(
     orgName.trim() && orgTaxNumber.trim() && orgEmail.trim() && orgPhone.trim() && repInitName.trim() && repInitNationality.trim() && repInitCitizen.trim() && repInitEmail.trim() && repInitPhone.trim() && !submittingOrg
@@ -145,7 +144,7 @@ export const useShippingAgentsPageController = () => {
     return null;
   };
 
-  const handleCreateOrganization = async (e?: React.FormEvent): Promise<boolean> => {
+  const handleCreateOrganization = async (e?: FormEvent): Promise<boolean> => {
     if (e && typeof (e as any).preventDefault === 'function') (e as any).preventDefault();
     if (!canSubmitOrg) return false;
     setOrgEmailError(null); setRepInitEmailError(null); setError(null);
@@ -178,14 +177,14 @@ export const useShippingAgentsPageController = () => {
           }
         ]
       };
-      await service.createOrganization(payload);
+      await shippingAgentService.createOrganization(payload);
       setOrgName(''); setOrgAddress(''); setOrgEmail(''); setOrgPhone(''); setOrgTaxNumber(''); setRepInitName(''); setRepInitCitizen(''); setRepInitNationality(''); setRepInitEmail(''); setRepInitPhone('');
       await fetchAll(); setView('organizations');
       setSuccessMsg('Organization created successfully.');
       window.setTimeout(() => setSuccessMsg(null), 3500);
       return true;
     } catch (e: any) {
-      const msg = (typeof mapServerError === 'function' ? mapServerError(e) : null) || e?.message || 'Failed to create organization. Please check the data and try again.'; setError(msg);
+      const msg = infraMapServerError(e) || e?.message || 'Failed to create organization. Please check the data and try again.'; setError(msg);
       return false;
     } finally { setSubmittingOrg(false); }
   };
@@ -215,7 +214,7 @@ export const useShippingAgentsPageController = () => {
     return null;
   };
 
-  const handleCreateRepresentative = async (e: React.FormEvent): Promise<boolean> => {
+  const handleCreateRepresentative = async (e?: FormEvent): Promise<boolean> => {
     if (e && typeof (e as any).preventDefault === 'function') (e as any).preventDefault();
     if (!canSubmitRep) return false; if (orgNameError) { setError(orgNameError); return false; }
     setRepEmailError(null); setError(null);
@@ -232,14 +231,14 @@ export const useShippingAgentsPageController = () => {
       };
       const matchedOrg = orgs.find(o => normalize(o.name) === normalize(resolvedOrgName as string));
       if (matchedOrg) { payload.OrganizationId = matchedOrg.id; }
-      await service.createRepresentative(payload);
+      await shippingAgentService.createRepresentative(payload);
       setRepName(''); setRepCitizen(''); setRepEmail(''); setRepPhone(''); setRepNationality(''); setRepOrgName('');
       await fetchAll(); setView('representatives');
       setSuccessMsg('Representative created successfully.');
       window.setTimeout(() => setSuccessMsg(null), 3500);
       return true;
     } catch (e: any) {
-      const msg = mapServerError(e) || e?.message || 'Failed to create representative. Please check the data and try again.'; setError(msg); return false;
+      const msg = infraMapServerError(e) || e?.message || 'Failed to create representative. Please check the data and try again.'; setError(msg); return false;
     } finally { setSubmittingRep(false); }
   };
 
@@ -248,12 +247,12 @@ export const useShippingAgentsPageController = () => {
     if (!citizenId) { setError('This representative has no Citizen ID associated — it cannot be deleted.'); return; }
     const ok = window.confirm(`Are you sure you want to delete representative with Citizen ID ${citizenId}? This action cannot be undone.`); if (!ok) return;
     try {
-      setDeletingRepId(citizenId); await service.deleteRepresentative(citizenId);
+      setDeletingRepId(citizenId); await shippingAgentService.deleteRepresentative(citizenId);
       const target = normalize(citizenId.toString().trim());
       setReps(prev => prev.filter(r => normalize(r.citizenId) !== target)); setView('representatives');
       setSuccessMsg(`Representative with Citizen ID ${citizenId} deleted.`); await fetchAll(); window.setTimeout(() => setSuccessMsg(null), 3500);
     } catch (e: any) {
-      const msg = mapServerError(e) || e?.message || 'Failed to delete representative'; setError(msg);
+      const msg = infraMapServerError(e) || e?.message || 'Failed to delete representative'; setError(msg);
     } finally { setDeletingRepId(null); }
   };
 
@@ -262,7 +261,7 @@ export const useShippingAgentsPageController = () => {
     if (!citizenId) { setError('This representative has no Citizen ID associated — it cannot be deleted.'); return; }
     try {
       setDeletingRepId(citizenId);
-      await service.deleteRepresentative(citizenId);
+      await shippingAgentService.deleteRepresentative(citizenId);
       const target = normalize(citizenId.toString().trim());
       setReps(prev => prev.filter(r => normalize(r.citizenId) !== target));
       setView('representatives');
@@ -270,7 +269,7 @@ export const useShippingAgentsPageController = () => {
       await fetchAll();
       window.setTimeout(() => setSuccessMsg(null), 3500);
     } catch (e: any) {
-      const msg = mapServerError(e) || e?.message || 'Failed to delete representative'; setError(msg);
+      const msg = infraMapServerError(e) || e?.message || 'Failed to delete representative'; setError(msg);
     } finally { setDeletingRepId(null); }
   };
 
@@ -311,12 +310,12 @@ export const useShippingAgentsPageController = () => {
         OrganizationName: orgNameTrimmed,
       };
       const matchedOrg = orgs.find(o => normalize(o.name) === normalize(orgNameTrimmed)); if (matchedOrg) dto.OrganizationId = matchedOrg.id;
-      await service.updateRepresentative(citizenId, dto);
+      await shippingAgentService.updateRepresentative(citizenId, dto);
       // @ts-ignore dynamic props
       setReps(prev => prev.map(r => normalize(r.citizenId) === normalize(citizenId) ? { ...r, name: dto.RepresentativeName, email: dto.RepresentativeEmail, phone: dto.RepresentativePhone, nationality: dto.RepresentativeNationality, organizationName: dto.OrganizationName } : r));
       setSuccessMsg(`Representative with Citizen ID ${citizenId} updated.`); await fetchAll(); cancelEdit(); window.setTimeout(() => setSuccessMsg(null), 3500);
     } catch (e: any) {
-      const msg = mapServerError(e) || e?.message || 'Failed to update representative. Please check the data and try again.'; setError(msg);
+      const msg = infraMapServerError(e) || e?.message || 'Failed to update representative. Please check the data and try again.'; setError(msg);
     } finally { setSubmittingEdit(false); }
   };
 
@@ -361,24 +360,18 @@ export const useShippingAgentsPageController = () => {
     return reps.filter(r => normalize(r.name).includes(q) || normalize(r.citizenId).includes(q) || normalize(r.organizationName).includes(q) || normalize(r.organizationId).includes(q) || normalize(r.email).includes(q) || normalize(r.phone).includes(q));
   }, [reps, query]);
 
-  // Map server-side ProblemDetails or validation errors to friendly messages
-  const mapServerError = (resp: any): string => {
-    const data = resp?.response?.data ?? resp?.data ?? resp; if (!data) return '';
-    if (data.errors && typeof data.errors === 'object') {
-      const parts: string[] = [];
-      if (data.errors.OrganizationName) parts.push('Please select an existing organization before submitting.');
-      if (data.errors.CitizenId) parts.push('The provided Citizen ID is invalid.');
-      if (data.errors.RepresentativePhone) parts.push('The phone number is invalid. It must start with 9 and have 9 digits.');
-      if (data.errors.RepresentativeEmail) parts.push('The provided email appears invalid.');
-      for (const key of Object.keys(data.errors)) {
-        if (['OrganizationName','CitizenId','RepresentativePhone','RepresentativeEmail'].includes(key)) continue;
-        const val = data.errors[key]; if (Array.isArray(val)) parts.push(...val.map((v:any)=>String(v))); else parts.push(String(val));
-      }
-      if (parts.length) return parts.join(' ');
+  // helper to scroll to the top message area (error/success banner).
+  // Detect header height dynamically (if header exists) to avoid hardcoded offsets.
+  const scrollToBanner = () => {
+    const el = document.getElementById('pageMessage');
+    const header = document.querySelector('header') as HTMLElement | null;
+    const headerOffset = header ? Math.ceil(header.getBoundingClientRect().height) : 72;
+    if (el) {
+      const top = Math.max(0, el.getBoundingClientRect().top + window.scrollY - headerOffset - 8);
+      window.scrollTo({ top, behavior: 'smooth' });
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-    if (data.message) return String(data.message);
-    if (data.title) return String(data.title);
-    try { return typeof data === 'string' ? data : JSON.stringify(data); } catch { return String(data); }
   };
 
   return {
@@ -405,5 +398,7 @@ export const useShippingAgentsPageController = () => {
     isValidEmail, isValidPtMobile,
     // New helpers exposed to UI
     applyOrgDefaults, resetOrgForm, applyRepDefaults, resetRepForm,
+    // expose helper used by UI to scroll to page messages
+    scrollToBanner,
   };
 };
