@@ -345,21 +345,26 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
 
     // Scale vessels (position + size)
     const scaledVessels = React.useMemo(
-        () => vessels.map(v => ({
-            ...v,
-            position: [
-                v.position[0] * WORLD_SCALE,
-                v.position[1] * WORLD_SCALE,
-                v.position[2] * WORLD_SCALE,
-            ] as [number, number, number],
-            size: Array.isArray(v.size)
-                ? ([
-                    v.size[0] * WORLD_SCALE,
-                    v.size[1] * WORLD_SCALE,
-                    v.size[2] * WORLD_SCALE,
-                ] as [number, number, number])
-                : (v.size ?? 0.5) * WORLD_SCALE,
-        })),
+        () => {
+            console.log(`🎨 PortScene: Scaling ${vessels.length} vessels for rendering`);
+            const scaled = vessels.map(v => ({
+                ...v,
+                position: [
+                    v.position[0] * WORLD_SCALE,
+                    (v.position[1] - 3.5) * WORLD_SCALE,
+                    v.position[2] * WORLD_SCALE,
+                ] as [number, number, number],
+                size: Array.isArray(v.size)
+                    ? ([
+                        v.size[0] * WORLD_SCALE,
+                        v.size[1] * WORLD_SCALE,
+                        v.size[2] * WORLD_SCALE,
+                    ] as [number, number, number])
+                    : (v.size ?? 0.5) * WORLD_SCALE,
+            }));
+            console.log(`🎨 PortScene: Scaled vessels:`, scaled.map(v => ({ id: v.id, name: v.name, position: v.position })));
+            return scaled;
+        },
         [vessels]
     );
 
@@ -829,19 +834,25 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
 
             {/* Render vessels: imported model if available, else use CargoShipModel */}
             {/* 2. Renderizar Navios nos seus locais */}
-            {scaledVessels.map(v => (
-                v.modelUrl ? (
-                    <ImportedModel key={v.id} modelUrl={v.modelUrl} position={v.position} scale={v.size} />
-                ) : (
-                    <CargoShipModel
-                        key={v.id}
-                        position={v.position}
-                        // vessels.size can be either a number or an array; pass it through or fallback to 0.5
-                        scale={Array.isArray(v.size) ? (v.size as any) : (v.size ?? 0.5)}
-                        rotation={v.rotation}
-                    />
-                )
-            ))}
+            {(() => {
+                console.log(`🎨 About to render ${scaledVessels.length} vessels`);
+                scaledVessels.forEach((v, idx) => {
+                    console.log(`  Rendering vessel ${idx + 1}: id=${v.id}, name=${v.name}, position=[${v.position.join(', ')}], hasModel=${!!v.modelUrl}`);
+                });
+                return scaledVessels.map(v => (
+                    v.modelUrl ? (
+                        <ImportedModel key={v.id} modelUrl={v.modelUrl} position={v.position} scale={v.size} />
+                    ) : (
+                        <CargoShipModel
+                            key={v.id}
+                            position={v.position}
+                            // vessels.size can be either a number or an array; pass it through or fallback to 0.5
+                            scale={Array.isArray(v.size) ? (v.size as any) : (v.size ?? 0.5)}
+                            rotation={v.rotation}
+                        />
+                    )
+                ));
+            })()}
 
             {/* Render cranes: imported model if available, else procedural based on area type */}
             {/* 3. Renderizar Recursos (Gruas) nos seus locais */}
