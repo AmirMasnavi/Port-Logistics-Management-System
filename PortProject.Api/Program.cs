@@ -31,12 +31,17 @@ using PortProject.Api.Application.PortLayout;
 using Microsoft.IdentityModel.Tokens;
 using PortProject.Api.Application.UserAdmin.Services;
 using Microsoft.AspNetCore.Authentication;
+using PortProject.Api.Infrastructure.Authentication;
+using PortProject.Api.Infrastructure.Middleware;
 
 
 var builder = WebApplication.CreateBuilder(args);
 
 var firebaseProjectId = "blueport-508e6";
 
+Console.WriteLine("[STARTUP] Configuring authentication schemes...");
+
+// Configure authentication with both JWT (for users) and API Key (for internal services)
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -52,7 +57,25 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidIssuer = "https://securetoken.google.com/" + firebaseProjectId,
             ValidateLifetime = true
         };
+        Console.WriteLine("[STARTUP] JWT Bearer authentication configured");
+    })
+    .AddScheme<ApiKeyAuthenticationOptions, ApiKeyAuthenticationHandler>("ApiKey", options => {
+        Console.WriteLine("[STARTUP] API Key authentication scheme registered");
     });
+
+Console.WriteLine("[STARTUP] Configuring authorization policies...");
+
+// Configure authorization policies
+builder.Services.AddAuthorization(options =>
+{
+    // Default policy requires JWT authentication
+    options.DefaultPolicy = new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme, "ApiKey")
+        .Build();
+    
+    Console.WriteLine("[STARTUP] Authorization policy configured with schemes: JwtBearer, ApiKey");
+});
 
 // This registers the Claims Transformation Service
 builder.Services.AddTransient<IClaimsTransformation, ClaimsTransformationService>();
@@ -119,7 +142,15 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+Console.WriteLine("[STARTUP] Configuring HTTP pipeline...");
+
 app.UseCors("AllowFrontend");
+
+// Add API Key Middleware BEFORE authentication
+// This checks for X-API-Key header and sets HttpContext.User if valid
+app.UseMiddleware<ApiKeyMiddleware>();
+Console.WriteLine("[STARTUP] API Key Middleware registered");
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {

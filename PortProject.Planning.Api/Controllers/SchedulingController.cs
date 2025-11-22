@@ -13,10 +13,12 @@ namespace PortProject.Planning.Api.Controllers;
 public class SchedulingController : ControllerBase
 {
     private readonly ISchedulingService _schedulingService;
+    private readonly ILogger<SchedulingController> _logger;
 
-    public SchedulingController(ISchedulingService schedulingService)
+    public SchedulingController(ISchedulingService schedulingService, ILogger<SchedulingController> logger)
     {
         _schedulingService = schedulingService;
+        _logger = logger;
     }
 
     /// <summary>
@@ -26,9 +28,27 @@ public class SchedulingController : ControllerBase
     [HttpPost("daily")]
     [Produces("application/json")]
     [ProducesResponseType(typeof(DailyScheduleResponseDto), 200)]
+    [ProducesResponseType(typeof(ProblemDetails), 400)]
+    [ProducesResponseType(typeof(ProblemDetails), 500)]
     public async Task<IActionResult> GetDailySchedule([FromBody] DailyScheduleRequestDto request)
     {
-        var schedule = await _schedulingService.GenerateDailySchedule(request.Date);
-        return Ok(schedule);
+        try
+        {
+            _logger.LogInformation("Received scheduling request for date: {Date} using algorithm: {Algorithm}", 
+                request.Date, request.Algorithm ?? "optimal");
+            var schedule = await _schedulingService.GenerateDailySchedule(request.Date, request.Algorithm ?? "optimal");
+            _logger.LogInformation("Successfully generated schedule with {TaskCount} tasks", schedule.ScheduledTasks.Count);
+            return Ok(schedule);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generating schedule for date {Date}", request.Date);
+            return StatusCode(500, new ProblemDetails
+            {
+                Status = 500,
+                Title = "Error generating schedule",
+                Detail = ex.Message
+            });
+        }
     }
 }

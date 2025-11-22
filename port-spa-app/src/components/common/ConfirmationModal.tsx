@@ -26,36 +26,37 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
     // If caller passed a recognisable key we translate it; otherwise we fall back to a sensible default
     const confirmLabel = confirmText === 'Confirm' ? t('Confirm') : t(confirmText);
 
+    // split message into sentences for better hierarchy; fallback to whole message
+    const parts = message.split(/(?<=[.?!])\s+/);
+    const firstLine = parts[0] ?? '';
+    const secondLine = parts.slice(1).join(' ') || '';
+
     return (
         <Modal isOpen={isOpen} onClose={onClose} title={title} showFooter={false}>
-            <div className="flex items-start gap-4">
-                <div className={`mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full ${
-                    isDestructive ? 'bg-red-100' : 'bg-blue-100'
-                } sm:mx-0 sm:h-10 sm:w-10`}>
-                    <AlertTriangle className={`h-6 w-6 ${isDestructive ? 'text-red-600' : 'text-blue-600'}`} aria-hidden="true" />
+            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 py-4">
+                <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full ${isDestructive ? 'bg-red-50' : 'bg-blue-50'}`}>
+                    <AlertTriangle className={`h-5 w-5 ${isDestructive ? 'text-red-600' : 'text-blue-600'}`} aria-hidden="true" />
                 </div>
-                <div className="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left">
-                    <p className="text-sm text-gray-500">{message}</p>
+
+                <div className="mt-2 text-center sm:ml-2 sm:mt-0 sm:text-left">
+                    <div className="text-sm font-semibold text-gray-900">{firstLine}</div>
+                    {secondLine && <div className="text-sm text-slate-500 mt-2">{secondLine}</div>}
                 </div>
             </div>
 
             {/* Action Buttons */}
-            <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 mt-5 pt-4 border-t">
+            <div className="mt-6 pt-6 border-t border-gray-100 flex flex-col sm:flex-row sm:justify-end gap-3">
                 <button
                     type="button"
                     onClick={onClose}
-                    className="btn btn-secondary w-full sm:w-auto justify-center"
+                    className="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 bg-gray-100 text-gray-800 border border-gray-200 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-200"
                 >
                     {t('button.cancel')}
                 </button>
                 <button
                     type="button"
                     onClick={onConfirm}
-                    className={`btn w-full sm:w-auto justify-center ${
-                        isDestructive
-                            ? 'bg-red-600 text-white hover:bg-red-700'
-                            : 'btn-primary'
-                    }`}
+                    className={`w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 rounded-md text-white focus:outline-none focus:ring-2 ${isDestructive ? 'focus:ring-red-300' : 'focus:ring-blue-300'} ${isDestructive ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'}`}
                 >
                     {confirmLabel}
                 </button>
