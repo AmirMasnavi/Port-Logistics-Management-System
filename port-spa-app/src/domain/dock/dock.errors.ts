@@ -12,7 +12,7 @@ export class DockServiceError extends Error {
 export class DockValidationError extends DockServiceError {
     constructor(message: string) {
         super(message);
-        this.name = 'DoockValidationError';
+        this.name = 'DockValidationError';
     }
 }
 
