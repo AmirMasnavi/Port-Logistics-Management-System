@@ -200,13 +200,35 @@ import { generateWarehouseLayout } from '../services/warehouseLayoutService';
                         ];
                         
                         console.log(`  Calculated vessel size (with ${VESSEL_SIZE_MULTIPLIER}x multiplier):`, vesselSize);
+                        console.log(`  MaxBays: ${vesselType?.maxBays || 1}, MaxRows: ${vesselType?.maxRows || 1}`);
 
                         // Position vessels relative to dock geometry
-                        // Calcular a posição do navio para atracar ao lado da doca
+                        // Determine if dock is on left or right side (negative X = left, positive X = right)
+                        const isLeftSide = dock.position[0] < 0;
+                        
+                        // Calculate Z-axis offset based on vessel length (maxBays)
+                        // Longer vessels need to be positioned further from the dock center to avoid land overlap
+                        const maxBays = vesselType?.maxBays || 1;
+                        const zOffsetPerBay = 20; // Adjust this value to control how much to offset per bay
+                        const zOffset = (maxBays - 1) * zOffsetPerBay; // No offset for maxBays=1, increase for larger vessels
+                        
+                        // Calculate X-axis offset based on vessel width (maxRows)
+                        // Wider vessels need to be brought closer to the dock
+                        const maxRows = vesselType?.maxRows || 1;
+                        const xOffsetPerRow = 7; // Adjust this value to control how much to offset per row
+                        const xOffset = (maxRows - 1) * xOffsetPerRow; // No offset for maxRows=1, increase for wider vessels
+                        
+                        console.log(`  Z-axis offset calculation: maxBays=${maxBays}, zOffsetPerBay=${zOffsetPerBay}, totalZOffset=${zOffset}`);
+                        console.log(`  X-axis offset calculation: maxRows=${maxRows}, xOffsetPerRow=${xOffsetPerRow}, totalXOffset=${xOffset}`);
+                        
+                        // For left side: vessel goes further left
+                        // For right side: vessel goes further right
                         const vesselPositionComputed: [number, number, number] = [
-                            dock.position[0] - (dock.size[0] / 2) - (vesselSize[2] / 2) - 0.2, // X: ao lado da doca
+                            isLeftSide 
+                                ? dock.position[0] - (dock.size[0] / 2) - (vesselSize[2] / 2) + 5.2 + xOffset // Left: add offset to bring closer
+                                : dock.position[0] + (dock.size[0] / 2) + (vesselSize[2] / 2) - 5.2 - xOffset, // Right: subtract offset to bring closer
                             vesselSize[1] / 2, // Y: para o navio "flutuar" no plano
-                            dock.position[2] // Z: alinhado com o centro da doca
+                            dock.position[2] + zOffset // Z: alinhado com o centro da doca + offset based on vessel length
                         ];
                         
                         console.log(`  Computed vessel position:`, vesselPositionComputed);
@@ -266,8 +288,26 @@ import { generateWarehouseLayout } from '../services/warehouseLayoutService';
                     console.log(`🚢 Total vessels added: ${renderableVessels.length} out of ${approvedVisits.length} visits`);
                     console.log('🚢 Final renderable vessels array:', renderableVessels);
                     
+                    // Check for duplicate IDs
+                    const vesselIds = renderableVessels.map(v => v.id);
+                    const uniqueIds = new Set(vesselIds);
+                    if (vesselIds.length !== uniqueIds.size) {
+                        console.error('⚠️ WARNING: Duplicate vessel IDs detected!');
+                        console.error('All IDs:', vesselIds);
+                        const duplicates = vesselIds.filter((id, index) => vesselIds.indexOf(id) !== index);
+                        console.error('Duplicate IDs:', [...new Set(duplicates)]);
+                    } else {
+                        console.log('✅ All vessel IDs are unique');
+                    }
+                    
+                    // Log each vessel's details
+                    renderableVessels.forEach((v, index) => {
+                        console.log(`  Vessel ${index + 1}: ID=${v.id}, Name=${v.name}, Position=[${v.position.join(', ')}]`);
+                    });
+                    
                     setVessels(renderableVessels);
                     console.log('🚢 Vessels state updated via setVessels()');
+                    console.log('🚢 Vessels array length passed to setVessels:', renderableVessels.length);
     
                     // Fetch and render cranes (procedural geometry)
                     // Fetch resources via getResources() and filter by crane type
