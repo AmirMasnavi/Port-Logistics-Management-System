@@ -1,4 +1,4 @@
-// Domain Model for Vessel Type
+// Domain Model for Dock
 // This is the pure business entity with no API or React logic
 
 export interface Dock {
