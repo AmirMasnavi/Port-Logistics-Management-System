@@ -181,6 +181,8 @@ export const useShippingAgentsPageController = () => {
       await service.createOrganization(payload);
       setOrgName(''); setOrgAddress(''); setOrgEmail(''); setOrgPhone(''); setOrgTaxNumber(''); setRepInitName(''); setRepInitCitizen(''); setRepInitNationality(''); setRepInitEmail(''); setRepInitPhone('');
       await fetchAll(); setView('organizations');
+      setSuccessMsg('Organization created successfully.');
+      window.setTimeout(() => setSuccessMsg(null), 3500);
       return true;
     } catch (e: any) {
       const msg = (typeof mapServerError === 'function' ? mapServerError(e) : null) || e?.message || 'Failed to create organization. Please check the data and try again.'; setError(msg);
@@ -213,10 +215,11 @@ export const useShippingAgentsPageController = () => {
     return null;
   };
 
-  const handleCreateRepresentative = async (e: React.FormEvent) => {
-    e.preventDefault(); if (!canSubmitRep) return; if (orgNameError) { setError(orgNameError); return; }
+  const handleCreateRepresentative = async (e: React.FormEvent): Promise<boolean> => {
+    if (e && typeof (e as any).preventDefault === 'function') (e as any).preventDefault();
+    if (!canSubmitRep) return false; if (orgNameError) { setError(orgNameError); return false; }
     setRepEmailError(null); setError(null);
-    const clientErr = validateRepresentativeBeforeSubmit(); if (clientErr) { if (repEmail && !isValidEmail(repEmail)) setRepEmailError('Provided email appears invalid.'); setError(clientErr); return; }
+    const clientErr = validateRepresentativeBeforeSubmit(); if (clientErr) { if (repEmail && !isValidEmail(repEmail)) setRepEmailError('Provided email appears invalid.'); setError(clientErr); return false; }
     setSubmittingRep(true);
     try {
       const payload: CreateShippingAgentRepresentativeDto = {
@@ -232,8 +235,11 @@ export const useShippingAgentsPageController = () => {
       await service.createRepresentative(payload);
       setRepName(''); setRepCitizen(''); setRepEmail(''); setRepPhone(''); setRepNationality(''); setRepOrgName('');
       await fetchAll(); setView('representatives');
+      setSuccessMsg('Representative created successfully.');
+      window.setTimeout(() => setSuccessMsg(null), 3500);
+      return true;
     } catch (e: any) {
-      const msg = mapServerError(e) || e?.message || 'Failed to create representative. Please check the data and try again.'; setError(msg);
+      const msg = mapServerError(e) || e?.message || 'Failed to create representative. Please check the data and try again.'; setError(msg); return false;
     } finally { setSubmittingRep(false); }
   };
 
