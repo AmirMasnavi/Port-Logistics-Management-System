@@ -8,9 +8,11 @@ interface ModalProps {
     title: string;
     children: React.ReactNode;
     showFooter?: boolean;
+    showHeaderClose?: boolean;
+    footerLabel?: string;
 }
 
-const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, showFooter = true }) => {
+const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, showFooter = true, showHeaderClose = true, footerLabel = 'Close' }) => {
     // Close on ESC
     useEffect(() => {
         const onKey = (e: KeyboardEvent) => {
@@ -50,15 +52,17 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, showFoo
                         <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
                     </div>
 
-                    <button
-                        onClick={onClose}
-                        aria-label="Close modal"
-                        className="text-gray-400 hover:text-gray-600 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-maritime-500"
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                            <path fillRule="evenodd" d="M10 8.586L15.95 2.636a1 1 0 011.414 1.414L11.414 10l5.95 5.95a1 1 0 01-1.414 1.414L10 11.414l-5.95 5.95a1 1 0 01-1.414-1.414L8.586 10 2.636 4.05A1 1 0 014.05 2.636L10 8.586z" clipRule="evenodd" />
-                        </svg>
-                    </button>
+                    {showHeaderClose && (
+                        <button
+                            onClick={onClose}
+                            aria-label="Close modal"
+                            className="text-blue-600 hover:text-blue-700 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-300"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                <path fillRule="evenodd" d="M10 8.586L15.95 2.636a1 1 0 011.414 1.414L11.414 10l5.95 5.95a1 1 0 01-1.414 1.414L10 11.414l-5.95 5.95a1 1 0 01-1.414-1.414L8.586 10 2.636 4.05A1 1 0 014.05 2.636L10 8.586z" clipRule="evenodd" />
+                            </svg>
+                        </button>
+                    )}
                 </div>
 
                 {/* Body */}
@@ -69,7 +73,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, showFoo
                 {/* Footer (optional space for actions) */}
                 {showFooter && (
                     <div className="p-4 border-t flex justify-end gap-2">
-                        <button onClick={onClose} className="btn btn-primary">Close</button>
+                        <button onClick={onClose} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300 transition-colors">{footerLabel}</button>
                     </div>
                 )}
             </div>

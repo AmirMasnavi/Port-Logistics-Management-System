@@ -24,7 +24,8 @@ namespace PortProject.Api.Controllers
             try
             {
                 var id = await _service.RegisterOrganizationAsync(dto);
-                return CreatedAtAction(nameof(GetOrganizationById), new { id }, $"{dto.LegalName} created successfully!");
+                // Return 201 Created with the created resource id in the response body (integration tests expect a GUID)
+                return CreatedAtAction(nameof(GetOrganizationById), new { id }, id);
             }
             catch (ArgumentException ex)
             {
@@ -32,7 +33,14 @@ namespace PortProject.Api.Controllers
             }
             catch (InvalidOperationException ex)
             {
-                // Known domain/service validation errors -> 400 Bad Request with message
+                // Distinguish domain validation vs conflict (duplicates)
+                // If the service signals a duplicate/uniqueness violation it typically includes "already exists" in the message
+                if (!string.IsNullOrEmpty(ex.Message) && ex.Message.Contains("already exists", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Duplicate/resource conflict -> 409
+                    return Conflict(new { message = ex.Message });
+                }
+                // Otherwise treat as bad request (validation/invariant violation)
                 return BadRequest(new { message = ex.Message });
             }
             catch (Exception ex)

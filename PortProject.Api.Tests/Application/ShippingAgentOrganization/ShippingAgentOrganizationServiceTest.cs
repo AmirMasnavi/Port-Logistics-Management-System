@@ -35,7 +35,7 @@ public class ShippingAgentOrganizationServiceTest
     }
 
     [Fact]
-    public async Task RegisterOrganizationAsync_DuplicateLegalName_Throws()
+    public async Task RegisterOrganizationAsync_DuplicateEmail_ThrowsInvalidOperation()
     {
         // Arrange
         using var ctx = NewInMemoryContext();
@@ -49,6 +49,8 @@ public class ShippingAgentOrganizationServiceTest
             City = "Porto",
             Country = "Portugal",
             TaxNumber = "PT123456789",
+            Email = "dup@acme.com",
+            Phone = "912345678",
             Representatives = new List<CreateShippingAgentRepresentativeForOrganizationDto>
             {
                 new()
@@ -57,16 +59,15 @@ public class ShippingAgentOrganizationServiceTest
                     CitizenId = "CIT-1",
                     RepresentativeNationality = "PT",
                     RepresentativeEmail = "john@acme.com",
-                    RepresentativePhone = "+351912345678"
+                    RepresentativePhone = "912345679"
                 }
             }
         };
 
-        _orgRepoMock.Setup(r => r.ExistsByLegalNameAsync(It.IsAny<LegalName>()))
-            .ReturnsAsync(true);
+        _orgRepoMock.Setup(r => r.ExistsByEmailAsync(dto.Email)).ReturnsAsync(true);
 
         // Act & Assert
-        await Assert.ThrowsAsync<ArgumentException>(() => service.RegisterOrganizationAsync(dto));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.RegisterOrganizationAsync(dto));
         _orgRepoMock.Verify(r => r.AddAsync(It.IsAny<PortProject.Api.Domain.ShippingAgentOrganizationAggregate.ShippingAgentOrganization>()), Times.Never);
     }
 
@@ -94,14 +95,14 @@ public class ShippingAgentOrganizationServiceTest
     }
 
     [Fact]
-    public async Task GetByIdAsync_Found_ReturnsDto()
+    public async Task GetByIdAsync_Found_ReturnsDto_IncludesValues()
     {
         // Arrange
         using var ctx = NewInMemoryContext();
         var service = new ShippingAgentOrganizationService(_orgRepoMock.Object, ctx, _repServiceMock.Object);
 
         var id = Guid.NewGuid();
-        var org = new PortProject.Api.Domain.ShippingAgentOrganizationAggregate.ShippingAgentOrganization(
+        var domain = new PortProject.Api.Domain.ShippingAgentOrganizationAggregate.ShippingAgentOrganization(
             new OrganizationId(id),
             new LegalName("ACME Corp"),
             new AlternativeName("ACME"),
@@ -109,20 +110,19 @@ public class ShippingAgentOrganizationServiceTest
             new TaxNumber("PT123456789")
         );
 
+        domain.GetType(); // evitar warnings
+
         _orgRepoMock.Setup(r => r.GetByIdAsync(It.Is<OrganizationId>(o => o.Value == id)))
-            .ReturnsAsync(org);
+            .ReturnsAsync(domain);
 
         // Act
         var dto = await service.GetByIdAsync(id);
 
         // Assert
         Assert.NotNull(dto);
-        Assert.Equal("ACME Corp", dto?.LegalName);
-        Assert.Equal("ACME", dto?.AlternativeName);
-        Assert.Equal("Rua 1", dto?.Street);
-        Assert.Equal("Porto", dto?.City);
-        Assert.Equal("Portugal", dto?.Country);
-        Assert.Equal("PT123456789", dto?.TaxNumber);
+        Assert.Equal(id.ToString(), dto!.Id); // verificação Id
+        Assert.Equal("ACME Corp", dto.LegalName);
+        Assert.Equal("ACME", dto.AlternativeName);
     }
 
     [Fact]

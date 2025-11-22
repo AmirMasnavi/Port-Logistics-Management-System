@@ -5,54 +5,56 @@ autonumber
 box "Backend System (Sistema AIT)" #LightBlue
     participant "HTTP Request" as HttpRequest
     participant "Route" as Route
-    participant "Controller" as Controller
+    participant "Auth Controller" as Controller
     participant "DTO" as Dto
-    participant "Service" as Service
-    box "Persistence" #LightGreen
-        participant "Data Model" as DataModel
-        participant "Aggregate" as Aggregate
-        participant "Value Object" as ValueObject
-        participant "Entity" as Entity
+    participant "Auth Service" as Service
+    box "Security" #LightYellow
+        participant "Token Generator" as TokenGen
+        participant "Password Validator" as PasswordVal
     end box
-    participant "Repository" as Repository
+    box "Persistence" #LightGreen
+        participant "User Aggregate" as Aggregate
+        participant "Value Objects" as ValueObject
+    end box
+    participant "User Repository" as Repository
 end box
 
-HttpRequest -> Route : 1.1: POST /api/vesseltype OR PUT /api/vesseltype/{id}
+HttpRequest -> Route : 1.1: POST /api/auth/login
 activate HttpRequest
-Route -> Controller : 1.2: Invoke Create / Update
+Route -> Controller : 1.2: Invoke Authenticate
 activate Route
-Controller -> Dto : 1.3: Map request body
+Controller -> Dto : 1.3: Map credentials
 activate Controller
-Dto --> Controller : 1.4: Mapped data
+Dto --> Controller : 1.4: Mapped credentials
 deactivate Dto
-Controller -> Service : 1.5: Process data
+Controller -> Service : 1.5: Authenticate user
 activate Service
-Service -> Aggregate : 1.6: Create or update aggregate
-activate Aggregate
-Aggregate -> ValueObject : 1.6.1: Create or update value objects
-activate ValueObject
-ValueObject --> Aggregate : 1.6.2: Value objects created/updated
-deactivate ValueObject
-Aggregate -> Entity : 1.6.3: Create or update entity
-activate Entity
-Entity --> Aggregate : 1.6.4: Entity created/updated
-deactivate Entity
-Aggregate --> Service : 1.6.5: Aggregate created/updated
-deactivate Aggregate
-Service -> Repository : 1.7: Persist aggregate
+Service -> Repository : 1.6: Find user by username
 activate Repository
-Repository -> DataModel : 1.7.1: Map aggregate to data model
-activate DataModel
-DataModel --> Repository : 1.7.2: Data model mapped
-deactivate DataModel
-Repository --> Service : 1.8: Data persisted
+Repository -> Aggregate : 1.6.1: Retrieve user aggregate
+activate Aggregate
+Aggregate -> ValueObject : 1.6.2: Get user data
+activate ValueObject
+ValueObject --> Aggregate : 1.6.3: User data
+deactivate ValueObject
+Aggregate --> Repository : 1.6.4: User aggregate
+deactivate Aggregate
+Repository --> Service : 1.7: User found
 deactivate Repository
-Service --> Controller : 1.9: Response data
+Service -> PasswordVal : 1.8: Validate password
+activate PasswordVal
+PasswordVal --> Service : 1.9: Password valid
+deactivate PasswordVal
+Service -> TokenGen : 1.10: Generate token
+activate TokenGen
+TokenGen --> Service : 1.11: Authentication token
+deactivate TokenGen
+Service --> Controller : 1.12: Token response
 deactivate Service
-Controller --> HttpRequest : 1.10: HTTP 201 Created / 200 OK
+Controller --> HttpRequest : 1.13: HTTP 200 OK
 deactivate Controller
 deactivate Route
-HttpRequest --> : 1.11: HTTP Response
+HttpRequest --> : 1.14: HTTP Response with token
 deactivate HttpRequest
 
 @enduml

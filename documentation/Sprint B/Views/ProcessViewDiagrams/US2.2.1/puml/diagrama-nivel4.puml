@@ -5,64 +5,71 @@ autonumber
 box "Backend System (Sistema AIT)" #LightBlue
     participant "HTTP Request" as HttpRequest
     participant "Route" as Route
-    participant "Controller" as Controller
+    participant "Auth Controller" as Controller
     participant "DTO" as Dto
-    participant "Service Interface" as ServiceInterface
-    participant "Service Implementation" as ServiceImpl
+    participant "Auth Service Interface" as ServiceInterface
+    participant "Auth Service Implementation" as ServiceImpl
+    box "Security" #LightYellow
+        participant "JWT Token Generator" as TokenGen
+        participant "BCrypt Password Validator" as PasswordVal
+    end box
     box "Persistence" #LightGreen
-        participant "Data Model" as DataModel
-        participant "Aggregate" as Aggregate
-        participant "Value Object" as ValueObject
-        participant "Entity" as Entity
-        participant "Repository Interface" as RepoInterface
-        participant "Repository Implementation" as RepoImpl
+        participant "User Aggregate" as Aggregate
+        participant "Username VO" as UsernameVO
+        participant "Password VO" as PasswordVO
+        participant "User Repository Interface" as RepoInterface
+        participant "User Repository Implementation" as RepoImpl
     end box
 end box
 
-HttpRequest -> Route : 1.1: POST /api/vesseltype OR PUT /api/vesseltype/{id}
+HttpRequest -> Route : 1.1: POST /api/auth/login
 activate HttpRequest
-Route -> Controller : 1.2: Invoke Create / Update
+Route -> Controller : 1.2: Invoke Authenticate
 activate Route
-Controller -> Dto : 1.3: Map request body
+Controller -> Dto : 1.3: Map credentials (LoginDto)
 activate Controller
-Dto --> Controller : 1.4: Mapped data
+Dto --> Controller : 1.4: Mapped credentials
 deactivate Dto
-Controller -> ServiceInterface : 1.5: Call service method
+Controller -> ServiceInterface : 1.5: Call authenticate method
 activate ServiceInterface
 ServiceInterface -> ServiceImpl : 1.6: Delegate to implementation
 activate ServiceImpl
-ServiceImpl -> Aggregate : 1.7: Create or update aggregate
-activate Aggregate
-Aggregate -> ValueObject : 1.7.1: Create or update value objects
-activate ValueObject
-ValueObject --> Aggregate : 1.7.2: Value objects created/updated
-deactivate ValueObject
-Aggregate -> Entity : 1.7.3: Create or update entity
-activate Entity
-Entity --> Aggregate : 1.7.4: Entity created/updated
-deactivate Entity
-Aggregate --> ServiceImpl : 1.7.5: Aggregate created/updated
-deactivate Aggregate
-ServiceImpl -> RepoInterface : 1.8: Call repository method
+ServiceImpl -> RepoInterface : 1.7: Call FindByUsername
 activate RepoInterface
-RepoInterface -> RepoImpl : 1.9: Delegate to implementation
+RepoInterface -> RepoImpl : 1.8: Delegate to implementation
 activate RepoImpl
-RepoImpl -> DataModel : 1.9.1: Map aggregate to data model
-activate DataModel
-DataModel --> RepoImpl : 1.9.2: Data model mapped
-deactivate DataModel
-RepoImpl --> RepoInterface : 1.10: Data persisted
+RepoImpl -> Aggregate : 1.8.1: Load user aggregate
+activate Aggregate
+Aggregate -> UsernameVO : 1.8.2: Get username
+activate UsernameVO
+UsernameVO --> Aggregate : 1.8.3: Username value
+deactivate UsernameVO
+Aggregate -> PasswordVO : 1.8.4: Get password hash
+activate PasswordVO
+PasswordVO --> Aggregate : 1.8.5: Password hash
+deactivate PasswordVO
+Aggregate --> RepoImpl : 1.8.6: User aggregate
+deactivate Aggregate
+RepoImpl --> RepoInterface : 1.9: User found
 deactivate RepoImpl
-RepoInterface --> ServiceImpl : 1.11: Data persisted
+RepoInterface --> ServiceImpl : 1.10: User aggregate
 deactivate RepoInterface
-ServiceImpl --> ServiceInterface : 1.12: Response data
+ServiceImpl -> PasswordVal : 1.11: Verify password
+activate PasswordVal
+PasswordVal --> ServiceImpl : 1.12: Password verified
+deactivate PasswordVal
+ServiceImpl -> TokenGen : 1.13: Generate JWT token
+activate TokenGen
+TokenGen --> ServiceImpl : 1.14: JWT token with claims
+deactivate TokenGen
+ServiceImpl --> ServiceInterface : 1.15: AuthTokenDto
 deactivate ServiceImpl
-ServiceInterface --> Controller : 1.13: Response data
+ServiceInterface --> Controller : 1.16: AuthTokenDto
 deactivate ServiceInterface
-Controller --> HttpRequest : 1.14: HTTP 201 Created / 200 OK
+Controller --> HttpRequest : 1.17: HTTP 200 OK
 deactivate Controller
 deactivate Route
-HttpRequest --> : 1.15: HTTP Response
+HttpRequest --> : 1.18: HTTP Response with token
 deactivate HttpRequest
 
 @enduml

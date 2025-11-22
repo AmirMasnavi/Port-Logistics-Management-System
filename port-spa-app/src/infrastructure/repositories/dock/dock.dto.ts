@@ -14,13 +14,13 @@ export interface DockCreateDto {
 }
 
 export interface UpdateDockDto {
-    name: string;
-    locationZone: string;
-    locationSection: string;
-    lengthInMeters: number;
-    depthInMeters: number;
-    maxDraftInMeters: number;
-    numberOfSTSCranes: number;
+    name?: string;
+    locationZone?: string;
+    locationSection?: string;
+    lengthInMeters?: number;
+    depthInMeters?: number;
+    maxDraftInMeters?: number;
+    numberOfSTSCranes?: number;
     allowedVesselTypeIds?: string[];
 }
 
