@@ -1,7 +1,8 @@
 namespace PortProject.Planning.Api.Application.Clients.DTOs;
 
 public record VesselVisitDto(
-    Guid Id, 
+    Guid Id,
+    string BusinessId,
     string Status, 
     DateTime EstimatedArrival, 
     DateTime EstimatedDeparture, 

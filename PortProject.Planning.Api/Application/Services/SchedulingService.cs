@@ -29,7 +29,7 @@ public class SchedulingService : ISchedulingService
         _logger = logger;
     }
 
-    public async Task<DailyScheduleResponseDto> GenerateDailySchedule(DateOnly date)
+    public async Task<DailyScheduleResponseDto> GenerateDailySchedule(DateOnly date, string algorithm = "optimal")
     {
         var schedule = new DailyScheduleResponseDto { Date = date };
         var sw = Stopwatch.StartNew();
@@ -117,25 +117,40 @@ public class SchedulingService : ISchedulingService
         {
             var prologClient = _httpClientFactory.CreateClient("PrologApiClient");
             
-            _logger.LogInformation("Sending {Count} vessels to Prolog server...", prologVesselList.Count);
+            _logger.LogInformation("Sending {Count} vessels to Prolog server using {Algorithm} algorithm...", prologVesselList.Count, algorithm);
             
-            // Call the Prolog server running on http://localhost:5001
-            HttpResponseMessage prologResponse = await prologClient.PostAsJsonAsync("http://localhost:5001/api/schedule", prologVesselList);
+            // Select Prolog endpoint based on algorithm
+            string prologEndpoint = algorithm?.ToLower() switch
+            {
+                "heuristic" => "http://localhost:5001/api/schedule/heuristic",
+                "multicrane" => "http://localhost:5001/api/schedule/multicrane",
+                _ => "http://localhost:5001/api/schedule/optimal" // default
+            };
+            
+            _logger.LogInformation("Using Prolog endpoint: {Endpoint}", prologEndpoint);
+            
+            HttpResponseMessage prologResponse = await prologClient.PostAsJsonAsync(prologEndpoint, prologVesselList);
 
             if (prologResponse.IsSuccessStatusCode)
             {
-                // Read the JSON response from Prolog: { "schedule": [...], "delay": ... }
-                prologResult = await prologResponse.Content.ReadFromJsonAsync<PrologScheduleResponse>();
+                // Read the raw response first for logging
+                var rawResponse = await prologResponse.Content.ReadAsStringAsync();
+                _logger.LogInformation("[DIAG] Raw Prolog response: {Response}", rawResponse);
+                
+                // Deserialize the JSON response from Prolog: { "schedule": [...], "delay": ... }
+                prologResult = System.Text.Json.JsonSerializer.Deserialize<PrologScheduleResponse>(rawResponse, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
                 
                 if (prologResult == null)
                 {
                      _logger.LogError("Failed to deserialize response from Prolog.");
                      return Finish(); // Return empty schedule on error
                 }
+                
                 schedule.TotalDelay = prologResult.Delay;
                 
-                _logger.LogInformation("Received schedule from Prolog with {Count} tasks and delay {Delay}", 
+                _logger.LogInformation("Received schedule from Prolog with {Count} tasks and delay {Delay} hours", 
                     prologResult.Schedule.Count, prologResult.Delay);
+                _logger.LogInformation("[DIAG] TotalDelay set to: {TotalDelay}", schedule.TotalDelay);
             }
             else
             {
@@ -355,18 +370,62 @@ public class SchedulingService : ISchedulingService
                 schedule.Warnings.Add(msg);
             }
 
+            // Get display names for UI
+            var assignedDock = docks.FirstOrDefault(d => d.Id == assignedDockId);
+            var vesselBusinessId = visitDto?.BusinessId ?? vesselId;
+            var dockDisplayName = assignedDock?.Name ?? assignedDockId;
+            var resourceDisplayKind = requestedResource?.Kind ?? requestedResourceCode;
+            var staffDisplayName = assignedStaff?.ShortName ?? assignedStaff?.MecanographicNumber ?? "UNASSIGNED";
+
             schedule.ScheduledTasks.Add(new ScheduledTaskDto
             {
+                // IDs (for internal use)
                 VesselVisitId = vesselId,
                 DockId = assignedDockId,
                 StaffId = assignedStaff?.MecanographicNumber ?? "UNASSIGNED",
                 ResourceId = requestedResourceCode,
+                
+                // Display names (for UI)
+                VesselVisitBusinessId = vesselBusinessId,
+                DockName = dockDisplayName,
+                ResourceKind = resourceDisplayKind,
+                StaffShortName = staffDisplayName,
+                
                 StartTime = scheduledStart,
                 EndTime = scheduledEnd
             });
         }
 
+        // Recalculate total delay based on actual scheduled times (not Prolog's value)
+        // because we may have adjusted schedules after Prolog's calculation
+        schedule.TotalDelay = CalculateTotalDelayInHours(schedule.ScheduledTasks, clientVisits);
+        _logger.LogInformation("[DIAG] Recalculated TotalDelay after scheduling adjustments: {TotalDelay} hours", schedule.TotalDelay);
+
         return Finish();
+    }
+
+    // Calculate total delay: sum of (actual end time - desired departure time) for all vessels
+    private double CalculateTotalDelayInHours(List<ScheduledTaskDto> tasks, List<VesselVisitDto> visits)
+    {
+        double totalDelayHours = 0.0;
+        
+        foreach (var task in tasks)
+        {
+            // Find the corresponding vessel visit
+            var visit = visits.FirstOrDefault(v => v.Id.ToString() == task.VesselVisitId);
+            if (visit == null) continue;
+            
+            // Calculate delay: if task ends after estimated departure, add the difference
+            if (task.EndTime > visit.EstimatedDeparture)
+            {
+                var delay = task.EndTime - visit.EstimatedDeparture;
+                totalDelayHours += delay.TotalHours;
+                _logger.LogDebug("Vessel {VesselId} has {Delay}h delay (ends {End}, wanted {Departure})", 
+                    task.VesselVisitId, delay.TotalHours, task.EndTime, visit.EstimatedDeparture);
+            }
+        }
+        
+        return totalDelayHours;
     }
 
     // --- Helpers for availability scheduling (hybrid) ---

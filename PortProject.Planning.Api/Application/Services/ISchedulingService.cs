@@ -7,5 +7,5 @@ namespace PortProject.Planning.Api.Application.Services;
 /// </summary>
 public interface ISchedulingService
 {
-    Task<DailyScheduleResponseDto> GenerateDailySchedule(DateOnly date);
+    Task<DailyScheduleResponseDto> GenerateDailySchedule(DateOnly date, string algorithm);
 }
