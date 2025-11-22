@@ -15,6 +15,7 @@ import RequireAuth from './auth/RequireAuth';
 import PortFacilitiesPage from './pages/PortFacilitiesPage';
 import RoleProtectedRoute from './auth/RoleProtectedRoute'; // Our new component to check the user's role
 import ResourcePage from './pages/ResourcePage';
+import SchedulingPage from './pages/SchedulingPage';
 
 
 // --- Centralized Permission Sets ---
@@ -74,6 +75,7 @@ function App() {
                             {/* Assuming Docks fall under the same planning permissions */}
                             <Route path="/docks" element={<DockPage />} /> 
                             <Route path="/resources" element={<ResourcePage />} />
+                            <Route path="/scheduling" element={<SchedulingPage />} />
                         </Route>
 
                         {/* --- Role-Protected Routes for VVN Management (Admin, Agent) --- */}

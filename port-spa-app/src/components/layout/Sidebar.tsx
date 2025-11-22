@@ -20,6 +20,7 @@ import {
     Box, // For 3D Visualization
     SquareSquare, // For Docks
     Package, // For Resources
+    Calendar, // For Scheduling
 } from 'lucide-react';
 
 // 2. Create a new, reusable component for our icon-links
@@ -146,6 +147,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                     <>
                         <NavItem to="/port-facilities" label="Port Facilities" icon={Building} isExpanded={isExpanded} />
                         <NavItem to="/docks" label="Docks" icon={SquareSquare} isExpanded={isExpanded} />
+                        <NavItem to="/scheduling" label="Scheduling" icon={Calendar} isExpanded={isExpanded} />
                     </>
                 )}
                 {/* Shipping Agents: Admin & Officer */}

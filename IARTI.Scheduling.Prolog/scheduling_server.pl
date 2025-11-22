@@ -172,8 +172,8 @@ handle_schedule_optimal(Request) :-
     retractall(vessel(_, _, _, _, _)),
     format_schedule_json(SeqBetterTriplets, ScheduleJSON),
 
-    % Print to Server Terminal
-    write('Request handled: OPTIMAL. Time: '), write(Tempo), nl,
+    % Print to Server Terminal (disabled - causes HTTP response corruption)
+    % write('Request handled: OPTIMAL. Time: '), write(Tempo), nl,
 
     reply_json(json{
         schedule: ScheduleJSON, 
@@ -197,8 +197,8 @@ handle_schedule_heuristic(Request) :-
     retractall(vessel(_, _, _, _, _)),
     format_schedule_json(SeqBetterTriplets, ScheduleJSON),
 
-    % Print to Server Terminal
-    write('Request handled: HEURISTIC. Time: '), write(Tempo), nl,
+    % Print to Server Terminal (disabled - causes HTTP response corruption)
+    % write('Request handled: HEURISTIC. Time: '), write(Tempo), nl,
 
     reply_json(json{
         schedule: ScheduleJSON, 
@@ -222,8 +222,8 @@ handle_schedule_multicrane(Request) :-
     retractall(vessel(_, _, _, _, _)),
     format_schedule_json(SeqBetterTriplets, ScheduleJSON),
 
-    % Print to Server Terminal
-    write('Request handled: MULTI-CRANE. Time: '), write(Tempo), nl,
+    % Print to Server Terminal (disabled - causes HTTP response corruption)
+    % write('Request handled: MULTI-CRANE. Time: '), write(Tempo), nl,
 
     reply_json(json{
         schedule: ScheduleJSON, 
