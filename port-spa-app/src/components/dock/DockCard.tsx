@@ -58,7 +58,11 @@ const DockCard: React.FC<DockCardProps> = ({
                 <p className="text-xs font-medium text-gray-500 mb-1">Allowed Vessel Types:</p>
                 <p className="text-sm text-gray-800 truncate">
                     {dock.allowedVesselTypeIds && dock.allowedVesselTypeIds.length > 0
-                        ? dock.allowedVesselTypeIds.join(', ')
+                        ? (
+                            <span className="font-medium text-blue-600">
+                                {dock.allowedVesselTypeIds.length} Types Selected
+                            </span>
+                        )
                         : <span className="text-gray-400 italic">All types allowed / None specified</span>
                     }
                 </p>

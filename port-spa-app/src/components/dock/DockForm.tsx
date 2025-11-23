@@ -115,21 +115,7 @@ const DockForm: React.FC<DockFormProps> = ({ onClose, onSuccess, initialData }) 
         <form onSubmit={handleSubmit} className="space-y-4">
             {error && <div className="text-red-600 bg-red-100 p-3 rounded-lg text-sm">{error}</div>}
 
-            {!initialData && (
-                <div>
-                    <label htmlFor="dockId" className="block text-sm font-medium text-gray-700">ID (Optional)</label>
-                    <input
-                        id="dockId"
-                        type="text"
-                        name="id"
-                        value={formData.id}
-                        onChange={handleChange}
-                        className="mt-1 p-2 w-full border border-gray-300 rounded-lg"
-                        placeholder="Leave empty if auto-generated"
-                    />
-                </div>
-            )}
-
+            
             <div>
                 <label htmlFor="dockName" className="block text-sm font-medium text-gray-700">Name</label>
                 <input
