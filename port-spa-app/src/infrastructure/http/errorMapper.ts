@@ -1,7 +1,8 @@
 // Centralized error mapper for HTTP responses / ProblemDetails
 // Move backend-specific parsing here so controllers/pages can remain thin.
 export const mapServerError = (resp: any): string | null => {
-  const data = resp?.response?.data ?? resp?.data ?? resp;
+  // prefer explicit payloads only: response.data or data. If none exist, treat as no-data (return null)
+  const data = resp?.response?.data ?? resp?.data;
   if (!data) return null;
   if (data.errors && typeof data.errors === 'object') {
     const parts: string[] = [];
@@ -21,4 +22,3 @@ export const mapServerError = (resp: any): string | null => {
   if (data.title) return String(data.title);
   try { return typeof data === 'string' ? data : JSON.stringify(data); } catch { return String(data); }
 };
-

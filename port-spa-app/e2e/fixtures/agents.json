@@ -1,0 +1,24 @@
+{
+  "orgs": [
+    {
+      "id": "o1",
+      "name": "Atlantic Maritime",
+      "address": "Rua 1, Porto, Portugal",
+      "email": "contact@atlantic.example",
+      "phone": "912345678",
+      "taxNumber": "501234567"
+    }
+  ],
+  "reps": [
+    {
+      "id": "r1",
+      "name": "Maria Santos",
+      "citizenId": "AB12345678",
+      "nationality": "Portuguese",
+      "email": "maria@atlantic.example",
+      "phone": "934567890",
+      "organizationName": "Atlantic Maritime"
+    }
+  ]
+}
+
