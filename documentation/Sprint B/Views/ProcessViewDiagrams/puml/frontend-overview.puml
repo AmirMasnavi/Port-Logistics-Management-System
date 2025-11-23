@@ -1,0 +1,114 @@
+@startuml
+!theme plain
+autonumber
+
+box "User & Browser" #LightSteelBlue
+    participant "End User" as User
+    participant "Browser SPA Shell" as Browser
+end box
+
+box "Single Page App (Frontend)" #LightCoral
+    participant "Router Views" as Router
+    participant "Auth Service" as AuthService
+    participant "State Store" as Store
+    participant "API Client HTTP" as ApiClient
+    participant "Service Worker Cache" as SW
+    participant "Local Storage IndexedDB" as Storage
+    participant "WebSocket Client" as WS
+end box
+
+box "Backend & Identity" #LightBlue
+    participant "API Gateway Backend" as Backend
+    participant "Identity Provider IAM" as IAM
+    participant "Realtime Server WS" as Realtime
+end box
+
+' --- App load and cache ---
+User -> Browser : 1. Open app (URL)
+activate User
+Browser -> SW : 1.1 Service Worker checks cache
+activate SW
+alt assets cached
+    SW --> Browser : 1.2 Load app shell from cache
+else
+    Browser -> Backend : 1.3 GET static assets (CDN/server)
+    Backend --> Browser : 1.4 Static assets (HTML, JS, CSS)
+end
+deactivate SW
+
+Browser -> Router : 2. App bootstrap, Router initializes
+activate Router
+Router -> AuthService : 2.1 Check auth state (Store Storage)
+activate AuthService
+AuthService -> Storage : 2.2 Read tokens session
+activate Storage
+Storage --> AuthService : 2.3 Tokens profile found or empty
+deactivate Storage
+alt authenticated
+    AuthService -> Store : 2.4 Set user session in state
+    Store --> Router : 2.5 Route to protected view (Dashboard)
+else
+    Router --> Router : 2.6 Route to public view (Login)
+end
+deactivate AuthService
+
+' --- Login (OIDC OAuth2 Authorization Code + PKCE) ---
+User -> Router : 3. Click Login
+activate Router
+Router -> AuthService : 3.1 Initiate login flow
+activate AuthService
+opt using external IAM
+    AuthService --> Browser : 3.2 Redirect to IAM authorize (PKCE)
+    Browser -> IAM : 3.3 User authenticates at IAM
+    IAM --> Browser : 3.4 Redirect back to SPA with code
+    Browser -> AuthService : 3.5 Exchange code for tokens (POST token)
+    AuthService -> IAM : 3.6 POST token (code+verifier)
+    IAM --> AuthService : 3.7 Tokens (access_token, id_token, refresh_token)
+end
+AuthService -> Storage : 3.8 Persist tokens (memory secure storage)
+AuthService -> ApiClient : 3.9 Set authorization header (Bearer)
+AuthService -> ApiClient : 3.10 Fetch user profile (api me)
+ApiClient -> Backend : 3.11 GET api me (Bearer token)
+Backend --> ApiClient : 3.12 User profile
+ApiClient --> Store : 3.13 Store profile & permissions
+Store --> Router : 3.14 Redirect to initial protected route
+
+' --- Data fetching and navigation ---
+User -> Router : 4. Navigate to section (Vessels Ops Planning)
+Router -> ApiClient : 4.1 Request resource via API client
+ApiClient -> Backend : 4.2 GET api resource (Authorization: Bearer)
+Backend --> ApiClient : 4.3 Data payload
+ApiClient --> Store : 4.4 Update state
+Store --> Router : 4.5 Views re-render with data
+
+' --- Token refresh error handling ---
+ApiClient -> AuthService : 5. On 401 or token exp try refresh
+activate ApiClient
+AuthService -> IAM : 5.1 Use refresh token or silent renew endpoint
+activate IAM
+IAM --> AuthService : 5.2 New access_token (or error)
+deactivate IAM
+AuthService -> Storage : 5.3 Update tokens
+AuthService --> ApiClient : 5.4 Retry original request with new token
+deactivate ApiClient
+
+' --- Realtime updates ---
+Browser -> WS : 6. Open WebSocket (with token)
+activate WS
+WS -> Realtime : 6.1 WS handshake auth
+Realtime --> WS : 6.2 Push events (vessel updates, notifications)
+WS --> Store : 6.3 Update state UI updates
+deactivate WS
+
+' --- Logout and revoke ---
+User -> Router : 7. Click Logout
+Router -> AuthService : 7.1 Clear state, storage
+AuthService -> IAM : 7.2 Revoke token (optional: POST revoke)
+IAM --> AuthService : 7.3 Revocation OK
+AuthService --> Router : 7.4 Redirect to Login public view
+
+' CORREÇÃO ABAIXO: Note usa intervalo (Store até Storage)
+note over Store, Storage : Service Worker caches assets and API responses
+note over ApiClient,AuthService : Exponential backoff, retry, centralised error handling
+
+@enduml
