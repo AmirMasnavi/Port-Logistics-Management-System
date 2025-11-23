@@ -1,22 +1,31 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
-import ShippingAgentsPage from '../../pages/ShippingAgentOrganization';
+// Place mocks at the top so Vitest hoisting doesn't import real modules before mocks
+vi.mock('lucide-react', () => ({
+  Search: () => null,
+  Edit: () => null,
+  Trash: () => null,
+  Home: () => null,
+  Mail: () => null,
+  Phone: () => null,
+  HelpCircle: () => null,
+  UserCheck: () => null,
+  UserPlus: () => null,
+}));
 
-// Mock controller hook
 vi.mock('../../controllers/shippingAgent/useShippingAgentsPageController', () => ({
   useShippingAgentsPageController: vi.fn()
 }));
+
+// Update Modal mock to render children only when isOpen is true (so we can assert modal content)
+vi.mock('../../components/common/Modal', () => ({ default: ({ children, isOpen }: any) => isOpen ? React.createElement('div', { 'data-testid': 'mock-modal' }, children) : null }));
+vi.mock('../../components/common/ConfirmationModal', () => ({ default: (_props: any) => null }));
+
+import React from 'react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import { useShippingAgentsPageController } from '../../controllers/shippingAgent/useShippingAgentsPageController';
+import ShippingAgentsPage from '../../pages/ShippingAgentOrganization';
 
-// Simplify lucide-react icons to avoid unexpected side-effects
-vi.mock('lucide-react', () => new Proxy({}, {
-  get: (_target, prop: string) => () => <span data-testid={`icon-${String(prop)}`} />
-}));
-
-// Mock Modal and ConfirmationModal to inert components (avoid ESC listeners / backdrop clicks causing re-renders)
-vi.mock('../../components/common/Modal', () => ({ default: ({ children }: any) => <div data-testid="mock-modal">{children}</div> }));
-vi.mock('../../components/common/ConfirmationModal', () => ({ default: ({ title, message, isOpen }: any) => isOpen ? <div data-testid="mock-confirm-modal"><h2>{title}</h2><p>{message}</p></div> : null }));
-
+// Minimal but representative controller state used by tests
 const baseControllerState = {
   orgs: [
     { id: 'o1', name: 'Atlantic Maritime', address: 'Rua 1, Porto, Portugal', email: 'contact@atlantic.example', phone: '912345678', taxNumber: '501234567' }
@@ -48,10 +57,13 @@ const baseControllerState = {
 };
 
 const setup = (override: any = {}) => {
-  // @ts-ignore mock return
-  useShippingAgentsPageController.mockReturnValue({ ...baseControllerState, ...override });
-  return render(<ShippingAgentsPage />);
+  // Ensure the mocked hook returns our desired controller state
+  // @ts-ignore
+  (useShippingAgentsPageController as any).mockReturnValue({ ...baseControllerState, ...override });
+  return render(React.createElement(ShippingAgentsPage));
 };
+
+// Minor rewrite of some tests and add new ones
 
 describe('ShippingAgentsPage', () => {
   beforeEach(() => vi.clearAllMocks());
@@ -64,7 +76,7 @@ describe('ShippingAgentsPage', () => {
   });
 
   it('renders organizations table with See details button', () => {
-    setup();
+    setup({ filteredOrgs: baseControllerState.orgs });
     expect(screen.getByText('Atlantic Maritime')).toBeInTheDocument();
     expect(screen.getByText(/See details/i)).toBeInTheDocument();
   });
@@ -76,22 +88,111 @@ describe('ShippingAgentsPage', () => {
   });
 
   it('shows New Organization button only in organizations view', () => {
-    setup();
+    const { unmount } = setup({ filteredOrgs: baseControllerState.orgs });
     expect(screen.getByText('New Organization')).toBeInTheDocument();
-    setup({ view: 'representatives' });
+    unmount();
+    setup({ view: 'representatives', filteredReps: baseControllerState.reps });
     expect(screen.queryByText('New Organization')).not.toBeInTheDocument();
   });
 
-  it('search input has correct placeholder', () => {
-    setup();
-    expect(screen.getByPlaceholderText(/Search by name, ID, organization or contact/i)).toBeInTheDocument();
+  it('search input has correct placeholder and calls setQuery on input', () => {
+    const setQuery = vi.fn();
+    setup({ setQuery });
+    const input = screen.getByPlaceholderText(/Search by name, ID, organization or contact/i) as HTMLInputElement;
+    expect(input).toBeInTheDocument();
+    fireEvent.change(input, { target: { value: 'Atlantic' } });
+    expect(setQuery).toHaveBeenCalledWith('Atlantic');
   });
 
-  it('calls setView when switching tabs (simulate manual call)', () => {
+  it('calls setView when switching tabs via click', () => {
     const setView = vi.fn();
     setup({ setView });
-    // Em vez de clicar (dependente de evento), chamar diretamente para evitar side-effects do DOM
-    setView('representatives');
+    const repsTab = screen.getByRole('button', { name: /Representatives/i });
+    fireEvent.click(repsTab);
+    // Component's onClick sets view via setView mock
     expect(setView).toHaveBeenCalledWith('representatives');
   });
+
+  it('renders modal with organization details when See details is clicked', () => {
+    setup({ filteredOrgs: baseControllerState.orgs });
+    fireEvent.click(screen.getByText(/See details/i));
+    const modal = screen.getByTestId('mock-modal');
+    const m = within(modal);
+    expect(m.getAllByText('Atlantic Maritime').length).toBeGreaterThan(0);
+    // there are multiple address occurrences in the modal, assert at least one exists
+    expect(m.getAllByText('Rua 1, Porto, Portugal').length).toBeGreaterThan(0);
+    // check contact links inside modal
+    expect(m.getByText('contact@atlantic.example').closest('a')).toHaveAttribute('href', 'mailto:contact@atlantic.example');
+    expect(m.getByText('912345678').closest('a')).toHaveAttribute('href', 'tel:912345678');
+  });
+
+  it('renders modal with representative details when editing a representative', () => {
+    setup({ view: 'representatives', filteredReps: baseControllerState.reps, editingValues: baseControllerState.reps[0], editingCitizenId: baseControllerState.reps[0].citizenId });
+    // scope to the representative row and click its Edit button to open modal
+    const repEl = screen.getByText('Maria Santos');
+    const repRow = repEl.closest('tr') as HTMLElement | null;
+    expect(repRow).toBeTruthy();
+    const editBtn = within(repRow!).getByRole('button', { name: /Edit/i });
+    fireEvent.click(editBtn);
+
+    const modal = screen.getByTestId('mock-modal');
+    const m = within(modal);
+    expect(m.getByLabelText(/Name/i)).toHaveValue('Maria Santos');
+    expect(m.getByLabelText(/Email/i)).toHaveValue('maria@atlantic.example');
+  });
+
+  it('Save changes button is enabled by default and can be disabled via submittingEdit flag', () => {
+    // enabled case
+    const r1 = setup({ view: 'representatives', filteredReps: baseControllerState.reps, editingValues: baseControllerState.reps[0], editingCitizenId: baseControllerState.reps[0].citizenId, submittingEdit: false });
+    const repEl = screen.getByText('Maria Santos');
+    const repRow = repEl.closest('tr') as HTMLElement | null;
+    const editBtn = within(repRow!).getByRole('button', { name: /Edit/i });
+    fireEvent.click(editBtn);
+    const modal = screen.getByTestId('mock-modal');
+    // match either 'Save changes' or 'Saving…'
+    expect(within(modal).getByRole('button', { name: /Save|Saving/i })).toBeEnabled();
+    r1.unmount();
+
+    // disabled case
+    const r2 = setup({ view: 'representatives', filteredReps: baseControllerState.reps, editingValues: baseControllerState.reps[0], editingCitizenId: baseControllerState.reps[0].citizenId, submittingEdit: true });
+    const repEl2 = screen.getByText('Maria Santos');
+    const repRow2 = repEl2.closest('tr') as HTMLElement | null;
+    const editBtn2 = within(repRow2!).getByRole('button', { name: /Edit/i });
+    fireEvent.click(editBtn2);
+    const modal2 = screen.getByTestId('mock-modal');
+    expect(within(modal2).getByRole('button', { name: /Save|Saving/i })).toBeDisabled();
+    r2.unmount();
+  });
+
+  it('New Representative button visible only in representatives view', () => {
+    const r1 = setup({ view: 'representatives', filteredReps: baseControllerState.reps });
+    expect(screen.getByText('New Representative')).toBeInTheDocument();
+    r1.unmount();
+
+    const r2 = setup({ filteredOrgs: baseControllerState.orgs });
+    expect(screen.queryByText('New Representative')).not.toBeInTheDocument();
+    r2.unmount();
+  });
+
+  it('shows correct stats numbers based on provided lists', () => {
+    // Use one org and one rep
+    setup({ filteredOrgs: baseControllerState.orgs, filteredReps: baseControllerState.reps });
+    // choose the non-button 'Organizations' label (there is also a tab button with the same text)
+    const orgLabels = screen.getAllByText('Organizations');
+    const orgLabel = orgLabels.find(el => el.closest('button') === null) as HTMLElement;
+    const orgCard = orgLabel.parentElement?.parentElement as HTMLElement;
+    expect(within(orgCard).getByText('1')).toBeInTheDocument();
+
+    const repLabels = screen.getAllByText('Total representatives');
+    const repLabel = repLabels.find(el => el.closest('button') === null) as HTMLElement;
+    const repsCard = repLabel.parentElement?.parentElement as HTMLElement;
+    expect(within(repsCard).getByText('1')).toBeInTheDocument();
+
+    // average reps per org rendered as 1.0 in the Representatives card (find non-button label)
+    const repsAvgLabels = screen.getAllByText('Representatives');
+    const repsAvgLabel = repsAvgLabels.find(el => el.closest('button') === null) as HTMLElement;
+    const avgCard = repsAvgLabel.parentElement?.parentElement as HTMLElement;
+    expect(within(avgCard).getByText('1.0')).toBeInTheDocument();
+  });
+
 });
