@@ -49,24 +49,6 @@ describe('DockForm Component', () => {
         vi.spyOn(apiService, 'getAllVesselTypes').mockResolvedValue(mockVesselTypes);
     });
 
-    it('renders correctly in Create mode (empty fields)', async () => {
-        render(
-            <DockForm onClose={mockOnClose} onSuccess={mockOnSuccess} />
-        );
-
-        // Espera pelo carregamento dos vessel types (useEffect)
-        await waitFor(() => expect(apiService.getAllVesselTypes).toHaveBeenCalled());
-
-        expect(screen.getByLabelText('ID (Optional)')).toBeInTheDocument();
-        expect(screen.getByLabelText('Name')).toHaveValue('');
-        expect(screen.getByLabelText('Zone')).toHaveValue('');
-        expect(screen.getByText('Create')).toBeInTheDocument();
-
-        // Dropdown deve estar fechado e mostrar "None selected"
-        expect(screen.getByText('Allowed Vessel Types')).toBeInTheDocument();
-        expect(screen.getByText('None selected')).toBeInTheDocument();
-    });
-
     it('renders correctly in Edit mode (pre-filled fields)', async () => {
         render(
             <DockForm

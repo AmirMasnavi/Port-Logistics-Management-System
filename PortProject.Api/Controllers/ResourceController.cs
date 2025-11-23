@@ -10,7 +10,7 @@ namespace PortProject.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "Administrator,LogisticsOperator")]
+[Authorize(Roles = "Administrator,LogisticsOperator,PortAuthorityOfficer")]
 public class ResourceController : ControllerBase
 {
     private readonly IResourceService _service;

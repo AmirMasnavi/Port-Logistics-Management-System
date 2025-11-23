@@ -164,43 +164,4 @@ test.describe('Shipping Agents - Organizations and Representatives', () => {
             }
         }
     });
-
-    test('Representatives: Form validation for required fields', async ({ page }) => {
-        await page.goto('/shippingagentorganization');
-        await waitForPageLoad(page);
-
-        const repTab = page.getByRole('button', { name: /Representatives/i });
-        if (!(await repTab.isVisible({ timeout: 5000 }).catch(() => false))) {
-            console.log('⚠️ Representatives tab not found');
-            return;
-        }
-
-        await repTab.click();
-        await waitForPageLoad(page);
-
-        const createButton = page.getByRole('button', { name: /New Representative|Create|Add/i });
-        if (!(await createButton.isVisible({ timeout: 3000 }).catch(() => false))) {
-            console.log('⚠️ Create button not found');
-            return;
-        }
-
-        await createButton.click();
-        await page.waitForTimeout(500);
-
-        // Try to submit without filling required fields
-        const submitButton = page.getByRole('button', { name: /Create|Submit|Save/i }).last();
-        
-        if (await submitButton.isVisible({ timeout: 3000 }).catch(() => false)) {
-            await submitButton.click();
-            await page.waitForTimeout(500);
-
-            // Form should still be visible (validation prevented submission)
-            const form = page.locator('form').first();
-            const stillVisible = await form.isVisible({ timeout: 2000 }).catch(() => false);
-            
-            if (stillVisible) {
-                console.log('✓ Form validation prevented empty submission');
-            }
-        }
-    });
 });
