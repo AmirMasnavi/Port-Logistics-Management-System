@@ -23,6 +23,7 @@ public class SchedulingController : ControllerBase
 
     /// <summary>
     /// Generates a daily schedule for all pending vessel visits.
+    /// Supports 'algorithm' parameter for UI selection (optimal/heuristic).
     /// (Implements US 3.4.2)
     /// </summary>
     [HttpPost("daily")]

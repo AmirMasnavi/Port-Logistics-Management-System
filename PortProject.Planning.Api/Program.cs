@@ -33,6 +33,7 @@ builder.Services.AddSwaggerGen(options =>
 // 1. Register the HttpClientFactory to call the main API
 builder.Services.AddHttpClient<IPortApiHttpClient, PortApiHttpClient>(client =>
 {
+     // Configuração de Timeout para Benchmarking
     // This is the URL of your *other* API, from its launchSettings.json
     client.BaseAddress = new Uri("http://localhost:5273");
     

@@ -32,6 +32,9 @@ public class SchedulingService : ISchedulingService
     public async Task<DailyScheduleResponseDto> GenerateDailySchedule(DateOnly date, string algorithm = "optimal")
     {
         var schedule = new DailyScheduleResponseDto { Date = date };
+        // Métricas de Execução
+        // O Stopwatch inicia aqui para medir o tempo total da operação (incluindo overhead de rede).
+        // Este valor será retornado no DTO para comparação de performance (Heuristic vs Optimal).
         var sw = Stopwatch.StartNew();
 
         DailyScheduleResponseDto Finish()
@@ -118,8 +121,10 @@ public class SchedulingService : ISchedulingService
             var prologClient = _httpClientFactory.CreateClient("PrologApiClient");
             
             _logger.LogInformation("Sending {Count} vessels to Prolog server using {Algorithm} algorithm...", prologVesselList.Count, algorithm);
-            
-            // Select Prolog endpoint based on algorithm
+            // Algorithm Isolation and Routing
+            // Garante que o pedido é encaminhado para o endpoint correto baseado no input.
+            // 'heuristic' -> /api/schedule/heuristic (US 3.4.4)
+            // 'optimal'   -> /api/schedule/optimal   (US 3.4.2)
             string prologEndpoint = algorithm?.ToLower() switch
             {
                 "heuristic" => "http://localhost:5001/api/schedule/heuristic",
@@ -145,6 +150,10 @@ public class SchedulingService : ISchedulingService
                      _logger.LogError("Failed to deserialize response from Prolog.");
                      return Finish(); // Return empty schedule on error
                 }
+                
+                // Captura de Métricas
+                // O TotalDelay é capturado diretamente da resposta do Prolog para logs/auditoria inicial.
+                // Nota: O tempo de execução (ExecutionTimeMs) é calculado pelo Stopwatch no método 'Finish()'.
                 
                 schedule.TotalDelay = prologResult.Delay;
                 
