@@ -1,5 +1,5 @@
 ﻿import { describe, it, expect } from 'vitest';
-import type { Resource } from '../../domain/resource/resource.model';
+import type { Resource } from '../../../domain/resource/resource.model';
 
 describe('Resource Model', () => {
     describe('Basic Structure', () => {

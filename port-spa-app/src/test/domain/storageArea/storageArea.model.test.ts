@@ -1,5 +1,5 @@
 ﻿import { describe, it, expect } from 'vitest';
-import type { StorageArea } from '../../domain/storageArea/storageArea.model';
+import type { StorageArea } from '../../../domain/storageArea/storageArea.model';
 
 describe('StorageArea Domain Model', () => {
     describe('Type Definition', () => {
