@@ -20,6 +20,7 @@ import {
     Box, // For 3D Visualization
     SquareSquare, // For Docks
     Package, // For Resources
+    Calendar, // For Scheduling
 } from 'lucide-react';
 
 // 2. Create a new, reusable component for our icon-links
@@ -128,6 +129,8 @@ const Sidebar: React.FC<SidebarProps> = ({
             </div>
             {/* 9. Pass 'isExpanded' down to all NavItems */}
             
+            /* 3.1.3 Subissue 1: Topic 2 - Wrap Navigation Items in Conditional Logic*/
+            
             <nav className="flex-1 flex flex-col items-center space-y-3">
                 {/* Dashboard: Everyone */}
                 <NavItem to="/" label={t('nav.dashboard')} icon={LayoutDashboard} isExpanded={isExpanded} />
@@ -146,6 +149,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                     <>
                         <NavItem to="/port-facilities" label="Port Facilities" icon={Building} isExpanded={isExpanded} />
                         <NavItem to="/docks" label="Docks" icon={SquareSquare} isExpanded={isExpanded} />
+                        <NavItem to="/scheduling" label="Scheduling" icon={Calendar} isExpanded={isExpanded} />
                     </>
                 )}
                 {/* Shipping Agents: Admin & Officer */}

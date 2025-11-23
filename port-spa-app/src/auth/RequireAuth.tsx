@@ -12,6 +12,7 @@ const RequireAuth: React.FC = () => {
         return <div className="flex h-screen items-center justify-center">Loading session...</div>;
     }
 
+    // US3.1.3: SubIssue 2: Topic 3 - Prevent access when not authenticated 
     if (!isAuthenticated) {
         return <Navigate to="/login" replace />;
     }

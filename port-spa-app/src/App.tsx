@@ -15,6 +15,7 @@ import RequireAuth from './auth/RequireAuth';
 import PortFacilitiesPage from './pages/PortFacilitiesPage';
 import RoleProtectedRoute from './auth/RoleProtectedRoute'; // Our new component to check the user's role
 import ResourcePage from './pages/ResourcePage';
+import SchedulingPage from './pages/SchedulingPage';
 
 
 // --- Centralized Permission Sets ---
@@ -49,6 +50,8 @@ function App() {
                     {/* All routes inside this group first check if the user is authenticated.
                         The <RequireAuth> component acts as a gatekeeper. If the user is not
                         logged in, it will likely redirect them to the login page. */}
+                    
+                    /* US3.1.3: SubIssue 2: Topic 2 - Apply the RoleProtectedRoute to the Application's Routes */
 
                     <Route element={<RequireAuth />}>
 
@@ -74,6 +77,7 @@ function App() {
                             {/* Assuming Docks fall under the same planning permissions */}
                             <Route path="/docks" element={<DockPage />} /> 
                             <Route path="/resources" element={<ResourcePage />} />
+                            <Route path="/scheduling" element={<SchedulingPage />} />
                         </Route>
 
                         {/* --- Role-Protected Routes for VVN Management (Admin, Agent) --- */}
