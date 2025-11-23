@@ -25,7 +25,9 @@ import {
     isAdmin,
     canManageVVN, // Ensure this is exported from permissions.ts
     canViewVisualization,
-    canViewIARTI    
+    canViewIARTI,
+    canViewVessels,
+    canViewResources
 } from './auth/permissions';
 import Dashboard from './pages/Dashboard';
 
@@ -51,8 +53,8 @@ function App() {
                     {/* All routes inside this group first check if the user is authenticated.
                         The <RequireAuth> component acts as a gatekeeper. If the user is not
                         logged in, it will likely redirect them to the login page. */}
-                    
-                    /* US3.1.3: SubIssue 2: Topic 2 - Apply the RoleProtectedRoute to the Application's Routes */
+
+                    {/* US3.1.3: SubIssue 2: Topic 2 - Apply the RoleProtectedRoute to the Application's Routes */}
 
                     <Route element={<RequireAuth />}>
 
@@ -68,15 +70,25 @@ function App() {
                         {/* --- Role-Protected Routes for Port Managers (Admin, Officer) --- */}
                         <Route element={<RoleProtectedRoute allowedRoles={canManagePort} />}>
                             <Route path="/vessel-types" element={<VesselTypesPage />} />
-                            <Route path="/vessels" element={<VesselsPage />} />
                             <Route path="/shippingagentorganization" element={<ShippingAgentOrganization />} />
                         </Route>
 
-                        {/* --- Role-Protected Routes for Planners (Admin, Officer, Logistics) --- */}
+                        {/* --- Role-Protected Routes for Planners (Admin, Officer) --- */}
                         <Route element={<RoleProtectedRoute allowedRoles={canViewPlanning} />}>
                             <Route path="/port-facilities" element={<PortFacilitiesPage />} />
                             {/* Assuming Docks fall under the same planning permissions */}
                             <Route path="/docks" element={<DockPage />} /> 
+                        </Route>
+
+                        {/* --- Vessels List (Admin, Officer, Logistics) --- */}
+                        {/* Moved here so Logistics can access Vessels but not Agent Config */}
+                        <Route element={<RoleProtectedRoute allowedRoles={canViewVessels} />}>
+                            <Route path="/vessels" element={<VesselsPage />} />
+                        </Route>
+
+                        {/* --- Resources (Admin, Officer, Logistics) --- */}
+                        {/* Agent excluded */}
+                        <Route element={<RoleProtectedRoute allowedRoles={canViewResources} />}>
                             <Route path="/resources" element={<ResourcePage />} />
                         </Route>
 

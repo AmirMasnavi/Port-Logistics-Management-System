@@ -19,7 +19,11 @@ export const ROLE_AGENT = 'ShippingAgentRepresentative';
 export const canManagePort = new Set([ROLE_ADMIN, ROLE_OFFICER]);
 
 // Roles that can access planning-related pages (Port Facilities, Docks)
-export const canViewPlanning = new Set([ROLE_ADMIN, ROLE_OFFICER, ROLE_LOGISTICS]);
+export const canViewPlanning = new Set([ROLE_ADMIN, ROLE_OFFICER]);
+
+export const canViewVessels = new Set([ROLE_ADMIN, ROLE_OFFICER, ROLE_LOGISTICS]);
+
+export const canViewResources = new Set([ROLE_ADMIN, ROLE_OFFICER, ROLE_LOGISTICS]);
 
 // Roles that can view the 3D visualization
 export const canViewVisualization = new Set([ROLE_ADMIN, ROLE_OFFICER, ROLE_LOGISTICS]);
