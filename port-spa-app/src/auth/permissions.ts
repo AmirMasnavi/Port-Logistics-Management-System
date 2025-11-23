@@ -13,6 +13,8 @@ export const ROLE_AGENT = 'ShippingAgentRepresentative';
 // Permission Sets for different feature areas
 // Used to check if a user's role is in the set of allowed roles.
 
+//US3.1.3 - SubIssue - Topic 1: Define Role-Based Permission Sets 
+
 // Roles that can manage core port entities (Vessel Types, Shipping Agents)
 export const canManagePort = new Set([ROLE_ADMIN, ROLE_OFFICER]);
 

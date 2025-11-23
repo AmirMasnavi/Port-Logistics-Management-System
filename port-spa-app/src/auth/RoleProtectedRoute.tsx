@@ -17,6 +17,8 @@ const RoleProtectedRoute: React.FC<RoleProtectedRouteProps> = ({ allowedRoles })
 
     // If the user has a role and that role is included in the set of allowed roles,
     // render the requested child component via the <Outlet />.
+    
+    // US3.1.3: SubIssue 2: Topic 1 - Create a RoleProtectedRoute Component
     if (internalRole && allowedRoles.has(internalRole)) {
         return <Outlet />;
     }

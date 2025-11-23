@@ -50,6 +50,8 @@ function App() {
                     {/* All routes inside this group first check if the user is authenticated.
                         The <RequireAuth> component acts as a gatekeeper. If the user is not
                         logged in, it will likely redirect them to the login page. */}
+                    
+                    /* US3.1.3: SubIssue 2: Topic 2 - Apply the RoleProtectedRoute to the Application's Routes */
 
                     <Route element={<RequireAuth />}>
 

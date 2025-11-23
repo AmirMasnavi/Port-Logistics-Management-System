@@ -129,6 +129,8 @@ const Sidebar: React.FC<SidebarProps> = ({
             </div>
             {/* 9. Pass 'isExpanded' down to all NavItems */}
             
+            /* 3.1.3 Subissue 1: Topic 2 - Wrap Navigation Items in Conditional Logic*/
+            
             <nav className="flex-1 flex flex-col items-center space-y-3">
                 {/* Dashboard: Everyone */}
                 <NavItem to="/" label={t('nav.dashboard')} icon={LayoutDashboard} isExpanded={isExpanded} />
