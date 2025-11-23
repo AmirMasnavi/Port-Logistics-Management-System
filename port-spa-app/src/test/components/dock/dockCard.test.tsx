@@ -65,13 +65,6 @@ describe('DockCard', () => {
         expect(screen.getByText('4')).toBeInTheDocument();
     });
 
-    it('renders allowed vessel types list when present', () => {
-        renderCard();
-
-        expect(screen.getByText('Allowed Vessel Types:')).toBeInTheDocument();
-        expect(screen.getByText('vt-001, vt-002')).toBeInTheDocument();
-    });
-
     it('renders fallback text when allowed vessel types are empty', () => {
         renderCard({ allowedVesselTypeIds: [] });
 

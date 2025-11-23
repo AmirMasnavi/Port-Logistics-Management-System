@@ -188,43 +188,6 @@ test.describe('Storage Area - Complete Admin Workflow', () => {
         console.log('✅ Warehouse created successfully');
     });
 
-    test('Complete workflow for ContainerYard storage area', async ({ page }) => {
-        const listPage = new StorageAreaListPage(page);
-        const formPage = new StorageAreaFormPage(page);
-
-        await listPage.goto();
-        await waitForPageLoad(page);
-
-        const createButton = page.getByRole('button', { name: /Create.*Storage|Add.*Storage|\+ Create/i });
-        if (!(await createButton.isVisible({ timeout: 5000 }).catch(() => false))) {
-            console.log('⚠️  User does not have create permissions');
-            return;
-        }
-
-        await createButton.click();
-        await waitForPageLoad(page);
-
-        // Create a ContainerYard
-        const testData = StorageAreaTestDataFactory.createContainerYard(`CYFlow-${Date.now()}`);
-        
-        await formPage.fillForm({
-            type: testData.type,
-            location: testData.location,
-            capacity: testData.capacity,
-            currentOccupancy: testData.currentOccupancy
-        });
-
-        console.log('✏️  Creating ContainerYard:', testData.location);
-
-        await formPage.submitForm();
-
-        await expect(page.getByText(/Storage area created successfully|Created successfully/i)).toBeVisible({ timeout: 5000 }).catch(() => {});
-        await waitForPageLoad(page);
-
-        await expect(page.getByText(testData.location)).toBeVisible({ timeout: 5000 });
-        console.log('✅ ContainerYard created successfully');
-    });
-
     test('Can create and manage full capacity storage area', async ({ page }) => {
         const listPage = new StorageAreaListPage(page);
         const formPage = new StorageAreaFormPage(page);

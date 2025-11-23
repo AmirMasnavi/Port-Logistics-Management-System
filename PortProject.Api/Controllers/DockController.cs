@@ -7,7 +7,7 @@ namespace PortProject.Api.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = "Administrator,PortAuthorityOfficer")]
+    [Authorize(Roles = "Administrator,PortAuthorityOfficer,LogisticsOperator")]
     public class DockController : ControllerBase
     {
         private readonly IDockService _service;

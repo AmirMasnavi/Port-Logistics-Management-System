@@ -157,7 +157,7 @@ public class VesselVisitNotificationController : ControllerBase
     }
     
     [HttpGet("search")]
-    [Authorize(Roles = "Administrator,ShippingAgentRepresentative,PortAuthorityOfficer")]
+    [Authorize(Roles = "Administrator,ShippingAgentRepresentative,PortAuthorityOfficer,LogisticsOperator")]
     public async Task<ActionResult<List<VesselVisitNotificationDto>>> Search(
         [FromQuery] string? vesselImo,
         [FromQuery] string? status,

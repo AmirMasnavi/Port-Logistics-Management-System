@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { vvnApiRepository } from '../../../../infrastructure/repositories/vvn/vvnApi.repository';
+import type { Mock } from 'vitest';
 import type { VesselVisitNotification } from '../../../../domain/vvn/vvn.model';
 import type {
     CreateVvnDto,
@@ -7,19 +7,29 @@ import type {
     RejectVvnDto
 } from '../../../../infrastructure/repositories/vvn/vvn.dto';
 
-// Create mock functions
-const mockApiClient = {
-    get: vi.fn(),
-    post: vi.fn(),
-    put: vi.fn(),
-    patch: vi.fn(),
-    delete: vi.fn()
-};
-
 // Mock the apiClient module
-vi.mock('../../../services/apiService', () => ({
-    apiClient: mockApiClient
+vi.mock('../../../../services/apiService', () => ({
+    apiClient: {
+        get: vi.fn(),
+        post: vi.fn(),
+        put: vi.fn(),
+        patch: vi.fn(),
+        delete: vi.fn()
+    }
 }));
+
+// Import after mocking
+import { vvnApiRepository } from '../../../../infrastructure/repositories/vvn/vvnApi.repository';
+import { apiClient } from '../../../../services/apiService';
+
+// Type assertion to properly type the mocked apiClient
+const mockApiClient = apiClient as unknown as {
+    get: Mock;
+    post: Mock;
+    put: Mock;
+    patch: Mock;
+    delete: Mock;
+};
 
 
 describe('VvnApiRepository', () => {
@@ -391,7 +401,9 @@ describe('VvnApiRepository', () => {
     describe('API endpoint integration', () => {
         it('should use correct base path for all endpoints', async () => {
             const mockResponse = { data: mockVvn };
-            mockApiClient.get.mockResolvedValue(mockResponse);
+            const mockArrayResponse = { data: [mockVvn] };
+            mockApiClient.get.mockResolvedValueOnce(mockArrayResponse); // First call for getAll
+            mockApiClient.get.mockResolvedValueOnce(mockResponse);      // Second call for getById
             mockApiClient.post.mockResolvedValue(mockResponse);
             mockApiClient.put.mockResolvedValue(mockResponse);
             mockApiClient.patch.mockResolvedValue({ data: undefined });

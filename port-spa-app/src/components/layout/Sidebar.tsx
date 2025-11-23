@@ -2,7 +2,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthProvider'; // [cite: 192]
-import { canManagePort, canViewPlanning, isAdmin, canViewVisualization } from '../../auth/permissions';
+import { canManagePort, canViewPlanning, isAdmin, canViewVisualization, canViewIARTI, canViewResources } from '../../auth/permissions';
 
 import { t } from '../../i18nClient';
 // 1. Import the icons we need from lucide-react
@@ -129,8 +129,6 @@ const Sidebar: React.FC<SidebarProps> = ({
             </div>
             {/* 9. Pass 'isExpanded' down to all NavItems */}
             
-            /* 3.1.3 Subissue 1: Topic 2 - Wrap Navigation Items in Conditional Logic*/
-            
             <nav className="flex-1 flex flex-col items-center space-y-3">
                 {/* Dashboard: Everyone */}
                 <NavItem to="/" label={t('nav.dashboard')} icon={LayoutDashboard} isExpanded={isExpanded} />
@@ -149,15 +147,20 @@ const Sidebar: React.FC<SidebarProps> = ({
                     <>
                         <NavItem to="/port-facilities" label="Port Facilities" icon={Building} isExpanded={isExpanded} />
                         <NavItem to="/docks" label="Docks" icon={SquareSquare} isExpanded={isExpanded} />
-                        <NavItem to="/scheduling" label="Scheduling" icon={Calendar} isExpanded={isExpanded} />
                     </>
+                )}
+                {/* Scheduling: Admin & Logistics only (excluding Port Officer) */}
+                {canViewIARTI.has(internalRole || '') && (
+                    <NavItem to="/scheduling" label="Scheduling" icon={Calendar} isExpanded={isExpanded} />
                 )}
                 {/* Shipping Agents: Admin & Officer */}
                 {canManagePort.has(internalRole || '') && (
                     <NavItem to="/shippingagentorganization" label={t('nav.shippingAgents')} icon={ClipboardList} isExpanded={isExpanded} />
                 )}
-                {/* Resources */}
-                <NavItem to="/resources" label={t('Resources')} icon={Package} isExpanded={isExpanded} />
+                {/* Resources: Admin, Officer, Logistics (excluding Shipping Agent) */}
+                {canViewResources.has(internalRole || '') && (
+                    <NavItem to="/resources" label={t('Resources')} icon={Package} isExpanded={isExpanded} />
+                )}
                 
                 {/* 3D Visualization: Admin, Officer, Logistics */}
                 {canViewVisualization.has(internalRole || '') && (

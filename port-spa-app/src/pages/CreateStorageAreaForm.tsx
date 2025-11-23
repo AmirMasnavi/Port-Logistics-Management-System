@@ -12,7 +12,7 @@ interface CreateStorageAreaFormProps {
     onSuccess: (newArea: StorageArea) => void;
 }
 
-const STORAGE_TYPES = ['Yard', 'Warehouse', 'ContainerYard'];
+const STORAGE_TYPES = ['Yard', 'Warehouse'];
 
 const CreateStorageAreaForm: React.FC<CreateStorageAreaFormProps> = ({ onClose, onSuccess }) => {
     const [formData, setFormData] = useState<StorageAreaCreateDto>({

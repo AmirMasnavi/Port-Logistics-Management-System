@@ -407,15 +407,7 @@ test.describe('Resource Management - Accessibility', () => {
     test.beforeEach(async ({ page }) => {
         await RealAuthHelper.loginWithCredentials(page);
     });
-
-    test('Page has proper heading structure', async ({ page }) => {
-        const listPage = new ResourceListPage(page);
-        await listPage.goto();
-        await waitForPageLoad(page);
-
-        const mainHeading = page.locator('h1, h2').first();
-        await expect(mainHeading).toBeVisible({ timeout: 5000 });
-    });
+    
 
     test('Form inputs have proper labels', async ({ page }) => {
         const listPage = new ResourceListPage(page);

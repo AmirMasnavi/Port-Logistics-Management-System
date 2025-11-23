@@ -21,7 +21,7 @@ export class StorageAreaListPage {
         await this.page.waitForTimeout(500);
     }
 
-    async filterByType(type: 'Yard' | 'Warehouse' | 'ContainerYard' | '') {
+    async filterByType(type: 'Yard' | 'Warehouse' | '') {
         const typeSelect = this.page.locator('select[name="filterType"]');
         if (await typeSelect.isVisible({ timeout: 2000 }).catch(() => false)) {
             await typeSelect.selectOption(type);
@@ -68,7 +68,7 @@ export class StorageAreaFormPage {
     constructor(private page: Page) {}
 
     async fillForm(data: {
-        type: 'Yard' | 'Warehouse' | 'ContainerYard';
+        type: 'Yard' | 'Warehouse';
         location: string;
         capacity: string;
         currentOccupancy: string;
@@ -80,7 +80,8 @@ export class StorageAreaFormPage {
     }
 
     async submitForm() {
-        await this.page.getByRole('button', { name: /Create|Save|Submit/i }).click();
+        // Use .last() to get the Save button in the modal, not the Create Storage Area button on the page
+        await this.page.getByRole('button', { name: /^(Create|Save|Submit)$/i }).last().click();
     }
 
     async clickCancel() {
@@ -102,45 +103,47 @@ export class StorageAreaFormPage {
  */
 export class StorageAreaTestDataFactory {
     static createYard(suffix: string) {
+        // Generate random coordinates for unique locations
+        const x = Math.floor(Math.random() * 900) + 100; // 100-999
+        const y = Math.floor(Math.random() * 900) + 100;
         return {
             type: 'Yard' as const,
-            location: `Yard-${suffix}`,
+            location: `(${x}, ${y})`,
             capacity: '1000',
             currentOccupancy: '250'
         };
     }
 
     static createWarehouse(suffix: string) {
+        const x = Math.floor(Math.random() * 900) + 100;
+        const y = Math.floor(Math.random() * 900) + 100;
         return {
             type: 'Warehouse' as const,
-            location: `WH-${suffix}`,
+            location: `(${x}, ${y})`,
             capacity: '500',
             currentOccupancy: '100'
         };
     }
 
-    static createContainerYard(suffix: string) {
-        return {
-            type: 'ContainerYard' as const,
-            location: `CY-${suffix}`,
-            capacity: '2000',
-            currentOccupancy: '800'
-        };
-    }
+
 
     static createEmptyYard(suffix: string) {
+        const x = Math.floor(Math.random() * 900) + 100;
+        const y = Math.floor(Math.random() * 900) + 100;
         return {
             type: 'Yard' as const,
-            location: `Empty-${suffix}`,
+            location: `(${x}, ${y})`,
             capacity: '100',
             currentOccupancy: '0'
         };
     }
 
     static createFullWarehouse(suffix: string) {
+        const x = Math.floor(Math.random() * 900) + 100;
+        const y = Math.floor(Math.random() * 900) + 100;
         return {
             type: 'Warehouse' as const,
-            location: `Full-WH-${suffix}`,
+            location: `(${x}, ${y})`,
             capacity: '100',
             currentOccupancy: '100'
         };
