@@ -147,9 +147,9 @@ The **Process View** shows the system's dynamic behavior, including execution fl
 - Token validation in the backend via JWKS or Token Introspection
 - Protected requests with Bearer token
 
-![Process View - Authorization Overview](ProcessViewDiagrams/US2.2.1/svg/authorization-overview.svg)
+![Process View - Authorization Overview](ProcessViewDiagrams/svg/authorization-overview.svg)
 
-- **PlantUML source file:** [puml/authorization-overview.puml](ProcessViewDiagrams/US2.2.1/puml/authorization-overview.puml)
+- **PlantUML source file:** [puml/authorization-overview.puml](ProcessViewDiagrams/svg/authorization-overview.svg)
 
 
 **Components involved:**
@@ -180,9 +180,9 @@ The **Process View** shows the system's dynamic behavior, including execution fl
 - Real-time updates via WebSocket
 - Logout and token revocation
 
-![Process View - Frontend Overview](ProcessViewDiagrams/US2.2.1/svg/frontend-overview.svg)
+![Process View - Frontend Overview](ProcessViewDiagrams/svg/frontend-overview.svg)
 
-- **PlantUML source file:** [puml/frontend-overview.puml](ProcessViewDiagrams/US2.2.1/puml/frontend-overview.puml)
+- **PlantUML source file:** [puml/frontend-overview.puml](ProcessViewDiagrams/puml/frontend-overview.puml)
 
 
 **Components involved:**
