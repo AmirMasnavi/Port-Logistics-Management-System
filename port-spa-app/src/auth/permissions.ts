@@ -24,6 +24,9 @@ export const canViewPlanning = new Set([ROLE_ADMIN, ROLE_OFFICER, ROLE_LOGISTICS
 // Roles that can view the 3D visualization
 export const canViewVisualization = new Set([ROLE_ADMIN, ROLE_OFFICER, ROLE_LOGISTICS]);
 
+//Roles that can view IARTI
+export const canViewIARTI = new Set([ROLE_ADMIN, ROLE_LOGISTICS]);
+
 // Role for administration pages
 export const isAdmin = new Set([ROLE_ADMIN]);
 

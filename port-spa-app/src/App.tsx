@@ -24,7 +24,8 @@ import {
     canViewPlanning,
     isAdmin,
     canManageVVN, // Ensure this is exported from permissions.ts
-    canViewVisualization
+    canViewVisualization,
+    canViewIARTI    
 } from './auth/permissions';
 import Dashboard from './pages/Dashboard';
 
@@ -77,9 +78,13 @@ function App() {
                             {/* Assuming Docks fall under the same planning permissions */}
                             <Route path="/docks" element={<DockPage />} /> 
                             <Route path="/resources" element={<ResourcePage />} />
-                            <Route path="/scheduling" element={<SchedulingPage />} />
                         </Route>
 
+                        {/* --- Role-Protected Routes for IARTI (Admin, Logistics) --- */}
+                        <Route element={<RoleProtectedRoute allowedRoles={canViewIARTI} />}>
+                            <Route path="/scheduling" element={<SchedulingPage />} />
+                        </Route>
+                        
                         {/* --- Role-Protected Routes for VVN Management (Admin, Agent) --- */}
                         <Route element={<RoleProtectedRoute allowedRoles={canManageVVN} />}>
                             <Route path="/vessel-visits/new" element={<CreateVvnPage />} /> 
