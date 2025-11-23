@@ -1,5 +1,5 @@
 ﻿import { describe, it, expect } from 'vitest';
-import { ResourceMapper } from '../../infrastructure/repositories/resource/resource.mapper';
+import { ResourceMapper } from '../../../../infrastructure/repositories/resource/resource.mapper';
 
 describe('ResourceMapper', () => {
     describe('toDomain', () => {

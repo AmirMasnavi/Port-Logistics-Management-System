@@ -1,11 +1,11 @@
 ﻿import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { StorageAreaService } from '../../app/storageArea/storageArea.service';
-import type { IStorageAreaRepository } from '../../app/storageArea/storageArea.repository';
-import type { StorageArea } from '../../domain/storageArea/storageArea.model';
+import { StorageAreaService } from '../../../app/storageArea/storageArea.service';
+import type { IStorageAreaRepository } from '../../../app/storageArea/storageArea.repository';
+import type { StorageArea } from '../../../domain/storageArea/storageArea.model';
 import type {
     StorageAreaCreateDto,
     StorageAreaUpdateDto,
-} from '../../infrastructure/repositories/storageArea/storageArea.dto';
+} from '../../../infrastructure/repositories/storageArea/storageArea.dto';
 
 describe('StorageAreaService', () => {
     let mockRepository: IStorageAreaRepository;

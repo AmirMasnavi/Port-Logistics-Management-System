@@ -1,5 +1,5 @@
 ﻿import { describe, it, expect } from 'vitest';
-import { StorageAreaMapper } from '../../infrastructure/repositories/storageArea/storageArea.mapper';
+import { StorageAreaMapper } from '../../../../infrastructure/repositories/storageArea/storageArea.mapper';
 
 describe('StorageAreaMapper', () => {
     describe('toDomain', () => {

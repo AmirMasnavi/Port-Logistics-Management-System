@@ -3,7 +3,7 @@ import type {
     ResourceCreateDto,
     ResourceUpdateDto,
     ResourceUpdateStatusDto,
-} from '../../infrastructure/repositories/resource/resource.dto';
+} from '../../../../infrastructure/repositories/resource/resource.dto';
 
 describe('Resource DTOs', () => {
     describe('ResourceCreateDto', () => {

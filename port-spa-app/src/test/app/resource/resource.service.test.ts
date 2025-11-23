@@ -1,11 +1,11 @@
 ﻿import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { ResourceService } from '../../app/resource/resource.service';
-import type { IResourceRepository } from '../../app/resource/resource.repository';
-import type { Resource } from '../../domain/resource/resource.model';
+import { ResourceService } from '../../../app/resource/resource.service';
+import type { IResourceRepository } from '../../../app/resource/resource.repository';
+import type { Resource } from '../../../domain/resource/resource.model';
 import type {
     ResourceCreateDto,
     ResourceUpdateDto,
-} from '../../infrastructure/repositories/resource/resource.dto';
+} from '../../../infrastructure/repositories/resource/resource.dto';
 
 describe('ResourceService', () => {
     let mockRepository: IResourceRepository;

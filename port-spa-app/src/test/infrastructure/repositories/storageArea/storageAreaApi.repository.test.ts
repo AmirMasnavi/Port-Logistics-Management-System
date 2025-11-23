@@ -1,12 +1,13 @@
 ﻿import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { StorageAreaMapper } from '../../infrastructure/repositories/storageArea/storageArea.mapper';
+import type { Mock } from 'vitest';
+import { StorageAreaMapper } from '../../../../infrastructure/repositories/storageArea/storageArea.mapper';
 import type {
     StorageAreaCreateDto,
     StorageAreaUpdateDto,
-} from '../../infrastructure/repositories/storageArea/storageArea.dto';
+} from '../../../../infrastructure/repositories/storageArea/storageArea.dto';
 
 // Mock the apiClient module
-vi.mock('../../services/apiService', () => ({
+vi.mock('../../../../services/apiService', () => ({
     apiClient: {
         get: vi.fn(),
         post: vi.fn(),
@@ -15,7 +16,7 @@ vi.mock('../../services/apiService', () => ({
 }));
 
 // Import after mocking
-import { apiClient } from '../../services/apiService';
+import { apiClient } from '../../../../services/apiService';
 
 // We need to dynamically import the repository after mocking
 // For this test, we'll test the implementation logic directly
@@ -45,7 +46,7 @@ describe('StorageAreaApiRepository', () => {
                 ],
             };
 
-            vi.mocked(apiClient.get).mockResolvedValue(mockApiResponse);
+            (apiClient.get as Mock).mockResolvedValue(mockApiResponse);
 
             // Simulate the repository behavior
             const response = await apiClient.get<any[]>('/StorageArea');
@@ -62,7 +63,7 @@ describe('StorageAreaApiRepository', () => {
                 data: [],
             };
 
-            vi.mocked(apiClient.get).mockResolvedValue(mockApiResponse);
+            (apiClient.get as Mock).mockResolvedValue(mockApiResponse);
 
             const response = await apiClient.get<any[]>('/StorageArea');
             const result = StorageAreaMapper.toDomainList(response.data);
@@ -73,7 +74,7 @@ describe('StorageAreaApiRepository', () => {
 
         it('should handle API errors gracefully', async () => {
             const error = new Error('Network error');
-            vi.mocked(apiClient.get).mockRejectedValue(error);
+            (apiClient.get as Mock).mockRejectedValue(error);
 
             await expect(apiClient.get('/StorageArea')).rejects.toThrow('Network error');
         });
@@ -91,7 +92,7 @@ describe('StorageAreaApiRepository', () => {
                 ],
             };
 
-            vi.mocked(apiClient.get).mockResolvedValue(mockApiResponse);
+            (apiClient.get as Mock).mockResolvedValue(mockApiResponse);
 
             const response = await apiClient.get<any[]>('/StorageArea');
             const result = StorageAreaMapper.toDomainList(response.data);
@@ -122,7 +123,7 @@ describe('StorageAreaApiRepository', () => {
                 },
             };
 
-            vi.mocked(apiClient.post).mockResolvedValue(mockApiResponse);
+            (apiClient.post as Mock).mockResolvedValue(mockApiResponse);
 
             const response = await apiClient.post<any>('/StorageArea', createDto);
             const result = StorageAreaMapper.toDomain(response.data);
@@ -150,7 +151,7 @@ describe('StorageAreaApiRepository', () => {
                 },
             };
 
-            vi.mocked(apiClient.post).mockResolvedValue(mockApiResponse);
+            (apiClient.post as Mock).mockResolvedValue(mockApiResponse);
 
             await apiClient.post<any>('/StorageArea', createDto);
 
@@ -171,7 +172,7 @@ describe('StorageAreaApiRepository', () => {
             };
 
             const error = new Error('Validation failed');
-            vi.mocked(apiClient.post).mockRejectedValue(error);
+            (apiClient.post as Mock).mockRejectedValue(error);
 
             await expect(apiClient.post('/StorageArea', createDto)).rejects.toThrow('Validation failed');
         });
@@ -191,7 +192,7 @@ describe('StorageAreaApiRepository', () => {
                 },
             };
 
-            vi.mocked(apiClient.post).mockResolvedValue(mockApiResponse);
+            (apiClient.post as Mock).mockResolvedValue(mockApiResponse);
 
             const response = await apiClient.post<any>('/StorageArea', createDto);
             const result = StorageAreaMapper.toDomain(response.data);
@@ -221,7 +222,7 @@ describe('StorageAreaApiRepository', () => {
                 },
             };
 
-            vi.mocked(apiClient.put).mockResolvedValue(mockApiResponse);
+            (apiClient.put as Mock).mockResolvedValue(mockApiResponse);
 
             const response = await apiClient.put<any>(`/StorageArea/${code}`, updateDto);
             const result = StorageAreaMapper.toDomain(response.data);
@@ -250,7 +251,7 @@ describe('StorageAreaApiRepository', () => {
                 },
             };
 
-            vi.mocked(apiClient.put).mockResolvedValue(mockApiResponse);
+            (apiClient.put as Mock).mockResolvedValue(mockApiResponse);
 
             await apiClient.put<any>(`/StorageArea/${code}`, updateDto);
 
@@ -272,7 +273,7 @@ describe('StorageAreaApiRepository', () => {
             };
 
             const error = new Error('Storage area not found');
-            vi.mocked(apiClient.put).mockRejectedValue(error);
+            (apiClient.put as Mock).mockRejectedValue(error);
 
             await expect(apiClient.put(`/StorageArea/${code}`, updateDto)).rejects.toThrow(
                 'Storage area not found'
@@ -295,7 +296,7 @@ describe('StorageAreaApiRepository', () => {
                 },
             };
 
-            vi.mocked(apiClient.put).mockResolvedValue(mockApiResponse);
+            (apiClient.put as Mock).mockResolvedValue(mockApiResponse);
 
             await apiClient.put<any>(`/StorageArea/${code}`, updateDto);
 
@@ -318,7 +319,7 @@ describe('StorageAreaApiRepository', () => {
                 },
             };
 
-            vi.mocked(apiClient.put).mockResolvedValue(mockApiResponse);
+            (apiClient.put as Mock).mockResolvedValue(mockApiResponse);
 
             const response = await apiClient.put<any>(`/StorageArea/${code}`, updateDto);
             const result = StorageAreaMapper.toDomain(response.data);
@@ -346,7 +347,7 @@ describe('StorageAreaApiRepository', () => {
                 },
             };
 
-            vi.mocked(apiClient.put).mockResolvedValue(mockApiResponse);
+            (apiClient.put as Mock).mockResolvedValue(mockApiResponse);
 
             await apiClient.put<any>(`/StorageArea/${code}`, updateDto);
 
@@ -368,7 +369,7 @@ describe('StorageAreaApiRepository', () => {
                 ],
             };
 
-            vi.mocked(apiClient.get).mockResolvedValue(mockApiResponse);
+            (apiClient.get as Mock).mockResolvedValue(mockApiResponse);
 
             const response = await apiClient.get<any[]>('/StorageArea');
             const result = StorageAreaMapper.toDomainList(response.data);
@@ -392,7 +393,7 @@ describe('StorageAreaApiRepository', () => {
                 },
             };
 
-            vi.mocked(apiClient.post).mockResolvedValue(mockApiResponse);
+            (apiClient.post as Mock).mockResolvedValue(mockApiResponse);
 
             const response = await apiClient.post<any>('/StorageArea', createDto);
             const result = StorageAreaMapper.toDomain(response.data);
@@ -417,7 +418,7 @@ describe('StorageAreaApiRepository', () => {
                 },
             };
 
-            vi.mocked(apiClient.put).mockResolvedValue(mockApiResponse);
+            (apiClient.put as Mock).mockResolvedValue(mockApiResponse);
 
             const response = await apiClient.put<any>(`/StorageArea/${code}`, updateDto);
             const result = StorageAreaMapper.toDomain(response.data);

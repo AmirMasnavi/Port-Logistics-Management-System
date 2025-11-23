@@ -2,7 +2,7 @@
 import type {
     StorageAreaCreateDto,
     StorageAreaUpdateDto,
-} from '../../infrastructure/repositories/storageArea/storageArea.dto';
+} from '../../../../infrastructure/repositories/storageArea/storageArea.dto';
 
 describe('StorageArea DTOs', () => {
     describe('StorageAreaCreateDto', () => {

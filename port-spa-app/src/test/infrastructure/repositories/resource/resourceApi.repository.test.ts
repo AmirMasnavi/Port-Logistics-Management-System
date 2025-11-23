@@ -1,13 +1,14 @@
-﻿import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { ResourceMapper } from '../../infrastructure/repositories/resource/resource.mapper';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { Mock } from 'vitest';
+import { ResourceMapper } from '../../../../infrastructure/repositories/resource/resource.mapper';
 import type {
     ResourceCreateDto,
     ResourceUpdateDto,
     ResourceUpdateStatusDto,
-} from '../../infrastructure/repositories/resource/resource.dto';
+} from '../../../../infrastructure/repositories/resource/resource.dto';
 
 // Mock the apiClient module
-vi.mock('../../services/apiService', () => ({
+vi.mock('../../../../services/apiService', () => ({
     apiClient: {
         get: vi.fn(),
         post: vi.fn(),
@@ -17,7 +18,7 @@ vi.mock('../../services/apiService', () => ({
 }));
 
 // Import after mocking
-import { apiClient } from '../../services/apiService';
+import { apiClient } from '../../../../services/apiService';
 
 describe('ResourceApiRepository', () => {
     beforeEach(() => {
@@ -49,7 +50,7 @@ describe('ResourceApiRepository', () => {
                 ],
             };
 
-            vi.mocked(apiClient.get).mockResolvedValue(mockApiResponse);
+            (apiClient.get as Mock).mockResolvedValue(mockApiResponse);
 
             const response = await apiClient.get<any[]>('/Resource');
             const result = ResourceMapper.toDomainList(response.data);
@@ -65,7 +66,7 @@ describe('ResourceApiRepository', () => {
                 data: [],
             };
 
-            vi.mocked(apiClient.get).mockResolvedValue(mockApiResponse);
+            (apiClient.get as Mock).mockResolvedValue(mockApiResponse);
 
             const response = await apiClient.get<any[]>('/Resource');
             const result = ResourceMapper.toDomainList(response.data);
@@ -76,7 +77,7 @@ describe('ResourceApiRepository', () => {
 
         it('should handle API errors gracefully', async () => {
             const error = new Error('Network error');
-            vi.mocked(apiClient.get).mockRejectedValue(error);
+            (apiClient.get as Mock).mockRejectedValue(error);
 
             await expect(apiClient.get('/Resource')).rejects.toThrow('Network error');
         });
@@ -103,7 +104,7 @@ describe('ResourceApiRepository', () => {
                 ],
             };
 
-            vi.mocked(apiClient.get).mockResolvedValue(mockApiResponse);
+            (apiClient.get as Mock).mockResolvedValue(mockApiResponse);
 
             const response = await apiClient.get<any[]>('/Resource');
             const result = ResourceMapper.toDomainList(response.data);
@@ -146,7 +147,7 @@ describe('ResourceApiRepository', () => {
                 },
             };
 
-            vi.mocked(apiClient.post).mockResolvedValue(mockApiResponse);
+            (apiClient.post as Mock).mockResolvedValue(mockApiResponse);
 
             const response = await apiClient.post<any>('/Resource', createDto);
             const result = ResourceMapper.toDomain(response.data);
@@ -176,7 +177,7 @@ describe('ResourceApiRepository', () => {
                 },
             };
 
-            vi.mocked(apiClient.post).mockResolvedValue(mockApiResponse);
+            (apiClient.post as Mock).mockResolvedValue(mockApiResponse);
 
             await apiClient.post<any>('/Resource', createDto);
 
@@ -202,7 +203,7 @@ describe('ResourceApiRepository', () => {
             };
 
             const error = new Error('Validation failed');
-            vi.mocked(apiClient.post).mockRejectedValue(error);
+            (apiClient.post as Mock).mockRejectedValue(error);
 
             await expect(apiClient.post('/Resource', createDto)).rejects.toThrow('Validation failed');
         });
@@ -227,7 +228,7 @@ describe('ResourceApiRepository', () => {
                 },
             };
 
-            vi.mocked(apiClient.post).mockResolvedValue(mockApiResponse);
+            (apiClient.post as Mock).mockResolvedValue(mockApiResponse);
 
             const response = await apiClient.post<any>('/Resource', createDto);
             const result = ResourceMapper.toDomain(response.data);
@@ -265,7 +266,7 @@ describe('ResourceApiRepository', () => {
                 },
             };
 
-            vi.mocked(apiClient.put).mockResolvedValue(mockApiResponse);
+            (apiClient.put as Mock).mockResolvedValue(mockApiResponse);
 
             const response = await apiClient.put<any>(`/Resource/${code}`, updateDto);
             const result = ResourceMapper.toDomain(response.data);
@@ -295,7 +296,7 @@ describe('ResourceApiRepository', () => {
                 },
             };
 
-            vi.mocked(apiClient.put).mockResolvedValue(mockApiResponse);
+            (apiClient.put as Mock).mockResolvedValue(mockApiResponse);
 
             await apiClient.put<any>(`/Resource/${code}`, updateDto);
 
@@ -321,7 +322,7 @@ describe('ResourceApiRepository', () => {
             };
 
             const error = new Error('Resource not found');
-            vi.mocked(apiClient.put).mockRejectedValue(error);
+            (apiClient.put as Mock).mockRejectedValue(error);
 
             await expect(apiClient.put(`/Resource/${code}`, updateDto)).rejects.toThrow(
                 'Resource not found'
@@ -346,7 +347,7 @@ describe('ResourceApiRepository', () => {
                 },
             };
 
-            vi.mocked(apiClient.put).mockResolvedValue(mockApiResponse);
+            (apiClient.put as Mock).mockResolvedValue(mockApiResponse);
 
             await apiClient.put<any>(`/Resource/${code}`, updateDto);
 
@@ -374,7 +375,7 @@ describe('ResourceApiRepository', () => {
                 },
             };
 
-            vi.mocked(apiClient.put).mockResolvedValue(mockApiResponse);
+            (apiClient.put as Mock).mockResolvedValue(mockApiResponse);
 
             const response = await apiClient.put<any>(`/Resource/${code}`, updateDto);
             const result = ResourceMapper.toDomain(response.data);
@@ -409,7 +410,7 @@ describe('ResourceApiRepository', () => {
                 },
             };
 
-            vi.mocked(apiClient.put).mockResolvedValue(mockApiResponse);
+            (apiClient.put as Mock).mockResolvedValue(mockApiResponse);
 
             await apiClient.put<any>(`/Resource/${code}`, updateDto);
 
@@ -424,7 +425,7 @@ describe('ResourceApiRepository', () => {
                 NewStatus: 'Active',
             };
 
-            vi.mocked(apiClient.patch).mockResolvedValue({});
+            (apiClient.patch as Mock).mockResolvedValue({});
 
             await apiClient.patch(`/Resource/${code}/status`, statusDto);
 
@@ -437,7 +438,7 @@ describe('ResourceApiRepository', () => {
                 NewStatus: 'Inactive',
             };
 
-            vi.mocked(apiClient.patch).mockResolvedValue({});
+            (apiClient.patch as Mock).mockResolvedValue({});
 
             await apiClient.patch(`/Resource/${code}/status`, statusDto);
 
@@ -449,7 +450,7 @@ describe('ResourceApiRepository', () => {
         it('should handle different status values', async () => {
             const code = 'RES-001';
 
-            vi.mocked(apiClient.patch).mockResolvedValue({});
+            (apiClient.patch as Mock).mockResolvedValue({});
 
             await apiClient.patch(`/Resource/${code}/status`, { NewStatus: 'Active' });
             expect(apiClient.patch).toHaveBeenCalledWith(`/Resource/${code}/status`, { NewStatus: 'Active' });
@@ -468,7 +469,7 @@ describe('ResourceApiRepository', () => {
             };
 
             const error = new Error('Resource not found');
-            vi.mocked(apiClient.patch).mockRejectedValue(error);
+            (apiClient.patch as Mock).mockRejectedValue(error);
 
             await expect(apiClient.patch(`/Resource/${code}/status`, statusDto)).rejects.toThrow(
                 'Resource not found'
@@ -481,7 +482,7 @@ describe('ResourceApiRepository', () => {
                 NewStatus: 'Active',
             };
 
-            vi.mocked(apiClient.patch).mockResolvedValue({});
+            (apiClient.patch as Mock).mockResolvedValue({});
 
             await apiClient.patch(`/Resource/${code}/status`, statusDto);
 
@@ -505,7 +506,7 @@ describe('ResourceApiRepository', () => {
                 ],
             };
 
-            vi.mocked(apiClient.get).mockResolvedValue(mockApiResponse);
+            (apiClient.get as Mock).mockResolvedValue(mockApiResponse);
 
             const response = await apiClient.get<any[]>('/Resource');
             const result = ResourceMapper.toDomainList(response.data);
@@ -531,7 +532,7 @@ describe('ResourceApiRepository', () => {
                 },
             };
 
-            vi.mocked(apiClient.post).mockResolvedValue(mockApiResponse);
+            (apiClient.post as Mock).mockResolvedValue(mockApiResponse);
 
             const response = await apiClient.post<any>('/Resource', createDto);
             const result = ResourceMapper.toDomain(response.data);
@@ -558,7 +559,7 @@ describe('ResourceApiRepository', () => {
                 },
             };
 
-            vi.mocked(apiClient.put).mockResolvedValue(mockApiResponse);
+            (apiClient.put as Mock).mockResolvedValue(mockApiResponse);
 
             const response = await apiClient.put<any>(`/Resource/${code}`, updateDto);
             const result = ResourceMapper.toDomain(response.data);
