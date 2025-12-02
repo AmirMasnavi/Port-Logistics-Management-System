@@ -1,5 +1,5 @@
 ﻿import React from 'react';
-import { Canvas } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Grid, Environment, Sky } from '@react-three/drei';
 import { useGLTF } from '@react-three/drei';
 import { CargoShipModel } from "./CargoShipModel";
@@ -9,7 +9,7 @@ import {
     DockModel, LandModel, WaterModel, YardModel, BuildingModel,
     STSCraneModel, YardCraneModel
 } from './models';
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 import * as THREE from 'three';
 
 // Global scale factor to make the whole port layout "bigger" in world units
@@ -50,6 +50,165 @@ interface PortSceneProps {
     resources: RenderableResource[];
     containers?: RenderableContainer[]; // optional (defaults to [])
 }
+
+// Camera Animator Component - Smoothly moves camera to target position
+const CameraAnimator: React.FC<{
+    targetPosition: [number, number, number] | null;
+    targetLookAt: [number, number, number] | null;
+    duration?: number; // Duration in seconds (configurable)
+    onComplete?: () => void;
+}> = ({ targetPosition, targetLookAt, duration = 1.5, onComplete }) => {
+    const { camera, controls } = useThree();
+    const animationProgress = useRef(0);
+    const startPosition = useRef(new THREE.Vector3());
+    const startLookAt = useRef(new THREE.Vector3());
+    const isAnimating = useRef(false);
+
+    // Start animation when target changes
+    React.useEffect(() => {
+        if (targetPosition && targetLookAt) {
+            console.log('🎬 Starting camera animation');
+            startPosition.current.copy(camera.position);
+            
+            // Get current lookAt from controls if available
+            if (controls && (controls as any).target) {
+                startLookAt.current.copy((controls as any).target);
+            } else {
+                // Fallback: calculate lookAt from camera direction
+                const direction = new THREE.Vector3();
+                camera.getWorldDirection(direction);
+                startLookAt.current.copy(camera.position).add(direction.multiplyScalar(10));
+            }
+            
+            animationProgress.current = 0;
+            isAnimating.current = true;
+        }
+    }, [targetPosition, targetLookAt, camera, controls]);
+
+    useFrame((_state, delta) => {
+        if (!isAnimating.current || !targetPosition || !targetLookAt) return;
+
+        // Update animation progress
+        animationProgress.current += delta / duration;
+
+        if (animationProgress.current >= 1) {
+            // Animation complete
+            animationProgress.current = 1;
+            isAnimating.current = false;
+            if (onComplete) onComplete();
+        }
+
+        // Easing function: easeInOutCubic for smooth acceleration and deceleration
+        const easeInOutCubic = (t: number): number => {
+            return t < 0.5
+                ? 4 * t * t * t
+                : 1 - Math.pow(-2 * t + 2, 3) / 2;
+        };
+
+        const t = easeInOutCubic(animationProgress.current);
+
+        // Interpolate camera position
+        camera.position.lerpVectors(
+            startPosition.current,
+            new THREE.Vector3(...targetPosition),
+            t
+        );
+
+        // Interpolate lookAt target
+        const currentLookAt = new THREE.Vector3().lerpVectors(
+            startLookAt.current,
+            new THREE.Vector3(...targetLookAt),
+            t
+        );
+
+        // Update camera to look at the target
+        camera.lookAt(currentLookAt);
+
+        // Update controls target if available
+        if (controls && (controls as any).target) {
+            (controls as any).target.copy(currentLookAt);
+            (controls as any).update();
+        }
+    });
+
+    return null; // This component doesn't render anything
+};
+
+// Dynamic Spotlight Component that follows the camera
+const DynamicSpotlight: React.FC<{
+    target: [number, number, number];
+}> = ({ target }) => {
+    const spotlightRef = useRef<THREE.SpotLight>(null);
+    const { camera } = useThree();
+
+    React.useEffect(() => {
+        console.log('🔦 DynamicSpotlight component mounted with target:', target);
+    }, []);
+
+    useFrame(() => {
+        if (spotlightRef.current) {
+            // Update spotlight position to follow camera
+            spotlightRef.current.position.copy(camera.position);
+            // Update spotlight target to the selected element
+            spotlightRef.current.target.position.set(target[0], target[1], target[2]);
+            spotlightRef.current.target.updateMatrixWorld();
+        }
+    });
+
+    return (
+        <>
+            <spotLight
+                ref={spotlightRef}
+                intensity={1500} // DRAMATICALLY increased for clear highlighting
+                angle={Math.PI / 4} // Wide beam
+                penumbra={0.5}
+                distance={1000}
+                decay={1}
+                castShadow={false} // Disable shadows for better performance
+                color="#ffffff" // Bright white
+            />
+            {/* Debug sphere to show target position - LARGE and RED */}
+            <mesh position={target}>
+                <sphereGeometry args={[5, 16, 16]} />
+                <meshBasicMaterial color="red" opacity={1} transparent={false} />
+            </mesh>
+        </>
+    );
+};
+
+// Clickable wrapper for elements to handle selection
+const ClickableElement: React.FC<{
+    position: [number, number, number];
+    children: React.ReactNode;
+    onSelect?: (position: [number, number, number]) => void;
+}> = ({ position, children, onSelect }) => {
+    const handleClick = (e: any) => {
+        // Only respond to LEFT mouse button (button === 0)
+        if (e.button !== undefined && e.button !== 0) {
+            console.log('🖱️ Ignoring non-LMB click (button:', e.button, ')');
+            return;
+        }
+        
+        console.log('🖱️ LMB CLICK detected at', position);
+        e.stopPropagation();
+        
+        if (onSelect) {
+            console.log('🎯 Calling onSelect with position:', position);
+            onSelect(position);
+        } else {
+            console.warn('⚠️ onSelect callback is missing!');
+        }
+    };
+
+    return (
+        <group 
+            onClick={handleClick}
+            onPointerDown={handleClick}
+        >
+            {children}
+        </group>
+    );
+};
 
 // Simple deterministic pseudo-random generator based on a string seed
 function seededRandom(seed: string) {
@@ -119,6 +278,44 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
     
     // Safe default for containers until backend integration is wired
     const containerList = containers ?? [];
+
+    // Selection state for dynamic spotlight
+    const [selectedElement, setSelectedElement] = React.useState<[number, number, number] | null>(null);
+    
+    // Camera animation state
+    const [targetCameraPosition, setTargetCameraPosition] = React.useState<[number, number, number] | null>(null);
+    const [targetCameraLookAt, setTargetCameraLookAt] = React.useState<[number, number, number] | null>(null);
+
+    // Handler for element selection
+    const handleElementSelect = React.useCallback((position: [number, number, number]) => {
+        console.log(`🎯 Element selected at [${position.join(', ')}]`);
+        setSelectedElement(position);
+        
+        // Calculate camera position: offset from the element for good viewing angle
+        // Position camera at an angle and distance from the selected element
+        const offset = 30; // Distance from element
+        const heightOffset = 15; // Height above element
+        
+        const newCameraPos: [number, number, number] = [
+            position[0] + offset,
+            position[1] + heightOffset,
+            position[2] + offset
+        ];
+        
+        setTargetCameraPosition(newCameraPos);
+        setTargetCameraLookAt(position);
+        
+        console.log(`📹 Camera will move to [${newCameraPos.join(', ')}] looking at [${position.join(', ')}]`);
+    }, []);
+
+    // Debug: Log when selectedElement changes
+    React.useEffect(() => {
+        if (selectedElement) {
+            console.log(`✅ Spotlight activated at [${selectedElement.join(', ')}]`);
+        } else {
+            console.log(`❌ No element selected`);
+        }
+    }, [selectedElement]);
 
     // Yard surface height constant - matches YardModel positioning (YARD_THICKNESS - 9.43 + YARD_THICKNESS/2)
     // If you change the YardModel height in models.tsx, update this value accordingly
@@ -565,7 +762,7 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
                     )}
                 </div>
             </div>
-
+            
             <Canvas className="w-full h-full" shadows camera={{ position: [0, 40, 50], fov: 50 }}>
                 
                 <Sky
@@ -631,13 +828,18 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
                             ];
                             
                             dockSplits.push(
-                                <DockModel 
-                                    key={`${el.id}_D${i + 1}`} 
-                                    position={splitPosition} 
-                                    size={[adjustedLength, el.size[1], adjustedDepth]}
-                                    label={`${el.name} ${i + 1}`}
-                                    isNight={isNight}
-                                />
+                                <ClickableElement
+                                    key={`${el.id}_D${i + 1}`}
+                                    position={splitPosition}
+                                    onSelect={handleElementSelect}
+                                >
+                                    <DockModel 
+                                        position={splitPosition} 
+                                        size={[adjustedLength, el.size[1], adjustedDepth]}
+                                        label={`${el.name} ${i + 1}`}
+                                        isNight={isNight}
+                                    />
+                                </ClickableElement>
                             );
                         }
                         return <group key={el.id}>{dockSplits}</group>;
@@ -701,30 +903,36 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
                                 });
 
                                 tiles.push(
-                                    <group key={tileId}>
-                                        <YardModel
-                                            position={tileCenter}
-                                            size={[tileWidth, el.size[1], tileDepth]}
-                                            label={el.name}
-                                            isNight={isNight}
-                                        />
-                                        {/* Containers centered on this tile, limited by yard capacity */}
-                                        {visibleContainers.map(c => (
-                                            <ContainerModel
-                                                key={`${tileId}-${c.id}`}
-                                                position={[
-                                                    // start 1.5 containers in from the left edge
-                                                    tileCenter[0] - tileWidth / 2 + 2.5 * (c.size[0] ?? 0) + c.position[0],
-                                                    // Place containers on top of yard surface
-                                                    tileCenter[1] + YARD_SURFACE_Y_OFFSET + (c.position[1] ?? 0),
-                                                    // start 1.5 containers in from the top edge
-                                                    tileCenter[2] - tileDepth / 2 + 3.5 * (c.size[2] ?? 0) + c.position[2],
-                                                ]}
-                                                size={c.size}
-                                                textureUrl={c.textureUrl}
+                                    <ClickableElement
+                                        key={tileId}
+                                        position={tileCenter}
+                                        onSelect={handleElementSelect}
+                                    >
+                                        <group>
+                                            <YardModel
+                                                position={tileCenter}
+                                                size={[tileWidth, el.size[1], tileDepth]}
+                                                label={el.name}
+                                                isNight={isNight}
                                             />
-                                        ))}
-                                    </group>
+                                            {/* Containers centered on this tile, limited by yard capacity */}
+                                            {visibleContainers.map(c => (
+                                                <ContainerModel
+                                                    key={`${tileId}-${c.id}`}
+                                                    position={[
+                                                        // start 1.5 containers in from the left edge
+                                                        tileCenter[0] - tileWidth / 2 + 2.5 * (c.size[0] ?? 0) + c.position[0],
+                                                        // Place containers on top of yard surface
+                                                        tileCenter[1] + YARD_SURFACE_Y_OFFSET + (c.position[1] ?? 0),
+                                                        // start 1.5 containers in from the top edge
+                                                        tileCenter[2] - tileDepth / 2 + 3.5 * (c.size[2] ?? 0) + c.position[2],
+                                                    ]}
+                                                    size={c.size}
+                                                    textureUrl={c.textureUrl}
+                                                />
+                                            ))}
+                                        </group>
+                                    </ClickableElement>
                                 );
                             }
                         }
@@ -736,7 +944,15 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
                     case 'water':
                         return <WaterModel key={el.id} position={el.position} size={el.size} />;
                     case 'building':
-                        return <BuildingModel key={el.id} position={el.position} size={el.size} label={el.name} rotation={el.rotation} />;
+                        return (
+                            <ClickableElement
+                                key={el.id}
+                                position={el.position}
+                                onSelect={handleElementSelect}
+                            >
+                                <BuildingModel position={el.position} size={el.size} label={el.name} rotation={el.rotation} />
+                            </ClickableElement>
+                        );
                     default:
                         return null;
                 }
@@ -802,29 +1018,35 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
                         });
 
                         tiles.push(
-                            <group key={id}>
-                                <YardModel
-                                    position={tileCenter}
-                                    size={[tileWidth, 0.5 * WORLD_SCALE, tileDepth]}
-                                    label={`Demo Yard ${tileIndex}`}
-                                    isNight={isNight}
-                                />
-                                {visibleDemoContainers.map(cObj => (
-                                    <ContainerModel
-                                        key={`${id}-${cObj.id}`}
-                                        position={[
-                                            // start 1.5 containers in from the left edge
-                                            tileCenter[0] - tileWidth / 2 + 1.5 * (cObj.size[0] ?? 0) + cObj.position[0],
-                                            // Place containers on top of yard surface
-                                            tileCenter[1] + YARD_SURFACE_Y_OFFSET + (cObj.position[1] ?? 0),
-                                            // start 1.5 containers in from the top edge
-                                            tileCenter[2] - tileDepth / 2 + 1.5 * (cObj.size[2] ?? 0) + cObj.position[2],
-                                        ]}
-                                        size={cObj.size}
-                                        textureUrl={cObj.textureUrl}
+                            <ClickableElement
+                                key={id}
+                                position={tileCenter}
+                                onSelect={handleElementSelect}
+                            >
+                                <group>
+                                    <YardModel
+                                        position={tileCenter}
+                                        size={[tileWidth, 0.5 * WORLD_SCALE, tileDepth]}
+                                        label={`Demo Yard ${tileIndex}`}
+                                        isNight={isNight}
                                     />
-                                ))}
-                            </group>
+                                    {visibleDemoContainers.map(cObj => (
+                                        <ContainerModel
+                                            key={`${id}-${cObj.id}`}
+                                            position={[
+                                                // start 1.5 containers in from the left edge
+                                                tileCenter[0] - tileWidth / 2 + 1.5 * (cObj.size[0] ?? 0) + cObj.position[0],
+                                                // Place containers on top of yard surface
+                                                tileCenter[1] + YARD_SURFACE_Y_OFFSET + (cObj.position[1] ?? 0),
+                                                // start 1.5 containers in from the top edge
+                                                tileCenter[2] - tileDepth / 2 + 1.5 * (cObj.size[2] ?? 0) + cObj.position[2],
+                                            ]}
+                                            size={cObj.size}
+                                            textureUrl={cObj.textureUrl}
+                                        />
+                                    ))}
+                                </group>
+                            </ClickableElement>
                         );
                     }
                 }
@@ -840,17 +1062,22 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
                     console.log(`  Rendering vessel ${idx + 1}: id=${v.id}, name=${v.name}, position=[${v.position.join(', ')}], hasModel=${!!v.modelUrl}`);
                 });
                 return scaledVessels.map(v => (
-                    v.modelUrl ? (
-                        <ImportedModel key={v.id} modelUrl={v.modelUrl} position={v.position} scale={v.size} />
-                    ) : (
-                        <CargoShipModel
-                            key={v.id}
-                            position={v.position}
-                            // vessels.size can be either a number or an array; pass it through or fallback to 0.5
-                            scale={Array.isArray(v.size) ? (v.size as any) : (v.size ?? 0.5)}
-                            rotation={v.rotation}
-                        />
-                    )
+                    <ClickableElement
+                        key={v.id}
+                        position={v.position}
+                        onSelect={handleElementSelect}
+                    >
+                        {v.modelUrl ? (
+                            <ImportedModel modelUrl={v.modelUrl} position={v.position} scale={v.size} />
+                        ) : (
+                            <CargoShipModel
+                                position={v.position}
+                                // vessels.size can be either a number or an array; pass it through or fallback to 0.5
+                                scale={Array.isArray(v.size) ? (v.size as any) : (v.size ?? 0.5)}
+                                rotation={v.rotation}
+                            />
+                        )}
+                    </ClickableElement>
                 ));
             })()}
 
@@ -920,26 +1147,59 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
 
                     if (area.type === 'dock') {
                         return (
-                            <group key={`${r.id}-${r.code}`}>
-                                <STSCraneModel position={r.position} size={r.size} label={r.kind} isNight={isNight} />
-                                {marker}
-                            </group>
+                            <ClickableElement
+                                key={`${r.id}-${r.code}`}
+                                position={r.position}
+                                onSelect={handleElementSelect}
+                            >
+                                <group>
+                                    <STSCraneModel position={r.position} size={r.size} label={r.kind} isNight={isNight} />
+                                    {marker}
+                                </group>
+                            </ClickableElement>
                         );
                     }
 
                     if (area.type === 'yard') {
                         return (
-                            <group key={`${r.id}-${r.code}`}>
-                                <YardCraneModel position={r.position} size={r.size} label={r.kind} isNight={isNight} />
-                                {marker}
-                            </group>
+                            <ClickableElement
+                                key={`${r.id}-${r.code}`}
+                                position={r.position}
+                                onSelect={handleElementSelect}
+                            >
+                                <group>
+                                    <YardCraneModel position={r.position} size={r.size} label={r.kind} isNight={isNight} />
+                                    {marker}
+                                </group>
+                            </ClickableElement>
                         );
                     }
                 }
                 return null;
             })}
 
+            {/* Render dynamic spotlight for selected elements */}
+            {selectedElement && (
+                <DynamicSpotlight target={selectedElement} />
+            )}
+
+            {/* Camera animator for smooth transitions */}
+            <CameraAnimator 
+                targetPosition={targetCameraPosition}
+                targetLookAt={targetCameraLookAt}
+                duration={1.5} // Configurable: 1.5 seconds for smooth transition
+                onComplete={() => {
+                    console.log('🎬 Camera animation complete');
+                    // Clear animation targets after completion
+                    setTargetCameraPosition(null);
+                    setTargetCameraLookAt(null);
+                }}
+            />
+
             <OrbitControls
+                makeDefault
+                enableDamping={true}
+                dampingFactor={0.05}
                 mouseButtons={{
                     LEFT: THREE.MOUSE.PAN,
                     MIDDLE: THREE.MOUSE.DOLLY,
