@@ -303,6 +303,22 @@ export const getApprovedVesselVisits = async (): Promise<VesselVisit[]> => {
     return response.data;
 };
 
+// Get all vessel visits (Approved and Submitted) for visualization info overlay
+export const getAllVesselVisitsForVisualization = async (): Promise<VesselVisit[]> => {
+    try {
+        // Fetch both Approved and Submitted vessel visits
+        const [approvedResponse, submittedResponse] = await Promise.all([
+            apiClient.get<VesselVisit[]>(`/notifications/search?status=Approved`),
+            apiClient.get<VesselVisit[]>(`/notifications/search?status=Submitted`)
+        ]);
+        
+        // Combine both arrays
+        return [...approvedResponse.data, ...submittedResponse.data];
+    } catch (error) {
+        console.error('Error fetching vessel visits for visualization:', error);
+        return [];
+    }
+};
 
 export const getVesselByImo = async (imo: string) => {
     const response = await apiClient.get(`/Vessel/${imo}`);

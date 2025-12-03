@@ -1,5 +1,8 @@
 ﻿import React, { useState, useEffect } from 'react';
     import PortScene from '../components/visualization/PortScene';
+    import { InfoOverlay } from '../components/visualization/InfoOverlay';
+    import { useInfoOverlay } from '../components/visualization/useInfoOverlay';
+    import { useAuth } from '../auth/AuthProvider';
     
 import {
     getPortLayout,
@@ -31,12 +34,19 @@ import { generateWarehouseLayout } from '../services/warehouseLayoutService';
     const resourceService = new ResourceService(resourceApiRepository);
     
     const VisualizationPage: React.FC = () => {
-        const [layout, setLayout] = useState<PortLayout | null>(null); // Store response in PortLayout type
+        const [layout, setLayout] = useState<PortLayout | null>(null);
         const [vessels, setVessels] = useState<RenderableVessel[]>([]);
         const [resources, setResources] = useState<RenderableResource[]>([]);
         const [loading, setLoading] = useState(true);
         const [error, setError] = useState<string | null>(null);
-        const [selectedLayout, setSelectedLayout] = useState('layout1'); // Handle layout switching via selectedLayout dropdown
+        const [selectedLayout, setSelectedLayout] = useState('layout1');
+        
+        // Get user role from auth context
+        const { internalRole } = useAuth();
+        
+        // Initialize info overlay hook
+        const { isVisible, selectedElement, elementData, selectElement } = useInfoOverlay();
+        
         useEffect(() => {
             const fetchData = async () => {
                 setLoading(true);
@@ -263,7 +273,7 @@ import { generateWarehouseLayout } from '../services/warehouseLayoutService';
                         const rotation: [number, number, number] = [0, left90, 0];
 
                         const renderableVessel = {
-                            id: visit.id,
+                            id: visit.id || visit.vesselImo, // Use IMO as fallback if visit.id is undefined
                             imo: visit.vesselImo,
                             name: vesselDetails.name,
                             position: finalPosition,
@@ -533,9 +543,22 @@ import { generateWarehouseLayout } from '../services/warehouseLayoutService';
                         // Put the PortScene inside an absolute inset container so the Canvas (which is positioned absolutely by r3f)
                         // will size itself to this element and be clipped by the parent's overflow:hidden
                         <div className="absolute inset-0">
-                            <PortScene layoutElements={layout.elements} vessels={vessels} resources={resources} />
+                            <PortScene 
+                                layoutElements={layout.elements} 
+                                vessels={vessels} 
+                                resources={resources} 
+                                onElementSelect={selectElement}
+                            />
                         </div>
                     )}
+                    
+                    {/* Render the InfoOverlay component */}
+                    <InfoOverlay 
+                        isVisible={isVisible} 
+                        elementType={selectedElement?.type || null}
+                        elementData={elementData} 
+                        userRole={internalRole}
+                    />
                 </div>
             </div>
         );

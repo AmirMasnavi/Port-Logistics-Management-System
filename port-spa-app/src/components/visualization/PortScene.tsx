@@ -49,6 +49,7 @@ interface PortSceneProps {
     vessels: RenderableVessel[];
     resources: RenderableResource[];
     containers?: RenderableContainer[]; // optional (defaults to [])
+    onElementSelect?: (elementInfo: { type: 'vessel' | 'dock' | 'yard' | 'building' | 'resource'; id: string; name?: string }) => void;
 }
 
 // Camera Animator Component - Smoothly moves camera to target position
@@ -179,9 +180,13 @@ const DynamicSpotlight: React.FC<{
 // Clickable wrapper for elements to handle selection
 const ClickableElement: React.FC<{
     position: [number, number, number];
+    elementType?: 'vessel' | 'dock' | 'yard' | 'building' | 'resource';
+    elementId?: string;
+    elementName?: string;
     children: React.ReactNode;
     onSelect?: (position: [number, number, number]) => void;
-}> = ({ position, children, onSelect }) => {
+    onElementInfo?: (info: { type: 'vessel' | 'dock' | 'yard' | 'building' | 'resource'; id: string; name?: string }) => void;
+}> = ({ position, elementType, elementId, elementName, children, onSelect, onElementInfo }) => {
     const handleClick = (e: any) => {
         // Only respond to LEFT mouse button (button === 0)
         if (e.button !== undefined && e.button !== 0) {
@@ -195,8 +200,12 @@ const ClickableElement: React.FC<{
         if (onSelect) {
             console.log('🎯 Calling onSelect with position:', position);
             onSelect(position);
-        } else {
-            console.warn('⚠️ onSelect callback is missing!');
+        }
+        
+        // Call element info callback if available and we have element details
+        if (onElementInfo && elementType && elementId) {
+            console.log('📋 Calling onElementInfo with:', { type: elementType, id: elementId, name: elementName });
+            onElementInfo({ type: elementType, id: elementId, name: elementName });
         }
     };
 
@@ -223,7 +232,7 @@ function seededRandom(seed: string) {
     };
 }
 
-const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resources, containers }) => {
+const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resources, containers, onElementSelect }) => {
     // 🚢 DEBUG: Log props received by PortScene
     console.log('🎬 ========== PortScene RENDER ==========');
     console.log('🎬 PortScene received props:');
@@ -831,7 +840,11 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
                                 <ClickableElement
                                     key={`${el.id}_D${i + 1}`}
                                     position={splitPosition}
+                                    elementType="dock"
+                                    elementId={el.id}
+                                    elementName={el.name}
                                     onSelect={handleElementSelect}
+                                    onElementInfo={onElementSelect}
                                 >
                                     <DockModel 
                                         position={splitPosition} 
@@ -906,7 +919,11 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
                                     <ClickableElement
                                         key={tileId}
                                         position={tileCenter}
+                                        elementType="yard"
+                                        elementId={el.id}
+                                        elementName={el.name}
                                         onSelect={handleElementSelect}
+                                        onElementInfo={onElementSelect}
                                     >
                                         <group>
                                             <YardModel
@@ -948,7 +965,11 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
                             <ClickableElement
                                 key={el.id}
                                 position={el.position}
+                                elementType="building"
+                                elementId={el.id}
+                                elementName={el.name}
                                 onSelect={handleElementSelect}
+                                onElementInfo={onElementSelect}
                             >
                                 <BuildingModel position={el.position} size={el.size} label={el.name} rotation={el.rotation} />
                             </ClickableElement>
@@ -1065,7 +1086,11 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
                     <ClickableElement
                         key={v.id}
                         position={v.position}
+                        elementType="vessel"
+                        elementId={v.id}
+                        elementName={v.name}
                         onSelect={handleElementSelect}
+                        onElementInfo={onElementSelect}
                     >
                         {v.modelUrl ? (
                             <ImportedModel modelUrl={v.modelUrl} position={v.position} scale={v.size} />
