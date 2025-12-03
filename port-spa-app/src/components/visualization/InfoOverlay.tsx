@@ -133,8 +133,8 @@ export const InfoOverlay: React.FC<InfoOverlayProps> = ({
                         {elementData.vesselVisit && (
                             <>
                                 <InfoRow label="Status" value={elementData.vesselVisit.status || 'N/A'} />
-                                <InfoRow label="ETA" value={elementData.vesselVisit.arrivalDate || 'N/A'} />
-                                <InfoRow label="ETD" value={elementData.vesselVisit.departureDate || 'N/A'} />
+                                <InfoRow label="ETA" value={elementData.vesselVisit.estimatedArrival || elementData.vesselVisit.arrivalDate || 'N/A'} />
+                                <InfoRow label="ETD" value={elementData.vesselVisit.estimatedDeparture || elementData.vesselVisit.departureDate || 'N/A'} />
                                 <InfoRow label="Assigned Dock" value={elementData.vesselVisit.assignedDockName || 'N/A'} />
                                 {elementData.vesselVisit.operations && (
                                     <InfoRow 
@@ -174,8 +174,6 @@ export const InfoOverlay: React.FC<InfoOverlayProps> = ({
                             Restricted Information
                         </div>
                         <InfoRow label="Status" value={elementData.status || 'Active'} />
-                        <InfoRow label="Width" value={elementData.widthInMeters ? `${elementData.widthInMeters}m` : 'N/A'} />
-                        <InfoRow label="Length" value={elementData.lengthInMeters ? `${elementData.lengthInMeters}m` : 'N/A'} />
                         {elementData.capacity !== undefined && (
                             <InfoRow label="Capacity" value={`${elementData.currentOccupancy || 0}/${elementData.capacity} TEU`} />
                         )}
