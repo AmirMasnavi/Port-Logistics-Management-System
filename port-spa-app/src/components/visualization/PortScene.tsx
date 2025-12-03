@@ -1175,7 +1175,11 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
                             <ClickableElement
                                 key={`${r.id}-${r.code}`}
                                 position={r.position}
+                                elementType="resource"
+                                elementId={r.code}
+                                elementName={r.kind}
                                 onSelect={handleElementSelect}
+                                onElementInfo={onElementSelect}
                             >
                                 <group>
                                     <STSCraneModel position={r.position} size={r.size} label={r.kind} isNight={isNight} />
@@ -1190,7 +1194,11 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
                             <ClickableElement
                                 key={`${r.id}-${r.code}`}
                                 position={r.position}
+                                elementType="resource"
+                                elementId={r.code}
+                                elementName={r.kind}
                                 onSelect={handleElementSelect}
+                                onElementInfo={onElementSelect}
                             >
                                 <group>
                                     <YardCraneModel position={r.position} size={r.size} label={r.kind} isNight={isNight} />
