@@ -1,5 +1,4 @@
-﻿
-Microsoft Visual Studio Solution File, Format Version 12.00
+﻿Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.5.2.0
 MinimumVisualStudioVersion = 10.0.40219.1
@@ -10,8 +9,6 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PortProject.Api.Integration_Tests", "PortProject.Api.Integration_Tests\PortProject.Api.Integration_Tests.csproj", "{D2876DF2-2CBE-4118-8E76-201443151001}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Port.Project.Api.System_Tests", "Port.Project.Api.System_Tests\Port.Project.Api.System_Tests.csproj", "{7B1FF5D9-9DC5-492C-A04D-153E7A9B71BA}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PortProject.OEM.Api", "PortProject.OEM.Api\PortProject.OEM.Api.csproj", "{ECD45631-5FB7-419E-87B0-78E02C6DEE30}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -41,9 +38,5 @@ Global
 		{7B1FF5D9-9DC5-492C-A04D-153E7A9B71BA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7B1FF5D9-9DC5-492C-A04D-153E7A9B71BA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7B1FF5D9-9DC5-492C-A04D-153E7A9B71BA}.Release|Any CPU.Build.0 = Release|Any CPU
-		{ECD45631-5FB7-419E-87B0-78E02C6DEE30}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{ECD45631-5FB7-419E-87B0-78E02C6DEE30}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{ECD45631-5FB7-419E-87B0-78E02C6DEE30}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{ECD45631-5FB7-419E-87B0-78E02C6DEE30}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
