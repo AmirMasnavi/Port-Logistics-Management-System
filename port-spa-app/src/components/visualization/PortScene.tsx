@@ -199,13 +199,14 @@ const InfoCard: React.FC<{
     return (
         <Html center distanceFactor={15} zIndexRange={[100, 0]}>
             <div className="pointer-events-none select-none min-w-[200px] transform transition-all duration-300 origin-bottom hover:scale-105">
-                {/* Linha de conexão animada */}
-                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-px h-8 bg-gradient-to-t from-blue-500 to-transparent translate-y-full" />
+                {/* Linha de conexão animada - VERDE */}
+                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-px h-8 bg-gradient-to-t from-green-500 to-transparent translate-y-full" />
 
-                {/* Card Principal com efeito Glassmorphism */}
-                <div className="bg-slate-900/90 backdrop-blur-md border-l-4 border-blue-500 text-white p-4 rounded-r-lg shadow-[0_0_20px_rgba(59,130,246,0.5)] pointer-events-auto">
+                {/* Card Principal - Borda e Sombra VERDES */}
+                <div className="bg-slate-900/90 backdrop-blur-md border-l-4 border-green-500 text-white p-4 rounded-r-lg shadow-[0_0_20px_rgba(34,197,94,0.5)] pointer-events-auto">
                     <div className="flex justify-between items-start mb-2">
-                        <span className="text-[10px] uppercase tracking-widest text-blue-400 font-bold border border-blue-500/30 px-1 rounded">
+                        {/* Badge do Tipo - VERDE */}
+                        <span className="text-[10px] uppercase tracking-widest text-green-400 font-bold border border-green-500/30 px-1 rounded">
                             {type}
                         </span>
                         <button
@@ -219,8 +220,8 @@ const InfoCard: React.FC<{
                     <h3 className="font-bold text-lg leading-tight mb-1">{title || 'Unknown Asset'}</h3>
                     <p className="text-xs text-gray-400 font-mono mb-3">ID: {id}</p>
 
-                    {/* Botão de Ação Fake - Para dar aspeto funcional */}
-                    <button className="w-full bg-blue-600 hover:bg-blue-500 text-xs py-1.5 rounded transition-colors font-medium">
+                    {/* Botão de Ação - VERDE */}
+                    <button className="w-full bg-green-600 hover:bg-green-500 text-xs py-1.5 rounded transition-colors font-medium">
                         View Manifest
                     </button>
                 </div>
@@ -236,90 +237,82 @@ const ClickableElement: React.FC<{
     elementId?: string;
     elementName?: string;
     children: React.ReactNode;
-    onSelect?: (position: [number, number, number], id?: string, size?: [number, number, number]) => void;    onElementInfo?: (info: { type: 'vessel' | 'dock' | 'yard' | 'building' | 'resource'; id: string; name?: string }) => void;
-    isSelected?: boolean;                 
+    onSelect?: (position: [number, number, number], id?: string, size?: [number, number, number]) => void;
+    onElementInfo?: (info: { type: 'vessel' | 'dock' | 'yard' | 'building' | 'resource'; id: string; name?: string }) => void;
+    isSelected?: boolean;
     size?: [number, number, number];
-    // Função para limpar seleção
     onDeselect?: () => void;
 }> = ({ position, elementType, elementId, elementName, isSelected, size, children, onSelect, onElementInfo, onDeselect }) => {
 
     const [hovered, setHover] = React.useState(false);
 
-    // Efeito para gerir o cursor de forma limpa (evita conflitos e "flickering")
+    // Efeito para cursor (Mãozinha quando passa por cima)
     React.useEffect(() => {
-        if (hovered) {
-            document.body.style.cursor = 'pointer';
-        } else {
-            document.body.style.cursor = 'auto';
-        }
-        // Limpeza quando o componente desmonta ou o hover muda
-        return () => {
-            document.body.style.cursor = 'auto';
-        };
+        if (hovered) document.body.style.cursor = 'pointer';
+        else document.body.style.cursor = 'auto';
+        return () => { document.body.style.cursor = 'auto'; };
     }, [hovered]);
-    
-    const handleClick = (e: any) => {
-        // Only respond to LEFT mouse button (button === 0)
-        if (e.button !== undefined && e.button !== 0) {
-            console.log('🖱️ Ignoring non-LMB click (button:', e.button, ')');
-            return;
-        }
-        
-        console.log('🖱️ LMB CLICK detected at', position);
 
-        // IGNORE clicks over DOM UI elements (adjust selector to your UI)
+    const handleClick = (e: any) => {
+        if (e.button !== undefined && e.button !== 0) return;
+
+        // Bloqueio de cliques na UI (botões, painéis)
         const cx = (e.clientX ?? e.nativeEvent?.clientX) || 0;
         const cy = (e.clientY ?? e.nativeEvent?.clientY) || 0;
         const topEl = (typeof document !== 'undefined' && document.elementFromPoint) ? document.elementFromPoint(cx, cy) : null;
-        if (topEl && topEl.closest && topEl.closest('[data-ui], .ui, .modal, .panel')) {
-            console.log('Ignored click over UI element');
-            return;
-        }
-        
-        e.stopPropagation();
-        
-        if (onSelect) {
-            onSelect(position, elementId, size);
-        }
-        
-        // Call element info callback if available and we have element details
-        if (onElementInfo && elementType && elementId) {
-            console.log('📋 Calling onElementInfo with:', { type: elementType, id: elementId, name: elementName });
-            onElementInfo({ type: elementType, id: elementId, name: elementName });
-        }
-    };
+        if (topEl && topEl.closest && topEl.closest('[data-ui], .ui, .modal, .panel')) return;
 
+        e.stopPropagation();
+
+        if (onSelect) onSelect(position, elementId, size);
+        if (onElementInfo && elementType && elementId) onElementInfo({ type: elementType, id: elementId, name: elementName });
+    };
+ 
     return (
-        <group 
+        <group
             onClick={handleClick}
             onPointerDown={handleClick}
-            onPointerOver={(e) => { e.stopPropagation(); setHover(true); }}
+            onPointerOver={(e: any) => { e.stopPropagation(); setHover(true); }}
             onPointerOut={() => { setHover(false); }}
         >
+            {/* O Elemento 3D Real (Navio, Contentor, etc.) */}
             {children}
+
+            {/* A CAIXA DE LINHAS */}
             {(isSelected || hovered) && size && (
-                <mesh>
-                    <boxGeometry args={[size[0], size[1], size[2]]} />
-                    <meshBasicMaterial visible={false} />
+                <mesh renderOrder={1000}>
+                    {/* Tamanho ligeiramente maior para não ficar escondido */}
+                    <boxGeometry args={[size[0] * 1.05, size[1] * 1.05, size[2] * 1.05]} />
+
+                    {/* IMPORTANTE: opacity={0} em vez de visible={false} */}
+                    <meshBasicMaterial
+                        color="black"
+                        transparent={true}
+                        opacity={0}
+                        depthWrite={false}
+                    />
+
                     <Edges
-                        scale={1.0}
+                        scale={1}
                         threshold={15}
-                        color={isSelected ? "#3b82f6" : "#ffffff"}
-                        renderOrder={1000}
+                        color={isSelected ? "#00ff00" : "#ffffff"} // Verde se selecionado, Branco se hover
+                        toneMapped={false}
                     />
                 </mesh>
             )}
-            {isSelected && size && elementType && (
-                <group position={[0, size[1] / 2, 0]}>
+
+            {/* Info Card (Só aparece se estiver clicado/selecionado) */}
+            {isSelected && size && (
+                <group position={[0, size[1] + 6, 0]}>
                     <InfoCard
-                        title={elementName}
-                        id={elementId}
-                        type={elementType}
+                        title={elementName || "Sem Nome"}
+                        id={elementId || "N/A"}
+                        type={elementType || "Object"}
                         onClose={() => onDeselect && onDeselect()}
                     />
                 </group>
             )}
-        </group>    
+        </group>
     );
 };
 
@@ -403,44 +396,37 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
     const handleElementSelect = React.useCallback((position: [number, number, number], id?: string,  size?: [number, number, number]) => {
         console.log(`🎯 Element selected at [${position.join(', ')}]`);
         setSelectedElement(position);
-        setSelectedId(id || null); // Guardar ID
+        setSelectedId(id || null);
 
-        const maxDimension = size ? Math.max(size[0], size[1], size[2]) : 10;
+        // 1. Calcular o tamanho do objeto
+        const maxDimension = size ? Math.max(size[0], size[1], size[2]) : 5;
 
-        // 2. Calcular distância:
-        // Objetos pequenos precisam de zoom (min 15 un)
-        // Objetos grandes (navios) precisam de espaço (multiplicador 2.0x a 3.0x)
-        const distanceMultiplier = 2.5;
-        const minDistance = 20;
-        const targetDistance = Math.max(maxDimension * distanceMultiplier, minDistance);
+        // 2. Definimos a distância. 
+        // Multiplicador 2.5x para garantir que vemos a grua toda de lado.
+        const distance = Math.max(maxDimension * 1.0, 15);
 
-        // 3. Definir ângulo de visualização "Cinemático"
-        // Olha de "cima e de lado" (Isometric-ish)
-        const angleY = Math.PI / 4; // 45 graus vertical
-        const angleX = Math.PI / 4; // 45 graus horizontal
+        // 3. Definir Altura (Y)
+        // Mantemos baixo (10% da distância ou mínimo de 5) para ser "Horizontal"
+        const height = Math.max(distance * 0.3, 5);
 
-        // Calcular offset baseado na distância esférica
-        const offsetX = Math.sin(angleX) * Math.cos(angleY) * targetDistance;
-        const offsetY = Math.sin(angleY) * targetDistance;
-        const offsetZ = Math.cos(angleX) * Math.cos(angleY) * targetDistance;
-              
+        // 4. Cálculo das Coordenadas 
         const newCameraPos: [number, number, number] = [
-            position[0] + offsetX,
-            position[1] + offsetY,
-            position[2] + offsetZ
+            position[0], // Afasta apenas no eixo X (Visão Lateral/Perpendicular)
+            position[1] + height,   // Sobe ligeiramente
+            position[2]+ distance     // Mantém o Z exato do objeto (Alinhamento Perfeito)
         ];
-        
+
         setTargetCameraPosition(newCameraPos);
         setTargetCameraLookAt(position);
-        
-        console.log(`📹 Camera will move to [${newCameraPos.join(', ')}] looking at [${position.join(', ')}]`);
+
+        console.log(`📹 Camera moving to Perpendicular View: [${newCameraPos.join(', ')}]`);
     }, []);
 
     // Função para fechar o card (passar para o ClickableElement)
     const handleDeselect = React.useCallback(() => {
-        setSelectedId(null);
-        setSelectedElement(null);
-        setTargetCameraPosition([0, 60, 80]); 
+        setSelectedId(null);            // Limpa seleção (fecha UI)
+        setSelectedElement(null);       // Apaga luz/highlight
+        setTargetCameraPosition([0, 60, 80]); // Reseta câmara para posição inicial
         setTargetCameraLookAt([0, 0, 0]);
     }, []);
 
@@ -1362,7 +1348,7 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
             <CameraAnimator 
                 targetPosition={targetCameraPosition}
                 targetLookAt={targetCameraLookAt}
-                duration={0.5}
+                duration={1.5}
                 onComplete={() => {
                     console.log('🎬 Camera animation complete');
                     // Clear animation targets after completion
