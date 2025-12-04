@@ -1,6 +1,6 @@
 ﻿import React from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls, Grid, Environment, Sky } from '@react-three/drei';
+import { OrbitControls, Grid, Environment, Sky, Html, Edges} from '@react-three/drei';
 import { useGLTF } from '@react-three/drei';
 import { CargoShipModel } from "./CargoShipModel";
 import { ContainerModel } from './ContainerModel';
@@ -35,6 +35,7 @@ const ImportedModel: React.FC<{
                 // And tell it to cast and receive shadows
                 child.castShadow = true;
                 child.receiveShadow = true;
+                (child as any).userData.pickable = true;
             }
         });
         return scene;
@@ -63,11 +64,12 @@ const CameraAnimator: React.FC<{
     const animationProgress = useRef(0);
     const startPosition = useRef(new THREE.Vector3());
     const startLookAt = useRef(new THREE.Vector3());
+    const finalTargetPosition = useRef(new THREE.Vector3());
     const isAnimating = useRef(false);
 
     // Start animation when target changes
     React.useEffect(() => {
-        if (targetPosition && targetLookAt) {
+        if (targetLookAt) {
             console.log('🎬 Starting camera animation');
             startPosition.current.copy(camera.position);
             
@@ -79,6 +81,17 @@ const CameraAnimator: React.FC<{
                 const direction = new THREE.Vector3();
                 camera.getWorldDirection(direction);
                 startLookAt.current.copy(camera.position).add(direction.multiplyScalar(10));
+            }
+
+            if (targetPosition) {
+                finalTargetPosition.current.set(...targetPosition);
+            } else {
+                // Cálculo de Panning Horizontal (Preserva o zoom/altura atual)
+                const currentOffset = new THREE.Vector3().subVectors(camera.position, startLookAt.current);
+                finalTargetPosition.current.set(targetLookAt[0], targetLookAt[1], targetLookAt[2]).add(currentOffset);
+
+                console.log('🎬 Horizontal Repositioning calculated');
+
             }
             
             animationProgress.current = 0;
@@ -111,7 +124,7 @@ const CameraAnimator: React.FC<{
         // Interpolate camera position
         camera.position.lerpVectors(
             startPosition.current,
-            new THREE.Vector3(...targetPosition),
+            finalTargetPosition.current,
             t
         );
 
@@ -177,6 +190,45 @@ const DynamicSpotlight: React.FC<{
     );
 };
 
+const InfoCard: React.FC<{
+    title?: string;
+    id?: string;
+    type: string;
+    onClose: () => void;
+}> = ({ title, id, type, onClose }) => {
+    return (
+        <Html center distanceFactor={15} zIndexRange={[100, 0]}>
+            <div className="pointer-events-none select-none min-w-[200px] transform transition-all duration-300 origin-bottom hover:scale-105">
+                {/* Linha de conexão animada */}
+                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-px h-8 bg-gradient-to-t from-blue-500 to-transparent translate-y-full" />
+
+                {/* Card Principal com efeito Glassmorphism */}
+                <div className="bg-slate-900/90 backdrop-blur-md border-l-4 border-blue-500 text-white p-4 rounded-r-lg shadow-[0_0_20px_rgba(59,130,246,0.5)] pointer-events-auto">
+                    <div className="flex justify-between items-start mb-2">
+                        <span className="text-[10px] uppercase tracking-widest text-blue-400 font-bold border border-blue-500/30 px-1 rounded">
+                            {type}
+                        </span>
+                        <button
+                            onClick={(e) => { e.stopPropagation(); onClose(); }}
+                            className="text-gray-400 hover:text-white transition-colors"
+                        >
+                            ✕
+                        </button>
+                    </div>
+
+                    <h3 className="font-bold text-lg leading-tight mb-1">{title || 'Unknown Asset'}</h3>
+                    <p className="text-xs text-gray-400 font-mono mb-3">ID: {id}</p>
+
+                    {/* Botão de Ação Fake - Para dar aspeto funcional */}
+                    <button className="w-full bg-blue-600 hover:bg-blue-500 text-xs py-1.5 rounded transition-colors font-medium">
+                        View Manifest
+                    </button>
+                </div>
+            </div>
+        </Html>
+    );
+};
+
 // Clickable wrapper for elements to handle selection
 const ClickableElement: React.FC<{
     position: [number, number, number];
@@ -184,9 +236,28 @@ const ClickableElement: React.FC<{
     elementId?: string;
     elementName?: string;
     children: React.ReactNode;
-    onSelect?: (position: [number, number, number]) => void;
-    onElementInfo?: (info: { type: 'vessel' | 'dock' | 'yard' | 'building' | 'resource'; id: string; name?: string }) => void;
-}> = ({ position, elementType, elementId, elementName, children, onSelect, onElementInfo }) => {
+    onSelect?: (position: [number, number, number], id?: string, size?: [number, number, number]) => void;    onElementInfo?: (info: { type: 'vessel' | 'dock' | 'yard' | 'building' | 'resource'; id: string; name?: string }) => void;
+    isSelected?: boolean;                 
+    size?: [number, number, number];
+    // Função para limpar seleção
+    onDeselect?: () => void;
+}> = ({ position, elementType, elementId, elementName, isSelected, size, children, onSelect, onElementInfo, onDeselect }) => {
+
+    const [hovered, setHover] = React.useState(false);
+
+    // Efeito para gerir o cursor de forma limpa (evita conflitos e "flickering")
+    React.useEffect(() => {
+        if (hovered) {
+            document.body.style.cursor = 'pointer';
+        } else {
+            document.body.style.cursor = 'auto';
+        }
+        // Limpeza quando o componente desmonta ou o hover muda
+        return () => {
+            document.body.style.cursor = 'auto';
+        };
+    }, [hovered]);
+    
     const handleClick = (e: any) => {
         // Only respond to LEFT mouse button (button === 0)
         if (e.button !== undefined && e.button !== 0) {
@@ -195,11 +266,20 @@ const ClickableElement: React.FC<{
         }
         
         console.log('🖱️ LMB CLICK detected at', position);
+
+        // IGNORE clicks over DOM UI elements (adjust selector to your UI)
+        const cx = (e.clientX ?? e.nativeEvent?.clientX) || 0;
+        const cy = (e.clientY ?? e.nativeEvent?.clientY) || 0;
+        const topEl = (typeof document !== 'undefined' && document.elementFromPoint) ? document.elementFromPoint(cx, cy) : null;
+        if (topEl && topEl.closest && topEl.closest('[data-ui], .ui, .modal, .panel')) {
+            console.log('Ignored click over UI element');
+            return;
+        }
+        
         e.stopPropagation();
         
         if (onSelect) {
-            console.log('🎯 Calling onSelect with position:', position);
-            onSelect(position);
+            onSelect(position, elementId, size);
         }
         
         // Call element info callback if available and we have element details
@@ -213,9 +293,33 @@ const ClickableElement: React.FC<{
         <group 
             onClick={handleClick}
             onPointerDown={handleClick}
+            onPointerOver={(e) => { e.stopPropagation(); setHover(true); }}
+            onPointerOut={() => { setHover(false); }}
         >
             {children}
-        </group>
+            {(isSelected || hovered) && size && (
+                <mesh>
+                    <boxGeometry args={[size[0], size[1], size[2]]} />
+                    <meshBasicMaterial visible={false} />
+                    <Edges
+                        scale={1.0}
+                        threshold={15}
+                        color={isSelected ? "#3b82f6" : "#ffffff"}
+                        renderOrder={1000}
+                    />
+                </mesh>
+            )}
+            {isSelected && size && elementType && (
+                <group position={[0, size[1] / 2, 0]}>
+                    <InfoCard
+                        title={elementName}
+                        id={elementId}
+                        type={elementType}
+                        onClose={() => onDeselect && onDeselect()}
+                    />
+                </group>
+            )}
+        </group>    
     );
 };
 
@@ -283,38 +387,61 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
     // 5. Ambient light color (Much darker at night for realistic darkness)
     const ambientIntensity = isNight ? 0.15 : 0.5; // Much darker at night!
     const ambientColor = isNight ? "#0a0f1a" : "#ffffff"; // Almost black-blue for night
-    
-    
+        
     // Safe default for containers until backend integration is wired
     const containerList = containers ?? [];
 
     // Selection state for dynamic spotlight
     const [selectedElement, setSelectedElement] = React.useState<[number, number, number] | null>(null);
-    
+    const [selectedId, setSelectedId] = React.useState<string | null>(null); 
+
     // Camera animation state
     const [targetCameraPosition, setTargetCameraPosition] = React.useState<[number, number, number] | null>(null);
     const [targetCameraLookAt, setTargetCameraLookAt] = React.useState<[number, number, number] | null>(null);
 
     // Handler for element selection
-    const handleElementSelect = React.useCallback((position: [number, number, number]) => {
+    const handleElementSelect = React.useCallback((position: [number, number, number], id?: string,  size?: [number, number, number]) => {
         console.log(`🎯 Element selected at [${position.join(', ')}]`);
         setSelectedElement(position);
-        
-        // Calculate camera position: offset from the element for good viewing angle
-        // Position camera at an angle and distance from the selected element
-        const offset = 30; // Distance from element
-        const heightOffset = 15; // Height above element
-        
+        setSelectedId(id || null); // Guardar ID
+
+        const maxDimension = size ? Math.max(size[0], size[1], size[2]) : 10;
+
+        // 2. Calcular distância:
+        // Objetos pequenos precisam de zoom (min 15 un)
+        // Objetos grandes (navios) precisam de espaço (multiplicador 2.0x a 3.0x)
+        const distanceMultiplier = 2.5;
+        const minDistance = 20;
+        const targetDistance = Math.max(maxDimension * distanceMultiplier, minDistance);
+
+        // 3. Definir ângulo de visualização "Cinemático"
+        // Olha de "cima e de lado" (Isometric-ish)
+        const angleY = Math.PI / 4; // 45 graus vertical
+        const angleX = Math.PI / 4; // 45 graus horizontal
+
+        // Calcular offset baseado na distância esférica
+        const offsetX = Math.sin(angleX) * Math.cos(angleY) * targetDistance;
+        const offsetY = Math.sin(angleY) * targetDistance;
+        const offsetZ = Math.cos(angleX) * Math.cos(angleY) * targetDistance;
+              
         const newCameraPos: [number, number, number] = [
-            position[0] + offset,
-            position[1] + heightOffset,
-            position[2] + offset
+            position[0] + offsetX,
+            position[1] + offsetY,
+            position[2] + offsetZ
         ];
         
         setTargetCameraPosition(newCameraPos);
         setTargetCameraLookAt(position);
         
         console.log(`📹 Camera will move to [${newCameraPos.join(', ')}] looking at [${position.join(', ')}]`);
+    }, []);
+
+    // Função para fechar o card (passar para o ClickableElement)
+    const handleDeselect = React.useCallback(() => {
+        setSelectedId(null);
+        setSelectedElement(null);
+        setTargetCameraPosition([0, 60, 80]); 
+        setTargetCameraLookAt([0, 0, 0]);
     }, []);
 
     // Debug: Log when selectedElement changes
@@ -772,7 +899,7 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
                 </div>
             </div>
             
-            <Canvas className="w-full h-full" shadows camera={{ position: [0, 40, 50], fov: 50 }}>
+            <Canvas className="w-full h-full" shadows camera={{ position: [0, 40, 50], fov: 50 }}   onPointerMissed={() => { handleDeselect(); console.log('Missed click - deselect'); }} >
                 
                 <Sky
                 sunPosition={sunPosition}    
@@ -822,9 +949,7 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
                         const isDockB = el.name === 'Dock B';
                         // Add extra offset for Dock B to move it away from land
                         const dockBOffset = isDockB ? 2 * WORLD_SCALE : 0;
-                        
-                        
-                        
+                                                                     
                         const dockSplits: React.ReactElement[] = [];
                         for (let i = 0; i < numSplits; i++) {
                             const offsetZ = (i - (numSplits - 1) / 2) * rawSplitDepth;
@@ -835,7 +960,7 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
                                 el.position[1],
                                 finalZ,
                             ];
-                            
+                            const dockSize: [number, number, number] = [adjustedLength, el.size[1], adjustedDepth];
                             dockSplits.push(
                                 <ClickableElement
                                     key={`${el.id}_D${i + 1}`}
@@ -843,6 +968,8 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
                                     elementType="dock"
                                     elementId={el.id}
                                     elementName={el.name}
+                                    isSelected={selectedId === el.id}  
+                                    size={dockSize}
                                     onSelect={handleElementSelect}
                                     onElementInfo={onElementSelect}
                                 >
@@ -885,6 +1012,7 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
                                     el.position[1],
                                     el.position[2] + offsetZ,
                                 ];
+                                const tileSize: [number, number, number] = [tileWidth, el.size[1], tileDepth];
 
                                 // Calculate max containers that fit in this tile
                                 const spacingX = 3.0 * WORLD_SCALE;
@@ -922,6 +1050,8 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
                                         elementType="yard"
                                         elementId={el.id}
                                         elementName={el.name}
+                                        isSelected={selectedId === el.id}
+                                        size={tileSize}
                                         onSelect={handleElementSelect}
                                         onElementInfo={onElementSelect}
                                     >
@@ -968,8 +1098,11 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
                                 elementType="building"
                                 elementId={el.id}
                                 elementName={el.name}
+                                isSelected={selectedId === el.id} 
+                                size={el.size}
                                 onSelect={handleElementSelect}
                                 onElementInfo={onElementSelect}
+                                onDeselect={handleDeselect}
                             >
                                 <BuildingModel position={el.position} size={el.size} label={el.name} rotation={el.rotation} />
                             </ClickableElement>
@@ -1089,8 +1222,11 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
                         elementType="vessel"
                         elementId={v.id}
                         elementName={v.name}
+                        isSelected={selectedId === v.id}                         
+                        size={Array.isArray(v.size) ? (v.size as [number, number, number]) : [v.size || 1, v.size || 1, v.size || 1]}
                         onSelect={handleElementSelect}
                         onElementInfo={onElementSelect}
+                        onDeselect={handleDeselect}
                     >
                         {v.modelUrl ? (
                             <ImportedModel modelUrl={v.modelUrl} position={v.position} scale={v.size} />
@@ -1178,8 +1314,11 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
                                 elementType="resource"
                                 elementId={r.code}
                                 elementName={r.kind}
+                                isSelected={selectedId === r.code} 
+                                size={r.size}
                                 onSelect={handleElementSelect}
                                 onElementInfo={onElementSelect}
+                                onDeselect={handleDeselect}
                             >
                                 <group>
                                     <STSCraneModel position={r.position} size={r.size} label={r.kind} isNight={isNight} />
@@ -1197,8 +1336,11 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
                                 elementType="resource"
                                 elementId={r.code}
                                 elementName={r.kind}
+                                isSelected={selectedId === r.code} 
+                                size={r.size}
                                 onSelect={handleElementSelect}
                                 onElementInfo={onElementSelect}
+                                onDeselect={handleDeselect}
                             >
                                 <group>
                                     <YardCraneModel position={r.position} size={r.size} label={r.kind} isNight={isNight} />
@@ -1220,7 +1362,7 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
             <CameraAnimator 
                 targetPosition={targetCameraPosition}
                 targetLookAt={targetCameraLookAt}
-                duration={1.5} // Configurable: 1.5 seconds for smooth transition
+                duration={0.5}
                 onComplete={() => {
                     console.log('🎬 Camera animation complete');
                     // Clear animation targets after completion
