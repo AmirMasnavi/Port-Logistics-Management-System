@@ -51,15 +51,26 @@ public class PortApiHttpClient : IPortApiHttpClient
 
         var url = $"/api/notifications/search?status=Submitted&from={fromString}&to={toString}";
 
+        Console.WriteLine($"[Planning] Requesting pending visits for date: {date}");
+        Console.WriteLine($"[Planning] URL: {url}");
+        
         var response = await _httpClient.GetAsync(url);
         var content = await response.Content.ReadAsStringAsync();
 
         // Log for diagnostics - helps to see what's returned by the main API
         Console.WriteLine($"[Planning] GET {url} -> {(int)response.StatusCode} {response.ReasonPhrase}");
-        Console.WriteLine($"[Planning] Response Content: {content}");
+        Console.WriteLine($"[Planning] Response Content Length: {content.Length} chars");
+        
+        // Log first 500 chars to see structure without flooding console
+        if (content.Length > 0)
+        {
+            var preview = content.Length > 500 ? content.Substring(0, 500) + "..." : content;
+            Console.WriteLine($"[Planning] Response Preview: {preview}");
+        }
 
         if (!response.IsSuccessStatusCode)
         {
+            Console.WriteLine($"[Planning] ERROR: Failed to get pending visits. Status: {response.StatusCode}");
             return Enumerable.Empty<VesselVisitDto>();
         }
 
@@ -67,11 +78,27 @@ public class PortApiHttpClient : IPortApiHttpClient
         try
         {
             var visits = JsonSerializer.Deserialize<IEnumerable<VesselVisitDto>>(content, options);
-            return visits ?? Enumerable.Empty<VesselVisitDto>();
+            var visitList = visits?.ToList() ?? new List<VesselVisitDto>();
+            Console.WriteLine($"[Planning] Successfully deserialized {visitList.Count} vessel visits");
+            
+            if (visitList.Count == 0)
+            {
+                Console.WriteLine($"[Planning] WARNING: No vessel visits found for date {date} with status 'Submitted'");
+            }
+            else
+            {
+                foreach (var visit in visitList)
+                {
+                    Console.WriteLine($"[Planning] Found visit: ID={visit.Id}, BusinessId={visit.BusinessId}, Arrival={visit.EstimatedArrival}, Departure={visit.EstimatedDeparture}, DockId={visit.DockId}, DockName={visit.DockName ?? "NULL"}");
+                }
+            }
+            
+            return visitList;
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[Planning] Failed to deserialize VesselVisitDto: {ex}");
+            Console.WriteLine($"[Planning] Failed to deserialize VesselVisitDto: {ex.Message}");
+            Console.WriteLine($"[Planning] Stack trace: {ex.StackTrace}");
             return Enumerable.Empty<VesselVisitDto>();
         }
     }

@@ -1,15 +1,25 @@
 ﻿// Scheduling types matching the backend DTOs
 
-export type SchedulingAlgorithm = 'optimal' | 'heuristic' | 'multicrane';
+export type SchedulingAlgorithm = 'optimal' | 'heuristic' | 'multicrane' | 'genetic';
+
+export type CraneMode = 'single' | 'multiple';
+
+export interface GeneticAlgorithmParams {
+    populationSize: number;
+    generations: number;
+    mutationRate: number;
+    desiredTimeSeconds: number;
+    craneMode: CraneMode;
+}
 
 export interface DailyScheduleRequest {
     date: string; // ISO date string (YYYY-MM-DD)
     algorithm?: SchedulingAlgorithm; // Algorithm to use (default: optimal)
+    geneticParams?: GeneticAlgorithmParams; // Parameters for genetic algorithm
 }
 
 export interface ScheduledTask {
     vesselVisitId: string;
-    dockId: string;
     resourceId: string; // The crane
     staffId: string;    // The operator
     
@@ -30,4 +40,3 @@ export interface DailyScheduleResponse {
     warnings: string[];
     executionTimeMs: number;
 }
-

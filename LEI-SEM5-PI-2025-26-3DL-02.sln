@@ -10,6 +10,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PortProject.Api.Integration
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Port.Project.Api.System_Tests", "Port.Project.Api.System_Tests\Port.Project.Api.System_Tests.csproj", "{7B1FF5D9-9DC5-492C-A04D-153E7A9B71BA}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PortProject.Planning.Api", "PortProject.Planning.Api\PortProject.Planning.Api.csproj", "{B6D763C1-7C33-4A20-82B1-E18F7B179276}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -38,5 +40,9 @@ Global
 		{7B1FF5D9-9DC5-492C-A04D-153E7A9B71BA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7B1FF5D9-9DC5-492C-A04D-153E7A9B71BA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7B1FF5D9-9DC5-492C-A04D-153E7A9B71BA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B6D763C1-7C33-4A20-82B1-E18F7B179276}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B6D763C1-7C33-4A20-82B1-E18F7B179276}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B6D763C1-7C33-4A20-82B1-E18F7B179276}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B6D763C1-7C33-4A20-82B1-E18F7B179276}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

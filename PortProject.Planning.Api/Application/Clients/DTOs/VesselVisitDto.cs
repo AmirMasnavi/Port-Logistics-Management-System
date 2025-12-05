@@ -8,5 +8,12 @@ public record VesselVisitDto(
     DateTime EstimatedDeparture, 
     string VesselImo,
     double UnloadingTime,
-    double LoadingTime
-    );
+    double LoadingTime,
+    Guid? AssignedDockId,  // Match the main API field name
+    string? AssignedDockName  // Match the main API field name
+    )
+{
+    // Add computed properties for backward compatibility
+    public Guid DockId => AssignedDockId ?? Guid.Empty;
+    public string? DockName => AssignedDockName;
+}

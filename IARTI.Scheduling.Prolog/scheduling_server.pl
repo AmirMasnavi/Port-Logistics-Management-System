@@ -1,6 +1,6 @@
 /*
-    IARTI - PROLOG SCHEDULING SERVER (v4 - Multi-Crane)
-    Includes US 3.4.2 (Optimal), US 3.4.4 (Heuristic), and US 3.4.5 (Multi-Crane)
+    IARTI - PROLOG SCHEDULING SERVER (v5 - Multi-Crane + Genetic Algorithm)
+    Includes US 3.4.2 (Optimal), US 3.4.4 (Heuristic), US 3.4.5 (Multi-Crane), and Genetic Algorithm
 */
 
 % --- 1. HTTP Server Libraries ---
@@ -10,7 +10,10 @@
 :- use_module(library(http/http_json)).
 :- use_module(library(http/http_cors)).
 
-% --- 2. SHARED Scheduling Logic ---
+% --- 2. LOAD GA MODULE ---
+:- consult('ga_scheduling.pl').
+
+% --- 3. SHARED Scheduling Logic ---
 :- dynamic vessel/5.
 :- dynamic shortest_delay/2.
 max_cranes(2). % Constraint for US 3.4.5 (Multi-Crane)
@@ -153,6 +156,7 @@ obtain_multicrane_schedule(ScheduleJSON, TotalDelay) :-
 :- http_handler('/api/schedule/optimal', handle_schedule_optimal, [method(post)]).
 :- http_handler('/api/schedule/heuristic', handle_schedule_heuristic, [method(post)]).
 :- http_handler('/api/schedule/multicrane', handle_schedule_multicrane, [method(post)]).
+:- http_handler('/api/schedule/genetic', handle_schedule_genetic, [method(post)]).
 
 server(Port) :-
     http_server(http_dispatch, [port(Port)]).
@@ -230,6 +234,42 @@ handle_schedule_multicrane(Request) :-
         delay: SShortestDelay,
         execution_time: Tempo,
         type: "multicrane"
+    }).
+
+% --- HANDLER 4: GENETIC ALGORITHM ---
+handle_schedule_genetic(Request) :-
+    cors_enable(Request, [methods([post])]),
+    http_read_json(Request, JSON_Data, [json_object(list)]),
+    
+    % Set default GA parameters
+    retractall(generations(_)), asserta(generations(50)),
+    retractall(population(_)), asserta(population(20)),
+    retractall(prob_crossover(_)), asserta(prob_crossover(0.6)),
+    retractall(prob_mutation(_)), asserta(prob_mutation(0.2)),
+    
+    % Process vessel data
+    process_vessels(JSON_Data),
+    
+    % Run GA
+    get_time(Ti),
+    obtain_genetic_schedule(BestSequence, BestDelay),
+    get_time(Tf),
+    Tempo is Tf - Ti,
+    
+    retractall(vessel(_, _, _, _, _)),
+    format_schedule_json(BestSequence, ScheduleJSON),
+
+    reply_json(json{
+        schedule: ScheduleJSON, 
+        delay: BestDelay,
+        execution_time: Tempo,
+        type: "genetic",
+        parameters: json{
+            generations: 50,
+            population_size: 20,
+            crossover_rate: 0.6,
+            mutation_rate: 0.2
+        }
     }).
 
 % --- HELPERS ---

@@ -1,7 +1,7 @@
 ﻿import React, { useState } from 'react';
-import { Calendar, Clock, AlertCircle, RefreshCw, Download } from 'lucide-react';
+import { Calendar, Clock, AlertCircle, RefreshCw, Download, Settings, Zap } from 'lucide-react';
 import { schedulingService } from '../services/schedulingService';
-import type { DailyScheduleResponse, SchedulingAlgorithm } from '../types/scheduling.types';
+import type { DailyScheduleResponse, SchedulingAlgorithm, GeneticAlgorithmParams, CraneMode } from '../types/scheduling.types';
 import StatCard from '../components/common/StatCard';
 
 const SchedulingPage: React.FC = () => {
@@ -12,6 +12,14 @@ const SchedulingPage: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [scheduleData, setScheduleData] = useState<DailyScheduleResponse | null>(null);
     const [error, setError] = useState<string | null>(null);
+    
+    // Genetic Algorithm Parameters
+    const [showGeneticParams, setShowGeneticParams] = useState(false);
+    const [populationSize, setPopulationSize] = useState<number>(50);
+    const [generations, setGenerations] = useState<number>(100);
+    const [mutationRate, setMutationRate] = useState<number>(0.2);
+    const [desiredTimeSeconds, setDesiredTimeSeconds] = useState<number>(5);
+    const [craneMode, setCraneMode] = useState<CraneMode>('single');
 
     const handleGenerateSchedule = async () => {
         setLoading(true);
@@ -19,7 +27,23 @@ const SchedulingPage: React.FC = () => {
         setScheduleData(null);
 
         try {
-            const result = await schedulingService.generateDailySchedule(selectedDate, selectedAlgorithm);
+            let geneticParams: GeneticAlgorithmParams | undefined = undefined;
+            
+            if (selectedAlgorithm === 'genetic') {
+                geneticParams = {
+                    populationSize,
+                    generations,
+                    mutationRate,
+                    desiredTimeSeconds,
+                    craneMode
+                };
+            }
+            
+            const result = await schedulingService.generateDailySchedule(
+                selectedDate, 
+                selectedAlgorithm,
+                geneticParams
+            );
             setScheduleData(result);
         } catch (err: any) {
             console.error('Failed to generate schedule:', err);
@@ -80,11 +104,34 @@ const SchedulingPage: React.FC = () => {
         const link = document.createElement('a');
         const url = URL.createObjectURL(blob);
         link.setAttribute('href', url);
-        link.setAttribute('download', `schedule_${selectedDate}.csv`);
+        link.setAttribute('download', `schedule_${selectedDate}_${selectedAlgorithm}.csv`);
         link.style.visibility = 'hidden';
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+    };
+
+    // Group tasks by dock for better visualization
+    const groupTasksByDock = () => {
+        if (!scheduleData) return {};
+        
+        const grouped: { [dockName: string]: typeof scheduleData.scheduledTasks } = {};
+        
+        scheduleData.scheduledTasks.forEach(task => {
+            if (!grouped[task.dockName]) {
+                grouped[task.dockName] = [];
+            }
+            grouped[task.dockName].push(task);
+        });
+        
+        // Sort tasks within each dock by start time
+        Object.keys(grouped).forEach(dock => {
+            grouped[dock].sort((a, b) => 
+                new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+            );
+        });
+        
+        return grouped;
     };
 
     return (
@@ -101,9 +148,9 @@ const SchedulingPage: React.FC = () => {
             <div className="bg-white rounded-lg shadow-md p-6 mb-6">
                 <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
                     <Calendar className="w-5 h-5 mr-2" />
-                    Select Target Date
+                    Select Target Date & Algorithm
                 </h2>
-                <div className="flex items-end gap-4">
+                <div className="flex items-end gap-4 mb-4">
                     <div className="flex-1 max-w-md">
                         <label htmlFor="scheduleDate" className="block text-sm font-medium text-gray-700 mb-2">
                             Date
@@ -118,24 +165,30 @@ const SchedulingPage: React.FC = () => {
                     </div>
 
                     {/* Algorithm Selection */}
-                    <div>
+                    <div className="flex-1">
                         <label htmlFor="algorithm" className="block text-sm font-medium text-gray-700 mb-2">
                             Algorithm
                         </label>
                         <select
                             id="algorithm"
                             value={selectedAlgorithm}
-                            onChange={(e) => setSelectedAlgorithm(e.target.value as SchedulingAlgorithm)}
+                            onChange={(e) => {
+                                const algo = e.target.value as SchedulingAlgorithm;
+                                setSelectedAlgorithm(algo);
+                                setShowGeneticParams(algo === 'genetic');
+                            }}
                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
                         >
                             <option value="optimal">Optimal (Minimize Delays)</option>
                             <option value="heuristic">Heuristic (Fast Approximation)</option>
                             <option value="multicrane">Multi-Crane (Advanced)</option>
+                            <option value="genetic">Genetic Algorithm (AI-Based)</option>
                         </select>
                         <p className="mt-1 text-xs text-gray-500">
                             {selectedAlgorithm === 'optimal' && 'Best solution but slower computation'}
                             {selectedAlgorithm === 'heuristic' && 'Fast heuristic approach'}
                             {selectedAlgorithm === 'multicrane' && 'Multiple cranes per operation'}
+                            {selectedAlgorithm === 'genetic' && 'Evolutionary optimization with tunable parameters'}
                         </p>
                     </div>
 
@@ -157,6 +210,158 @@ const SchedulingPage: React.FC = () => {
                         )}
                     </button>
                 </div>
+
+                {/* Genetic Algorithm Parameters Panel */}
+                {selectedAlgorithm === 'genetic' && (
+                    <div className="mt-6 pt-6 border-t border-gray-200">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-lg font-semibold text-gray-800 flex items-center">
+                                <Settings className="w-5 h-5 mr-2" />
+                                Genetic Algorithm Parameters
+                            </h3>
+                            <button
+                                onClick={() => setShowGeneticParams(!showGeneticParams)}
+                                className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                            >
+                                <Zap className="w-4 h-4" />
+                                {showGeneticParams ? 'Hide' : 'Show'} Advanced Settings
+                            </button>
+                        </div>
+
+                        {showGeneticParams && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 bg-gray-50 p-4 rounded-lg">
+                                {/* Population Size */}
+                                <div>
+                                    <label htmlFor="populationSize" className="block text-sm font-medium text-gray-700 mb-2">
+                                        Population Size
+                                    </label>
+                                    <input
+                                        id="populationSize"
+                                        type="number"
+                                        min="10"
+                                        max="500"
+                                        value={populationSize}
+                                        onChange={(e) => setPopulationSize(Number(e.target.value))}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    />
+                                    <p className="mt-1 text-xs text-gray-500">Number of solutions in each generation (10-500)</p>
+                                </div>
+
+                                {/* Generations */}
+                                <div>
+                                    <label htmlFor="generations" className="block text-sm font-medium text-gray-700 mb-2">
+                                        Generations
+                                    </label>
+                                    <input
+                                        id="generations"
+                                        type="number"
+                                        min="10"
+                                        max="1000"
+                                        value={generations}
+                                        onChange={(e) => setGenerations(Number(e.target.value))}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    />
+                                    <p className="mt-1 text-xs text-gray-500">Number of evolution iterations (10-1000)</p>
+                                </div>
+
+                                {/* Mutation Rate */}
+                                <div>
+                                    <label htmlFor="mutationRate" className="block text-sm font-medium text-gray-700 mb-2">
+                                        Mutation Rate
+                                    </label>
+                                    <input
+                                        id="mutationRate"
+                                        type="number"
+                                        min="0"
+                                        max="1"
+                                        step="0.01"
+                                        value={mutationRate}
+                                        onChange={(e) => setMutationRate(Number(e.target.value))}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    />
+                                    <p className="mt-1 text-xs text-gray-500">Probability of random changes (0.0-1.0)</p>
+                                </div>
+
+                                {/* Desired Time */}
+                                <div>
+                                    <label htmlFor="desiredTime" className="block text-sm font-medium text-gray-700 mb-2">
+                                        Desired Time (seconds)
+                                    </label>
+                                    <input
+                                        id="desiredTime"
+                                        type="number"
+                                        min="1"
+                                        max="60"
+                                        value={desiredTimeSeconds}
+                                        onChange={(e) => setDesiredTimeSeconds(Number(e.target.value))}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    />
+                                    <p className="mt-1 text-xs text-gray-500">Maximum computation time (1-60 seconds)</p>
+                                </div>
+
+                                {/* Crane Mode */}
+                                <div>
+                                    <label htmlFor="craneMode" className="block text-sm font-medium text-gray-700 mb-2">
+                                        Crane Mode
+                                    </label>
+                                    <select
+                                        id="craneMode"
+                                        value={craneMode}
+                                        onChange={(e) => setCraneMode(e.target.value as CraneMode)}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                                    >
+                                        <option value="single">Single Crane per Vessel</option>
+                                        <option value="multiple">Multiple Cranes per Vessel</option>
+                                    </select>
+                                    <p className="mt-1 text-xs text-gray-500">Crane allocation strategy per dock</p>
+                                </div>
+
+                                {/* Preset Configurations */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Quick Presets
+                                    </label>
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={() => {
+                                                setPopulationSize(30);
+                                                setGenerations(50);
+                                                setMutationRate(0.3);
+                                                setDesiredTimeSeconds(3);
+                                            }}
+                                            className="px-3 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors"
+                                        >
+                                            Fast
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                setPopulationSize(50);
+                                                setGenerations(100);
+                                                setMutationRate(0.2);
+                                                setDesiredTimeSeconds(5);
+                                            }}
+                                            className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
+                                        >
+                                            Balanced
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                setPopulationSize(100);
+                                                setGenerations(200);
+                                                setMutationRate(0.15);
+                                                setDesiredTimeSeconds(10);
+                                            }}
+                                            className="px-3 py-1 text-xs bg-purple-100 text-purple-700 rounded hover:bg-purple-200 transition-colors"
+                                        >
+                                            Quality
+                                        </button>
+                                    </div>
+                                    <p className="mt-1 text-xs text-gray-500">Pre-configured parameter sets</p>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
 
             {/* Error Message */}
@@ -190,7 +395,7 @@ const SchedulingPage: React.FC = () => {
                         <StatCard
                             title="Computation Time"
                             value={`${scheduleData.executionTimeMs.toFixed(0)} ms`}
-                            description="Algorithm execution time"
+                            description={`Algorithm: ${selectedAlgorithm}`}
                         />
                         <StatCard
                             title="Warnings"
@@ -218,25 +423,65 @@ const SchedulingPage: React.FC = () => {
                         </div>
                     )}
 
+                    {/* Per-Dock Schedule View */}
+                    {Object.keys(groupTasksByDock()).length > 0 && (
+                        <div className="mb-6">
+                            <div className="bg-white rounded-lg shadow-md p-6">
+                                <div className="flex justify-between items-center mb-4">
+                                    <h2 className="text-xl font-semibold text-gray-800">
+                                        Per-Dock Schedule
+                                    </h2>
+                                    {scheduleData.scheduledTasks.length > 0 && (
+                                        <button
+                                            onClick={exportToCSV}
+                                            className="btn btn-secondary flex items-center gap-2"
+                                        >
+                                            <Download className="w-4 h-4" />
+                                            Export CSV
+                                        </button>
+                                    )}
+                                </div>
+                                
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                    {Object.entries(groupTasksByDock()).map(([dockName, tasks]) => (
+                                        <div key={dockName} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                                            <h3 className="font-semibold text-lg text-gray-800 mb-3 flex items-center">
+                                                <div className="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
+                                                {dockName}
+                                            </h3>
+                                            <div className="space-y-2">
+                                                {tasks.map((task, idx) => (
+                                                    <div key={idx} className="bg-white p-3 rounded border border-gray-200 hover:shadow-sm transition-shadow">
+                                                        <div className="flex justify-between items-start mb-1">
+                                                            <span className="font-medium text-gray-900">{task.vesselVisitBusinessId}</span>
+                                                            <span className="text-xs text-gray-500">{calculateDuration(task.startTime, task.endTime)}</span>
+                                                        </div>
+                                                        <div className="text-sm text-gray-600">
+                                                            <div>{formatTime(task.startTime)} → {formatTime(task.endTime)}</div>
+                                                            <div className="text-xs mt-1">
+                                                                {task.resourceKind} | {task.staffShortName}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Schedule Table */}
                     <div className="bg-white rounded-lg shadow-md overflow-hidden">
-                        <div className="p-6 border-b border-gray-200 flex justify-between items-center">
+                        <div className="p-6 border-b border-gray-200">
                             <h2 className="text-xl font-semibold text-gray-800">
-                                Schedule for {new Date(selectedDate).toLocaleDateString('en-GB', { 
+                                Complete Schedule for {new Date(selectedDate).toLocaleDateString('en-GB', { 
                                     day: '2-digit', 
                                     month: 'long', 
                                     year: 'numeric' 
                                 })}
                             </h2>
-                            {scheduleData.scheduledTasks.length > 0 && (
-                                <button
-                                    onClick={exportToCSV}
-                                    className="btn btn-secondary flex items-center gap-2"
-                                >
-                                    <Download className="w-4 h-4" />
-                                    Export CSV
-                                </button>
-                            )}
                         </div>
 
                         {scheduleData.scheduledTasks.length === 0 ? (
@@ -274,7 +519,9 @@ const SchedulingPage: React.FC = () => {
                                         </tr>
                                     </thead>
                                     <tbody className="bg-white divide-y divide-gray-200">
-                                        {scheduleData.scheduledTasks.map((task, index) => (
+                                        {scheduleData.scheduledTasks
+                                            .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
+                                            .map((task, index) => (
                                             <tr key={index} className="hover:bg-gray-50 transition-colors">
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                                     {task.vesselVisitBusinessId}
@@ -305,7 +552,7 @@ const SchedulingPage: React.FC = () => {
                         )}
                     </div>
 
-                    {/* Timeline View - Optional Enhancement */}
+                    {/* Timeline View */}
                     {scheduleData.scheduledTasks.length > 0 && (
                         <div className="bg-white rounded-lg shadow-md p-6 mt-6">
                             <h2 className="text-xl font-semibold text-gray-800 mb-4">Timeline View</h2>
@@ -329,7 +576,7 @@ const SchedulingPage: React.FC = () => {
                                                 </div>
                                             </div>
                                             <div className="flex-shrink-0 text-sm text-gray-500">
-                                                → {formatTime(task.endTime)}
+                                                Ends: {formatTime(task.endTime)}
                                             </div>
                                         </div>
                                     ))}

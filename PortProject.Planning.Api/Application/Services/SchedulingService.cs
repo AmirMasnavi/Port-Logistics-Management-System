@@ -94,9 +94,10 @@ public class SchedulingService : ISchedulingService
        
         
         DateTime dayStart = date.ToDateTime(TimeOnly.MinValue);
+        // Send BusinessId to Prolog instead of Id (GUID), since API doesn't return GUID Id field
         var prologVesselList = clientVisits.Select(v => new PrologVesselRequest
         {
-            Id = v.Id.ToString(),
+            Id = v.BusinessId,  // Use BusinessId instead of v.Id.ToString()
             EstimatedArrival = ((int)(v.EstimatedArrival - dayStart).TotalHours).ToString(),
             EstimatedDeparture = ((int)(v.EstimatedDeparture - dayStart).TotalHours).ToString(),
             UnloadingTime = v.UnloadingTime,
@@ -177,20 +178,69 @@ public class SchedulingService : ISchedulingService
         
         // --- 5. MAP PROLOG RESULT TO C# DTO ---
        
+        // Create lookup dictionaries for fast access by BusinessId (case-insensitive)
+        // Since the API doesn't return a GUID "Id" field, all visits have default GUID 00000000-0000-0000-0000-000000000000
+        // We must use BusinessId as the unique key instead
+        var vesselVisitMap = clientVisits.ToDictionary(
+            v => v.BusinessId.ToLowerInvariant(), 
+            v => v,
+            StringComparer.OrdinalIgnoreCase
+        );
         
-        var firstDock = docks.First();
+        var dockMap = docks.ToDictionary(
+            d => d.Id.ToLowerInvariant(),
+            d => d,
+            StringComparer.OrdinalIgnoreCase
+        );
+        
         // Select a default operator if none matches the resource requirement later
         var defaultOperator = staff.FirstOrDefault();
+        
+        // Log what we're about to process for debugging
+        _logger.LogInformation("[DIAG] Processing {Count} tasks from Prolog schedule", prologResult.Schedule.Count);
+        _logger.LogInformation("[DIAG] Created lookup map for {VisitCount} vessel visits", vesselVisitMap.Count);
+        _logger.LogInformation("[DIAG] Vessel visits in map (by BusinessId): {Visits}", 
+            string.Join(", ", vesselVisitMap.Values.Select(v => $"{v.BusinessId}(Dock:{v.DockId})")));
         
         foreach (var task in prologResult.Schedule)
         {
             // The Prolog task is a Tuple: (VesselId, StartHour, EndHour)
-            string vesselId = task.Item1;
+            string vesselIdFromProlog = task.Item1;
             int startHour = task.Item2;
             int endHour = task.Item3; // Note: Prolog logic is inclusive
 
             var taskStart = dayStart.AddHours(startHour);
           
+            _logger.LogInformation("[DIAG] Processing task for vessel ID from Prolog: '{VesselId}'", vesselIdFromProlog);
+          
+            // Find the VesselVisit DTO using the lookup map (case-insensitive)
+            VesselVisitDto? visitDto = null;
+            string lookupKey = vesselIdFromProlog.ToLowerInvariant();
+            
+            if (vesselVisitMap.TryGetValue(lookupKey, out var foundVisit))
+            {
+                visitDto = foundVisit;
+                _logger.LogInformation("[DIAG] ✓ Found visit via map: {BusinessId} (GUID: {Guid}) with dock {DockId}", 
+                    visitDto.BusinessId, visitDto.Id, visitDto.DockId);
+            }
+            else
+            {
+                _logger.LogError("[DIAG] ✗ Could not find vessel visit for ID '{VesselId}' in map. Available keys: {Keys}", 
+                    vesselIdFromProlog, string.Join(", ", vesselVisitMap.Keys.Take(5)));
+            }
+            
+            double requiredHours = 0.0;
+            Guid? vesselAssignedDockId = null;
+            
+            if (visitDto != null)
+            {
+                requiredHours = visitDto.UnloadingTime + visitDto.LoadingTime;
+                vesselAssignedDockId = visitDto.DockId;
+            }
+            else
+            {
+                _logger.LogWarning("Vessel visit {Vessel} not found in clientVisits; using 0 duration.", vesselIdFromProlog);
+            }
 
             // Business rule: requested static resource code
             const string requestedResourceCode = "1";
@@ -233,17 +283,6 @@ public class SchedulingService : ISchedulingService
                 }
             }
 
-            // Find the VesselVisit DTO to get required durations
-            var visitDto = clientVisits.FirstOrDefault(v => v.Id.ToString() == vesselId);
-            double requiredHours = 0.0;
-            if (visitDto != null)
-            {
-                requiredHours = visitDto.UnloadingTime + visitDto.LoadingTime;
-            }
-            else
-            {
-                _logger.LogWarning("Vessel visit {Vessel} not found in clientVisits; using 0 duration.", vesselId);
-            }
 
             // Choose an initial staff to assign: prefer someone with qualification who is available at/after taskStart
             List<StaffMemberDto> candidateStaff;
@@ -287,7 +326,7 @@ public class SchedulingService : ISchedulingService
             }
 
             // Log the selected candidate staff for debugging
-            _logger.LogDebug("Candidate staff for vessel {Vessel}: {Staff}", vesselId, System.Text.Json.JsonSerializer.Serialize(candidateStaff));
+            _logger.LogDebug("Candidate staff for vessel {Vessel}: {Staff}", vesselIdFromProlog, System.Text.Json.JsonSerializer.Serialize(candidateStaff));
 
             // Compute actual scheduled start = next time when resource is available (on or after taskStart)
             var scheduledStart = FindNextResourceAvailable(taskStart, requestedResource);
@@ -295,7 +334,11 @@ public class SchedulingService : ISchedulingService
             // We'll now ensure dock exclusivity (one vessel per dock at a time) and a single storage location
             // (no two tasks may overlap in storage).
             StaffMemberDto? assignedStaff = null;
-            string assignedDockId = firstDock.Id;
+            // Use the vessel's assigned dock GUID, not the vessel GUID
+            string assignedDockId = vesselAssignedDockId?.ToString() ?? docks.FirstOrDefault()?.Id ?? string.Empty;
+            
+            _logger.LogInformation("[DIAG] Initial assignedDockId for vessel {VesselId}: {DockId}", vesselIdFromProlog, assignedDockId);
+            
             DateTime scheduledEnd = scheduledStart;
             bool allocated = false;
 
@@ -315,15 +358,41 @@ public class SchedulingService : ISchedulingService
                     continue;
                 }
 
-                // Find a dock that has no overlapping scheduled task in current schedule
+                // If vessel has an assigned dock, prefer it; otherwise find any free dock
                 string? freeDock = null;
-                foreach (var d in docks)
+                if (vesselAssignedDockId.HasValue)
                 {
-                    var conflict = schedule.ScheduledTasks.Any(t => t.DockId == d.Id && t.StartTime < scheduledEnd && t.EndTime > attemptStart);
+                    // Check if the vessel's assigned dock is free
+                    var conflict = schedule.ScheduledTasks.Any(t => t.DockId == vesselAssignedDockId.ToString() && t.StartTime < scheduledEnd && t.EndTime > attemptStart);
                     if (!conflict)
                     {
-                        freeDock = d.Id;
-                        break;
+                        freeDock = vesselAssignedDockId.ToString();
+                    }
+                    else
+                    {
+                        // If assigned dock is busy, look for any free dock
+                        foreach (var d in docks)
+                        {
+                            var dockConflict = schedule.ScheduledTasks.Any(t => t.DockId == d.Id && t.StartTime < scheduledEnd && t.EndTime > attemptStart);
+                            if (!dockConflict)
+                            {
+                                freeDock = d.Id;
+                                break;
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    // No assigned dock, find any free dock
+                    foreach (var d in docks)
+                    {
+                        var conflict = schedule.ScheduledTasks.Any(t => t.DockId == d.Id && t.StartTime < scheduledEnd && t.EndTime > attemptStart);
+                        if (!conflict)
+                        {
+                            freeDock = d.Id;
+                            break;
+                        }
                     }
                 }
 
@@ -356,7 +425,7 @@ public class SchedulingService : ISchedulingService
 
             if (!allocated)
             {
-                schedule.Warnings.Add($"Could not reserve dock/storage within 14 days for vessel {vesselId}; performing best-effort allocation.");
+                schedule.Warnings.Add($"Could not reserve dock/storage within 14 days for vessel {vesselIdFromProlog}; performing best-effort allocation.");
             }
 
             // Recompute scheduledEnd using the allocated/attempted start to be consistent
@@ -374,27 +443,44 @@ public class SchedulingService : ISchedulingService
             // Add warning if no staff was assigned
             if (assignedStaff == null)
             {
-                var msg = $"No staff could be assigned for vessel {vesselId} between {scheduledStart:O} and {scheduledEnd:O}.";
+                var msg = $"No staff could be assigned for vessel {vesselIdFromProlog} between {scheduledStart:O} and {scheduledEnd:O}.";
                 _logger.LogWarning(msg);
                 schedule.Warnings.Add(msg);
             }
 
-            // Get display names for UI
-            var assignedDock = docks.FirstOrDefault(d => d.Id == assignedDockId);
-            var vesselBusinessId = visitDto?.BusinessId ?? vesselId;
-            var dockDisplayName = assignedDock?.Name ?? assignedDockId;
+            // Get display names for UI - prioritize dock name from vessel visit
+            var vesselBusinessId = visitDto?.BusinessId ?? vesselIdFromProlog;
+            
+            // Use the dock name directly from the vessel visit if available
+            string dockDisplayName;
+            if (!string.IsNullOrEmpty(visitDto?.DockName))
+            {
+                dockDisplayName = visitDto.DockName;
+                _logger.LogInformation("[DIAG] Using dock name from vessel visit: {DockName}", dockDisplayName);
+            }
+            else if (dockMap.TryGetValue(assignedDockId.ToLowerInvariant(), out var foundDock))
+            {
+                dockDisplayName = foundDock.Name;
+                _logger.LogInformation("[DIAG] Using dock name from dock map: {DockName}", dockDisplayName);
+            }
+            else
+            {
+                dockDisplayName = assignedDockId;
+                _logger.LogWarning("[DIAG] Could not find dock name for ID {DockId}, using ID as fallback", assignedDockId);
+            }
+            
             var resourceDisplayKind = requestedResource?.Kind ?? requestedResourceCode;
             var staffDisplayName = assignedStaff?.ShortName ?? assignedStaff?.MecanographicNumber ?? "UNASSIGNED";
 
             schedule.ScheduledTasks.Add(new ScheduledTaskDto
             {
-                // IDs (for internal use)
-                VesselVisitId = vesselId,
+                // IDs (for internal use) - Keep GUIDs for database operations
+                VesselVisitId = vesselIdFromProlog,
                 DockId = assignedDockId,
                 StaffId = assignedStaff?.MecanographicNumber ?? "UNASSIGNED",
                 ResourceId = requestedResourceCode,
                 
-                // Display names (for UI)
+                // Display names (for UI) - Show user-friendly values
                 VesselVisitBusinessId = vesselBusinessId,
                 DockName = dockDisplayName,
                 ResourceKind = resourceDisplayKind,
@@ -420,8 +506,8 @@ public class SchedulingService : ISchedulingService
         
         foreach (var task in tasks)
         {
-            // Find the corresponding vessel visit
-            var visit = visits.FirstOrDefault(v => v.Id.ToString() == task.VesselVisitId);
+            // Find the corresponding vessel visit by BusinessId (not GUID Id)
+            var visit = visits.FirstOrDefault(v => v.BusinessId.Equals(task.VesselVisitId, StringComparison.OrdinalIgnoreCase));
             if (visit == null) continue;
             
             // Calculate delay: if task ends after estimated departure, add the difference
