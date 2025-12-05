@@ -37,7 +37,23 @@ public class SchedulingController : ControllerBase
         {
             _logger.LogInformation("Received scheduling request for date: {Date} using algorithm: {Algorithm}", 
                 request.Date, request.Algorithm ?? "optimal");
-            var schedule = await _schedulingService.GenerateDailySchedule(request.Date, request.Algorithm ?? "optimal");
+            
+            // Log genetic parameters if provided
+            if (request.Algorithm == "genetic" && request.GeneticParams != null)
+            {
+                _logger.LogInformation("Genetic Algorithm Parameters - PopSize: {PopSize}, Generations: {Gens}, MutationRate: {Mut}, Time: {Time}s, CraneMode: {Mode}",
+                    request.GeneticParams.PopulationSize,
+                    request.GeneticParams.Generations,
+                    request.GeneticParams.MutationRate,
+                    request.GeneticParams.DesiredTimeSeconds,
+                    request.GeneticParams.CraneMode);
+            }
+            
+            var schedule = await _schedulingService.GenerateDailySchedule(
+                request.Date, 
+                request.Algorithm ?? "optimal",
+                request.GeneticParams);
+            
             _logger.LogInformation("Successfully generated schedule with {TaskCount} tasks", schedule.ScheduledTasks.Count);
             return Ok(schedule);
         }

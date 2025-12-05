@@ -71,6 +71,17 @@ const SchedulingPage: React.FC = () => {
             minute: '2-digit',
         });
     };
+    
+    // Format date and time together for better clarity when operations span multiple days
+    const formatDateAndTime = (dateTimeStr: string) => {
+        const date = new Date(dateTimeStr);
+        return date.toLocaleString('en-GB', {
+            day: '2-digit',
+            month: 'short',
+            hour: '2-digit',
+            minute: '2-digit',
+        });
+    };
 
     const calculateDuration = (startTime: string, endTime: string) => {
         const start = new Date(startTime);
@@ -78,6 +89,14 @@ const SchedulingPage: React.FC = () => {
         const durationMs = end.getTime() - start.getTime();
         const hours = Math.floor(durationMs / (1000 * 60 * 60));
         const minutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
+        
+        // If duration is more than 24 hours, show days as well
+        if (hours >= 24) {
+            const days = Math.floor(hours / 24);
+            const remainingHours = hours % 24;
+            return `${days}d ${remainingHours}h ${minutes}m`;
+        }
+        
         return `${hours}h ${minutes}m`;
     };
 
@@ -535,11 +554,11 @@ const SchedulingPage: React.FC = () => {
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                                                     {task.staffShortName}
                                                 </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                                                    {formatTime(task.startTime)}
+                                                <td className="px-6 py-4 text-sm text-gray-700">
+                                                    {formatDateAndTime(task.startTime)}
                                                 </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                                                    {formatTime(task.endTime)}
+                                                <td className="px-6 py-4 text-sm text-gray-700">
+                                                    {formatDateAndTime(task.endTime)}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                                                     {calculateDuration(task.startTime, task.endTime)}

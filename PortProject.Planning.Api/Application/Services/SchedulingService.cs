@@ -29,12 +29,12 @@ public class SchedulingService : ISchedulingService
         _logger = logger;
     }
 
-    public async Task<DailyScheduleResponseDto> GenerateDailySchedule(DateOnly date, string algorithm = "optimal")
+    public async Task<DailyScheduleResponseDto> GenerateDailySchedule(DateOnly date, string algorithm = "optimal", GeneticAlgorithmParamsDto? geneticParams = null)
     {
         var schedule = new DailyScheduleResponseDto { Date = date };
         // Métricas de Execução
         // O Stopwatch inicia aqui para medir o tempo total da operação (incluindo overhead de rede).
-        // Este valor será retornado no DTO para comparação de performance (Heuristic vs Optimal).
+        // Este valor será retornado no DTO para comparação de performance (Heuristic vs Optimal vs Genetic).
         var sw = Stopwatch.StartNew();
 
         DailyScheduleResponseDto Finish()
@@ -130,6 +130,7 @@ public class SchedulingService : ISchedulingService
             {
                 "heuristic" => "http://localhost:5001/api/schedule/heuristic",
                 "multicrane" => "http://localhost:5001/api/schedule/multicrane",
+                "genetic" => "http://localhost:5001/api/schedule/genetic",  // ADD GENETIC ENDPOINT
                 _ => "http://localhost:5001/api/schedule/optimal" // default
             };
             

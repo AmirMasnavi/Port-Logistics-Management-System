@@ -241,11 +241,25 @@ handle_schedule_genetic(Request) :-
     cors_enable(Request, [methods([post])]),
     http_read_json(Request, JSON_Data, [json_object(list)]),
     
-    % Set default GA parameters
-    retractall(generations(_)), asserta(generations(50)),
-    retractall(population(_)), asserta(population(20)),
-    retractall(prob_crossover(_)), asserta(prob_crossover(0.6)),
-    retractall(prob_mutation(_)), asserta(prob_mutation(0.2)),
+    % Extract GA parameters from request if provided
+    (   member(json(Params), JSON_Data),
+        member(populationSize=PopSize, Params) -> true ; PopSize = 20
+    ),
+    (   member(json(Params), JSON_Data),
+        member(generations=Gens, Params) -> true ; Gens = 50
+    ),
+    (   member(json(Params), JSON_Data),
+        member(mutationRate=MutRate, Params) -> true ; MutRate = 0.2
+    ),
+    (   member(json(Params), JSON_Data),
+        member(crossoverRate=CrossRate, Params) -> true ; CrossRate = 0.6
+    ),
+    
+    % Set GA parameters
+    retractall(generations(_)), asserta(generations(Gens)),
+    retractall(population(_)), asserta(population(PopSize)),
+    retractall(prob_crossover(_)), asserta(prob_crossover(CrossRate)),
+    retractall(prob_mutation(_)), asserta(prob_mutation(MutRate)),
     
     % Process vessel data
     process_vessels(JSON_Data),
@@ -265,10 +279,10 @@ handle_schedule_genetic(Request) :-
         execution_time: Tempo,
         type: "genetic",
         parameters: json{
-            generations: 50,
-            population_size: 20,
-            crossover_rate: 0.6,
-            mutation_rate: 0.2
+            generations: Gens,
+            population_size: PopSize,
+            crossover_rate: CrossRate,
+            mutation_rate: MutRate
         }
     }).
 
