@@ -7,6 +7,7 @@ import { connectDatabase } from './config/database.js';
 import { initializeFirebase } from './config/firebase.js';
 import { MasterDataGateway } from './gateways/masterDataGateway.js';
 import { createOemTestRouter } from './controllers/oemTestController.js';
+import { createVveRouter } from './controllers/vveController.js';
 import { swaggerSpec } from './config/swagger.js';
 
 // Load environment variables
@@ -74,6 +75,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
 // --- 6. ROUTES ---
 // Test routes
 app.use('/api/oem', createOemTestRouter(masterDataGateway));
+app.use('/api/vve', createVveRouter(masterDataGateway));
 
 // Root endpoint
 app.get('/', (req, res) => {
@@ -153,4 +155,3 @@ process.on('uncaughtException', (error) => {
 
 // Start the server
 startServer();
-

@@ -1,0 +1,162 @@
+import { IVveRepository } from '../../domain/repositories/IVveRepository.js';
+import { VesselVisitExecutionModel } from '../models/VesselVisitExecutionModel.js';
+
+/**
+ * MongoDB implementation of VVE Repository
+ * Infrastructure layer - implements the repository interface
+ */
+export class VveRepository extends IVveRepository {
+  constructor() {
+    super();
+    this.model = VesselVisitExecutionModel;
+  }
+
+  /**
+   * Create a new VVE
+   * @param {Object} data - VVE data
+   * @returns {Promise<Object>} Created VVE document
+   */
+  async create(data) {
+    const document = new this.model(data);
+    return await document.save();
+  }
+
+  /**
+   * Find VVE by ID
+   * @param {string} vveId - VVE identifier
+   * @returns {Promise<Object|null>}
+   */
+  async findById(vveId) {
+    return await this.model.findOne({ vveId }).lean();
+  }
+
+  /**
+   * Find VVE by VVN ID
+   * @param {string} vvnId - VVN identifier
+   * @returns {Promise<Object|null>}
+   */
+  async findByVvnId(vvnId) {
+    return await this.model.findOne({ vvnId }).lean();
+  }
+
+  /**
+   * Find all VVEs with optional filters
+   * @param {Object} filters - Filter criteria
+   * @returns {Promise<Array<Object>>}
+   */
+  async findAll(filters = {}) {
+    const query = {};
+    
+    if (filters.status) {
+      query.status = filters.status;
+    }
+    
+    if (filters.vvnId) {
+      query.vvnId = filters.vvnId;
+    }
+    
+    if (filters.vesselIdentifier) {
+      query.vesselIdentifier = filters.vesselIdentifier;
+    }
+
+    return await this.model.find(query).sort({ createdAt: -1 }).lean();
+  }
+
+  /**
+   * Update VVE
+   * @param {string} vveId - VVE identifier
+   * @param {Object} data - Update data
+   * @returns {Promise<Object>}
+   */
+  async update(vveId, data) {
+    const updated = await this.model.findOneAndUpdate(
+      { vveId },
+      { ...data, updatedAt: new Date() },
+      { new: true, runValidators: true }
+    ).lean();
+    
+    if (!updated) {
+      throw new Error(`VVE '${vveId}' not found`);
+    }
+    
+    return updated;
+  }
+
+  /**
+   * Delete VVE
+   * @param {string} vveId - VVE identifier
+   * @returns {Promise<boolean>} Success status
+   */
+  async delete(vveId) {
+    const result = await this.model.deleteOne({ vveId });
+    return result.deletedCount > 0;
+  }
+
+  /**
+   * Check if VVE exists
+   * @param {string} vveId - VVE identifier
+   * @returns {Promise<boolean>}
+   */
+  async exists(vveId) {
+    const count = await this.model.countDocuments({ vveId });
+    return count > 0;
+  }
+
+  /**
+   * Check if VVE exists for VVN
+   * @param {string} vvnId - VVN identifier
+   * @returns {Promise<boolean>}
+   */
+  async existsByVvnId(vvnId) {
+    const count = await this.model.countDocuments({ vvnId });
+    return count > 0;
+  }
+
+  /**
+   * Count VVEs by status
+   * @param {string} status - Status to filter
+   * @returns {Promise<number>}
+   */
+  async countByStatus(status) {
+    return await this.model.countDocuments({ status });
+  }
+
+  /**
+   * Count all VVEs
+   * @returns {Promise<number>}
+   */
+  async countAll() {
+    return await this.model.countDocuments();
+  }
+
+  /**
+   * Generate next VVE ID
+   * Pattern: VVE-YYYYMMDD-XXXX
+   * @returns {Promise<string>}
+   */
+  async generateNextId() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const datePrefix = `${year}${month}${day}`;
+    
+    // Find the latest VVE for today
+    const todayPattern = new RegExp(`^VVE-${datePrefix}-`);
+    const latestVve = await this.model.findOne({
+      vveId: todayPattern
+    }).sort({ vveId: -1 }).lean();
+    
+    let sequence = 1;
+    if (latestVve) {
+      // Extract sequence number and increment
+      const match = latestVve.vveId.match(/-(\d{4})$/);
+      if (match) {
+        sequence = parseInt(match[1], 10) + 1;
+      }
+    }
+    
+    const sequenceStr = String(sequence).padStart(4, '0');
+    return `VVE-${datePrefix}-${sequenceStr}`;
+  }
+}
