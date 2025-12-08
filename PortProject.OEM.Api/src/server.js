@@ -9,6 +9,7 @@ import { MasterDataGateway } from './gateways/masterDataGateway.js';
 import { createOemTestRouter } from './controllers/oemTestController.js';
 import { createVveRouter } from './controllers/vveController.js';
 import { swaggerSpec } from './config/swagger.js';
+import { createOperationPlanRouter } from './controllers/operationPlanController.js';
 
 // Load environment variables
 dotenv.config();
@@ -76,6 +77,8 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
 // Test routes
 app.use('/api/oem', createOemTestRouter(masterDataGateway));
 app.use('/api/vve', createVveRouter(masterDataGateway));
+app.use('/api/plans', createOperationPlanRouter(masterDataGateway));
+
 
 // Root endpoint
 app.get('/', (req, res) => {
