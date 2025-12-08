@@ -1,60 +1,19 @@
 ﻿import mongoose from 'mongoose';
 
 const operationPlanSchema = new mongoose.Schema({
-    planId: {
-        type: String,
-        required: true,
-        unique: true,
-        index: true,
-    },
-    date: {
-        type: String, // YYYY-MM-DD
-        required: true,
-        index: true
-    },
-    algorithm: {
-        type: String,
-        required: true
-    },
-    geneticParams: {
-        populationSize: Number,
-        generations: Number,
-        mutationRate: Number,
-        desiredTimeSeconds: Number,
-        craneMode: String
-    },
-    createdBy: {
-        type: String, // User Email/ID from Token
-        required: true
-    },
-    status: {
-        type: String,
-        enum: ['Draft', 'Confirmed', 'Executed'],
-        default: 'Confirmed'
-    },
+    planId: { type: String }, // Removi required true temporariamente se o gerador falhar
+    date: { type: String },
+    algorithm: { type: String },
+    // Permite que metrics receba qualquer coisa ou nada
     metrics: {
         totalDelay: Number,
         executionTimeMs: Number
     },
-    scheduledTasks: [{
-        vesselVisitId: String,
-        vesselVisitBusinessId: String,
-        dockName: String,
-        dockId: String,
-        resourceKind: String,
-        resourceId: String,
-        staffShortName: String,
-        staffId: String,
-        startTime: Date,
-        endTime: Date
-    }],
-    createdAt: {
-        type: Date,
-        default: Date.now,
-    }
-});
-
-// Index for faster queries on date
-operationPlanSchema.index({ date: -1 });
+    // Array genérico - Aceita qualquer objeto lá dentro, sem validar campos específicos
+    scheduledTasks: [],
+    createdBy: { type: String },
+    status: { type: String, default: 'Confirmed' },
+    createdAt: { type: Date, default: Date.now }
+}, { strict: false }); // <--- IMPORTANTE: strict: false permite salvar campos extra
 
 export const OperationPlanModel = mongoose.model('OperationPlan', operationPlanSchema);

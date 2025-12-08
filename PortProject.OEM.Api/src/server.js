@@ -42,6 +42,8 @@ app.use(helmet()); // Security headers
 app.use(cors({
   origin: CORS_ORIGINS,
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json()); // Parse JSON bodies
 app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
@@ -77,7 +79,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
 // Test routes
 app.use('/api/oem', createOemTestRouter(masterDataGateway));
 app.use('/api/vve', createVveRouter(masterDataGateway));
-app.use('/api/plans', createOperationPlanRouter(masterDataGateway));
+app.use('/api/plans', createOperationPlanRouter());
 
 
 // Root endpoint

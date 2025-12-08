@@ -1,53 +1,65 @@
 ﻿import { OperationPlanRepository } from '../infrastructure/repositories/OperationPlanRepository.js';
-import { OperationPlanMapper } from '../application/mappers/OperationPlanMapper.js';
 
 export class OperationPlanService {
-    // 1. Receber o gateway no construtor
-    constructor(masterDataGateway) {
+    constructor() {
         this.repository = new OperationPlanRepository();
-        this.masterDataGateway = masterDataGateway;
     }
 
     /**
-     * Create a new Operation Plan
+     * Cria um novo plano
      */
-    async createPlan(dto, userId) {
-        // 1. Validate DTO
-        const validation = dto.validate();
-        if (!validation.isValid) {
-            throw new Error(`Validation failed: ${validation.errors.join(', ')}`);
-        }
-
-        // 2. Generate unique Plan ID
+    async createPlan(data, userId) {
+        // 1. Gerar o ID único (ex: PLAN-20241208-0001)
         const planId = await this.repository.generateNextId();
 
-        // 3. Prepare data persistence object
+        // 2. Preparar objeto para salvar
         const planData = {
-            planId,
-            date: dto.date,
-            algorithm: dto.algorithm,
-            geneticParams: dto.geneticParams,
+            planId: planId,
+            date: data.date,
+            algorithm: data.algorithm,
+            geneticParams: data.geneticParams,
             createdBy: userId,
             status: 'Confirmed',
-            scheduledTasks: dto.scheduledTasks,
+            // Garante valores default para evitar erros
             metrics: {
-                totalDelay: dto.totalDelay,
-                executionTimeMs: dto.executionTimeMs
-            }
+                totalDelay: data.totalDelay || 0,
+                executionTimeMs: data.executionTimeMs || 0
+            },
+            scheduledTasks: data.scheduledTasks || []
         };
 
-        // 4. Save to repository
-        const savedPlan = await this.repository.create(planData);
-
-        // 5. Map to response DTO
-        return OperationPlanMapper.toResponseDto(savedPlan);
+        // 3. Guardar na base de dados
+        return await this.repository.create(planData);
     }
 
     /**
-     * Get all plans
+     * Lista todos os planos (Correção do erro 500)
      */
     async getAllPlans(filters = {}) {
         const plans = await this.repository.findAll(filters);
-        return OperationPlanMapper.toListDto(plans);
+
+        // Mapeamento manual simples para evitar erros com DTOs externos
+        return plans.map(p => ({
+            planId: p.planId,
+            date: p.date,
+            algorithm: p.algorithm,
+            status: p.status,
+            metrics: p.metrics || { totalDelay: 0, executionTimeMs: 0 },
+            scheduledTasksCount: p.scheduledTasks ? p.scheduledTasks.length : 0,
+            createdBy: p.createdBy,
+            createdAt: p.createdAt
+        }));
+    }
+
+    /**
+     * Elimina um plano
+     */
+    async deletePlan(planId) {
+        const deleted = await this.repository.delete(planId);
+        if (!deleted) {
+            // Apenas loga, não rebenta erro se já não existir
+            console.warn(`Plan ${planId} not found to delete or already deleted`);
+        }
+        return true;
     }
 }

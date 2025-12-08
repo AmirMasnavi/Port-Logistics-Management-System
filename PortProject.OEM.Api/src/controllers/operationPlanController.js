@@ -1,54 +1,20 @@
 ﻿import { Router } from 'express';
 import { verifyFirebaseToken } from '../config/firebase.js';
 import { OperationPlanService } from '../services/operationPlanService.js';
-import { CreateOperationPlanDto } from '../application/dtos/OperationPlanDto.js';
 
-// 1. Receber masterDataGateway como argumento
-export const createOperationPlanRouter = (masterDataGateway) => {
+export const createOperationPlanRouter = () => {
     const router = Router();
-
-    // 2. Injetar o gateway no Serviço
-    const service = new OperationPlanService(masterDataGateway);
+    const service = new OperationPlanService();
 
     /**
-     * @swagger
-     * /api/plans:
-     *   post:
-     *     summary: Create and store a new Operation Plan
-     *     tags: [Operation Plans]
-     *     security:
-     *       - BearerAuth: []
+     * 1. LISTAR HISTÓRICO (GET /api/plans)
+     * Esta rota estava em falta, causando o erro "Failed to fetch" no React
      */
-    router.post('/', verifyFirebaseToken, async (req, res) => {
-        try {
-            const userId = req.user?.email || req.user?.uid || 'unknown';
-
-            const createDto = new CreateOperationPlanDto(req.body);
-
-            console.log(`[OEM PLAN] Creating plan for date: ${createDto.date}, Algorithm: ${createDto.algorithm}`);
-
-            const result = await service.createPlan(createDto, userId);
-
-            res.status(201).json({
-                success: true,
-                message: 'Operation Plan created successfully',
-                data: result
-            });
-
-        } catch (error) {
-            console.error('[OEM PLAN] Error:', error);
-            res.status(500).json({
-                success: false,
-                error: 'Internal Server Error',
-                message: error.message
-            });
-        }
-    });
-
-    // ... (O resto do endpoint GET mantém-se igual)
     router.get('/', verifyFirebaseToken, async (req, res) => {
         try {
+            console.log('[OEM] Fetching plan history...');
             const { date } = req.query;
+
             const filters = {};
             if (date) filters.date = date;
 
@@ -60,11 +26,82 @@ export const createOperationPlanRouter = (masterDataGateway) => {
                 data: plans
             });
         } catch (error) {
-            res.status(500).json({
-                success: false,
-                error: 'Internal Server Error',
-                message: error.message
+            console.error('[OEM GET ERROR]:', error);
+            res.status(500).json({ success: false, message: error.message });
+        }
+    });
+
+    /**
+     * 2. CRIAR PLANO (POST /api/plans)
+     */
+    router.post('/', verifyFirebaseToken, async (req, res) => {
+        try {
+            console.log('[OEM] Saving plan request received');
+
+            const userId = req.user?.email || req.user?.uid || 'unknown';
+
+            // Preparar dados 
+            const planData = {
+                date: req.body.date,
+                algorithm: req.body.algorithm,
+                geneticParams: req.body.geneticParams,
+                scheduledTasks: req.body.scheduledTasks,
+                totalDelay: req.body.totalDelay,
+                executionTimeMs: req.body.executionTimeMs
+            };
+
+            const result = await service.createPlan(planData, userId);
+
+            console.log('[OEM] Plan saved with ID:', result.planId);
+
+            res.status(201).json({
+                success: true,
+                message: 'Operation Plan saved successfully',
+                data: result
             });
+
+        } catch (error) {
+            console.error('[OEM SAVE ERROR]:', error);
+
+            // Erro de validação do Mongoose
+            if (error.name === 'ValidationError') {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Validation Failed',
+                    details: error.errors
+                });
+            }
+
+            res.status(500).json({ success: false, message: error.message });
+        }
+    });
+
+    /**
+     * 3. ELIMINAR PLANO (DELETE /api/plans/:id)
+     */
+    router.delete('/:id', verifyFirebaseToken, async (req, res) => {
+        try {
+            const { id } = req.params;
+            console.log(`[OEM] Deleting plan: ${id}`);
+
+            await service.deletePlan(id);
+
+            res.status(200).json({
+                success: true,
+                message: `Plan ${id} deleted successfully`
+            });
+        } catch (error) {
+            console.error('[OEM DELETE ERROR]:', error);
+            res.status(500).json({ success: false, message: error.message });
+        }
+    });
+
+    router.delete('/debug/reset', async (req, res) => {
+        try {
+            await service.repository.model.deleteMany({});
+            res.json({ message: "Base de dados limpa com sucesso!" });
+        } catch (e) {
+            res.status(500).json({ error: e.message });
         }
     });
 

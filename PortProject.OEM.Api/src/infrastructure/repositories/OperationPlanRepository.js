@@ -1,54 +1,50 @@
-﻿import { IOperationPlanRepository } from '../../domain/repositories/IOperationPlanRepository.js';
-import { OperationPlanModel } from '../models/OperationPlanModel.js';
+﻿import { OperationPlanModel } from '../models/OperationPlanModel.js';
 
-export class OperationPlanRepository extends IOperationPlanRepository {
+export class OperationPlanRepository {
     constructor() {
-        super();
         this.model = OperationPlanModel;
     }
 
+    // 1. Criar
     async create(data) {
         const document = new this.model(data);
         return await document.save();
     }
 
-    async findById(planId) {
-        return await this.model.findOne({ planId }).lean();
-    }
-
+    // 2. Listar Tudo (Esta é a função que estava a falhar no erro 500)
     async findAll(filters = {}) {
         const query = {};
         if (filters.date) {
             query.date = filters.date;
         }
+        // .lean() converte documentos Mongoose para objetos JS simples (mais rápido e evita erros de conversão)
         return await this.model.find(query).sort({ createdAt: -1 }).lean();
     }
 
-    /**
-     * Generate next Plan ID pattern: PLAN-YYYYMMDD-XXXX
-     */
+    // 3. Eliminar
+    async delete(planId) {
+        const result = await this.model.deleteOne({ planId: planId });
+        return result.deletedCount > 0;
+    }
+
+    // 4. Gerar ID
     async generateNextId() {
         const now = new Date();
-        const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, '0');
-        const day = String(now.getDate()).padStart(2, '0');
-        const datePrefix = `${year}${month}${day}`;
+        const datePrefix = now.toISOString().slice(0, 10).replace(/-/g, ''); // 20241208
 
-        // Find the latest Plan for today
-        const todayPattern = new RegExp(`^PLAN-${datePrefix}-`);
-        const latestPlan = await this.model.findOne({
-            planId: todayPattern
-        }).sort({ planId: -1 }).lean();
+        const latest = await this.model.findOne({
+            planId: new RegExp(`^PLAN-${datePrefix}-`)
+        }).sort({ planId: -1 });
 
         let sequence = 1;
-        if (latestPlan) {
-            const match = latestPlan.planId.match(/-(\d{4})$/);
-            if (match) {
-                sequence = parseInt(match[1], 10) + 1;
+        if (latest) {
+            const parts = latest.planId.split('-');
+            // Se o ID for PLAN-20241208-0001, pega o '0001'
+            if (parts.length >= 3) {
+                sequence = parseInt(parts[2]) + 1;
             }
         }
 
-        const sequenceStr = String(sequence).padStart(4, '0');
-        return `PLAN-${datePrefix}-${sequenceStr}`;
+        return `PLAN-${datePrefix}-${String(sequence).padStart(4, '0')}`;
     }
 }

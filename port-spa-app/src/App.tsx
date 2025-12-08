@@ -16,7 +16,7 @@ import PortFacilitiesPage from './pages/PortFacilitiesPage';
 import RoleProtectedRoute from './auth/RoleProtectedRoute'; // Our new component to check the user's role
 import ResourcePage from './pages/ResourcePage';
 import SchedulingPage from './pages/SchedulingPage';
-
+import { OperationPlanPage } from './pages/OperationPlanPage';
 
 // --- Centralized Permission Sets ---
 import {
@@ -95,6 +95,7 @@ function App() {
                         {/* --- Role-Protected Routes for IARTI (Admin, Logistics) --- */}
                         <Route element={<RoleProtectedRoute allowedRoles={canViewIARTI} />}>
                             <Route path="/scheduling" element={<SchedulingPage />} />
+                            <Route path="/operation-plans" element={<OperationPlanPage />} />
                         </Route>
                         
                         {/* --- Role-Protected Routes for VVN Management (Admin, Agent) --- */}

@@ -21,6 +21,7 @@ import {
     SquareSquare, // For Docks
     Package, // For Resources
     Calendar, // For Scheduling
+    Album,
 } from 'lucide-react';
 
 // 2. Create a new, reusable component for our icon-links
@@ -151,7 +152,10 @@ const Sidebar: React.FC<SidebarProps> = ({
                 )}
                 {/* Scheduling: Admin & Logistics only (excluding Port Officer) */}
                 {canViewIARTI.has(internalRole || '') && (
-                    <NavItem to="/scheduling" label="Scheduling" icon={Calendar} isExpanded={isExpanded} />
+                    <>
+                        <NavItem to="/scheduling" label="Scheduling" icon={Calendar} isExpanded={isExpanded} />
+                        <NavItem to="/operation-plans" label="Operation Plans" icon={Album} isExpanded={isExpanded} />
+                    </>
                 )}
                 {/* Shipping Agents: Admin & Officer */}
                 {canManagePort.has(internalRole || '') && (
