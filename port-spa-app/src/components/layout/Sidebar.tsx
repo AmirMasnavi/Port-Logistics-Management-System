@@ -148,6 +148,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                     <>
                         <NavItem to="/port-facilities" label="Port Facilities" icon={Building} isExpanded={isExpanded} />
                         <NavItem to="/docks" label="Docks" icon={SquareSquare} isExpanded={isExpanded} />
+                        {/* New: Resource Allocation Summary */}
+                        <NavItem to="/planning/resource-allocations" label="Resource Allocations" icon={Package} isExpanded={isExpanded} />
                     </>
                 )}
                 {/* Scheduling: Admin & Logistics only (excluding Port Officer) */}

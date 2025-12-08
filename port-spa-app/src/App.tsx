@@ -17,6 +17,7 @@ import RoleProtectedRoute from './auth/RoleProtectedRoute'; // Our new component
 import ResourcePage from './pages/ResourcePage';
 import SchedulingPage from './pages/SchedulingPage';
 import { OperationPlanPage } from './pages/OperationPlanPage';
+import PlanningResourceAllocationsPage from './pages/PlanningResourceAllocationsPage';
 
 // --- Centralized Permission Sets ---
 import {
@@ -78,6 +79,8 @@ function App() {
                             <Route path="/port-facilities" element={<PortFacilitiesPage />} />
                             {/* Assuming Docks fall under the same planning permissions */}
                             <Route path="/docks" element={<DockPage />} /> 
+                            {/* New: Resource allocation summary */}
+                            <Route path="/planning/resource-allocations" element={<PlanningResourceAllocationsPage />} />
                         </Route>
 
                         {/* --- Vessels List (Admin, Officer, Logistics) --- */}
