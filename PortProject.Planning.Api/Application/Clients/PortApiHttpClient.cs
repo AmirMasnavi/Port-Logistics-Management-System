@@ -2,6 +2,7 @@ using System.Net.Http.Json;
 using System.Linq;
 using System.Text.Json;
 using PortProject.Planning.Api.Application.Clients.DTOs;
+using PortProject.Planning.Api.Application.DTOs;
 
 namespace PortProject.Planning.Api.Application.Clients;
 
@@ -195,5 +196,46 @@ public class PortApiHttpClient : IPortApiHttpClient
             Console.WriteLine($"[Planning] Failed to GET staff by qualification {qualificationCode}: {ex.Message}");
             return Enumerable.Empty<StaffMemberDto>();
         }
+    }
+
+    public async Task<IEnumerable<OperationPlanDto>> GetSavedOperationPlansAsync(DateTime periodStartUtc, DateTime periodEndUtc)
+    {
+        try
+        {
+            var from = Uri.EscapeDataString(periodStartUtc.ToUniversalTime().ToString("s"));
+            var to = Uri.EscapeDataString(periodEndUtc.ToUniversalTime().ToString("s"));
+            var candidates = new[]
+            {
+                $"/api/operation-plans/saved?from={from}&to={to}",
+                $"/api/operation-plans?status=Saved&from={from}&to={to}",
+                $"/api/operation-plans?from={from}&to={to}"
+            };
+            foreach (var url in candidates)
+            {
+                try
+                {
+                    var response = await _httpClient.GetAsync(url);
+                    var content = await response.Content.ReadAsStringAsync();
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        Console.WriteLine($"[Planning] GET {url} -> {(int)response.StatusCode} {response.ReasonPhrase}");
+                        continue;
+                    }
+                    var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                    var plans = JsonSerializer.Deserialize<IEnumerable<OperationPlanDto>>(content, options);
+                    if (plans != null) return plans;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[Planning] SavedOperationPlans call failed for {url}: {ex.Message}");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Planning] GetSavedOperationPlansAsync global failure: {ex.Message}");
+        }
+        // Fallback: no plans
+        return Enumerable.Empty<OperationPlanDto>();
     }
 }

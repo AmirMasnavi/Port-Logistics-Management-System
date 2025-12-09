@@ -18,3 +18,14 @@ const app = initializeApp(firebaseConfig);
 
 // Export the auth instance
 export const auth = getAuth(app);
+
+export const getAuthToken = async (): Promise<string | null> => {
+    const user = auth.currentUser;
+    if (user) {
+        // forceRefresh: true garante que obtemos um token válido mesmo que esteja prestes a expirar
+        return await user.getIdToken(true);
+    }
+    return null;
+};
+
+export default app;

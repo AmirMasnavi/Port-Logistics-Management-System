@@ -1,6 +1,7 @@
 ﻿// Scheduling API Service
 import axios from 'axios';
 import type { DailyScheduleRequest, DailyScheduleResponse, SchedulingAlgorithm, GeneticAlgorithmParams } from '../types/scheduling.types';
+import { getAuthToken } from '../firebaseConfig';
 
 // Planning API base URL - should be configured in environment
 const PLANNING_API_BASE_URL = import.meta.env.VITE_PLANNING_API_URL || 'http://localhost:5000';
@@ -12,6 +13,51 @@ const planningApiClient = axios.create({
         'Content-Type': 'application/json',
     }
 });
+
+// --- CONFIGURAÇÃO OEM API (Node.js) ---
+const OEM_API_BASE_URL = import.meta.env.VITE_OEM_API_URL || 'http://localhost:5274/api';
+
+const oemApiClient = axios.create({
+    baseURL: OEM_API_BASE_URL,
+    headers: {
+        'Content-Type': 'application/json',
+    }
+});
+
+// Interceptor para adicionar o Token Firebase em todas as chamadas ao OEM
+oemApiClient.interceptors.request.use(async (config) => {
+    try {
+        const token = await getAuthToken();
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
+    } catch (error) {
+        console.warn('Could not attach auth token to OEM request', error);
+    }
+    return config;
+});
+
+// --- TIPOS PARA O OEM ---
+export interface CreateOperationPlanRequest {
+    date: string;
+    algorithm: string;
+    geneticParams?: GeneticAlgorithmParams;
+    totalDelay: number;
+    executionTimeMs: number;
+    scheduledTasks: any[]; // Ou tipar com ScheduledTaskDto
+}
+
+export interface OperationPlan {
+    planId: string;
+    date: string;
+    algorithm: string;
+    status: string;
+    metrics: {
+        totalDelay: number;
+        executionTimeMs: number;
+    };
+    createdAt: string;
+}
 
 export class SchedulingService {
     /**
@@ -60,6 +106,40 @@ export class SchedulingService {
             }
             
             throw new Error('Failed to generate schedule. Please try again.');
+        }
+    }
+    
+    async saveOperationPlan(plan: CreateOperationPlanRequest): Promise<OperationPlan> {
+        try {
+            console.log('[OEM] Saving plan:', plan);
+            const response = await oemApiClient.post<{ success: boolean, data: OperationPlan }>(
+                '/plans',
+                plan
+            );
+            return response.data.data;
+        } catch (error: any) {
+            console.error('Failed to save operation plan:', error);
+            throw new Error(error.response?.data?.message || 'Failed to save plan to OEM database.');
+        }
+    }
+    
+    async getOperationPlans(date?: string): Promise<OperationPlan[]> {
+        try {
+            const url = date ? `/plans?date=${date}` : '/plans';
+            const response = await oemApiClient.get<{ success: boolean, data: OperationPlan[] }>(url);
+            return response.data.data;
+        } catch (error: any) {
+            console.error('Failed to fetch operation plans:', error);
+            return [];
+        }
+    }
+    async deleteOperationPlan(planId: string): Promise<void> {
+        try {
+            console.log('[OEM] Deleting plan:', planId);
+            await oemApiClient.delete(`/plans/${planId}`);
+        } catch (error: any) {
+            console.error('Failed to delete plan:', error);
+            throw new Error(error.response?.data?.message || 'Failed to delete plan.');
         }
     }
 }

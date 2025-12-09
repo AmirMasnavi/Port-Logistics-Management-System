@@ -20,6 +20,7 @@ builder.Services.AddControllers()
     {
         // Use camelCase for JSON property names (e.g., scheduledTasks instead of ScheduledTasks)
         options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+        options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
     });
 
 // --- Register Swagger for API Documentation (AC 5) ---
@@ -51,6 +52,8 @@ builder.Services.AddHttpClient("PrologApiClient", client =>
 
 // 2. Register our new "dummy" Scheduling Service
 builder.Services.AddScoped<ISchedulingService, SchedulingService>();
+// Register allocation aggregation service
+builder.Services.AddScoped<IAllocationAggregationService, AllocationAggregationService>();
 
 
 var app = builder.Build();

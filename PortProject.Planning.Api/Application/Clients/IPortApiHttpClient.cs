@@ -1,4 +1,5 @@
 using PortProject.Planning.Api.Application.Clients.DTOs;
+using PortProject.Planning.Api.Application.DTOs;
 
 namespace PortProject.Planning.Api.Application.Clients;
 
@@ -12,4 +13,7 @@ public interface IPortApiHttpClient
     Task<IEnumerable<ResourceDto>> GetResourcesAsync(DateOnly date);
     Task<IEnumerable<VesselVisitDto>> GetPendingVisitsAsync(DateOnly date);
     Task<IEnumerable<StaffMemberDto>> GetStaffByQualificationAsync(string qualificationCode);
+    
+    // New: fetch saved operation plans from core API filtered by period
+    Task<IEnumerable<OperationPlanDto>> GetSavedOperationPlansAsync(DateTime periodStartUtc, DateTime periodEndUtc);
 }

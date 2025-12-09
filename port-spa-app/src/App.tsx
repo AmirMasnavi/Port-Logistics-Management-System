@@ -19,6 +19,8 @@ import SchedulingPage from './pages/SchedulingPage';
 import CreateVvePage from './pages/CreateVvePage';
 
 
+import { OperationPlanPage } from './pages/OperationPlanPage';
+import PlanningResourceAllocationsPage from './pages/PlanningResourceAllocationsPage';
 
 // --- Centralized Permission Sets ---
 import {
@@ -80,6 +82,8 @@ function App() {
                             <Route path="/port-facilities" element={<PortFacilitiesPage />} />
                             {/* Assuming Docks fall under the same planning permissions */}
                             <Route path="/docks" element={<DockPage />} /> 
+                            {/* New: Resource allocation summary */}
+                            <Route path="/planning/resource-allocations" element={<PlanningResourceAllocationsPage />} />
                         </Route>
 
                         {/* --- Vessels List (Admin, Officer, Logistics) --- */}
@@ -99,6 +103,7 @@ function App() {
                         {/* --- Role-Protected Routes for IARTI (Admin, Logistics) --- */}
                         <Route element={<RoleProtectedRoute allowedRoles={canViewIARTI} />}>
                             <Route path="/scheduling" element={<SchedulingPage />} />
+                            <Route path="/operation-plans" element={<OperationPlanPage />} />
                         </Route>
                         
                         {/* --- Role-Protected Routes for VVN Management (Admin, Agent) --- */}

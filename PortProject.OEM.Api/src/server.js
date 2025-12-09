@@ -9,6 +9,7 @@ import { MasterDataGateway } from './gateways/masterDataGateway.js';
 import { createOemTestRouter } from './controllers/oemTestController.js';
 import { createVveRouter } from './controllers/vveController.js';
 import { swaggerSpec } from './config/swagger.js';
+import { createOperationPlanRouter } from './controllers/operationPlanController.js';
 
 // Load environment variables
 dotenv.config();
@@ -41,6 +42,8 @@ app.use(helmet()); // Security headers
 app.use(cors({
   origin: CORS_ORIGINS,
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json()); // Parse JSON bodies
 app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
@@ -76,6 +79,8 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
 // Test routes
 app.use('/api/oem', createOemTestRouter(masterDataGateway));
 app.use('/api/vve', createVveRouter(masterDataGateway));
+app.use('/api/plans', createOperationPlanRouter());
+
 
 // Root endpoint
 app.get('/', (req, res) => {

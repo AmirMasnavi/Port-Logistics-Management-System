@@ -12,16 +12,17 @@ import {
     Anchor,
     Settings,
     LogOut,
-    Building,
-    ClipboardList,
-    PanelLeftClose,
-    PanelRightClose,
+    Building, // For Port Facilities (from image)
+    ClipboardList, // For Shipping Agents
+    PanelLeftClose, // Icon for "unpinned"
+    PanelRightClose, // Icon for "pinned"
     Shield,
-    Box,
-    SquareSquare,
-    Package,
-    Calendar,
-    PlusCircle, // For Create VVE
+    Box, // For 3D Visualization
+    SquareSquare, // For Docks
+    Package, // For Resources
+    Calendar, // For Scheduling
+    Album,
+    PlusCircle,
 } from 'lucide-react';
 
 // 2. Create a new, reusable component for our icon-links
@@ -148,11 +149,16 @@ const Sidebar: React.FC<SidebarProps> = ({
                     <>
                         <NavItem to="/port-facilities" label="Port Facilities" icon={Building} isExpanded={isExpanded} />
                         <NavItem to="/docks" label="Docks" icon={SquareSquare} isExpanded={isExpanded} />
+                        {/* New: Resource Allocation Summary */}
+                        <NavItem to="/planning/resource-allocations" label="Resource Allocations" icon={Package} isExpanded={isExpanded} />
                     </>
                 )}
                 {/* Scheduling: Admin & Logistics only (excluding Port Officer) */}
                 {canViewIARTI.has(internalRole || '') && (
-                    <NavItem to="/scheduling" label="Scheduling" icon={Calendar} isExpanded={isExpanded} />
+                    <>
+                        <NavItem to="/scheduling" label="Scheduling" icon={Calendar} isExpanded={isExpanded} />
+                        <NavItem to="/operation-plans" label="Operation Plans" icon={Album} isExpanded={isExpanded} />
+                    </>
                 )}
                 {/* Shipping Agents: Admin & Officer */}
                 {canManagePort.has(internalRole || '') && (
