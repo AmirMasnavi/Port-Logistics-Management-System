@@ -1,0 +1,130 @@
+// Application Service - Business Logic Layer
+// This is the "Use Case" layer that orchestrates domain logic
+
+import type { VesselVisitExecution } from '../../domain/vve/vve.model';
+import { VveValidationError } from '../../domain/vve/vve.errors';
+import type { IVveRepository, VveFilters } from './vve.repository';
+import type { CreateVveDto, UpdateVveDto } from '../../infrastructure/repositories/vve/vve.dto';
+
+export class VveService {
+    private readonly vveRepo: IVveRepository;
+
+    constructor(vveRepo: IVveRepository) {
+        this.vveRepo = vveRepo;
+    }
+
+    /**
+     * Fetch all VVEs with optional filters
+     */
+    async fetchAllVves(filters?: VveFilters): Promise<VesselVisitExecution[]> {
+        const vves = await this.vveRepo.getAll(filters);
+        
+        // Business rule: Sort by creation date (newest first)
+        return vves.sort((a, b) => 
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+    }
+
+    /**
+     * Get VVE by ID
+     */
+    async getVveById(vveId: string): Promise<VesselVisitExecution> {
+        return this.vveRepo.getById(vveId);
+    }
+
+    /**
+     * Create a new VVE with validation
+     */
+    async createVve(dto: CreateVveDto): Promise<VesselVisitExecution> {
+        // Business validation
+        this.validateCreateDto(dto);
+        
+        return this.vveRepo.create(dto);
+    }
+
+    /**
+     * Update an existing VVE
+     */
+    async updateVve(vveId: string, dto: UpdateVveDto): Promise<VesselVisitExecution> {
+        // Business validation
+        this.validateUpdateDto(dto);
+        
+        return this.vveRepo.update(vveId, dto);
+    }
+
+    /**
+     * Delete a VVE
+     */
+    async deleteVve(vveId: string): Promise<boolean> {
+        return this.vveRepo.delete(vveId);
+    }
+
+    /**
+     * Business validation for create operation
+     */
+    private validateCreateDto(dto: CreateVveDto): void {
+        if (!dto.vvnId || dto.vvnId.trim().length === 0) {
+            throw new VveValidationError('VVN ID is required');
+        }
+
+        if (!dto.vesselIdentifier || dto.vesselIdentifier.trim().length === 0) {
+            throw new VveValidationError('Vessel identifier is required');
+        }
+
+        if (!dto.actualArrivalTime) {
+            throw new VveValidationError('Actual arrival time is required');
+        }
+
+        // Validate that arrival time is not in the future (more than 1 hour)
+        const arrivalTime = new Date(dto.actualArrivalTime);
+        const now = new Date();
+        const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
+        
+        if (arrivalTime > oneHourFromNow) {
+            throw new VveValidationError('Arrival time cannot be more than 1 hour in the future');
+        }
+    }
+
+    /**
+     * Business validation for update operation
+     */
+    private validateUpdateDto(dto: UpdateVveDto): void {
+        if (dto.actualDepartureTime) {
+            const departureTime = new Date(dto.actualDepartureTime);
+            const now = new Date();
+            const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
+            
+            if (departureTime > oneHourFromNow) {
+                throw new VveValidationError('Departure time cannot be more than 1 hour in the future');
+            }
+        }
+
+        if (dto.status && !['In Progress', 'Completed', 'Cancelled'].includes(dto.status)) {
+            throw new VveValidationError('Invalid status value');
+        }
+    }
+}
+// Domain Model - VVE (Vessel Visit Execution)
+// This represents the core business entity
+
+export interface VesselVisitExecution {
+    vveId: string;
+    vvnId: string;
+    vesselIdentifier: string;
+    actualArrivalTime: string;
+    actualDepartureTime?: string;
+    status: VveStatus;
+    createdBy: string;
+    createdAt: string;
+    updatedAt: string;
+    notes?: string;
+}
+
+export type VveStatus = 'In Progress' | 'Completed' | 'Cancelled';
+
+export const VveStatusValues = {
+    IN_PROGRESS: 'In Progress' as VveStatus,
+    COMPLETED: 'Completed' as VveStatus,
+    CANCELLED: 'Cancelled' as VveStatus,
+};
+

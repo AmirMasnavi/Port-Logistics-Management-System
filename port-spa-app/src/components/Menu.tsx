@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
 import { InternalRole } from '../services/apiService';
 import { t } from '../i18nClient';
@@ -28,6 +29,8 @@ const Menu: React.FC = () => {
                         <li>{t('menu.cargoManagement')}</li>
                         <li>{t('menu.movements')}</li>
                         <li>{t('menu.operationalReports')}</li>
+                        {/* VVE Management Link */}
+                        <li><Link to="/vessel-visits/new-vve">{t('menu.createVve') || 'Create VVE'}</Link></li>
                     </ul>
                 </nav>
             );

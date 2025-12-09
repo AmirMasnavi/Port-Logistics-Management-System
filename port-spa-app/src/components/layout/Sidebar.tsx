@@ -12,15 +12,16 @@ import {
     Anchor,
     Settings,
     LogOut,
-    Building, // For Port Facilities (from image)
-    ClipboardList, // For Shipping Agents
-    PanelLeftClose, // Icon for "unpinned"
-    PanelRightClose, // Icon for "pinned"
+    Building,
+    ClipboardList,
+    PanelLeftClose,
+    PanelRightClose,
     Shield,
-    Box, // For 3D Visualization
-    SquareSquare, // For Docks
-    Package, // For Resources
-    Calendar, // For Scheduling
+    Box,
+    SquareSquare,
+    Package,
+    Calendar,
+    PlusCircle, // For Create VVE
 } from 'lucide-react';
 
 // 2. Create a new, reusable component for our icon-links
@@ -160,6 +161,11 @@ const Sidebar: React.FC<SidebarProps> = ({
                 {/* Resources: Admin, Officer, Logistics (excluding Shipping Agent) */}
                 {canViewResources.has(internalRole || '') && (
                     <NavItem to="/resources" label={t('Resources')} icon={Package} isExpanded={isExpanded} />
+                )}
+                
+                {/* Create VVE: Admin, Officer, Logistics */}
+                {canViewResources.has(internalRole || '') && (
+                    <NavItem to="/vessel-visits/new-vve" label="Create VVE" icon={PlusCircle} isExpanded={isExpanded} />
                 )}
                 
                 {/* 3D Visualization: Admin, Officer, Logistics */}
