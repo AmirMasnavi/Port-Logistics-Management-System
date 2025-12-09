@@ -5,12 +5,6 @@ import type {OperationPlan} from '../services/schedulingService';
 export const OperationPlanPage: React.FC = () => {
 
     // --- STATE ---
-    const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-    const [algorithm, setAlgorithm] = useState('optimal');
-    const [loading, setLoading] = useState(false);
-    const [previewPlan, setPreviewPlan] = useState<any>(null);
-    const [saveStatus, setSaveStatus] = useState<string>('');
-
     // State para o Histórico
     const [history, setHistory] = useState<OperationPlan[]>([]);
     const [loadingHistory, setLoadingHistory] = useState(false);
@@ -38,56 +32,6 @@ export const OperationPlanPage: React.FC = () => {
         }
     };
 
-    const handleGenerate = async () => {
-        setLoading(true);
-        setSaveStatus('');
-        try {
-            const result = await schedulingService.generateDailySchedule(date, algorithm as any);
-            setPreviewPlan(result);
-        } catch (error) {
-            console.error("Generation failed", error);
-            alert("Failed to generate schedule. Ensure Planning API is running.");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleSave = async () => {
-        if (!previewPlan) return;
-        setLoading(true);
-        try {
-            const planToSave = {
-                date: previewPlan.date,
-                algorithm: algorithm,
-                totalDelay: Number(previewPlan.totalDelay) || 0,
-                executionTimeMs: Number(previewPlan.executionTimeMs) || 0,
-                scheduledTasks: previewPlan.scheduledTasks?.map((t: any) => ({
-                    vesselVisitId: t.vesselVisitId,
-                    vesselVisitBusinessId: t.vesselVisitBusinessId,
-                    dockName: t.dockName,
-                    dockId: t.dockId,
-                    resourceKind: t.resourceKind,
-                    resourceId: t.resourceId,
-                    staffShortName: t.staffShortName,
-                    staffId: t.staffId,
-                    startTime: t.startTime,
-                    endTime: t.endTime
-                })) || [],
-                geneticParams: undefined
-            };
-
-            await schedulingService.saveOperationPlan(planToSave);
-            setSaveStatus('success');
-            setPreviewPlan(null);
-            fetchHistory(); // Atualiza a lista imediatamente
-
-        } catch (error) {
-            console.error("Save failed", error);
-            setSaveStatus('error');
-        } finally {
-            setLoading(false);
-        }
-    };
 
     // 1. Abre o Modal
     const openDeleteModal = (planId: string) => {
@@ -115,112 +59,22 @@ export const OperationPlanPage: React.FC = () => {
     return (
         <div className="p-6 max-w-6xl mx-auto space-y-8 relative">
 
-            {/* SECTION 1: GENERATE NEW */}
+            {/* SECTION: OPERATION PLANS HISTORY */}
             <section>
-                <h1 className="text-2xl font-bold mb-6 text-gray-800">Generate Operation Plan</h1>
-
-                <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100 mb-6 flex gap-4 items-end">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Target Date</label>
-                        <input
-                            type="date"
-                            value={date}
-                            onChange={(e) => setDate(e.target.value)}
-                            className="border rounded p-2"
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Algorithm</label>
-                        <select
-                            value={algorithm}
-                            onChange={(e) => setAlgorithm(e.target.value)}
-                            className="border rounded p-2 w-48"
-                        >
-                            <option value="optimal">Optimal (Prolog)</option>
-                            <option value="heuristic">Heuristic (Prolog)</option>
-                            <option value="genetic">Genetic (Prolog/C#)</option>
-                        </select>
-                    </div>
-                    <button
-                        onClick={handleGenerate}
-                        disabled={loading}
-                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50 transition-colors"
-                    >
-                        {loading ? 'Processing...' : 'Generate Plan'}
-                    </button>
+                <div className="mb-6">
+                    <h1 className="text-2xl font-bold text-gray-800 mb-2">Operation Plans History</h1>
+                    <p className="text-gray-600">Monitor and review saved operation plans. Generate new plans from the Scheduling page.</p>
                 </div>
 
-                {saveStatus === 'success' && (
-                    <div className="bg-green-100 text-green-700 p-4 rounded mb-4 border border-green-200">
-                        Operation Plan successfully saved to OEM Database!
-                    </div>
-                )}
-
-                {saveStatus === 'error' && (
-                    <div className="bg-red-100 text-red-700 p-4 rounded mb-4 border border-red-200">
-                        Failed to save Operation Plan. Check console for details.
-                    </div>
-                )}
-
-                {/* PREVIEW TABLE */}
-                {previewPlan && (
-                    <div className="bg-white rounded-lg shadow-lg overflow-hidden border border-blue-100 mb-8">
-                        <div className="p-4 bg-blue-50 border-b border-blue-100 flex justify-between items-center">
-                            <div>
-                                <h2 className="text-lg font-semibold text-blue-900">Plan Preview (Draft)</h2>
-                                <p className="text-sm text-blue-700">
-                                    Delay: {Number(previewPlan.totalDelay).toFixed(2)}h | Time: {Number(previewPlan.executionTimeMs).toFixed(0)}ms
-                                </p>
-                            </div>
-                            <button
-                                onClick={handleSave}
-                                disabled={loading}
-                                className="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700 shadow disabled:opacity-50 transition-colors"
-                            >
-                                {loading ? 'Saving...' : 'Confirm & Save Plan'}
-                            </button>
-                        </div>
-
-                        <div className="overflow-x-auto max-h-96 overflow-y-auto">
-                            <table className="min-w-full divide-y divide-gray-200">
-                                <thead className="bg-gray-50 sticky top-0">
-                                <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Vessel</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Dock</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Resource</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Start</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">End</th>
-                                </tr>
-                                </thead>
-                                <tbody className="bg-white divide-y divide-gray-200">
-                                {previewPlan.scheduledTasks.map((task: any, idx: number) => (
-                                    <tr key={idx}>
-                                        <td className="px-6 py-4 whitespace-nowrap font-medium">{task.vesselVisitBusinessId}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap">{task.dockName}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap">{task.resourceKind}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-blue-600">
-                                            {new Date(task.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-blue-600">
-                                            {new Date(task.endTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                                        </td>
-                                    </tr>
-                                ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                )}
-            </section>
-
-            {/* SECTION 2: HISTORY */}
-            <section className="mt-12 border-t pt-8">
                 <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-2xl font-bold text-gray-800">Plan History</h2>
+                    <h2 className="text-lg font-semibold text-gray-700">Saved Plans</h2>
                     <button
                         onClick={fetchHistory}
-                        className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                        className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center gap-2"
                     >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
                         Refresh List
                     </button>
                 </div>

@@ -1,19 +1,32 @@
 ﻿import mongoose from 'mongoose';
 
 const operationPlanSchema = new mongoose.Schema({
-    planId: { type: String }, // Removi required true temporariamente se o gerador falhar
-    date: { type: String },
-    algorithm: { type: String },
-    // Permite que metrics receba qualquer coisa ou nada
+    planId: { type: String, required: true, unique: true, index: true },
+    date: { type: String, required: true, index: true },
+    algorithm: { type: String, required: true },
+    geneticParams: {
+        populationSize: Number,
+        generations: Number,
+        mutationRate: Number,
+        desiredTimeSeconds: Number,
+        craneMode: String
+    },
+    createdBy: { type: String, required: true },
+    status: { type: String, enum: ['Draft', 'Confirmed', 'Executed'], default: 'Confirmed' },
     metrics: {
         totalDelay: Number,
         executionTimeMs: Number
     },
-    // Array genérico - Aceita qualquer objeto lá dentro, sem validar campos específicos
-    scheduledTasks: [],
-    createdBy: { type: String },
-    status: { type: String, default: 'Confirmed' },
+    // Explicitly define this to meet the User Story requirement
+    scheduledTasks: [{
+        vesselVisitId: String,
+        dockId: String,
+        resourceId: String, // "Assigned Resources"
+        startTime: Date,    // "Planned Time Windows"
+        endTime: Date       // "Planned Time Windows"
+    }],
     createdAt: { type: Date, default: Date.now }
-}, { strict: false }); // <--- IMPORTANTE: strict: false permite salvar campos extra
+});
 
+// Remove { strict: false } to enforce data quality
 export const OperationPlanModel = mongoose.model('OperationPlan', operationPlanSchema);
