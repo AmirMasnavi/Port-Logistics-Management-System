@@ -1,21 +1,35 @@
 # Testing Guide - Port Project
 
-This document provides comprehensive information about testing in the Port Project, covering both backend (.NET) and frontend (React/TypeScript) testing.
+This document provides comprehensive information about testing strategies and approaches used across the Port Project, covering backend APIs (.NET and Node.js) and frontend (React/TypeScript) testing.
 
 ---
 
 ## 📋 Table of Contents
 
+- [Testing Philosophy](#testing-philosophy)
 - [Backend Testing (.NET API)](#backend-testing-net-api)
+- [Backend Testing (Node.js OEM API)](#backend-testing-nodejs-oem-api)
 - [Frontend Testing (React SPA)](#frontend-testing-react-spa)
 - [Running Tests](#running-tests)
-- [Test Coverage](#test-coverage)
+- [Best Practices](#best-practices)
+
+---
+
+## Testing Philosophy
+
+The Port Project follows industry-standard testing practices to ensure code quality, maintainability, and reliability:
+
+- **Testing Pyramid**: More unit tests at the base, fewer integration tests in the middle, and minimal system/E2E tests at the top
+- **Test-Driven Development (TDD)**: Tests are written alongside or before implementation
+- **Isolation**: Unit tests should be independent and not rely on external dependencies
+- **Comprehensive Coverage**: All critical business logic, controllers, and user interactions are tested
+- **Continuous Integration**: Tests run automatically to catch regressions early
 
 ---
 
 ## Backend Testing (.NET API)
 
-The backend follows a **testing pyramid** approach with three test project types:
+The .NET backend follows a **testing pyramid** approach with three test project types:
 
 ### 1. **Unit Tests** (`PortProject.Api.Tests`)
 
@@ -26,79 +40,211 @@ Tests individual components in isolation using mocks and stubs.
 - Controllers and request/response handling
 - Application services and business logic
 
-**Example:**
+**Running Unit Tests:**
 ```bash
 dotnet test PortProject.Api.Tests
 ```
 
 ### 2. **Integration Tests** (`PortProject.Api.Integration_Tests`)
 
-Tests API endpoints with real database interactions.
+Tests API endpoints with real database interactions and verifies that different layers work correctly together.
 
-**Test Files:**
-- `VesselTypeTest.cs`
-- `VesselTest.cs`
-- `DockTest.cs`
-- `StorageAreaTest.cs`
-- `ShippingAgentOrganizationTest.cs`
-- `ShippingAgentRepresentativeTest.cs`
-- `VesselVisitNotificationTest.cs`
-- `ResourceTest.cs`
-- `QualificationTests.cs`
-- `StaffMemberTests.cs`
+**Test Coverage:**
+- VesselType management
+- Vessel operations
+- Dock management
+- Storage area operations
+- Shipping agent organizations and representatives
+- Vessel visit notifications
+- Resources and qualifications
+- Staff member operations
 
-**Example:**
+**Running Integration Tests:**
 ```bash
 dotnet test PortProject.Api.Integration_Tests
 ```
 
 ### 3. **System Tests** (`Port.Project.Api.System_Tests`)
 
-Tests complete application workflows and data consistency.
+Tests complete application workflows and data consistency across the entire system.
 
 **Contains:**
-- **DataConsistencySystemTests**: Validates relationships, foreign keys, and data integrity
-- **PortOperationsSystemTests**: End-to-end workflows simulating real port operations
+- **DataConsistencySystemTests**: Validates relationships, foreign keys, cascade deletes, and data integrity
+- **PortOperationsSystemTests**: End-to-end workflows simulating real port operations from start to finish
 
-**Example:**
+**Running System Tests:**
 ```bash
 dotnet test Port.Project.Api.System_Tests
 ```
 
 ---
 
+## Backend Testing (Node.js OEM API)
+
+The Node.js OEM API uses **Jest** as the testing framework, following similar testing principles.
+
+### Unit Tests
+
+Tests focus on individual modules in isolation:
+
+**Test Coverage:**
+- **DTOs**: Data transfer objects validation and transformation
+- **Models**: Domain models and business logic
+- **Controllers**: Request handling and response formatting
+- **Services**: Business logic and data operations
+- **Repositories**: Data access patterns
+
+**Running Tests:**
+```bash
+cd PortProject.OEM.Api
+npm test
+```
+
+**Test Structure:**
+- Tests are organized in `tests/unit/` directory
+- Each module has corresponding test files (e.g., `OperationPlanDto.test.js`)
+- Uses mocks and stubs for external dependencies
+- Follows AAA pattern (Arrange, Act, Assert)
+
+---
+
 ## Frontend Testing (React SPA)
 
-The frontend uses **Vitest** and **React Testing Library** for unit tests, and **Playwright** for E2E tests.
+The frontend uses **Vitest** and **React Testing Library** for unit tests, and **Playwright** for end-to-end tests.
 
 ### Unit Tests
 
 **Location:** `port-spa-app/src/test/`
 
-**Test Files:**
-- `pages/CreateVvnPage.test.tsx` - Tests VVN creation form (rendering, interactions, validation)
-- `pages/VesselVisitsPage.test.tsx` - Tests VVN list view (role-based views, filtering)
-- `components/VvnCard.test.tsx` - Tests notification card display and actions
-- `components/VvnDecisionModal.test.tsx` - Tests approval/rejection modals
-- `components/VvnDetailsModal.test.tsx` - Tests notification details view
+**Test Coverage:**
+- Page components (forms, lists, dashboards)
+- Reusable UI components (cards, modals, buttons)
+- Form validation and user interactions
+- Role-based rendering and permissions
+- State management and data flow
 
-**What's Tested:**
-- Component rendering
-- Form interactions and validation
-- Dynamic list management (containers, crew members)
-- Role-based UI (Agent vs Officer views)
-- Modal interactions
-- Button states based on notification status
+**Running Unit Tests:**
+```bash
+cd port-spa-app
+npm test
+```
 
-**Example Test:**
-```tsx
-import { render, screen } from '@testing-library/react';
-import CreateVvnPage from '../../pages/CreateVvnPage';
+### End-to-End Tests
 
-describe('CreateVvnPage', () => {
-  it('renders the form correctly', () => {
-    render(<CreateVvnPage />);
-    expect(screen.getByText('Create New Vessel Visit Notification')).toBeInTheDocument();
+**Framework:** Playwright
+
+**Test Coverage:**
+- Complete user workflows
+- Navigation and routing
+- Authentication flows
+- Form submissions
+- Multi-step operations
+
+**Running E2E Tests:**
+```bash
+cd port-spa-app
+npx playwright test
+```
+
+---
+
+## Running Tests
+
+### Run All Tests (Entire Project)
+
+From the root directory:
+```bash
+# Backend .NET tests
+dotnet test
+
+# Frontend tests
+cd port-spa-app && npm test
+
+# OEM API tests
+cd PortProject.OEM.Api && npm test
+```
+
+### Run Specific Test Suites
+
+**Backend Unit Tests:**
+```bash
+dotnet test PortProject.Api.Tests
+```
+
+**Backend Integration Tests:**
+```bash
+dotnet test PortProject.Api.Integration_Tests
+```
+
+**Backend System Tests:**
+```bash
+dotnet test Port.Project.Api.System_Tests
+```
+
+**Frontend Unit Tests:**
+```bash
+cd port-spa-app
+npm test
+```
+
+**Frontend E2E Tests:**
+```bash
+cd port-spa-app
+npx playwright test
+```
+
+**OEM API Tests:**
+```bash
+cd PortProject.OEM.Api
+npm test
+```
+
+### Run Specific Test Files
+
+**Backend (.NET):**
+```bash
+dotnet test --filter "FullyQualifiedName~VesselTypeTest"
+dotnet test --filter "FullyQualifiedName~PortOperationsSystemTests"
+```
+
+**Frontend/OEM (JavaScript/TypeScript):**
+```bash
+npm test -- OperationPlanDto.test.js
+npm test -- CreateVvnPage.test.tsx
+```
+
+---
+
+## Best Practices
+
+### General Testing Principles
+
+1. **Write Clear Test Names**: Test names should describe what is being tested and expected outcome
+2. **Keep Tests Independent**: Each test should be able to run in isolation
+3. **Use Appropriate Test Doubles**: Use mocks, stubs, and fakes appropriately
+4. **Test Behavior, Not Implementation**: Focus on what the code does, not how it does it
+5. **Maintain Test Code Quality**: Test code should be as clean and maintainable as production code
+
+### Backend Testing
+
+1. **Use In-Memory Databases**: For integration tests, use in-memory databases to speed up execution
+2. **Clean Up After Tests**: Ensure database state is reset between tests
+3. **Test Edge Cases**: Include tests for error conditions, boundary values, and edge cases
+4. **Mock External Services**: Use mocks for external APIs and services
+
+### Frontend Testing
+
+1. **Query by Accessibility**: Use accessible queries (getByRole, getByLabelText) when possible
+2. **Test User Interactions**: Simulate real user behavior (clicks, typing, navigation)
+3. **Avoid Testing Implementation Details**: Don't test internal state or component methods directly
+4. **Use Testing Library Utilities**: Leverage waitFor, findBy queries for async operations
+
+### Continuous Improvement
+
+- Regularly review and update tests as requirements change
+- Monitor test coverage and identify gaps
+- Refactor tests to improve clarity and maintainability
+- Keep test execution time reasonable to encourage frequent running
   });
 });
 ```

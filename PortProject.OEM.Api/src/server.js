@@ -158,5 +158,10 @@ process.on('uncaughtException', (error) => {
   process.exit(1);
 });
 
-// Start the server
-startServer();
+// Export app for testing
+export { app };
+
+// Start the server only if not in test environment
+if (process.env.NODE_ENV !== 'test') {
+  startServer();
+}
