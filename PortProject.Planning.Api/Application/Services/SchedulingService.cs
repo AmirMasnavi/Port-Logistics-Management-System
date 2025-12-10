@@ -126,6 +126,7 @@ public class SchedulingService : ISchedulingService
             // Garante que o pedido é encaminhado para o endpoint correto baseado no input.
             // 'heuristic' -> /api/schedule/heuristic (US 3.4.4)
             // 'optimal'   -> /api/schedule/optimal   (US 3.4.2)
+            // 'genetic' => "http://localhost:5001/api/schedule/genetic",  // ADD GENETIC ENDPOINT
             string prologEndpoint = algorithm?.ToLower() switch
             {
                 "heuristic" => "http://localhost:5001/api/schedule/heuristic",
@@ -451,6 +452,10 @@ public class SchedulingService : ISchedulingService
 
             // Get display names for UI - prioritize dock name from vessel visit
             var vesselBusinessId = visitDto?.BusinessId ?? vesselIdFromProlog;
+            var vesselImo = visitDto?.VesselImo ?? "UNKNOWN";
+            
+            _logger.LogInformation("[DIAG] Creating task for vessel {VesselId}: vesselImo={VesselImo}, businessId={BusinessId}", 
+                vesselIdFromProlog, vesselImo, vesselBusinessId);
             
             // Use the dock name directly from the vessel visit if available
             string dockDisplayName;
@@ -482,6 +487,7 @@ public class SchedulingService : ISchedulingService
                 ResourceId = requestedResourceCode,
                 
                 // Display names (for UI) - Show user-friendly values
+                VesselImo = vesselImo,
                 VesselVisitBusinessId = vesselBusinessId,
                 DockName = dockDisplayName,
                 ResourceKind = resourceDisplayKind,

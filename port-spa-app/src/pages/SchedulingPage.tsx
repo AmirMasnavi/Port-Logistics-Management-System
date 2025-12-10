@@ -81,6 +81,7 @@ const SchedulingPage: React.FC = () => {
                 executionTimeMs: scheduleData.executionTimeMs,
                 scheduledTasks: scheduleData.scheduledTasks.map(t => ({
                     vesselVisitId: t.vesselVisitId,
+                    vesselImo: t.vesselImo,
                     vesselVisitBusinessId: t.vesselVisitBusinessId,
                     dockName: t.dockName,
                     resourceKind: t.resourceKind,

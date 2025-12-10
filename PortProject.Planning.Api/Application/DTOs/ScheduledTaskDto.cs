@@ -13,7 +13,8 @@ public class ScheduledTaskDto
     public string ResourceId { get; set; }
     public string StaffId { get; set; }
     
-    // Display names (for UI)
+    public string VesselImo { get; set; }
+    
     public string VesselVisitBusinessId { get; set; }
     public string DockName { get; set; }
     public string ResourceKind { get; set; }

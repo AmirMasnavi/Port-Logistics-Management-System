@@ -12,10 +12,14 @@ export const OperationPlanPage: React.FC = () => {
 
     // State para os Filtros
     const [filterDate, setFilterDate] = useState('');
+    const [filterVesselImo, setFilterVesselImo] = useState('');
 
     // State para o Modal de Eliminar
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [planToDelete, setPlanToDelete] = useState<string | null>(null);
+    
+    // State para controlar qual plano está expandido (mostrar detalhes)
+    const [expandedPlanId, setExpandedPlanId] = useState<string | null>(null);
 
     // --- ACTIONS ---
 
@@ -25,12 +29,42 @@ export const OperationPlanPage: React.FC = () => {
         try {
             // Chama o serviço com o objeto de filtros
             const data = await schedulingService.getOperationPlans({ date });
+            console.log('[OperationPlanPage] Received plans:', data);
+            if (data.length > 0) {
+                console.log('[OperationPlanPage] First plan scheduledTasks:', data[0].scheduledTasks);
+                if (data[0].scheduledTasks && data[0].scheduledTasks.length > 0) {
+                    console.log('[OperationPlanPage] First task:', data[0].scheduledTasks[0]);
+                }
+            }
             setHistory(data);
         } catch (error) {
             console.error("Failed to load history", error);
         } finally {
             setLoadingHistory(false);
         }
+    };
+
+    // Função para filtrar planos por Vessel IMO (filtro client-side)
+    const getFilteredPlans = () => {
+        let filteredPlans = history;
+        
+        // Aplica filtro de Vessel IMO se especificado
+        if (filterVesselImo.trim()) {
+            filteredPlans = filteredPlans.filter(plan => 
+                plan.scheduledTasks && 
+                plan.scheduledTasks.some(task => 
+                    task.vesselImo && 
+                    task.vesselImo.toLowerCase().includes(filterVesselImo.toLowerCase())
+                )
+            );
+        }
+        
+        // Ordena por data (mais recente primeiro)
+        return filteredPlans.sort((a, b) => {
+            const dateA = new Date(a.date);
+            const dateB = new Date(b.date);
+            return dateB.getTime() - dateA.getTime(); // Ordem decrescente (mais recente primeiro)
+        });
     };
 
     // Função para lidar com a submissão do formulário de filtros/refresh
@@ -91,6 +125,17 @@ export const OperationPlanPage: React.FC = () => {
                                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
                             />
                         </div>
+                        <div className="flex-1">
+                            <label htmlFor="filterVesselImo" className="block text-sm font-medium text-gray-700">Vessel IMO</label>
+                            <input
+                                id="filterVesselImo"
+                                type="text"
+                                value={filterVesselImo}
+                                onChange={(e) => setFilterVesselImo(e.target.value)}
+                                placeholder="e.g., 1234567"
+                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                            />
+                        </div>
                         
                         <button
                             onClick={handleApplyFilters}
@@ -101,6 +146,7 @@ export const OperationPlanPage: React.FC = () => {
                         <button
                             onClick={() => {
                                 setFilterDate('');
+                                setFilterVesselImo('');
                                 fetchHistory('');
                             }}
                             className="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300 transition-colors h-10"
@@ -125,9 +171,14 @@ export const OperationPlanPage: React.FC = () => {
 
                 {loadingHistory ? (
                     <p className="text-gray-500">Loading history...</p>
-                ) : history.length === 0 ? (
+                ) : getFilteredPlans().length === 0 ? (
                     <div className="bg-gray-50 p-8 text-center rounded-lg border border-dashed border-gray-300">
-                        <p className="text-gray-500">No saved plans found in the database matching the criteria.</p>
+                        <p className="text-gray-500">
+                            {history.length === 0 
+                                ? "No saved plans found in the database matching the criteria."
+                                : `No plans found with Vessel IMO containing "${filterVesselImo}".`
+                            }
+                        </p>
                     </div>
                 ) : (
                     <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-x-auto">
@@ -143,7 +194,7 @@ export const OperationPlanPage: React.FC = () => {
                             </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
-                            {history.map((plan) => (
+                            {getFilteredPlans().map((plan) => (
                                 <React.Fragment key={plan.planId}>
                                     <tr className="hover:bg-gray-50 transition-colors">
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -166,37 +217,108 @@ export const OperationPlanPage: React.FC = () => {
                                             {new Date(plan.createdAt).toLocaleString()}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                            <button
-                                                onClick={() => openDeleteModal(plan.planId)} // Abre o Modal
-                                                className="text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 px-3 py-1 rounded transition-colors"
-                                            >
-                                                Delete
-                                            </button>
+                                            <div className="flex items-center justify-end gap-2">
+                                                {/* Botão para ver detalhes */}
+                                                {plan.scheduledTasks && plan.scheduledTasks.length > 0 && (
+                                                    <button
+                                                        onClick={() => setExpandedPlanId(expandedPlanId === plan.planId ? null : plan.planId)}
+                                                        className="text-blue-600 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 px-3 py-1 rounded transition-colors flex items-center gap-1"
+                                                    >
+                                                        {expandedPlanId === plan.planId ? (
+                                                            <>
+                                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7" />
+                                                                </svg>
+                                                                Hide
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                                                                </svg>
+                                                                Details
+                                                            </>
+                                                        )}
+                                                    </button>
+                                                )}
+                                                {/* Botão de Delete */}
+                                                <button
+                                                    onClick={() => openDeleteModal(plan.planId)}
+                                                    className="text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 px-3 py-1 rounded transition-colors"
+                                                >
+                                                    Delete
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
-                                    {/* Linha Detalhada para Tasks (Critério de Aceitação) */}
-                                    {plan.scheduledTasks && plan.scheduledTasks.length > 0 && (
+                                    {/* Linha Detalhada para Tasks - Apenas se o plano estiver expandido */}
+                                    {expandedPlanId === plan.planId && plan.scheduledTasks && plan.scheduledTasks.length > 0 && (
                                         <tr>
-                                            <td colSpan={7} className="p-0">
-                                                <div className="bg-white p-3 border-t border-gray-100">
-                                                    <p className="text-xs font-semibold text-gray-700 mb-1">Top Scheduled Tasks Summary:</p>
-                                                    <ul className="space-y-1">
-                                                        {(plan.scheduledTasks).slice(0, 3).map((task, idx) => ( // Limita a 3 tasks para resumo
-                                                            <li key={idx} className="text-xs text-gray-500 bg-gray-50 p-2 rounded flex justify-between items-center">
-                                                                <div className="flex-1 space-x-3">
-                                                                    <span className="font-medium text-gray-800">Vessel: {task.imo}</span>
-                                                                    <span className="text-blue-600">Dock: {task.dockName}</span>
-                                                                    <span className="text-green-600">Resource: {task.resourceKind}</span>
+                                            <td colSpan={6} className="p-0">
+                                                <div className="bg-gray-50 p-6 border-t border-gray-200">
+                                                    <h3 className="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2">
+                                                        <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                                        </svg>
+                                                        Scheduled Tasks Details ({plan.scheduledTasks.length} tasks)
+                                                    </h3>
+                                                    <div className="grid grid-cols-1 gap-3">
+                                                        {plan.scheduledTasks.map((task, idx) => (
+                                                            <div key={idx} className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                                                                <div className="flex justify-between items-start">
+                                                                    <div className="flex-1 space-y-2">
+                                                                        <div className="flex items-center gap-4 flex-wrap">
+                                                                            <span className="inline-flex items-center gap-1 text-sm font-semibold text-gray-900">
+                                                                                <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+                                                                                </svg>
+                                                                                Vessel IMO: <span className="text-blue-700">{task.vesselImo}</span>
+                                                                            </span>
+                                                                            <span className="inline-flex items-center gap-1 text-sm text-gray-700">
+                                                                                <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                                                                </svg>
+                                                                                Dock: <span className="font-medium text-blue-600">{task.dockName}</span>
+                                                                            </span>
+                                                                            <span className="inline-flex items-center gap-1 text-sm text-gray-700">
+                                                                                <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                                                                                </svg>
+                                                                                Resource: <span className="font-medium text-green-600">{task.resourceKind}</span>
+                                                                            </span>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="text-right ml-4 bg-blue-50 px-3 py-2 rounded-lg border border-blue-200">
+                                                                        <div className="text-xs text-gray-600 mb-1">Start</div>
+                                                                        <div className="text-sm font-semibold text-gray-900">
+                                                                            {new Date(task.startTime).toLocaleString('pt-PT', { 
+                                                                                day: '2-digit', 
+                                                                                month: '2-digit', 
+                                                                                year: 'numeric', 
+                                                                                hour: '2-digit', 
+                                                                                minute: '2-digit' 
+                                                                            })}
+                                                                        </div>
+                                                                        <div className="text-xs text-gray-500 my-1 flex items-center justify-center">
+                                                                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                                                                            </svg>
+                                                                        </div>
+                                                                        <div className="text-xs text-gray-600 mb-1">End</div>
+                                                                        <div className="text-sm font-semibold text-gray-900">
+                                                                            {new Date(task.endTime).toLocaleString('pt-PT', { 
+                                                                                day: '2-digit', 
+                                                                                month: '2-digit', 
+                                                                                year: 'numeric', 
+                                                                                hour: '2-digit', 
+                                                                                minute: '2-digit' 
+                                                                            })}
+                                                                        </div>
+                                                                    </div>
                                                                 </div>
-                                                                <div className="text-right whitespace-nowrap">
-                                                                    {new Date(task.startTime).toLocaleTimeString()} - {new Date(task.endTime).toLocaleTimeString()}
-                                                                </div>
-                                                            </li>
+                                                            </div>
                                                         ))}
-                                                        {plan.scheduledTasks.length > 3 && (
-                                                            <li className="text-xs text-center text-gray-400 pt-1">...and {plan.scheduledTasks.length - 3} more tasks</li>
-                                                        )}
-                                                    </ul>
+                                                    </div>
                                                 </div>
                                             </td>
                                         </tr>

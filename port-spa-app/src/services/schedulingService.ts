@@ -1,6 +1,6 @@
 ﻿// Scheduling API Service
 import axios from 'axios';
-import type { DailyScheduleRequest, DailyScheduleResponse, SchedulingAlgorithm, GeneticAlgorithmParams } from '../types/scheduling.types';
+import type { DailyScheduleRequest, DailyScheduleResponse, SchedulingAlgorithm, GeneticAlgorithmParams, ScheduledTask } from '../types/scheduling.types';
 import { getAuthToken } from '../firebaseConfig';
 
 // Planning API base URL - should be configured in environment
@@ -44,7 +44,7 @@ export interface CreateOperationPlanRequest {
     geneticParams?: GeneticAlgorithmParams;
     totalDelay: number;
     executionTimeMs: number;
-    scheduledTasks: any[]; // Ou tipar com ScheduledTaskDto
+    scheduledTasks: ScheduledTask[];
 }
 
 /** Tipos de Filtros Aceitos */
@@ -63,7 +63,7 @@ export interface OperationPlan {
     };
     geneticParams?: GeneticAlgorithmParams;
     scheduledTasksCount?: number;
-    scheduledTasks: any[]; // Inclui o array completo para a visualização detalhada
+    scheduledTasks: ScheduledTask[];
     createdBy: string;
     createdAt: string;
 }

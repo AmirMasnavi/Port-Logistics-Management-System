@@ -90,7 +90,7 @@ public class PortApiHttpClient : IPortApiHttpClient
             {
                 foreach (var visit in visitList)
                 {
-                    Console.WriteLine($"[Planning] Found visit: ID={visit.Id}, BusinessId={visit.BusinessId}, Arrival={visit.EstimatedArrival}, Departure={visit.EstimatedDeparture}, DockId={visit.DockId}, DockName={visit.DockName ?? "NULL"}");
+                    Console.WriteLine($"[Planning] Found visit: ID={visit.Id}, BusinessId={visit.BusinessId}, VesselImo={visit.VesselImo ?? "NULL"}, Arrival={visit.EstimatedArrival}, Departure={visit.EstimatedDeparture}, DockId={visit.DockId}, DockName={visit.DockName ?? "NULL"}");
                 }
             }
             

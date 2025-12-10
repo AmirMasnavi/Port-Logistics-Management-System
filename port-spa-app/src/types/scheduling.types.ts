@@ -24,6 +24,7 @@ export interface ScheduledTask {
     staffId: string;    // The operator
     
     // Display names (for UI - user-friendly names instead of IDs)
+    vesselImo: string;
     vesselVisitBusinessId: string;
     dockName: string;
     resourceKind: string;

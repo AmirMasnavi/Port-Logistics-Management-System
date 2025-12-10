@@ -20,10 +20,19 @@ const operationPlanSchema = new mongoose.Schema({
     // Explicitly define this to meet the User Story requirement
     scheduledTasks: [{
         vesselVisitId: String,
+        resourceId: String,
+        staffId: String,
         dockId: String,
-        resourceId: String, // "Assigned Resources"
-        startTime: Date,    // "Planned Time Windows"
-        endTime: Date       // "Planned Time Windows"
+        
+        // Display names (for UI - user-friendly names instead of IDs)
+        vesselImo: String,
+        vesselVisitBusinessId: String,
+        dockName: String,
+        resourceKind: String,
+        staffShortName: String,
+        
+        startTime: Date,
+        endTime: Date
     }],
     createdAt: { type: Date, default: Date.now }
 });
