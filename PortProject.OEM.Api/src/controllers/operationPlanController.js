@@ -7,16 +7,18 @@ export const createOperationPlanRouter = () => {
     const service = new OperationPlanService();
 
     /**
-     * 1. LISTAR HISTÓRICO (GET /api/plans)
-     * Esta rota estava em falta, causando o erro "Failed to fetch" no React
+     * 1. LIST PLAN HISTORY (GET /api/plans)
      */
     router.get('/', verifyFirebaseToken, async (req, res) => {
         try {
             console.log('[OEM] Fetching plan history...');
-            const { date } = req.query;
+            // Capture all possible filters from query
+            const { date, vesselVisitId } = req.query;
 
             const filters = {};
+            // Garantimos que filtramos apenas se o valor não for vazio/undefined
             if (date) filters.date = date;
+            if (vesselVisitId) filters.vesselVisitId = vesselVisitId;
 
             const plans = await service.getAllPlans(filters);
 
@@ -30,7 +32,7 @@ export const createOperationPlanRouter = () => {
             res.status(500).json({ success: false, message: error.message });
         }
     });
-
+    
     /**
      * 2. CRIAR PLANO (POST /api/plans)
      */

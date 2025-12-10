@@ -33,21 +33,24 @@ export class OperationPlanService {
     }
 
     /**
-     * Lista todos os planos (Correção do erro 500)
+     * Lists all plans (Now accepts filters and includes scheduledTasks)
      */
     async getAllPlans(filters = {}) {
         const plans = await this.repository.findAll(filters);
 
-        // Mapeamento manual simples para evitar erros com DTOs externos
+        // Manual mapping to include scheduled tasks details for the frontend
         return plans.map(p => ({
             planId: p.planId,
             date: p.date,
             algorithm: p.algorithm,
             status: p.status,
+            geneticParams: p.geneticParams, // Added for completeness, although not used in FE table summary
             metrics: p.metrics || { totalDelay: 0, executionTimeMs: 0 },
             scheduledTasksCount: p.scheduledTasks ? p.scheduledTasks.length : 0,
             createdBy: p.createdBy,
-            createdAt: p.createdAt
+            createdAt: p.createdAt,
+            // Including full tasks array for the detailed view in the FE table
+            scheduledTasks: p.scheduledTasks || []
         }));
     }
 

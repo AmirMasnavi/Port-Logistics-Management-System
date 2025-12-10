@@ -11,13 +11,22 @@ export class OperationPlanRepository {
         return await document.save();
     }
 
-    // 2. Listar Tudo (Esta é a função que estava a falhar no erro 500)
+    // 2. Listar Tudo (Expandido para suportar filtragem avançada por data e navio)
     async findAll(filters = {}) {
         const query = {};
+
+        // Filter 1: Plan Date
         if (filters.date) {
+            // Busca a string exata (YYYY-MM-DD), o que deve funcionar se o input for exato.
             query.date = filters.date;
         }
-        // .lean() converte documentos Mongoose para objetos JS simples (mais rápido e evita erros de conversão)
+
+        // Filter 2: Vessel Identifier
+        if (filters.vesselVisitId) {
+            query['scheduledTasks.vesselVisitId'] = filters.vesselVisitId;
+        }
+
+        // Ordena por data de criação decrescente
         return await this.model.find(query).sort({ createdAt: -1 }).lean();
     }
 

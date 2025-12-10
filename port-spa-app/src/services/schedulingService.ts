@@ -47,6 +47,11 @@ export interface CreateOperationPlanRequest {
     scheduledTasks: any[]; // Ou tipar com ScheduledTaskDto
 }
 
+/** Tipos de Filtros Aceitos */
+export interface OperationPlanFilters {
+    date?: string;
+}
+
 export interface OperationPlan {
     planId: string;
     date: string;
@@ -56,6 +61,10 @@ export interface OperationPlan {
         totalDelay: number;
         executionTimeMs: number;
     };
+    geneticParams?: GeneticAlgorithmParams;
+    scheduledTasksCount?: number;
+    scheduledTasks: any[]; // Inclui o array completo para a visualização detalhada
+    createdBy: string;
     createdAt: string;
 }
 
@@ -122,10 +131,22 @@ export class SchedulingService {
             throw new Error(error.response?.data?.message || 'Failed to save plan to OEM database.');
         }
     }
-    
-    async getOperationPlans(date?: string): Promise<OperationPlan[]> {
+   
+    /**
+     * Fetches operation plans, optionally filtered by date or vesselVisitId.
+     * @param filters - An object containing optional filtering criteria.
+     */
+    async getOperationPlans(filters: OperationPlanFilters = {}): Promise<OperationPlan[]> {
         try {
-            const url = date ? `/plans?date=${date}` : '/plans';
+            const params = new URLSearchParams();
+
+            // SÓ adiciona o filtro se o valor não for vazio (importante para evitar '?date=')
+            if (filters.date) {
+                params.append('date', filters.date);
+            }          
+            // Constrói a URL: /plans ou /plans?date=...&vesselVisitId=...
+            const url = `/plans?${params.toString()}`;
+
             const response = await oemApiClient.get<{ success: boolean, data: OperationPlan[] }>(url);
             return response.data.data;
         } catch (error: any) {
@@ -133,6 +154,7 @@ export class SchedulingService {
             return [];
         }
     }
+    
     async deleteOperationPlan(planId: string): Promise<void> {
         try {
             console.log('[OEM] Deleting plan:', planId);
