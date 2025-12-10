@@ -17,6 +17,12 @@ const operationPlanSchema = new mongoose.Schema({
         totalDelay: Number,
         executionTimeMs: Number
     },
+    changeLogs: [{
+        timestamp: { type: Date, default: Date.now },
+        author: String,      // Who did it?
+        reason: String,      // Why? (User input)
+        details: String      // What changed? (e.g., "Moved Task X to Crane 2")
+    }],
     // Explicitly define this to meet the User Story requirement
     scheduledTasks: [{
         vesselVisitId: String,

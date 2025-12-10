@@ -113,6 +113,32 @@ const createTestRouter = () => {
         }
     });
 
+    router.patch('/:planId/tasks/:taskId', mockVerifyFirebaseToken, async (req, res) => {
+        try {
+            const { planId, taskId } = req.params;
+            const updateData = req.body;
+            const userEmail = req.user?.email || 'unknown';
+
+            const result = await service.updateTask(planId, taskId, updateData, userEmail);
+            
+            // result.plan is already a DTO from the service mapper
+            res.json({
+                success: true,
+                message: 'Task updated successfully',
+                data: result.plan,
+                warnings: result.warnings || []
+            });
+        } catch (error) {
+            console.error('[TEST APP ERROR] PATCH /api/plans/:planId/tasks/:taskId:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Failed to update task',
+                error: error.message,
+                stack: process.env.NODE_ENV === 'test' ? error.stack : undefined
+            });
+        }
+    });
+
     return router;
 };
 

@@ -46,7 +46,9 @@ export class OperationPlanResponseDto {
                     status,
                     createdAt,
                     scheduledTasksCount,
-                    metrics
+                    metrics,
+                    scheduledTasks,
+                    changeLogs
                 }) {
         this.planId = planId;
         this.date = date;
@@ -57,5 +59,12 @@ export class OperationPlanResponseDto {
         this.createdAt = createdAt;
         this.scheduledTasksCount = scheduledTasksCount;
         this.metrics = metrics;
+        // Include full scheduledTasks and changeLogs when available (for detailed views)
+        if (scheduledTasks !== undefined) {
+            this.scheduledTasks = scheduledTasks;
+        }
+        if (changeLogs !== undefined) {
+            this.changeLogs = changeLogs;
+        }
     }
 }

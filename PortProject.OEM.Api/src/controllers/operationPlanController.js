@@ -107,5 +107,29 @@ export const createOperationPlanRouter = () => {
         }
     });
 
+    /**
+     * US 4.1.4 - Update a Task
+     * PATCH /api/plans/:planId/tasks/:taskId
+     */
+    router.patch('/:planId/tasks/:taskId', verifyFirebaseToken, async (req, res) => {
+        try {
+            const { planId, taskId } = req.params;
+            const userId = req.user?.email || 'unknown';
+
+            // req.body should contain: { resourceId, startTime, endTime, reason }
+            const result = await service.updateTask(planId, taskId, req.body, userId);
+
+            res.json({
+                success: true,
+                message: "Task updated successfully",
+                warnings: result.warnings, // Frontend will display these
+                data: result.plan
+            });
+        } catch (error) {
+            console.error('[OEM UPDATE ERROR]:', error);
+            res.status(500).json({ success: false, message: error.message });
+        }
+    });
+
     return router;
 };

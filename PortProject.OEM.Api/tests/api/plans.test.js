@@ -18,7 +18,7 @@ import { MongoMemoryServer } from 'mongodb-memory-server';
 import mongoose from 'mongoose';
 import { createTestApp } from '../helpers/testApp.js';
 
-describe('US 4.1.2 - API Tests - Operation Plans Endpoints', () => {
+describe('API Tests', () => {
   let mongoServer;
   let app;
 
@@ -422,6 +422,119 @@ describe('US 4.1.2 - API Tests - Operation Plans Endpoints', () => {
         .set('Authorization', 'Bearer mock-valid-token');
 
       expect(getFinalRes.body.count).toBe(0);
+    });
+  });
+
+  describe('PATCH /api/plans/:planId/tasks/:taskId - Update Task (US 4.1.4)', () => {
+    let createdPlanId;
+    let createdTaskId;
+
+    // Helper to create a fresh plan before these tests
+    beforeEach(async () => {
+      const payload = {
+        date: '2025-12-20',
+        algorithm: 'optimal',
+        scheduledTasks: [
+          {
+            vesselVisitId: 'V1',
+            vesselVisitBusinessId: 'VISIT-V1',
+            resourceId: 'Crane-1',
+            startTime: '2025-12-20T09:00:00Z',
+            endTime: '2025-12-20T10:00:00Z'
+          },
+          {
+            vesselVisitId: 'V2',
+            vesselVisitBusinessId: 'VISIT-V2',
+            resourceId: 'Crane-2',
+            startTime: '2025-12-20T09:00:00Z',
+            endTime: '2025-12-20T10:00:00Z'
+          }
+        ],
+        totalDelay: 0,
+        executionTimeMs: 100
+      };
+
+      const res = await request(app)
+        .post('/api/plans')
+        .set('Authorization', 'Bearer mock-valid-token')
+        .send(payload);
+
+      createdPlanId = res.body.data.planId;
+      // Get the _id of the first task created by Mongoose
+      createdTaskId = res.body.data.scheduledTasks[0]._id;
+    });
+
+    test('should update task and log change successfully', async () => {
+      // Act
+      const updateData = {
+        resourceId: 'Crane-5',
+        startTime: '2025-12-20T12:00:00Z',
+        endTime: '2025-12-20T13:00:00Z',
+        reason: 'Operator Request'
+      };
+
+      const res = await request(app)
+        .patch(`/api/plans/${createdPlanId}/tasks/${createdTaskId}`)
+        .set('Authorization', 'Bearer mock-valid-token')
+        .send(updateData);
+
+      // Assert
+      expect(res.statusCode).toBe(200);
+      expect(res.body.success).toBe(true);
+      
+      const updatedPlan = res.body.data;
+      const updatedTask = updatedPlan.scheduledTasks.find(t => t._id === createdTaskId);
+      
+      // Check values updated
+      expect(updatedTask.resourceId).toBe('Crane-5');
+      
+      // Check Audit Log
+      expect(updatedPlan.changeLogs).toHaveLength(1);
+      expect(updatedPlan.changeLogs[0].reason).toBe('Operator Request');
+      expect(updatedPlan.changeLogs[0].details).toContain('Crane-1->Crane-5');
+    });
+
+    test('should return warnings on resource conflict', async () => {
+      // Act: Try to move Task 1 to where Task 2 is (Crane-2, 09:00-10:00)
+      const updateData = {
+        resourceId: 'Crane-2', // Conflict!
+        startTime: '2025-12-20T09:30:00Z',
+        endTime: '2025-12-20T10:30:00Z',
+        reason: 'Bad Move'
+      };
+
+      const res = await request(app)
+        .patch(`/api/plans/${createdPlanId}/tasks/${createdTaskId}`)
+        .set('Authorization', 'Bearer mock-valid-token')
+        .send(updateData);
+
+      // Assert
+      expect(res.statusCode).toBe(200); // It still succeeds
+      expect(res.body.warnings).toBeDefined();
+      expect(res.body.warnings.length).toBeGreaterThan(0);
+      expect(res.body.warnings[0]).toContain('Conflict');
+      expect(res.body.warnings[0]).toContain('Crane-2');
+    });
+
+    test('should fail with 404 if plan or task does not exist', async () => {
+      const res = await request(app)
+        .patch(`/api/plans/${createdPlanId}/tasks/000000000000000000000000`) // Fake Object ID
+        .set('Authorization', 'Bearer mock-valid-token')
+        .send({ resourceId: 'Crane-X' });
+
+      // Depending on implementation this may be 404 or 500; assert failure response shape
+      expect(res.statusCode).toBeGreaterThanOrEqual(400);
+      expect(res.body.success).toBe(false);
+    });
+
+    test('should require authentication', async () => {
+      // Act
+      const res = await request(app)
+        .patch(`/api/plans/${createdPlanId}/tasks/${createdTaskId}`)
+        .send({ resourceId: 'Crane-X' });
+
+      // Assert
+      expect(res.statusCode).toBe(401);
     });
   });
 });

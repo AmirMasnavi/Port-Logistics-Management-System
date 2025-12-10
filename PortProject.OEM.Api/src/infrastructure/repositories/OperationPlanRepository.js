@@ -11,7 +11,20 @@ export class OperationPlanRepository {
         return await document.save();
     }
 
-    // 2. Listar Tudo (Expandido para suportar filtragem avançada por data e navio)
+    // 2. Find by ID (planId or _id)
+    async findById(planId) {
+        // Try to find by planId (business ID) first
+        let plan = await this.model.findOne({ planId: planId });
+        
+        // If not found and the ID looks like a MongoDB ObjectId, try _id
+        if (!plan && planId.match(/^[0-9a-fA-F]{24}$/)) {
+            plan = await this.model.findById(planId);
+        }
+        
+        return plan;
+    }
+
+    // 3. Listar Tudo (Expandido para suportar filtragem avançada por data e navio)
     async findAll(filters = {}) {
         const query = {};
 
@@ -30,13 +43,13 @@ export class OperationPlanRepository {
         return await this.model.find(query).sort({ createdAt: -1 }).lean();
     }
 
-    // 3. Eliminar
+    // 4. Eliminar
     async delete(planId) {
         const result = await this.model.deleteOne({ planId: planId });
         return result.deletedCount > 0;
     }
 
-    // 4. Gerar ID
+    // 5. Gerar ID
     async generateNextId() {
         const now = new Date();
         const datePrefix = now.toISOString().slice(0, 10).replace(/-/g, ''); // 20241208
