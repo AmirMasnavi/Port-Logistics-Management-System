@@ -13,6 +13,7 @@ using PortProject.Api.Domain.ShippingAgentOrganizationAggregate;
 using PortProject.Api.Domain.ShippingAgentRepresentativeAggregate;
 using PortProject.Api.Domain.VesselTypeAggregate;
 using PortProject.Api.Domain.VesselVisitNotificationAggregate;
+using PortProject.Api.Domain.PrivacyPolicyAggregate;
 using src.Domain.VesselTypeAggregate;
 
 namespace PortProject.Api.Models;
@@ -39,6 +40,9 @@ public class PortProjectContext : DbContext
     public DbSet<AppUser> AppUsers { get; set; }
     
     public DbSet<Resource> Resources { get; set;}
+    
+    public DbSet<PrivacyPolicy> PrivacyPolicies { get; set; }
+    public DbSet<UserPolicyAcknowledgment> UserPolicyAcknowledgments { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -626,6 +630,52 @@ public class PortProjectContext : DbContext
         appUserBuilder.Property(u => u.Role).HasConversion<string>();
         appUserBuilder.Property(u => u.Status).HasConversion<string>();
         appUserBuilder.Property(u => u.ActivationToken).IsRequired(false);
+
+        // === PRIVACY POLICY CONFIGURATION ===
+        var privacyPolicyBuilder = modelBuilder.Entity<PrivacyPolicy>();
+        
+        privacyPolicyBuilder.HasKey(pp => pp.Id);
+        
+        privacyPolicyBuilder.Property(pp => pp.Title)
+            .IsRequired()
+            .HasMaxLength(200);
+        
+        privacyPolicyBuilder.Property(pp => pp.Content)
+            .IsRequired()
+            .HasColumnType("TEXT"); // For large content
+        
+        privacyPolicyBuilder.Property(pp => pp.CreatedBy)
+            .IsRequired()
+            .HasMaxLength(100);
+        
+        privacyPolicyBuilder.Property(pp => pp.ChangeReason)
+            .HasMaxLength(500);
+        
+        privacyPolicyBuilder.HasIndex(pp => pp.IsCurrent);
+        privacyPolicyBuilder.HasIndex(pp => pp.Version).IsUnique();
+        
+        // === USER POLICY ACKNOWLEDGMENT CONFIGURATION ===
+        var acknowledgmentBuilder = modelBuilder.Entity<UserPolicyAcknowledgment>();
+        
+        acknowledgmentBuilder.HasKey(upa => upa.Id);
+        
+        acknowledgmentBuilder.Property(upa => upa.UserId)
+            .IsRequired()
+            .HasMaxLength(100);
+        
+        acknowledgmentBuilder.Property(upa => upa.IpAddress)
+            .HasMaxLength(50);
+        
+        acknowledgmentBuilder.Property(upa => upa.UserAgent)
+            .HasMaxLength(500);
+        
+        acknowledgmentBuilder.HasOne(upa => upa.PrivacyPolicy)
+            .WithMany()
+            .HasForeignKey(upa => upa.PrivacyPolicyId)
+            .OnDelete(DeleteBehavior.Restrict);
+        
+        acknowledgmentBuilder.HasIndex(upa => upa.UserId);
+        acknowledgmentBuilder.HasIndex(upa => new { upa.UserId, upa.PolicyVersion });
 
         // Optional: default table name
         resourceBuilder.ToTable("Resources");

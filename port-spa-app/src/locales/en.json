@@ -83,6 +83,25 @@
   "errors": {
     "fetchFailed": "Failed to fetch data. Please try again later.",
     "createFailedVesselType": "Failed to create vessel type. Please try again."
+  },
+  "footer": {
+    "privacy": "Privacy Policy",
+    "privacyPolicy": "Privacy Policy",
+    "terms": "Terms",
+    "help": "Help"
+  },
+  "privacyPolicy": {
+    "notAvailable": "Privacy Policy is not available at this time.",
+    "modal": {
+      "title": "Privacy Policy Update",
+      "subtitle": "Please review and accept our privacy policy to continue",
+      "notice": "Action Required",
+      "noticeText": "Our Privacy Policy has been updated. You must review and accept it to continue using the system.",
+      "confirmation": "I have read and understood the Privacy Policy and agree to the processing of my personal data as described.",
+      "accept": "Accept & Continue",
+      "decline": "Decline & Logout",
+      "accepting": "Accepting...",
+      "gdprNotice": "By accepting, you acknowledge your rights under GDPR including access, rectification, and erasure of your data."
+    }
   }
-  
 }

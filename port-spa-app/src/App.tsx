@@ -17,7 +17,8 @@ import RoleProtectedRoute from './auth/RoleProtectedRoute'; // Our new component
 import ResourcePage from './pages/ResourcePage';
 import SchedulingPage from './pages/SchedulingPage';
 import CreateVvePage from './pages/CreateVvePage';
-
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
+import PrivacyPolicyGuard from './components/auth/PrivacyPolicyGuard';
 
 import { OperationPlanPage } from './pages/OperationPlanPage';
 import PlanningResourceAllocationsPage from './pages/PlanningResourceAllocationsPage';
@@ -47,82 +48,86 @@ function App() {
         <BrowserRouter>
             {/* The Layout now wraps all our pages */}
             <Layout>
-                {/* Routes define which page component to show based on the URL */}
-                <Routes>
-                    {/* Public route (activation) */}
-                    <Route path="/activate" element={<ActivationPage />} />
-                   
+                <PrivacyPolicyGuard>
+                    {/* Routes define which page component to show based on the URL */}
+                    <Routes>
+                        {/* Public route (activation) */}
+                        <Route path="/activate" element={<ActivationPage />} />
+                        <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+                       
 
-                    {/* --- Protected Route Group --- */}
-                    {/* All routes inside this group first check if the user is authenticated.
-                        The <RequireAuth> component acts as a gatekeeper. If the user is not
-                        logged in, it will likely redirect them to the login page. */}
+                        {/* --- Protected Route Group --- */}
+                        {/* All routes inside this group first check if the user is authenticated.
+                            The <RequireAuth> component acts as a gatekeeper. If the user is not
+                            logged in, it will likely redirect them to the login page. */}
 
-                    {/* US3.1.3: SubIssue 2: Topic 2 - Apply the RoleProtectedRoute to the Application's Routes */}
+                        {/* US3.1.3: SubIssue 2: Topic 2 - Apply the RoleProtectedRoute to the Application's Routes */}
 
-                    <Route element={<RequireAuth />}>
+                        <Route element={<RequireAuth />}>
 
-                        {/* --- Routes accessible to ALL authenticated users --- */}
-                        <Route path="/" element={<Dashboard />} />
-                        <Route path="/vessel-visits" element={<VesselVisitsPage />} />
+                            {/* --- Routes accessible to ALL authenticated users --- */}
+                            <Route path="/" element={<Dashboard />} />
+                            <Route path="/vessel-visits" element={<VesselVisitsPage />} />
 
-                        {/* --- Role-Protected Routes for Visualization --- */}
-                        <Route element={<RoleProtectedRoute allowedRoles={canViewVisualization} />}>
-                            <Route path="/visualization" element={<VisualizationPage />} />
+                            {/* --- Role-Protected Routes for Visualization --- */}
+                            <Route element={<RoleProtectedRoute allowedRoles={canViewVisualization} />}>
+                                <Route path="/visualization" element={<VisualizationPage />} />
+                            </Route>
+
+                            {/* --- Role-Protected Routes for Port Managers (Admin, Officer) --- */}
+                            <Route element={<RoleProtectedRoute allowedRoles={canManagePort} />}>
+                                <Route path="/vessel-types" element={<VesselTypesPage />} />
+                                <Route path="/shippingagentorganization" element={<ShippingAgentOrganization />} />
+                            </Route>
+
+                            {/* --- Role-Protected Routes for Planners (Admin, Officer) --- */}
+                            <Route element={<RoleProtectedRoute allowedRoles={canViewPlanning} />}>
+                                <Route path="/port-facilities" element={<PortFacilitiesPage />} />
+                                {/* Assuming Docks fall under the same planning permissions */}
+                                <Route path="/docks" element={<DockPage />} /> 
+                                {/* New: Resource allocation summary */}
+                                <Route path="/planning/resource-allocations" element={<PlanningResourceAllocationsPage />} />
+                            </Route>
+
+                            {/* --- Vessels List (Admin, Officer, Logistics) --- */}
+                            {/* Moved here so Logistics can access Vessels but not Agent Config */}
+                            <Route element={<RoleProtectedRoute allowedRoles={canViewVessels} />}>
+                                <Route path="/vessels" element={<VesselsPage />} />
+                            </Route>
+
+                            {/* --- Resources (Admin, Officer, Logistics) --- */}
+                            {/* Agent excluded */}
+                            <Route element={<RoleProtectedRoute allowedRoles={canViewResources} />}>
+                                <Route path="/resources" element={<ResourcePage />} />
+                                {/* Create VVE page (Logistics Operators + Admin/Officer) */}
+                                <Route path="/vessel-visits/new-vve" element={<CreateVvePage />} />
+                            </Route>
+
+                            {/* --- Role-Protected Routes for IARTI (Admin, Logistics) --- */}
+                            <Route element={<RoleProtectedRoute allowedRoles={canViewIARTI} />}>
+                                <Route path="/scheduling" element={<SchedulingPage />} />
+                                <Route path="/operation-plans" element={<OperationPlanPage />} />
+                            </Route>
+                            
+                            {/* --- Role-Protected Routes for VVN Management (Admin, Agent) --- */}
+                            <Route element={<RoleProtectedRoute allowedRoles={canManageVVN} />}>
+                                <Route path="/vessel-visits/new" element={<CreateVvnPage />} /> 
+                                <Route path="/vessel-visits/edit/:id" element={<CreateVvnPage />} /> 
+                                {/* NOTE: Your current implementation uses a Modal, not a separate page.
+                                     If you switch to separate pages, you can uncomment these routes. */}
+                            </Route>
+                            
+                            {/* --- Role-Protected Routes for Administrators ONLY --- */}
+                            <Route element={<RoleProtectedRoute allowedRoles={isAdmin} />}>
+                                <Route path="/admin/users" element={<AdminPage />} />
+                            </Route>
                         </Route>
-
-                        {/* --- Role-Protected Routes for Port Managers (Admin, Officer) --- */}
-                        <Route element={<RoleProtectedRoute allowedRoles={canManagePort} />}>
-                            <Route path="/vessel-types" element={<VesselTypesPage />} />
-                            <Route path="/shippingagentorganization" element={<ShippingAgentOrganization />} />
-                        </Route>
-
-                        {/* --- Role-Protected Routes for Planners (Admin, Officer) --- */}
-                        <Route element={<RoleProtectedRoute allowedRoles={canViewPlanning} />}>
-                            <Route path="/port-facilities" element={<PortFacilitiesPage />} />
-                            {/* Assuming Docks fall under the same planning permissions */}
-                            <Route path="/docks" element={<DockPage />} /> 
-                            {/* New: Resource allocation summary */}
-                            <Route path="/planning/resource-allocations" element={<PlanningResourceAllocationsPage />} />
-                        </Route>
-
-                        {/* --- Vessels List (Admin, Officer, Logistics) --- */}
-                        {/* Moved here so Logistics can access Vessels but not Agent Config */}
-                        <Route element={<RoleProtectedRoute allowedRoles={canViewVessels} />}>
-                            <Route path="/vessels" element={<VesselsPage />} />
-                        </Route>
-
-                        {/* --- Resources (Admin, Officer, Logistics) --- */}
-                        {/* Agent excluded */}
-                        <Route element={<RoleProtectedRoute allowedRoles={canViewResources} />}>
-                            <Route path="/resources" element={<ResourcePage />} />
-                            {/* Create VVE page (Logistics Operators + Admin/Officer) */}
-                            <Route path="/vessel-visits/new-vve" element={<CreateVvePage />} />
-                        </Route>
-
-                        {/* --- Role-Protected Routes for IARTI (Admin, Logistics) --- */}
-                        <Route element={<RoleProtectedRoute allowedRoles={canViewIARTI} />}>
-                            <Route path="/scheduling" element={<SchedulingPage />} />
-                            <Route path="/operation-plans" element={<OperationPlanPage />} />
-                        </Route>
-                        
-                        {/* --- Role-Protected Routes for VVN Management (Admin, Agent) --- */}
-                        <Route element={<RoleProtectedRoute allowedRoles={canManageVVN} />}>
-                            <Route path="/vessel-visits/new" element={<CreateVvnPage />} /> 
-                            <Route path="/vessel-visits/edit/:id" element={<CreateVvnPage />} /> 
-                            {/* NOTE: Your current implementation uses a Modal, not a separate page.
-                                 If you switch to separate pages, you can uncomment these routes. */}
-                        </Route>
-                        
-                        {/* --- Role-Protected Routes for Administrators ONLY --- */}
-                        <Route element={<RoleProtectedRoute allowedRoles={isAdmin} />}>
-                            <Route path="/admin/users" element={<AdminPage />} />
-                        </Route>
-                    </Route>
-                </Routes>
+                    </Routes>
+                </PrivacyPolicyGuard>
             </Layout>
         </BrowserRouter>
     );    
 }
 
 export default App;
+

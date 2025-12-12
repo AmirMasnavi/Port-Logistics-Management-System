@@ -77,6 +77,27 @@
     "createVesselType": "Criar novo tipo de navio"
   },
   "errors": {
-    "fetchFailed": "Falha ao obter dados. Tente novamente mais tarde."
+    "fetchFailed": "Falha ao obter dados. Por favor, tente novamente mais tarde.",
+    "createFailedVesselType": "Falha ao criar tipo de navio. Por favor, tente novamente."
+  },
+  "footer": {
+    "privacy": "Política de Privacidade",
+    "privacyPolicy": "Política de Privacidade",
+    "terms": "Termos",
+    "help": "Ajuda"
+  },
+  "privacyPolicy": {
+    "notAvailable": "A Política de Privacidade não está disponível neste momento.",
+    "modal": {
+      "title": "Atualização da Política de Privacidade",
+      "subtitle": "Por favor, reveja e aceite a nossa política de privacidade para continuar",
+      "notice": "Ação Necessária",
+      "noticeText": "A nossa Política de Privacidade foi atualizada. Deve rever e aceitar para continuar a utilizar o sistema.",
+      "confirmation": "Li e compreendi a Política de Privacidade e concordo com o processamento dos meus dados pessoais conforme descrito.",
+      "accept": "Aceitar e Continuar",
+      "decline": "Recusar e Sair",
+      "accepting": "A aceitar...",
+      "gdprNotice": "Ao aceitar, reconhece os seus direitos ao abrigo do RGPD, incluindo acesso, retificação e eliminação dos seus dados."
+    }
   }
 }

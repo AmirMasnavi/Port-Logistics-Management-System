@@ -33,6 +33,8 @@ using PortProject.Api.Application.UserAdmin.Services;
 using Microsoft.AspNetCore.Authentication;
 using PortProject.Api.Infrastructure.Authentication;
 using PortProject.Api.Infrastructure.Middleware;
+using PortProject.Api.Application.PrivacyPolicy.Services;
+using PortProject.Api.Domain.PrivacyPolicyAggregate;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -123,6 +125,8 @@ builder.Services.AddScoped<IDockService, DockService>();
 builder.Services.AddScoped<IResourceService, ResourceService>();
 builder.Services.AddScoped<IResourceRepository, ResourceRepository>();
 builder.Services.AddScoped<IPortLayoutService, PortLayoutService>();
+builder.Services.AddScoped<IPrivacyPolicyService, PrivacyPolicyService>();
+builder.Services.AddScoped<IPrivacyPolicyRepository, PrivacyPolicyRepository>();
 builder.Services.AddTransient<IEmailService, EmailService>();
 
 
