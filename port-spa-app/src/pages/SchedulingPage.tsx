@@ -9,7 +9,7 @@ const SchedulingPage: React.FC = () => {
     const [selectedDate, setSelectedDate] = useState<string>(
         new Date().toISOString().split('T')[0] // Default to today (YYYY-MM-DD)
     );
-    const [selectedAlgorithm, setSelectedAlgorithm] = useState<SchedulingAlgorithm>('optimal');
+    const [selectedAlgorithm, setSelectedAlgorithm] = useState<SchedulingAlgorithm>('automatic');
     const [loading, setLoading] = useState(false);
     const [scheduleData, setScheduleData] = useState<DailyScheduleResponse | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -249,6 +249,7 @@ const SchedulingPage: React.FC = () => {
                             }}
                             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-lg"
                         >
+                            <option value="automatic">Automatic Selection (Smart)</option>
                             <option value="optimal">Optimal (Minimize Delays)</option>
                             <option value="heuristic">Heuristic (Fast Approximation)</option>
                             <option value="multicrane">Multi-Crane (Advanced)</option>
@@ -445,6 +446,23 @@ const SchedulingPage: React.FC = () => {
             {/* Results Section */}
             {scheduleData && (
                 <>
+                    {/* Automatic Algorithm Selection Info */}
+                    {selectedAlgorithm === 'automatic' && scheduleData.algorithmUsed && (
+                        <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-3">
+                            <div className="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                                <Settings className="w-5 h-5 text-blue-600" />
+                            </div>
+                            <div className="flex-1">
+                                <p className="text-blue-800 font-medium">Automatic Algorithm Selection</p>
+                                <p className="text-blue-700 text-sm">
+                                    Based on the problem size ({scheduleData.scheduledTasks.length} operations), 
+                                    the system automatically selected the <strong>{scheduleData.algorithmUsed.toUpperCase()}</strong> algorithm 
+                                    for optimal performance.
+                                </p>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Success Message (if saved) */}
                     {saveStatus === 'success' && planSaved && (
                         <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-3">
@@ -490,7 +508,11 @@ const SchedulingPage: React.FC = () => {
                         <StatCard
                             title="Computation Time"
                             value={`${scheduleData.executionTimeMs.toFixed(0)} ms`}
-                            description={`Algorithm: ${selectedAlgorithm}`}
+                            description={
+                                selectedAlgorithm === 'automatic' && scheduleData.algorithmUsed
+                                    ? `Auto-selected: ${scheduleData.algorithmUsed}`
+                                    : `Algorithm: ${selectedAlgorithm}`
+                            }
                         />
                         <StatCard
                             title="Warnings"

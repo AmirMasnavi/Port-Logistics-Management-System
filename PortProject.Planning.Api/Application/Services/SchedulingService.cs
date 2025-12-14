@@ -90,6 +90,51 @@ public class SchedulingService : ISchedulingService
             return Finish();
         }
 
+        // --- AUTOMATIC ALGORITHM SELECTION ---
+        // If "automatic" is selected, determine the most suitable algorithm based on problem size
+        if (algorithm?.ToLower() == "automatic")
+        {
+            int problemSize = clientVisits.Count;
+            _logger.LogInformation("Automatic algorithm selection initiated for {ProblemSize} visits", problemSize);
+            
+            // Algorithm selection policy:
+            // - Small instances (≤ 5 visits): Use optimal algorithm for best quality
+            // - Medium instances (6-15 visits): Use heuristic algorithm for good balance
+            // - Large instances (> 15 visits): Use genetic algorithm for scalability
+            if (problemSize <= 5)
+            {
+                algorithm = "optimal";
+                _logger.LogInformation("Selected OPTIMAL algorithm for small instance ({Size} visits)", problemSize);
+            }
+            else if (problemSize <= 15)
+            {
+                algorithm = "heuristic";
+                _logger.LogInformation("Selected HEURISTIC algorithm for medium instance ({Size} visits)", problemSize);
+            }
+            else
+            {
+                algorithm = "genetic";
+                _logger.LogInformation("Selected GENETIC algorithm for large instance ({Size} visits)", problemSize);
+                
+                // Set default genetic parameters if not provided
+                if (geneticParams == null)
+                {
+                    geneticParams = new GeneticAlgorithmParamsDto
+                    {
+                        PopulationSize = 50,
+                        Generations = 100,
+                        MutationRate = 0.2,
+                        DesiredTimeSeconds = 5,
+                        CraneMode = "single"
+                    };
+                    _logger.LogInformation("Using default genetic algorithm parameters");
+                }
+            }
+        }
+        
+        // Track the actual algorithm used for response
+        schedule.AlgorithmUsed = algorithm;
+
         // --- 3. PREPARE DATA FOR PROLOG ---
        
         

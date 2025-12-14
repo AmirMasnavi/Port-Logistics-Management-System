@@ -1,6 +1,6 @@
 ﻿// Scheduling types matching the backend DTOs
 
-export type SchedulingAlgorithm = 'optimal' | 'heuristic' | 'multicrane' | 'genetic';
+export type SchedulingAlgorithm = 'optimal' | 'heuristic' | 'multicrane' | 'genetic' | 'automatic';
 
 export type CraneMode = 'single' | 'multiple';
 
@@ -40,4 +40,5 @@ export interface DailyScheduleResponse {
     totalDelay: number;
     warnings: string[];
     executionTimeMs: number;
+    algorithmUsed?: string; // The actual algorithm used (useful when "automatic" is selected)
 }
