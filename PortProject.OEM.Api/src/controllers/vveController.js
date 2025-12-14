@@ -114,20 +114,39 @@ export const createVveRouter = (masterDataGateway) => {
   );
 
   /**
-   * Get all VVEs
+   * Get all VVEs with optional filters and metrics
    */
   router.get('/', verifyFirebaseToken, async (req, res) => {
     try {
-      const { status, vvnId, vesselIdentifier } = req.query;
+      const { status, vvnId, vesselIdentifier, fromDate, toDate, includeMetrics } = req.query;
       
       const filters = {};
       if (status) filters.status = status;
       if (vvnId) filters.vvnId = vvnId;
       if (vesselIdentifier) filters.vesselIdentifier = vesselIdentifier;
+      if (fromDate) filters.fromDate = fromDate;
+      if (toDate) filters.toDate = toDate;
 
+      console.log(`[VVE GET ALL] Query params:`, { status, vvnId, vesselIdentifier, fromDate, toDate, includeMetrics });
       console.log(`[VVE GET ALL] Fetching VVEs with filters:`, filters);
 
-      const vves = await vveService.getAllVves(filters);
+      // If includeMetrics is true, fetch VVEs with execution metrics
+      let vves;
+      if (includeMetrics === 'true') {
+        // Extract Firebase token from headers
+        const authToken = req.headers.authorization?.replace('Bearer ', '');
+        
+        // Set auth token in gateway for VVN lookups
+        if (authToken && vveService.masterDataGateway) {
+          vveService.masterDataGateway.setAuthToken(authToken);
+        }
+        
+        vves = await vveService.getVvesWithMetrics(filters);
+      } else {
+        vves = await vveService.getAllVves(filters);
+      }
+
+      console.log(`[VVE GET ALL] Returning ${vves.length} VVEs`);
 
       res.json({
         success: true,
