@@ -65,6 +65,42 @@ export class MasterDataGateway {
   }
 
   /**
+   * Get pending Vessel Visit Notifications for a specific date
+   * @param {string} date - Date in YYYY-MM-DD format
+   * @returns {Promise<Array>} Array of pending VVNs
+   */
+  async getPendingVisitsAsync(date) {
+    try {
+      // Convert date to datetime range
+      const fromDateTime = new Date(date + 'T00:00:00').toISOString();
+      const toDateTime = new Date(date + 'T23:59:59').toISOString();
+      
+      const url = `/api/notifications/search?status=Submitted&from=${encodeURIComponent(fromDateTime)}&to=${encodeURIComponent(toDateTime)}`;
+      
+      console.log(`[MasterDataGateway] Fetching pending visits for date: ${date}`);
+      console.log(`[MasterDataGateway] URL: ${url}`);
+      
+      const response = await this.client.get(url);
+      
+      if (response.status === 200) {
+        console.log(`[MasterDataGateway] Found ${response.data.length} pending visits`);
+        return response.data;
+      }
+      
+      console.log(`[MasterDataGateway] Failed to get pending visits. Status: ${response.status}`);
+      return [];
+      
+    } catch (error) {
+      if (error.response) {
+        console.log(`[MasterDataGateway] Failed to get pending visits. Status: ${error.response.status}`);
+      } else {
+        console.error(`[MasterDataGateway] Error fetching pending visits: ${error.message}`);
+      }
+      return [];
+    }
+  }
+
+  /**
    * Add more gateway methods here as needed
    * For example:
    * - getVesselAsync(imoNumber)

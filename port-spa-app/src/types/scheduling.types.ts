@@ -42,3 +42,27 @@ export interface DailyScheduleResponse {
     executionTimeMs: number;
     algorithmUsed?: string; // The actual algorithm used (useful when "automatic" is selected)
 }
+
+export interface VesselVisitNotification {
+    id: string;
+    businessId: string;
+    vesselImo: string;
+    estimatedArrival: string;
+    estimatedDeparture: string;
+    assignedDockId?: string;
+    assignedDockName?: string;
+    status: string;
+}
+
+export interface ExistingPlanSummary {
+    planId: string;
+    algorithm: string;
+    scheduledTasksCount: number;
+    createdAt: string;
+}
+
+export interface MissingPlansResponse {
+    missingVVNs: VesselVisitNotification[];
+    existingPlans: ExistingPlanSummary[];
+}
+

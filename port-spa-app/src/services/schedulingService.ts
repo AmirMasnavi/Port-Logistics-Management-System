@@ -1,6 +1,6 @@
 ﻿// Scheduling API Service
 import axios from 'axios';
-import type { DailyScheduleRequest, DailyScheduleResponse, SchedulingAlgorithm, GeneticAlgorithmParams, ScheduledTask } from '../types/scheduling.types';
+import type { DailyScheduleRequest, DailyScheduleResponse, SchedulingAlgorithm, GeneticAlgorithmParams, ScheduledTask, MissingPlansResponse } from '../types/scheduling.types';
 import { getAuthToken } from '../firebaseConfig';
 
 // Planning API base URL - should be configured in environment
@@ -162,6 +162,49 @@ export class SchedulingService {
         } catch (error: any) {
             console.error('Failed to delete plan:', error);
             throw new Error(error.response?.data?.message || 'Failed to delete plan.');
+        }
+    }
+
+    /**
+     * Get VVNs that don't have an operation plan for a specific date
+     * @param date - Date in YYYY-MM-DD format
+     */
+    async getMissingPlans(date: string): Promise<MissingPlansResponse> {
+        try {
+            const response = await oemApiClient.get<{ 
+                success: boolean, 
+                date: string,
+                missingCount: number,
+                hasExistingPlans: boolean,
+                data: MissingPlansResponse 
+            }>(`/plans/missing?date=${date}`);
+            
+            return response.data.data;
+        } catch (error: any) {
+            console.error('Failed to fetch missing plans:', error);
+            throw new Error(error.response?.data?.message || 'Failed to fetch missing plans.');
+        }
+    }
+    
+    /**
+     * Delete all operation plans for a specific date
+     * @param date - Date in YYYY-MM-DD format
+     */
+    async deletePlansByDate(date: string): Promise<number> {
+        try {
+            // Get all plans for the date
+            const plans = await this.getOperationPlans({ date });
+            
+            // Delete each plan
+            for (const plan of plans) {
+                await oemApiClient.delete(`/plans/${plan.planId}`);
+            }
+            
+            console.log(`[OEM] Deleted ${plans.length} plans for date ${date}`);
+            return plans.length;
+        } catch (error: any) {
+            console.error('Failed to delete plans:', error);
+            throw new Error(error.response?.data?.message || 'Failed to delete plans.');
         }
     }
 }
