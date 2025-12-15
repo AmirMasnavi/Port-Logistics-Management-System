@@ -1,9 +1,13 @@
 ﻿import { OperationPlanRepository } from '../infrastructure/repositories/OperationPlanRepository.js';
 import { OperationPlanMapper } from '../application/mappers/OperationPlanMapper.js';
+import { MasterDataGateway } from '../gateways/masterDataGateway.js';
 
 export class OperationPlanService {
     constructor() {
         this.repository = new OperationPlanRepository();
+        // Initialize gateway to Port API
+        const portApiUrl = process.env.PORT_API_URL || 'http://localhost:5273';
+        this.masterDataGateway = new MasterDataGateway(portApiUrl);
     }
 
     /**
@@ -65,6 +69,76 @@ export class OperationPlanService {
             console.warn(`Plan ${planId} not found to delete or already deleted`);
         }
         return true;
+    }
+
+    /**
+     * Get VVNs that don't have an operation plan for a specific date
+     * @param {string} date - Date in YYYY-MM-DD format
+     * @param {string} authToken - Firebase auth token for Port API authentication
+     * @returns {Promise<Object>} Object with missingVVNs and existingPlans arrays
+     */
+    async getMissingPlans(date, authToken) {
+        try {
+            // Set the auth token in the gateway before making the call
+            if (authToken) {
+                this.masterDataGateway.setAuthToken(authToken);
+            }
+            
+            // 1. Get all pending VVNs for the date from Port API
+            const pendingVVNs = await this.masterDataGateway.getPendingVisitsAsync(date);
+            console.log(`[OEM] Found ${pendingVVNs.length} pending VVNs for date ${date}`);
+            
+            // 2. Get all existing operation plans for the date
+            const existingPlans = await this.repository.findAll({ date });
+            console.log(`[OEM] Found ${existingPlans.length} existing plans for date ${date}`);
+            
+            // 3. Extract VVN IDs that already have plans
+            const plannedVVNIds = new Set();
+            existingPlans.forEach(plan => {
+                plan.scheduledTasks.forEach(task => {
+                    if (task.vesselVisitId) {
+                        plannedVVNIds.add(task.vesselVisitId);
+                    }
+                    if (task.vesselVisitBusinessId) {
+                        plannedVVNIds.add(task.vesselVisitBusinessId);
+                    }
+                });
+            });
+            
+            console.log(`[OEM] Planned VVN IDs: ${Array.from(plannedVVNIds).join(', ')}`);
+            
+            // 4. Filter VVNs that don't have plans
+            const missingVVNs = pendingVVNs.filter(vvn => {
+                // Check both GUID ID and BusinessId
+                const hasIdPlan = vvn.id && plannedVVNIds.has(vvn.id);
+                const hasBusinessIdPlan = vvn.businessId && plannedVVNIds.has(vvn.businessId);
+                return !hasIdPlan && !hasBusinessIdPlan;
+            });
+            
+            console.log(`[OEM] ${missingVVNs.length} VVNs are missing operation plans`);
+            
+            return {
+                missingVVNs: missingVVNs.map(vvn => ({
+                    id: vvn.id,
+                    businessId: vvn.businessId,
+                    vesselImo: vvn.vesselImo,
+                    estimatedArrival: vvn.estimatedArrival,
+                    estimatedDeparture: vvn.estimatedDeparture,
+                    assignedDockId: vvn.assignedDockId,
+                    assignedDockName: vvn.assignedDockName,
+                    status: vvn.status
+                })),
+                existingPlans: existingPlans.map(p => ({
+                    planId: p.planId,
+                    algorithm: p.algorithm,
+                    scheduledTasksCount: p.scheduledTasks.length,
+                    createdAt: p.createdAt
+                }))
+            };
+        } catch (error) {
+            console.error(`[OEM] Error getting missing plans: ${error.message}`);
+            throw error;
+        }
     }
 
     /**

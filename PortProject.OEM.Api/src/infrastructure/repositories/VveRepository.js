@@ -45,6 +45,15 @@ export class VveRepository extends IVveRepository {
    * @returns {Promise<Array<Object>>}
    */
   async findAll(filters = {}) {
+    // First, get ALL VVEs to see what's in the database
+    const allVves = await this.model.find({}).sort({ actualArrivalTime: -1 }).lean();
+    console.log(`[VVE Repository] Total VVEs in database: ${allVves.length}`);
+    console.log(`[VVE Repository] All VVE dates:`, allVves.map(v => ({
+      vveId: v.vveId,
+      actualArrivalTime: v.actualArrivalTime,
+      vvnId: v.vvnId
+    })));
+    
     const query = {};
     
     if (filters.status) {
@@ -56,10 +65,56 @@ export class VveRepository extends IVveRepository {
     }
     
     if (filters.vesselIdentifier) {
-      query.vesselIdentifier = filters.vesselIdentifier;
+      // Support partial matching for vessel identifier
+      query.vesselIdentifier = { $regex: filters.vesselIdentifier, $options: 'i' };
+    }
+    
+    // Date range filtering
+    if (filters.fromDate || filters.toDate) {
+      query.actualArrivalTime = {};
+      
+      if (filters.fromDate) {
+        // Parse date and set to start of day in UTC
+        const fromDateObj = new Date(filters.fromDate + 'T00:00:00.000Z');
+        console.log(`[VVE Repository] fromDate filter: ${filters.fromDate} -> ${fromDateObj.toISOString()}`);
+        query.actualArrivalTime.$gte = fromDateObj;
+      }
+      
+      if (filters.toDate) {
+        // Parse date and set to end of day in UTC
+        const toDateObj = new Date(filters.toDate + 'T23:59:59.999Z');
+        console.log(`[VVE Repository] toDate filter: ${filters.toDate} -> ${toDateObj.toISOString()}`);
+        query.actualArrivalTime.$lte = toDateObj;
+      }
     }
 
-    return await this.model.find(query).sort({ createdAt: -1 }).lean();
+    console.log(`[VVE Repository] MongoDB query:`, JSON.stringify(query, null, 2));
+
+    const results = await this.model.find(query).sort({ actualArrivalTime: -1 }).lean();
+    console.log(`[VVE Repository] Found ${results.length} VVEs after filtering`);
+    
+    if (results.length > 0) {
+      console.log(`[VVE Repository] Filtered result dates:`, results.map(r => ({
+        vveId: r.vveId,
+        actualArrivalTime: r.actualArrivalTime
+      })));
+    }
+    
+    // Show which VVE was excluded if we went from 4 to 3
+    if (allVves.length === 4 && results.length === 3) {
+      const resultIds = new Set(results.map(r => r.vveId));
+      const excluded = allVves.find(v => !resultIds.has(v.vveId));
+      if (excluded) {
+        console.log(`[VVE Repository] ⚠️  EXCLUDED VVE:`, {
+          vveId: excluded.vveId,
+          actualArrivalTime: excluded.actualArrivalTime,
+          vvnId: excluded.vvnId,
+          reason: 'Date filter exclusion'
+        });
+      }
+    }
+    
+    return results;
   }
 
   /**

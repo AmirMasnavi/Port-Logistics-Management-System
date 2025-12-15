@@ -1,6 +1,6 @@
 ﻿// Scheduling types matching the backend DTOs
 
-export type SchedulingAlgorithm = 'optimal' | 'heuristic' | 'multicrane' | 'genetic';
+export type SchedulingAlgorithm = 'optimal' | 'heuristic' | 'multicrane' | 'genetic' | 'automatic';
 
 export type CraneMode = 'single' | 'multiple';
 
@@ -40,4 +40,29 @@ export interface DailyScheduleResponse {
     totalDelay: number;
     warnings: string[];
     executionTimeMs: number;
+    algorithmUsed?: string; // The actual algorithm used (useful when "automatic" is selected)
 }
+
+export interface VesselVisitNotification {
+    id: string;
+    businessId: string;
+    vesselImo: string;
+    estimatedArrival: string;
+    estimatedDeparture: string;
+    assignedDockId?: string;
+    assignedDockName?: string;
+    status: string;
+}
+
+export interface ExistingPlanSummary {
+    planId: string;
+    algorithm: string;
+    scheduledTasksCount: number;
+    createdAt: string;
+}
+
+export interface MissingPlansResponse {
+    missingVVNs: VesselVisitNotification[];
+    existingPlans: ExistingPlanSummary[];
+}
+

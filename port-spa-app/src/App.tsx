@@ -16,7 +16,9 @@ import PortFacilitiesPage from './pages/PortFacilitiesPage';
 import RoleProtectedRoute from './auth/RoleProtectedRoute'; // Our new component to check the user's role
 import ResourcePage from './pages/ResourcePage';
 import SchedulingPage from './pages/SchedulingPage';
+import MissingPlans from './pages/MissingPlans';
 import CreateVvePage from './pages/CreateVvePage';
+import VesselVisitsExecutionPage from './pages/VesselVisitsExecutionPage.tsx';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import PrivacyPolicyGuard from './components/auth/PrivacyPolicyGuard';
 
@@ -106,8 +108,9 @@ function App() {
                             {/* --- Role-Protected Routes for IARTI (Admin, Logistics) --- */}
                             <Route element={<RoleProtectedRoute allowedRoles={canViewIARTI} />}>
                                 <Route path="/scheduling" element={<SchedulingPage />} />
+                                <Route path="/missing-plans" element={<MissingPlans />} />
                                 <Route path="/operation-plans" element={<OperationPlanPage />} />
-                            </Route>
+                                <Route path="/vessel-visit-executions" element={<VesselVisitsExecutionPage />} />                            </Route>
                             
                             {/* --- Role-Protected Routes for VVN Management (Admin, Agent) --- */}
                             <Route element={<RoleProtectedRoute allowedRoles={canManageVVN} />}>

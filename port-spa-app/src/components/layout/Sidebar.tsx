@@ -23,6 +23,7 @@ import {
     Calendar, // For Scheduling
     Album,
     PlusCircle,
+    AlertTriangle, // For Missing Plans
 } from 'lucide-react';
 
 // 2. Create a new, reusable component for our icon-links
@@ -157,8 +158,9 @@ const Sidebar: React.FC<SidebarProps> = ({
                 {canViewIARTI.has(internalRole || '') && (
                     <>
                         <NavItem to="/scheduling" label="Scheduling" icon={Calendar} isExpanded={isExpanded} />
+                        <NavItem to="/missing-plans" label="Missing Plans" icon={AlertTriangle} isExpanded={isExpanded} />
                         <NavItem to="/operation-plans" label="Operation Plans" icon={Album} isExpanded={isExpanded} />
-                    </>
+                        <NavItem to="/vessel-visit-executions" label="Vessel Executions" icon={Ship} isExpanded={isExpanded} />                    </>
                 )}
                 {/* Shipping Agents: Admin & Officer */}
                 {canManagePort.has(internalRole || '') && (

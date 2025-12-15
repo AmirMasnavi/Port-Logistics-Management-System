@@ -34,6 +34,44 @@ export const createOperationPlanRouter = () => {
     });
     
     /**
+     * 1.5. GET MISSING PLANS (GET /api/plans/missing)
+     * Returns VVNs that don't have an operation plan for a given date
+     */
+    router.get('/missing', verifyFirebaseToken, async (req, res) => {
+        try {
+            const { date } = req.query;
+            
+            if (!date) {
+                return res.status(400).json({ 
+                    success: false, 
+                    message: 'Date parameter is required' 
+                });
+            }
+            
+            console.log(`[OEM] Fetching missing plans for date: ${date}`);
+            
+            // Extract the Firebase token from the request headers
+            const authToken = req.headers.authorization?.replace('Bearer ', '');
+            
+            const result = await service.getMissingPlans(date, authToken);
+            
+            res.json({
+                success: true,
+                date: date,
+                missingCount: result.missingVVNs.length,
+                hasExistingPlans: result.existingPlans.length > 0,
+                data: {
+                    missingVVNs: result.missingVVNs,
+                    existingPlans: result.existingPlans
+                }
+            });
+        } catch (error) {
+            console.error('[OEM GET MISSING PLANS ERROR]:', error);
+            res.status(500).json({ success: false, message: error.message });
+        }
+    });
+    
+    /**
      * 2. CRIAR PLANO (POST /api/plans)
      */
     router.post('/', verifyFirebaseToken, async (req, res) => {

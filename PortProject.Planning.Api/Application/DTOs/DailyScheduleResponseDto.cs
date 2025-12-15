@@ -16,4 +16,7 @@ public class DailyScheduleResponseDto
 
     // Execution time in milliseconds for generating the schedule
     public double ExecutionTimeMs { get; set; }
+    
+    // Algorithm that was actually used (useful when "automatic" selection is chosen)
+    public string? AlgorithmUsed { get; set; }
 }
