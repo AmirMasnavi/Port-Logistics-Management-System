@@ -1,9 +1,17 @@
 ﻿import React, { useState, useEffect } from 'react';
-import { Ship, Calendar, Filter, RefreshCw, AlertCircle, CheckCircle, Clock, XCircle, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { Ship, Calendar, Filter, RefreshCw, AlertCircle, CheckCircle, Clock, XCircle, TrendingUp, TrendingDown, Minus, PlusCircle, FileText } from 'lucide-react';
 import { vveService, type VveFilters, type VveWithMetrics } from '../services/vveService';
 import StatCard from '../components/common/StatCard';
+import { vvnApiRepository } from '../infrastructure/repositories/vvn/vvnApi.repository';
+import type { CreateVveDto } from '../infrastructure/repositories/vve/vve.dto';
+import type { VesselVisitNotification } from '../domain/vvn/vvn.model';
+import { useAuth } from '../auth/AuthProvider';
+import { useVveController } from '../controllers/vve/useVveController';
 
 const VesselVisitsExecutionPage: React.FC = () => {
+    const { internalRole } = useAuth();
+    const { createVve, loading: createLoading, error: createError, successMessage, clearMessages } = useVveController();
+    
     const [vves, setVves] = useState<VveWithMetrics[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -18,6 +26,18 @@ const VesselVisitsExecutionPage: React.FC = () => {
     // View mode: 'table' or 'timeline'
     const [viewMode, setViewMode] = useState<'table' | 'timeline'>('table');
 
+    // Create VVE Modal states
+    const [showCreateModal, setShowCreateModal] = useState(false);
+    const [vvns, setVvns] = useState<VesselVisitNotification[]>([]);
+    const [loadingVvns, setLoadingVvns] = useState(false);
+    const [vvnId, setVvnId] = useState<string>('');
+    const [vesselIdentifier, setVesselIdentifier] = useState<string>('');
+    const [actualArrivalTime, setActualArrivalTime] = useState<string>(() => {
+        const now = new Date();
+        return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0,16);
+    });
+    const [notes, setNotes] = useState('');
+
     useEffect(() => {
         // Load VVEs on component mount with default last 30 days
         const defaultFromDate = new Date();
@@ -31,6 +51,20 @@ const VesselVisitsExecutionPage: React.FC = () => {
         // Call search with the date values directly since state updates are async
         loadInitialData(fromDateStr, toDateStr);
     }, []);
+
+    useEffect(() => {
+        if (showCreateModal) {
+            fetchVvns();
+            clearMessages();
+        }
+    }, [showCreateModal]);
+
+    useEffect(() => {
+        const selected = vvns.find(v => v.businessId === vvnId);
+        if (selected) {
+            setVesselIdentifier(selected.vesselImo || '');
+        }
+    }, [vvnId, vvns]);
 
     const loadInitialData = async (from: string, to: string) => {
         setLoading(true);
@@ -77,6 +111,58 @@ const VesselVisitsExecutionPage: React.FC = () => {
             setError(err.message || 'Failed to fetch vessel visit executions. Please try again.');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchVvns = async () => {
+        try {
+            setLoadingVvns(true);
+            const data = await vvnApiRepository.getAll();
+            const approvedVvns = data.filter(v => v.status === 'Approved');
+            setVvns(approvedVvns);
+        } catch (err: any) {
+            console.error('Failed to fetch VVNs', err);
+        } finally {
+            setLoadingVvns(false);
+        }
+    };
+
+    const handleCreateSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        clearMessages();
+
+        if (!vvnId || !vesselIdentifier || !actualArrivalTime) {
+            return;
+        }
+
+        try {
+            const iso = new Date(actualArrivalTime).toISOString();
+            const dto: CreateVveDto = {
+                vvnId,
+                vesselIdentifier,
+                actualArrivalTime: iso,
+                notes: notes || undefined,
+            };
+
+            const created = await createVve(dto);
+            
+            if (created) {
+                // Reset form
+                setVvnId('');
+                setVesselIdentifier('');
+                setNotes('');
+                const now = new Date();
+                setActualArrivalTime(new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0,16));
+                
+                // Close modal after a brief delay
+                setTimeout(() => {
+                    setShowCreateModal(false);
+                    // Refresh the list
+                    handleSearch();
+                }, 1500);
+            }
+        } catch (err: any) {
+            console.error('Create VVE failed', err);
         }
     };
 
@@ -148,17 +234,30 @@ const VesselVisitsExecutionPage: React.FC = () => {
             (vves.filter(v => v.metrics?.arrivalDelay !== null).length || 1),
     };
 
+    const selectedVvn = vvns.find(v => v.businessId === vvnId);
+
     return (
         <div className="container mx-auto">
             {/* Page Header */}
-            <div className="mb-6">
-                <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-                    <Ship className="w-8 h-8" />
-                    Vessel Visit Executions
-                </h1>
-                <p className="text-gray-600 mt-1">
-                    Monitor and analyze vessel visit execution history and performance metrics
-                </p>
+            <div className="mb-6 flex items-center justify-between">
+                <div>
+                    <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+                        <Ship className="w-8 h-8" />
+                        Vessel Visit Executions
+                    </h1>
+                    <p className="text-gray-600 mt-1">
+                        Monitor and analyze vessel visit execution history and performance metrics
+                    </p>
+                </div>
+                {(internalRole === 'LogisticsOperator' || internalRole === 'Administrator' || internalRole === 'PortOfficer') && (
+                    <button
+                        onClick={() => setShowCreateModal(true)}
+                        className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors"
+                    >
+                        <PlusCircle className="w-5 h-5" />
+                        Create VVE
+                    </button>
+                )}
             </div>
 
             {/* Statistics Cards */}
@@ -184,6 +283,203 @@ const VesselVisitsExecutionPage: React.FC = () => {
                     description="Average total time"
                 />
             </div>
+
+            {/* Create VVE Modal */}
+            {showCreateModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+                            <h2 className="text-2xl font-bold text-gray-900">Create Vessel Visit Execution</h2>
+                            <button
+                                onClick={() => setShowCreateModal(false)}
+                                className="text-gray-400 hover:text-gray-600"
+                            >
+                                <XCircle className="w-6 h-6" />
+                            </button>
+                        </div>
+
+                        <div className="p-6">
+                            {/* Role Warning */}
+                            {internalRole !== 'LogisticsOperator' && internalRole !== 'Administrator' && (
+                                <div className="mb-6 p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded-lg">
+                                    <div className="flex items-center gap-3">
+                                        <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0" />
+                                        <p className="text-sm text-yellow-800">
+                                            This functionality is intended for Logistics Operators
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Messages */}
+                            {createError && (
+                                <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-lg">
+                                    <div className="flex items-start gap-3">
+                                        <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+                                        <div>
+                                            <h3 className="font-semibold text-red-900">Error</h3>
+                                            <p className="text-sm text-red-700 mt-1">{createError}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {successMessage && (
+                                <div className="mb-6 p-4 bg-green-50 border-l-4 border-green-500 rounded-lg">
+                                    <div className="flex items-start gap-3">
+                                        <CheckCircle className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <div>
+                                            <h3 className="font-semibold text-green-900">Success</h3>
+                                            <p className="text-sm text-green-700 mt-1">{successMessage}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Form */}
+                            <form onSubmit={handleCreateSubmit} className="space-y-6">
+                                {/* VVN Selection */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        <FileText className="w-4 h-4 inline mr-1" />
+                                        Vessel Visit Notification <span className="text-red-500">*</span>
+                                    </label>
+                                    <select 
+                                        value={vvnId} 
+                                        onChange={(e) => setVvnId(e.target.value)} 
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg"
+                                        disabled={loadingVvns}
+                                        required
+                                    >
+                                        <option value="">
+                                            {loadingVvns ? 'Loading approved vessel visits...' : '-- Select a vessel visit notification --'}
+                                        </option>
+                                        {vvns.map(v => (
+                                            <option key={v.businessId} value={v.businessId}>
+                                                {v.businessId} | {v.vesselImo} | ETA: {new Date(v.estimatedArrival).toLocaleString('en-CA', { 
+                                                    year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' 
+                                                })}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <p className="text-xs text-gray-500 mt-2">
+                                        Only approved vessel visit notifications are available for execution recording
+                                    </p>
+                                </div>
+
+                                {/* VVN Details Display */}
+                                {selectedVvn && (
+                                    <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                                        <h3 className="text-sm font-semibold text-blue-900 mb-3">Selected VVN Details</h3>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                                            <div>
+                                                <span className="text-gray-600">VVN ID:</span>
+                                                <span className="ml-2 font-medium text-gray-900">{selectedVvn.businessId}</span>
+                                            </div>
+                                            <div>
+                                                <span className="text-gray-600">Vessel:</span>
+                                                <span className="ml-2 font-medium text-gray-900">{selectedVvn.vesselImo}</span>
+                                            </div>
+                                            <div>
+                                                <span className="text-gray-600">Estimated Arrival:</span>
+                                                <span className="ml-2 font-medium text-gray-900">
+                                                    {new Date(selectedVvn.estimatedArrival).toLocaleString()}
+                                                </span>
+                                            </div>
+                                            <div>
+                                                <span className="text-gray-600">Assigned Dock:</span>
+                                                <span className="ml-2 font-medium text-gray-900">{selectedVvn.assignedDockName || 'N/A'}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Vessel Identifier */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        <Ship className="w-4 h-4 inline mr-1" />
+                                        Vessel Identifier (IMO) <span className="text-red-500">*</span>
+                                    </label>
+                                    <input 
+                                        type="text"
+                                        value={vesselIdentifier} 
+                                        onChange={(e) => setVesselIdentifier(e.target.value)} 
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg"
+                                        placeholder="IMO1234567"
+                                        required
+                                    />
+                                    <p className="text-xs text-gray-500 mt-2">
+                                        Auto-filled from selected VVN, can be modified if needed
+                                    </p>
+                                </div>
+
+                                {/* Actual Arrival Time */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        <Calendar className="w-4 h-4 inline mr-1" />
+                                        Actual Arrival Time <span className="text-red-500">*</span>
+                                    </label>
+                                    <input 
+                                        type="datetime-local" 
+                                        value={actualArrivalTime} 
+                                        onChange={(e) => setActualArrivalTime(e.target.value)} 
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg"
+                                        required
+                                    />
+                                    <p className="text-xs text-gray-500 mt-2">
+                                        Record the precise time when the vessel actually arrived at the port
+                                    </p>
+                                </div>
+
+                                {/* Notes */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Additional Notes <span className="text-gray-400">(optional)</span>
+                                    </label>
+                                    <textarea 
+                                        value={notes} 
+                                        onChange={(e) => setNotes(e.target.value)} 
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg resize-none"
+                                        rows={4}
+                                        placeholder="Add any relevant observations, delays, or special circumstances..."
+                                    />
+                                    <p className="text-xs text-gray-500 mt-2">
+                                        Document any deviations from the planned schedule or special conditions
+                                    </p>
+                                </div>
+
+                                {/* Action Buttons */}
+                                <div className="flex justify-end gap-3 pt-4">
+                                    <button 
+                                        type="button" 
+                                        onClick={() => setShowCreateModal(false)} 
+                                        className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button 
+                                        type="submit" 
+                                        className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
+                                        disabled={createLoading || loadingVvns || !vvnId}
+                                    >
+                                        {createLoading ? 'Creating...' : 'Create VVE'}
+                                    </button>
+                                </div>
+                            </form>
+
+                            {/* Info Panel */}
+                            <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                                <h3 className="text-sm font-semibold text-blue-900 mb-2">ℹ️ What is a VVE?</h3>
+                                <p className="text-sm text-blue-800">
+                                    A <strong>Vessel Visit Execution (VVE)</strong> records the actual arrival and operations of a vessel, 
+                                    tracking what really happens versus what was planned in the VVN. Once created, the VVE will be marked 
+                                    as "In Progress" and can be updated as operations proceed.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Filters Card */}
             <div className="bg-white rounded-lg shadow-md p-6 mb-6">

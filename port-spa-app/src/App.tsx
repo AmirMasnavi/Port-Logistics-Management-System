@@ -17,7 +17,6 @@ import RoleProtectedRoute from './auth/RoleProtectedRoute'; // Our new component
 import ResourcePage from './pages/ResourcePage';
 import SchedulingPage from './pages/SchedulingPage';
 import MissingPlans from './pages/MissingPlans';
-import CreateVvePage from './pages/CreateVvePage';
 import VesselVisitsExecutionPage from './pages/VesselVisitsExecutionPage.tsx';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import PrivacyPolicyGuard from './components/auth/PrivacyPolicyGuard';
@@ -101,8 +100,6 @@ function App() {
                             {/* Agent excluded */}
                             <Route element={<RoleProtectedRoute allowedRoles={canViewResources} />}>
                                 <Route path="/resources" element={<ResourcePage />} />
-                                {/* Create VVE page (Logistics Operators + Admin/Officer) */}
-                                <Route path="/vessel-visits/new-vve" element={<CreateVvePage />} />
                             </Route>
 
                             {/* --- Role-Protected Routes for IARTI (Admin, Logistics) --- */}
@@ -133,4 +130,3 @@ function App() {
 }
 
 export default App;
-

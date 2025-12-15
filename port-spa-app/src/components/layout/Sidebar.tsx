@@ -22,7 +22,6 @@ import {
     Package, // For Resources
     Calendar, // For Scheduling
     Album,
-    PlusCircle,
     AlertTriangle, // For Missing Plans
 } from 'lucide-react';
 
@@ -169,11 +168,6 @@ const Sidebar: React.FC<SidebarProps> = ({
                 {/* Resources: Admin, Officer, Logistics (excluding Shipping Agent) */}
                 {canViewResources.has(internalRole || '') && (
                     <NavItem to="/resources" label={t('Resources')} icon={Package} isExpanded={isExpanded} />
-                )}
-                
-                {/* Create VVE: Admin, Officer, Logistics */}
-                {canViewResources.has(internalRole || '') && (
-                    <NavItem to="/vessel-visits/new-vve" label="Create VVE" icon={PlusCircle} isExpanded={isExpanded} />
                 )}
                 
                 {/* 3D Visualization: Admin, Officer, Logistics */}
