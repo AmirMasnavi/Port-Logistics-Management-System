@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { privacyPolicyService, PrivacyPolicyDto } from '../../services/privacyPolicyService';
+import { privacyPolicyService, type PrivacyPolicyDto } from '../../services/privacyPolicyService';
 import ReactMarkdown from 'react-markdown';
-import { useTranslation } from 'react-i18next';
+import { t } from '../../i18nClient';
 
 interface PrivacyPolicyModalProps {
     policy: PrivacyPolicyDto;
@@ -10,7 +10,6 @@ interface PrivacyPolicyModalProps {
 }
 
 const PrivacyPolicyModal = ({ policy, onAccept, onDecline }: PrivacyPolicyModalProps) => {
-    const { t } = useTranslation();
     const [accepting, setAccepting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [hasScrolledToBottom, setHasScrolledToBottom] = useState(false);
@@ -47,10 +46,10 @@ const PrivacyPolicyModal = ({ policy, onAccept, onDecline }: PrivacyPolicyModalP
                 {/* Header */}
                 <div className="bg-blue-600 text-white px-6 py-4 rounded-t-lg">
                     <h2 className="text-2xl font-bold">
-                        {t('privacyPolicy.modal.title', 'Privacy Policy Update')}
+                        {t('privacyPolicy.modal.title') || 'Privacy Policy Update'}
                     </h2>
                     <p className="text-blue-100 text-sm mt-1">
-                        {t('privacyPolicy.modal.subtitle', 'Please review and accept our privacy policy to continue')}
+                        {t('privacyPolicy.modal.subtitle') || 'Please review and accept our privacy policy to continue'}
                     </p>
                 </div>
 
@@ -60,11 +59,10 @@ const PrivacyPolicyModal = ({ policy, onAccept, onDecline }: PrivacyPolicyModalP
                         <span className="text-yellow-600 text-xl mr-2">⚠️</span>
                         <div>
                             <p className="text-sm text-yellow-800 font-semibold">
-                                {t('privacyPolicy.modal.notice', 'Action Required')}
+                                {t('privacyPolicy.modal.notice') || 'Action Required'}
                             </p>
                             <p className="text-sm text-yellow-700">
-                                {t('privacyPolicy.modal.noticeText', 
-                                    'Our Privacy Policy has been updated. You must review and accept it to continue using the system.')}
+                                {t('privacyPolicy.modal.noticeText') || 'Our Privacy Policy has been updated. You must review and accept it to continue using the system.'}
                             </p>
                         </div>
                     </div>
@@ -129,8 +127,7 @@ const PrivacyPolicyModal = ({ policy, onAccept, onDecline }: PrivacyPolicyModalP
                                 className="mt-1 mr-3 h-5 w-5 text-blue-600"
                             />
                             <span className="text-sm text-gray-700">
-                                {t('privacyPolicy.modal.confirmation', 
-                                    'I have read and understood the Privacy Policy and agree to the processing of my personal data as described.')}
+                                {t('privacyPolicy.modal.confirmation') || 'I have read and understood the Privacy Policy and agree to the processing of my personal data as described.'}
                             </span>
                         </label>
                     </div>
@@ -142,7 +139,7 @@ const PrivacyPolicyModal = ({ policy, onAccept, onDecline }: PrivacyPolicyModalP
                                 disabled={accepting}
                                 className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors disabled:opacity-50"
                             >
-                                {t('privacyPolicy.modal.decline', 'Decline & Logout')}
+                                {t('privacyPolicy.modal.decline') || 'Decline & Logout'}
                             </button>
                         )}
                         <button
@@ -153,19 +150,18 @@ const PrivacyPolicyModal = ({ policy, onAccept, onDecline }: PrivacyPolicyModalP
                             {accepting ? (
                                 <>
                                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                                    {t('privacyPolicy.modal.accepting', 'Accepting...')}
+                                    {t('privacyPolicy.modal.accepting') || 'Accepting...'}
                                 </>
                             ) : (
                                 <>
-                                    ✓ {t('privacyPolicy.modal.accept', 'Accept & Continue')}
+                                    ✓ {t('privacyPolicy.modal.accept') || 'Accept & Continue'}
                                 </>
                             )}
                         </button>
                     </div>
 
                     <p className="text-xs text-gray-500 mt-3 text-center">
-                        {t('privacyPolicy.modal.gdprNotice', 
-                            'By accepting, you acknowledge your rights under GDPR including access, rectification, and erasure of your data.')}
+                        {t('privacyPolicy.modal.gdprNotice') || 'By accepting, you acknowledge your rights under GDPR including access, rectification, and erasure of your data.'}
                     </p>
                 </div>
             </div>
@@ -174,4 +170,3 @@ const PrivacyPolicyModal = ({ policy, onAccept, onDecline }: PrivacyPolicyModalP
 };
 
 export default PrivacyPolicyModal;
-

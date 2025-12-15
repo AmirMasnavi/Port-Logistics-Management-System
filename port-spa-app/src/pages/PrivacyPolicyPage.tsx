@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react';
-import { privacyPolicyService, PrivacyPolicyDto } from '../services/privacyPolicyService';
+import { privacyPolicyService, type PrivacyPolicyDto } from '../services/privacyPolicyService';
 import ReactMarkdown from 'react-markdown';
-import { useTranslation } from 'react-i18next';
+import { t } from '../i18nClient';
 
 const PrivacyPolicyPage = () => {
-    const { t } = useTranslation();
     const [policy, setPolicy] = useState<PrivacyPolicyDto | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -56,7 +55,7 @@ const PrivacyPolicyPage = () => {
         return (
             <div className="container mx-auto px-4 py-8">
                 <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded">
-                    <p>{t('privacyPolicy.notAvailable', 'Privacy Policy is not available at this time.')}</p>
+                    <p className="font-bold">{t('privacyPolicy.notAvailable')}</p>
                 </div>
             </div>
         );
