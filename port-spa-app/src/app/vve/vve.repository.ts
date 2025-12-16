@@ -16,5 +16,9 @@ export interface VveFilters {
     status?: string;
     vvnId?: string;
     vesselIdentifier?: string;
+    berthDockId?: string;   
+    fromDate?: string;     
+    toDate?: string;        
+    includeMetrics?: boolean;
 }
 

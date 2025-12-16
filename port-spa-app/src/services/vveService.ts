@@ -48,6 +48,7 @@ export interface VvnData {
     estimatedArrival: string;
     estimatedDeparture: string;
     assignedDockName?: string;
+    assignedDockId?: string;
 }
 
 export interface VveListItem {
@@ -61,6 +62,8 @@ export interface VveListItem {
 
 export interface VveWithMetrics extends VveListItem {
     actualDepartureTime?: string;
+    actualBerthTime?: string;
+    berthDockId?: string;
     notes: string;
     creatorUserId: string;
     updatedAt: string;
@@ -79,6 +82,8 @@ export interface UpdateVveRequest {
     status?: 'In Progress' | 'Completed' | 'Cancelled';
     actualDepartureTime?: string;
     notes?: string;
+    actualBerthTime?: string;
+    berthDockId?: string;
 }
 
 export class VveService {

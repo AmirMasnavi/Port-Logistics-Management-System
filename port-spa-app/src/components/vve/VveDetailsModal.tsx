@@ -1,5 +1,5 @@
 // VVE Details Modal Component
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import type { VesselVisitExecution } from '../../domain/vve/vve.model';
 import { X, Ship, Calendar, Clock, User, FileText, Info } from 'lucide-react';
 
@@ -12,6 +12,8 @@ interface VveDetailsModalProps {
 const formatDateTime = (dateString?: string) => {
     if (!dateString) return 'N/A';
     try {
+        const d = new Date(dateString);
+        if (isNaN(d.getTime())) return 'Invalid Date';
         return new Date(dateString).toLocaleString('en-CA', {
             year: 'numeric',
             month: 'long',
@@ -26,6 +28,23 @@ const formatDateTime = (dateString?: string) => {
 };
 
 const VveDetailsModal: React.FC<VveDetailsModalProps> = ({ vve, isOpen, onClose }) => {
+    const overlayRef = useRef<HTMLDivElement | null>(null);
+    const closeButtonRef = useRef<HTMLButtonElement | null>(null);
+
+    useEffect(() => {
+        if (!isOpen) return;
+
+        const onKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') onClose();
+        };
+
+        document.addEventListener('keydown', onKeyDown);
+        // autofocus close button for accessibility
+        closeButtonRef.current?.focus();
+
+        return () => document.removeEventListener('keydown', onKeyDown);
+    }, [isOpen, onClose]);
+
     if (!isOpen || !vve) return null;
 
     const getStatusColor = (status: string) => {
@@ -41,12 +60,30 @@ const VveDetailsModal: React.FC<VveDetailsModalProps> = ({ vve, isOpen, onClose 
         }
     };
 
+    const onOverlayClick = (e: React.MouseEvent) => {
+        if (e.target === overlayRef.current) {
+            onClose();
+        }
+    };
+
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+        <div
+            ref={overlayRef}
+            onClick={onOverlayClick}
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+            aria-hidden={false}
+        >
+            <div
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="vve-details-title"
+                aria-describedby="vve-details-desc"
+                tabIndex={-1}
+                className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto"
+            >
                 {/* Header */}
                 <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
-                    <h2 className="text-2xl font-bold text-gray-800">VVE Details</h2>
+                    <h2 id="vve-details-title" className="text-2xl font-bold text-gray-800">VVE Details</h2>
                     <button
                         onClick={onClose}
                         className="text-gray-500 hover:text-gray-700 transition-colors"
@@ -57,7 +94,7 @@ const VveDetailsModal: React.FC<VveDetailsModalProps> = ({ vve, isOpen, onClose 
                 </div>
 
                 {/* Content */}
-                <div className="p-6 space-y-6">
+                <div id="vve-details-desc" className="p-6 space-y-6">
                     {/* Status Badge */}
                     <div className="flex items-center gap-3">
                         <span className={`px-3 py-1 rounded-full text-sm font-semibold ${getStatusColor(vve.status)}`}>

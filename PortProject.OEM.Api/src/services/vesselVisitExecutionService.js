@@ -216,9 +216,10 @@ export class VesselVisitExecutionService {
    * Update VVE
    * @param {string} vveId - VVE identifier
    * @param {UpdateVveDto} dto - Update DTO
+   * @param {string} performedBy - User performing the update (for audit)
    * @returns {Promise<VveResponseDto>}
    */
-  async updateVve(vveId, dto) {
+  async updateVve(vveId, dto, performedBy = 'system') {
     // 1. Validate DTO
     const validation = dto.validate();
     if (!validation.isValid) {
@@ -233,28 +234,81 @@ export class VesselVisitExecutionService {
 
     // 3. Prepare update data
     const updateData = {};
-    
-    if (dto.status !== undefined) {
+
+    const changeDetails = {};
+
+      if (dto.status !== undefined) {
       updateData.status = dto.status;
-      
+      changeDetails.status = dto.status;
+
       // Auto-set departure time if completing
       if (dto.status === 'Completed' && !dto.actualDepartureTime && !existingVve.actualDepartureTime) {
         updateData.actualDepartureTime = new Date();
+        changeDetails.actualDepartureTime = updateData.actualDepartureTime;
       }
     }
     
     if (dto.actualDepartureTime !== undefined) {
       updateData.actualDepartureTime = new Date(dto.actualDepartureTime);
+      changeDetails.actualDepartureTime = updateData.actualDepartureTime;
+    }
+
+    if (dto.berthDockId !== undefined) {
+      updateData.berthDockId = dto.berthDockId;
+      changeDetails.berthDockId = dto.berthDockId;
     }
     
     if (dto.notes !== undefined) {
-      updateData.notes = dto.notes;
+      // preserve and append (if existing) instead of overriding
+        const existingNotes = existingVve.notes || '';
+        updateData.notes = dto.notes;
+        changeDetails.notes = dto.notes;
     }
 
-    // 4. Update in repository
+      // 3.a Compare dock against planned (if we have berthDockId or actualBerthTime changes)
+      let autoNote = null;
+      try {
+          if ((dto.berthDockId !== undefined || dto.actualBerthTime !== undefined) && this.masterDataGateway) {
+              const vvn = await this.masterDataGateway.getVvnAsync(existingVve.vvnId);
+              if (vvn) {
+                  const plannedDock = vvn.assignedDockId || vvn.assignedDockName || null;
+                  const actualDock = dto.berthDockId || existingVve.berthDockId || null;
+                  // If we can compare and they differ, add an automatic warning/note
+                  if (plannedDock && actualDock && plannedDock !== actualDock) {
+                      autoNote = `[AUTO] Discrepância de cais: planejado='${plannedDock}', efetivo='${actualDock}' (registrado por ${performedBy} em ${new Date().toISOString()})`;
+                      // append autoNote to notes (preserve existing/new notes)
+                      const prevNotes = updateData.notes !== undefined ? updateData.notes : existingVve.notes || '';
+                      updateData.notes = `${prevNotes}${prevNotes ? '\n' : ''}${autoNote}`;
+                      changeDetails.autoNote = autoNote;
+                  }
+              }
+          }
+      } catch (err) {
+          // não falhar a atualização por erro no master data lookup — apenas logar
+          console.warn(`[VVE UPDATE] Could not fetch VVN for dock comparison: ${err.message}`);
+      }
+      // 4. Audit logging: append audit entry
+      try {
+          const auditEntry = {
+              userId: performedBy || 'unknown',
+              action: 'update',
+              timestamp: new Date(),
+              details: {
+                  vveId,
+                  ...changeDetails
+              }
+          };
+          // Merge with existing audit logs (push new entry)
+          const existingLogs = existingVve.auditLogs || [];
+          updateData.auditLogs = [...existingLogs, auditEntry];
+      } catch (err) {
+          console.warn('[VVE UPDATE] Failed to append audit log:', err.message);
+      }
+      
+    // 5. Update in repository
     const updatedVve = await this.vveRepository.update(vveId, updateData);
 
-    // 5. Map to response DTO
+    // 6. Map to response DTO
     return VveMapper.toResponseDto(updatedVve);
   }
 

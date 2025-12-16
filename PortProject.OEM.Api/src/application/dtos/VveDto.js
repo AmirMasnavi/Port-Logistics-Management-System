@@ -40,9 +40,11 @@ export class CreateVveDto {
  * DTO for updating a VVE
  */
 export class UpdateVveDto {
-  constructor({ status, actualDepartureTime, notes }) {
+  constructor({ status, actualDepartureTime, notes, actualBerthTime, berthDockId }) {
     this.status = status;
     this.actualDepartureTime = actualDepartureTime;
+    this.actualBerthTime = actualBerthTime;
+    this.berthDockId = berthDockId;
     this.notes = notes;
   }
 
@@ -60,6 +62,16 @@ export class UpdateVveDto {
         errors.push('Invalid departure time format');
       }
     }
+      if (this.actualBerthTime) {
+          const berthDate = new Date(this.actualBerthTime);
+          if (isNaN(berthDate.getTime())) {
+              errors.push('Invalid berth time format');
+          }
+      }
+
+      if (this.berthDockId && typeof this.berthDockId !== 'string') {
+          errors.push('Berth dock ID must be a string');
+      }
 
     return {
       isValid: errors.length === 0,
@@ -77,23 +89,30 @@ export class VveResponseDto {
     vvnId,
     vesselIdentifier,
     actualArrivalTime,
+    actualBerthTime,
+    berthDockId,
     creatorUserId,
     status,
     actualDepartureTime,
     notes,
     createdAt,
     updatedAt,
+    auditLogs = [],
   }) {
     this.vveId = vveId;
     this.vvnId = vvnId;
     this.vesselIdentifier = vesselIdentifier;
     this.actualArrivalTime = actualArrivalTime;
+    this.actualBerthTime = actualBerthTime;
+    this.berthDockId = berthDockId;
     this.creatorUserId = creatorUserId;
     this.status = status;
     this.actualDepartureTime = actualDepartureTime;
     this.notes = notes;
     this.createdAt = createdAt;
     this.updatedAt = updatedAt;
+    this.auditLogs = auditLogs;
+
   }
 }
 
