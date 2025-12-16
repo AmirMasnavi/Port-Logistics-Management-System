@@ -35,6 +35,8 @@ using PortProject.Api.Infrastructure.Authentication;
 using PortProject.Api.Infrastructure.Middleware;
 using PortProject.Api.Application.PrivacyPolicy.Services;
 using PortProject.Api.Domain.PrivacyPolicyAggregate;
+using PortProject.Api.Application.DataRights.Services;
+using PortProject.Api.Domain.DataRightsAggregate;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -127,6 +129,8 @@ builder.Services.AddScoped<IResourceRepository, ResourceRepository>();
 builder.Services.AddScoped<IPortLayoutService, PortLayoutService>();
 builder.Services.AddScoped<IPrivacyPolicyService, PrivacyPolicyService>();
 builder.Services.AddScoped<IPrivacyPolicyRepository, PrivacyPolicyRepository>();
+builder.Services.AddScoped<IDataRightsService, DataRightsService>();
+builder.Services.AddScoped<IDataRightsRequestRepository, DataRightsRequestRepository>();
 builder.Services.AddTransient<IEmailService, EmailService>();
 
 
@@ -182,6 +186,45 @@ app.UseAuthorization();
 
 app.MapControllers();
 
+// Apply database fixes on startup
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    try
+    {
+        var context = services.GetRequiredService<PortProjectContext>();
+        Console.WriteLine("[STARTUP] Checking database schema...");
+        
+        // Add UserEmail column to UserPolicyAcknowledgments if it doesn't exist
+        // Simply try to add it - if it exists, the error will be caught and ignored
+        try
+        {
+            Console.WriteLine("[STARTUP] Attempting to add UserEmail column...");
+            await context.Database.ExecuteSqlRawAsync(@"
+                ALTER TABLE UserPolicyAcknowledgments 
+                ADD COLUMN UserEmail VARCHAR(255) NOT NULL DEFAULT '' AFTER UserId;
+            ");
+            Console.WriteLine("[STARTUP] ✅ UserEmail column added successfully");
+        }
+        catch (Exception ex)
+        {
+            // Column likely already exists - this is expected and OK
+            if (ex.Message.Contains("Duplicate column name"))
+            {
+                Console.WriteLine("[STARTUP] UserEmail column already exists (this is OK)");
+            }
+            else
+            {
+                Console.WriteLine($"[STARTUP] Note: {ex.Message}");
+            }
+        }
+    }
+    catch (Exception ex)
+    {
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "An error occurred while checking database schema.");
+    }
+}
 
 app.Run();
 

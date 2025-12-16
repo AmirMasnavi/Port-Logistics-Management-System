@@ -20,6 +20,7 @@ import MissingPlans from './pages/MissingPlans';
 import VesselVisitsExecutionPage from './pages/VesselVisitsExecutionPage.tsx';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import PrivacyPolicyGuard from './components/auth/PrivacyPolicyGuard';
+import DataRightsPage from './pages/DataRightsPage';
 
 import { OperationPlanPage } from './pages/OperationPlanPage';
 import PlanningResourceAllocationsPage from './pages/PlanningResourceAllocationsPage';
@@ -55,6 +56,7 @@ function App() {
                         {/* Public route (activation) */}
                         <Route path="/activate" element={<ActivationPage />} />
                         <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+                        <Route path="/data-rights" element={<DataRightsPage />} />
                        
 
                         {/* --- Protected Route Group --- */}

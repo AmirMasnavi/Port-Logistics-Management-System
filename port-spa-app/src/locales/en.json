@@ -19,7 +19,8 @@
   },
   "loading": "Loading...",
   "common": {
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "cancel": "Cancel"
   },
   "search": {
     "placeholder": "Search..."
@@ -44,6 +45,7 @@
     "profile": "Profile",
     "editProfile": "Edit Profile",
     "changePassword": "Change Password",
+    "dataRights": "My Data Rights",
     "noNameSet": "No Name Set",
     "passwordReset": {
       "sent": "Password reset email sent!",
@@ -102,6 +104,53 @@
       "decline": "Decline & Logout",
       "accepting": "Accepting...",
       "gdprNotice": "By accepting, you acknowledge your rights under GDPR including access, rectification, and erasure of your data."
+    }
+  },
+  "dataRights": {
+    "title": "My Data Rights",
+    "description": "Exercise your GDPR rights to access, rectify, or delete your personal data",
+    "downloadData": "Download My Data",
+    "downloadDataDescription": "Get a copy of your personal data in JSON format",
+    "requestCorrection": "Request Data Correction",
+    "requestCorrectionDescription": "Request correction of inaccurate or incomplete data",
+    "requestDeletion": "Request Data Deletion",
+    "requestDeletionDescription": "Request deletion of your personal data",
+    "newRequest": "New Data Rights Request",
+    "requestType": "Request Type",
+    "selectType": "Select request type...",
+    "selectRequestType": "Please select a request type",
+    "details": "Details",
+    "detailsPlaceholder": "Please provide details about your request (e.g., which data fields need correction, reason for deletion request)",
+    "submitRequest": "Submit Request",
+    "submitting": "Submitting...",
+    "myRequests": "My Requests",
+    "noRequests": "You haven't submitted any data rights requests yet",
+    "requestedOn": "Requested on",
+    "processedOn": "Processed on",
+    "response": "Response",
+    "requestTypes": {
+      "access": "Access to My Data",
+      "rectification": "Data Correction",
+      "erasure": "Data Deletion"
+    },
+    "status": {
+      "pending": "Pending",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "completed": "Completed"
+    },
+    "requestSubmittedSuccess": "Your request has been submitted successfully. You will be notified when it is processed.",
+    "errorSubmittingRequest": "Failed to submit request. Please try again.",
+    "errorLoadingRequests": "Failed to load your requests. Please try again.",
+    "preparingDownload": "Preparing your data for download...",
+    "downloadSuccess": "Your data has been downloaded successfully",
+    "errorDownloadingData": "Failed to download your data. Please try again.",
+    "gdprInfo": {
+      "title": "Your GDPR Rights",
+      "right1": "Right to access: You can request a copy of your personal data",
+      "right2": "Right to rectification: You can request correction of inaccurate data",
+      "right3": "Right to erasure: You can request deletion of your personal data",
+      "right4": "Right to be informed: You will be notified about how your data is processed"
     }
   }
 }

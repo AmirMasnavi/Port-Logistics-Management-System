@@ -6,6 +6,7 @@ import { t, changeLanguage, default as i18n } from '../../i18nClient';
 import LoginModal from '../auth/LoginModal';
 import ProfileModal from '../auth/ProfileModal';
 import { User, ChevronDown, LogOut, Edit, KeyRound } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import Menu from '../Menu'; // <-- import the Menu component
 // 1. IMPORT FIREBASE FUNCTIONS
 import { auth } from '../../firebaseConfig';
@@ -78,6 +79,7 @@ const ProfileDropdown: React.FC<DropdownProps> = ({ isOpen, setIsOpen }) => {
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
     // 4. NEW STATE for password reset message
     const [resetMessage, setResetMessage] = useState<{type: 'success' | 'error', text: string} | null>(null);
+    const navigate = useNavigate();
 
     const displayName = user?.displayName;
     const buttonText = displayName || t('header.profile');
@@ -149,6 +151,16 @@ const ProfileDropdown: React.FC<DropdownProps> = ({ isOpen, setIsOpen }) => {
                             >
                                 <LogOut className="w-4 h-4" />
                                 {t('button.logout')}
+                            </button>
+                            {/* --- NEW: Data Rights Link --- */}
+                            <button
+                                onClick={() => {
+                                    navigate('/data-rights');
+                                    setIsOpen(); // Close the dropdown
+                                }}
+                                className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                            >
+                                {t('header.dataRights')}
                             </button>
                         </div>
                         {/* --- 7. NEW MESSAGE AREA --- */}
@@ -237,4 +249,3 @@ const Header: React.FC<HeaderProps> = ({ isSidebarVisible, isExpanded }) => {
 };
 
 export default Header;
-

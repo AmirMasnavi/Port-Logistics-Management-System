@@ -14,6 +14,7 @@ using PortProject.Api.Domain.ShippingAgentRepresentativeAggregate;
 using PortProject.Api.Domain.VesselTypeAggregate;
 using PortProject.Api.Domain.VesselVisitNotificationAggregate;
 using PortProject.Api.Domain.PrivacyPolicyAggregate;
+using PortProject.Api.Domain.DataRightsAggregate;
 using src.Domain.VesselTypeAggregate;
 
 namespace PortProject.Api.Models;
@@ -43,6 +44,8 @@ public class PortProjectContext : DbContext
     
     public DbSet<PrivacyPolicy> PrivacyPolicies { get; set; }
     public DbSet<UserPolicyAcknowledgment> UserPolicyAcknowledgments { get; set; }
+    
+    public DbSet<DataRightsRequest> DataRightsRequests { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -676,6 +679,36 @@ public class PortProjectContext : DbContext
         
         acknowledgmentBuilder.HasIndex(upa => upa.UserId);
         acknowledgmentBuilder.HasIndex(upa => new { upa.UserId, upa.PolicyVersion });
+
+        // === DATA RIGHTS REQUEST CONFIGURATION ===
+        var dataRightsRequestBuilder = modelBuilder.Entity<DataRightsRequest>();
+        
+        dataRightsRequestBuilder.HasKey(drr => drr.Id);
+        
+        dataRightsRequestBuilder.Property(drr => drr.UserEmail)
+            .IsRequired()
+            .HasMaxLength(255);
+        
+        dataRightsRequestBuilder.Property(drr => drr.RequestType)
+            .HasConversion<string>()
+            .IsRequired();
+        
+        dataRightsRequestBuilder.Property(drr => drr.Status)
+            .HasConversion<string>()
+            .IsRequired();
+        
+        dataRightsRequestBuilder.Property(drr => drr.Details)
+            .HasMaxLength(1000);
+        
+        dataRightsRequestBuilder.Property(drr => drr.Response)
+            .HasMaxLength(1000);
+        
+        dataRightsRequestBuilder.Property(drr => drr.ProcessedBy)
+            .HasMaxLength(255);
+        
+        dataRightsRequestBuilder.HasIndex(drr => drr.UserEmail);
+        dataRightsRequestBuilder.HasIndex(drr => drr.Status);
+        dataRightsRequestBuilder.HasIndex(drr => drr.RequestedAt);
 
         // Optional: default table name
         resourceBuilder.ToTable("Resources");

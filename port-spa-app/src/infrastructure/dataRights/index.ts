@@ -1,0 +1,2 @@
+export { DataRightsRepository } from './DataRightsRepository';
+

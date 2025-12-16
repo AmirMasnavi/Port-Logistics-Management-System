@@ -13,6 +13,8 @@ namespace PortProject.Api.Domain.PrivacyPolicyAggregate
         
         public string UserId { get; private set; }
         
+        public string UserEmail { get; private set; }
+        
         public Guid PrivacyPolicyId { get; private set; }
         
         public int PolicyVersion { get; private set; }
@@ -30,6 +32,7 @@ namespace PortProject.Api.Domain.PrivacyPolicyAggregate
         protected UserPolicyAcknowledgment()
         {
             UserId = string.Empty;
+            UserEmail = string.Empty;
         }
 
         public UserPolicyAcknowledgment(string userId, Guid privacyPolicyId, int policyVersion, 
@@ -40,6 +43,7 @@ namespace PortProject.Api.Domain.PrivacyPolicyAggregate
 
             Id = Guid.NewGuid();
             UserId = userId;
+            UserEmail = userId; // Store email as well for easier querying
             PrivacyPolicyId = privacyPolicyId;
             PolicyVersion = policyVersion;
             AcknowledgedAt = DateTime.UtcNow;
@@ -48,4 +52,3 @@ namespace PortProject.Api.Domain.PrivacyPolicyAggregate
         }
     }
 }
-

@@ -19,7 +19,8 @@
   },
   "loading": "A carregar...",
   "common": {
-    "loading": "A carregar..."
+    "loading": "A carregar...",
+    "cancel": "Cancelar"
   },
   "search": {
     "placeholder": "Pesquisar..."
@@ -40,6 +41,7 @@
     "profile": "Perfil",
     "editProfile": "Editar perfil",
     "changePassword": "Alterar palavra-passe",
+    "dataRights": "Os Meus Direitos sobre Dados",
     "noNameSet": "Sem nome definido",
     "passwordReset": {
       "sent": "Email de redefinição enviado!",
@@ -98,6 +100,53 @@
       "decline": "Recusar e Sair",
       "accepting": "A aceitar...",
       "gdprNotice": "Ao aceitar, reconhece os seus direitos ao abrigo do RGPD, incluindo acesso, retificação e eliminação dos seus dados."
+    }
+  },
+  "dataRights": {
+    "title": "Os Meus Direitos sobre Dados",
+    "description": "Exerça os seus direitos RGPD para aceder, retificar ou eliminar os seus dados pessoais",
+    "downloadData": "Descarregar os Meus Dados",
+    "downloadDataDescription": "Obter uma cópia dos seus dados pessoais em formato JSON",
+    "requestCorrection": "Solicitar Correção de Dados",
+    "requestCorrectionDescription": "Solicitar correção de dados incorretos ou incompletos",
+    "requestDeletion": "Solicitar Eliminação de Dados",
+    "requestDeletionDescription": "Solicitar a eliminação dos seus dados pessoais",
+    "newRequest": "Novo Pedido de Direitos sobre Dados",
+    "requestType": "Tipo de Pedido",
+    "selectType": "Selecione o tipo de pedido...",
+    "selectRequestType": "Por favor selecione um tipo de pedido",
+    "details": "Detalhes",
+    "detailsPlaceholder": "Por favor forneça detalhes sobre o seu pedido (ex: que campos de dados precisam de correção, razão para o pedido de eliminação)",
+    "submitRequest": "Submeter Pedido",
+    "submitting": "A submeter...",
+    "myRequests": "Os Meus Pedidos",
+    "noRequests": "Ainda não submeteu nenhum pedido de direitos sobre dados",
+    "requestedOn": "Solicitado em",
+    "processedOn": "Processado em",
+    "response": "Resposta",
+    "requestTypes": {
+      "access": "Acesso aos Meus Dados",
+      "rectification": "Correção de Dados",
+      "erasure": "Eliminação de Dados"
+    },
+    "status": {
+      "pending": "Pendente",
+      "approved": "Aprovado",
+      "rejected": "Rejeitado",
+      "completed": "Concluído"
+    },
+    "requestSubmittedSuccess": "O seu pedido foi submetido com sucesso. Será notificado quando for processado.",
+    "errorSubmittingRequest": "Falha ao submeter pedido. Por favor, tente novamente.",
+    "errorLoadingRequests": "Falha ao carregar os seus pedidos. Por favor, tente novamente.",
+    "preparingDownload": "A preparar os seus dados para download...",
+    "downloadSuccess": "Os seus dados foram descarregados com sucesso",
+    "errorDownloadingData": "Falha ao descarregar os seus dados. Por favor, tente novamente.",
+    "gdprInfo": {
+      "title": "Os Seus Direitos RGPD",
+      "right1": "Direito de acesso: Pode solicitar uma cópia dos seus dados pessoais",
+      "right2": "Direito de retificação: Pode solicitar a correção de dados incorretos",
+      "right3": "Direito ao apagamento: Pode solicitar a eliminação dos seus dados pessoais",
+      "right4": "Direito a ser informado: Será notificado sobre como os seus dados são processados"
     }
   }
 }
