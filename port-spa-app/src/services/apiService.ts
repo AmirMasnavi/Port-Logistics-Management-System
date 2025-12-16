@@ -39,6 +39,22 @@ const apiClient = axios.create({
     }
 });
 
+
+const PLANNING_API_URL = import.meta.env.VITE_PLANNING_API_URL || 'http://localhost:5280/api';
+const OEM_API_URL = import.meta.env.VITE_OEM_API_URL || 'http://localhost:3001/api';
+
+export const planningClient = axios.create({
+    baseURL: PLANNING_API_URL,
+    timeout: 30000,
+    headers: { 'Content-Type': 'application/json' }
+});
+
+export const oemClient = axios.create({
+    baseURL: OEM_API_URL,
+    timeout: 30000,
+    headers: { 'Content-Type': 'application/json' }
+});
+
 // --- 2. Auth Helpers & Interceptores ---
 
 // Helper para obter o token do utilizador atual (usa SDK do Firebase)
@@ -80,8 +96,21 @@ let interceptorsInitialized = false;
 export const initializeApi = () => {
     if (interceptorsInitialized) return;
     interceptorsInitialized = true;
+    
+    // Setup interceptors for main API client
+    setupClientInterceptors(apiClient);
+    
+    // Setup interceptors for Planning API client
+    setupClientInterceptors(planningClient);
+    
+    // Setup interceptors for OEM API client
+    setupClientInterceptors(oemClient);
+};
+
+// Helper function to setup interceptors for any axios client
+const setupClientInterceptors = (client: typeof apiClient) => {
     // Request Interceptor: Adiciona o Token Bearer
-    apiClient.interceptors.request.use(
+    client.interceptors.request.use(
         async (config: InternalAxiosRequestConfig) => {
             try {
                 const token = await getAccessToken();
@@ -99,7 +128,7 @@ export const initializeApi = () => {
     );
 
     // Response Interceptor: Lida com 401 (Refresh Token)
-    apiClient.interceptors.response.use(
+    client.interceptors.response.use(
         (response: AxiosResponse) => response,
         async (error: any) => {
             const originalRequest = (error?.config ?? {}) as any;
@@ -122,7 +151,7 @@ export const initializeApi = () => {
                                 originalRequest.headers = originalRequest.headers || {};
                                 (originalRequest.headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
                                 try {
-                                    const res = await apiClient(originalRequest);
+                                    const res = await client(originalRequest);
                                     resolve(res);
                                 } catch (err) {
                                     reject(err);
@@ -133,6 +162,7 @@ export const initializeApi = () => {
                         });
                     });
                 }
+
                 // Inicia refresh
                 isRefreshing = true;
 
@@ -159,7 +189,7 @@ export const initializeApi = () => {
                     if (!originalRequest.headers) originalRequest.headers = {};
                     (originalRequest.headers as Record<string, string>)['Authorization'] = `Bearer ${freshToken}`;
                     try {
-                        return apiClient(originalRequest);
+                        return client(originalRequest);
                     } catch (err) {
                         return Promise.reject(err);
                     }
