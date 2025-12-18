@@ -154,18 +154,32 @@ const DynamicSpotlight: React.FC<{
 }> = ({ target }) => {
     const spotlightRef = useRef<THREE.SpotLight>(null);
     const { camera } = useThree();
+    const [intensity, setIntensity] = React.useState(0);
+    const targetIntensity = useRef(1500);
+    const debugMode = false; // Set to true to show debug sphere
 
     React.useEffect(() => {
         console.log('🔦 DynamicSpotlight component mounted with target:', target);
-    }, []);
+        // Fade in spotlight
+        setIntensity(0);
+        targetIntensity.current = 1500;
+    }, [target]);
 
-    useFrame(() => {
+    useFrame((_state, delta) => {
         if (spotlightRef.current) {
             // Update spotlight position to follow camera
             spotlightRef.current.position.copy(camera.position);
             // Update spotlight target to the selected element
             spotlightRef.current.target.position.set(target[0], target[1], target[2]);
             spotlightRef.current.target.updateMatrixWorld();
+
+            // Smooth intensity transition
+            const diff = targetIntensity.current - intensity;
+            if (Math.abs(diff) > 1) {
+                const newIntensity = intensity + diff * delta * 5; // Smooth fade
+                setIntensity(newIntensity);
+                spotlightRef.current.intensity = newIntensity;
+            }
         }
     });
 
@@ -173,20 +187,77 @@ const DynamicSpotlight: React.FC<{
         <>
             <spotLight
                 ref={spotlightRef}
-                intensity={1500} // DRAMATICALLY increased for clear highlighting
+                intensity={intensity}
                 angle={Math.PI / 4} // Wide beam
-                penumbra={0.5}
+                penumbra={0.5} // Visible penumbra for soft edges
                 distance={1000}
                 decay={1}
                 castShadow={false} // Disable shadows for better performance
                 color="#ffffff" // Bright white
             />
-            {/* Debug sphere to show target position - LARGE and RED */}
-            <mesh position={target}>
-                <sphereGeometry args={[5, 16, 16]} />
-                <meshBasicMaterial color="red" opacity={1} transparent={false} />
-            </mesh>
+            {/* Debug sphere - only visible in debug mode */}
+            {debugMode && (
+                <mesh position={target}>
+                    <sphereGeometry args={[2, 16, 16]} />
+                    <meshBasicMaterial color="red" opacity={0.5} transparent={true} />
+                </mesh>
+            )}
         </>
+    );
+};
+
+// SelectionHighlight Component with pulsating glow effect
+const SelectionHighlight: React.FC<{
+    size: [number, number, number];
+    isSelected: boolean;
+    elementType?: string;
+}> = ({ size, isSelected, elementType }) => {
+    const meshRef = useRef<THREE.Mesh>(null);
+
+    // Determine color based on element type
+    const getHighlightColor = () => {
+        if (!isSelected) return "#ffffff"; // White for hover
+        
+        switch (elementType) {
+            case 'vessel':
+                return "#00bfff"; // Deep sky blue
+            case 'dock':
+                return "#00ff00"; // Green
+            case 'resource':
+                return "#ff8c00"; // Dark orange
+            case 'yard':
+            case 'building':
+                return "#ffd700"; // Gold
+            default:
+                return "#00ff00"; // Default green
+        }
+    };
+
+    // Pulsating animation for selected elements
+    useFrame((_state) => {
+        if (meshRef.current && isSelected) {
+            // Keep mesh transparent - edges provide the visual feedback
+            (meshRef.current.material as THREE.MeshBasicMaterial).opacity = 0;
+            // TODO: Implement pulsating effect on edges in future update
+        }
+    });
+
+    return (
+        <mesh ref={meshRef} renderOrder={1000}>
+            <boxGeometry args={[size[0] * 1.05, size[1] * 1.05, size[2] * 1.05]} />
+            <meshBasicMaterial
+                color="black"
+                transparent={true}
+                opacity={0}
+                depthWrite={false}
+            />
+            <Edges
+                scale={1}
+                threshold={15}
+                color={getHighlightColor()}
+                toneMapped={false}
+            />
+        </mesh>
     );
 };
 
@@ -245,6 +316,8 @@ const ClickableElement: React.FC<{
 }> = ({ position, elementType, elementId, elementName, isSelected, size, children, onSelect, onElementInfo, onDeselect }) => {
 
     const [hovered, setHover] = React.useState(false);
+    const [showTooltip, setShowTooltip] = React.useState(false);
+    const hoverTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
     // Efeito para cursor (Mãozinha quando passa por cima)
     React.useEffect(() => {
@@ -252,6 +325,25 @@ const ClickableElement: React.FC<{
         else document.body.style.cursor = 'auto';
         return () => { document.body.style.cursor = 'auto'; };
     }, [hovered]);
+
+    // Show tooltip after brief hover delay
+    React.useEffect(() => {
+        if (hovered && !isSelected) {
+            hoverTimeoutRef.current = setTimeout(() => {
+                setShowTooltip(true);
+            }, 500); // Show after 500ms hover
+        } else {
+            if (hoverTimeoutRef.current) {
+                clearTimeout(hoverTimeoutRef.current);
+            }
+            setShowTooltip(false);
+        }
+        return () => {
+            if (hoverTimeoutRef.current) {
+                clearTimeout(hoverTimeoutRef.current);
+            }
+        };
+    }, [hovered, isSelected]);
 
     const handleClick = (e: any) => {
         if (e.button !== undefined && e.button !== 0) return;
@@ -280,25 +372,27 @@ const ClickableElement: React.FC<{
 
             {/* A CAIXA DE LINHAS */}
             {(isSelected || hovered) && size && (
-                <mesh renderOrder={1000}>
-                    {/* Tamanho ligeiramente maior para não ficar escondido */}
-                    <boxGeometry args={[size[0] * 1.05, size[1] * 1.05, size[2] * 1.05]} />
+                <SelectionHighlight 
+                    size={size} 
+                    isSelected={isSelected || false} 
+                    elementType={elementType}
+                />
+            )}
 
-                    {/* IMPORTANTE: opacity={0} em vez de visible={false} */}
-                    <meshBasicMaterial
-                        color="black"
-                        transparent={true}
-                        opacity={0}
-                        depthWrite={false}
-                    />
-
-                    <Edges
-                        scale={1}
-                        threshold={15}
-                        color={isSelected ? "#00ff00" : "#ffffff"} // Verde se selecionado, Branco se hover
-                        toneMapped={false}
-                    />
-                </mesh>
+            {/* Hover Tooltip (Shows on hover, before click) */}
+            {showTooltip && !isSelected && size && (
+                <Html
+                    position={[0, size[1] + 2, 0]}
+                    center
+                    distanceFactor={10}
+                    style={{ pointerEvents: 'none' }}
+                >
+                    <div className="bg-gray-900 text-white px-3 py-2 rounded-lg shadow-lg text-xs whitespace-nowrap opacity-90">
+                        <div className="font-semibold">{elementName || "Unknown"}</div>
+                        <div className="text-gray-400 text-[10px] mt-0.5">{elementType || "object"}</div>
+                        <div className="text-gray-500 text-[9px] mt-1">Click to select</div>
+                    </div>
+                </Html>
             )}
 
             {/* Info Card (Só aparece se estiver clicado/selecionado) */}
@@ -429,6 +523,28 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
         setTargetCameraPosition([0, 60, 80]); // Reseta câmara para posição inicial
         setTargetCameraLookAt([0, 0, 0]);
     }, []);
+
+    // Keyboard shortcuts handler
+    React.useEffect(() => {
+        const handleKeyDown = (event: KeyboardEvent) => {
+            // Escape key - deselect current element
+            if (event.key === 'Escape') {
+                if (selectedId) {
+                    console.log('⌨️ Escape pressed - deselecting element');
+                    handleDeselect();
+                }
+            }
+            
+            // 'r' key - reset camera to initial position
+            if (event.key === 'r' || event.key === 'R') {
+                console.log('⌨️ R pressed - resetting camera');
+                handleDeselect();
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [selectedId, handleDeselect]);
 
     // Debug: Log when selectedElement changes
     React.useEffect(() => {
@@ -1373,6 +1489,167 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
                 panSpeed={0.50}
             />
         </Canvas>
+        
+        {/* Keyboard Shortcuts Help Button */}
+        <KeyboardShortcutsHelp />
+        </div>
+    );
+};
+
+// Keyboard Shortcuts Help Component
+const KeyboardShortcutsHelp: React.FC = () => {
+    const [isOpen, setIsOpen] = React.useState(false);
+
+    React.useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === '?' || (e.shiftKey && e.key === '/')) {
+                e.preventDefault();
+                setIsOpen(prev => !prev);
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, []);
+
+    return (
+        <>
+            {/* Help Button - Animado e Atrativo */}
+            <button
+                onClick={() => setIsOpen(!isOpen)}
+                className="absolute bottom-4 right-4 z-10 bg-gradient-to-br from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white rounded-full w-12 h-12 flex items-center justify-center shadow-2xl transition-all hover:scale-110 active:scale-95 animate-pulse hover:animate-none group"
+                title="Keyboard Shortcuts (Press ?)"
+            >
+                <span className="text-xl font-bold group-hover:rotate-12 transition-transform duration-300">?</span>
+            </button>
+
+            {/* Help Overlay - Design Moderno com Animações */}
+            {isOpen && (
+                <div 
+                    className="absolute inset-0 z-20 bg-black/60 backdrop-blur-sm flex items-center justify-center transition-all duration-300" 
+                    onClick={() => setIsOpen(false)}
+                    style={{ animation: 'fadeIn 0.3s ease-out' }}
+                >
+                    <div 
+                        className="bg-gradient-to-br from-white to-blue-50 rounded-2xl shadow-2xl max-w-2xl w-full m-4 overflow-hidden transform transition-all duration-300" 
+                        onClick={(e) => e.stopPropagation()}
+                        style={{ animation: 'slideUp 0.3s ease-out' }}
+                    >
+                        {/* Header com Gradiente e Ícone */}
+                        <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-purple-600 px-6 py-5 relative overflow-hidden">
+                            <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
+                            <div className="relative flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="bg-white/20 p-2 rounded-lg backdrop-blur-sm">
+                                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                                        </svg>
+                                    </div>
+                                    <h3 className="text-white font-bold text-xl tracking-wide">Keyboard Shortcuts</h3>
+                                </div>
+                                <button
+                                    onClick={() => setIsOpen(false)}
+                                    className="text-white/80 hover:text-white transition-colors p-1 hover:bg-white/10 rounded-lg"
+                                >
+                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        {/* Content com Seções Organizadas */}
+                        <div className="p-6 space-y-5 max-h-[500px] overflow-y-auto">
+                            {/* Mouse Controls Section */}
+                            <div className="bg-white rounded-xl p-4 shadow-md border border-blue-100">
+                                <div className="flex items-center gap-2 mb-3">
+                                    <div className="bg-gradient-to-r from-blue-500 to-cyan-500 p-2 rounded-lg">
+                                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
+                                        </svg>
+                                    </div>
+                                    <h4 className="text-gray-800 font-semibold text-base">Mouse Controls</h4>
+                                </div>
+                                <div className="space-y-2">
+                                    <ShortcutRow shortcut="Left Click" description="Select object" icon="cursor" />
+                                    <ShortcutRow shortcut="Right Click + Drag" description="Rotate camera" icon="rotate" />
+                                    <ShortcutRow shortcut="Middle Click + Drag" description="Pan camera" icon="move" />
+                                    <ShortcutRow shortcut="Scroll Wheel" description="Zoom in/out" icon="zoom" />
+                                </div>
+                            </div>
+                            
+                            {/* Keyboard Controls Section */}
+                            <div className="bg-white rounded-xl p-4 shadow-md border border-purple-100">
+                                <div className="flex items-center gap-2 mb-3">
+                                    <div className="bg-gradient-to-r from-purple-500 to-pink-500 p-2 rounded-lg">
+                                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                                        </svg>
+                                    </div>
+                                    <h4 className="text-gray-800 font-semibold text-base">Keyboard Controls</h4>
+                                </div>
+                                <div className="space-y-2">
+                                    <ShortcutRow shortcut="i" description="Toggle info overlay" icon="info" />
+                                    <ShortcutRow shortcut="Escape" description="Deselect object" icon="escape" />
+                                    <ShortcutRow shortcut="r" description="Reset camera" icon="reset" />
+                                    <ShortcutRow shortcut="?" description="Show this help" icon="help" />
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {/* Footer com Gradiente */}
+                        <div className="bg-gradient-to-r from-gray-50 to-blue-50 px-6 py-4 flex justify-end border-t border-blue-100">
+                            <button
+                                onClick={() => setIsOpen(false)}
+                                className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl text-sm font-semibold shadow-lg hover:shadow-xl transition-all transform hover:scale-105 active:scale-95"
+                            >
+                                Got it!
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </>
+    );
+};
+
+const ShortcutRow: React.FC<{ shortcut: string; description: string; icon?: string }> = ({ shortcut, description, icon }) => {
+    const getIcon = () => {
+        switch(icon) {
+            case 'cursor':
+                return <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5" /></svg>;
+            case 'rotate':
+                return <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>;
+            case 'move':
+                return <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" /></svg>;
+            case 'zoom':
+                return <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7" /></svg>;
+            case 'info':
+                return <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
+            case 'escape':
+                return <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>;
+            case 'reset':
+                return <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>;
+            case 'help':
+                return <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
+            default:
+                return null;
+        }
+    };
+    
+    return (
+        <div className="flex justify-between items-center group hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 p-2.5 rounded-lg transition-all">
+            <div className="flex items-center gap-2">
+                {icon && (
+                    <div className="text-blue-600 group-hover:text-purple-600 transition-colors">
+                        {getIcon()}
+                    </div>
+                )}
+                <kbd className="px-3 py-1.5 bg-gradient-to-br from-gray-50 to-gray-100 border-2 border-gray-300 group-hover:border-blue-400 rounded-lg text-sm font-mono font-semibold text-gray-700 shadow-sm group-hover:shadow-md transition-all">
+                    {shortcut}
+                </kbd>
+            </div>
+            <span className="text-gray-600 text-sm font-medium ml-4">{description}</span>
         </div>
     );
 };
