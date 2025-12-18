@@ -72,6 +72,21 @@ export const createOperationPlanRouter = () => {
     });
     
     /**
+     * GET /api/plans/resources-staff
+     * Returns list of available resources and staff for selection in UI
+     */
+    router.get('/resources-staff', verifyFirebaseToken, async (req, res) => {
+        try {
+            const authToken = req.headers.authorization?.replace('Bearer ', '');
+            const data = await service.getAvailableResourcesAndStaff(authToken);
+            res.json({ success: true, data });
+        } catch (error) {
+            console.error('[OEM RESOURCES ERROR]:', error);
+            res.status(500).json({ success: false, message: error.message });
+        }
+    });
+
+    /**
      * 2. CRIAR PLANO (POST /api/plans)
      */
     router.post('/', verifyFirebaseToken, async (req, res) => {
@@ -142,6 +157,21 @@ export const createOperationPlanRouter = () => {
             res.json({ message: "Base de dados limpa com sucesso!" });
         } catch (e) {
             res.status(500).json({ error: e.message });
+        }
+    });
+
+    /**
+     * GET /api/plans/resources-staff
+     * Returns list of available resources and staff for selection in UI
+     */
+    router.get('/resources-staff', verifyFirebaseToken, async (req, res) => {
+        try {
+            const authToken = req.headers.authorization?.replace('Bearer ', '');
+            const data = await service.getAvailableResourcesAndStaff(authToken);
+            res.json({ success: true, data });
+        } catch (error) {
+            console.error('[OEM RESOURCES ERROR]:', error);
+            res.status(500).json({ success: false, message: error.message });
         }
     });
 

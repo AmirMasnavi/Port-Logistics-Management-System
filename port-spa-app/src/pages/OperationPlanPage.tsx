@@ -1,6 +1,7 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { schedulingService } from '../services/schedulingService';
 import type { OperationPlan } from '../services/schedulingService';
+import type { ScheduledTask } from '../types/scheduling.types';
 
 
 export const OperationPlanPage: React.FC = () => {
@@ -20,6 +21,23 @@ export const OperationPlanPage: React.FC = () => {
     
     // State para controlar qual plano está expandido (mostrar detalhes)
     const [expandedPlanId, setExpandedPlanId] = useState<string | null>(null);
+
+    // --- EDIT STATE ---
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [editingPlanId, setEditingPlanId] = useState<string | null>(null);
+    const [editingTask, setEditingTask] = useState<ScheduledTask | null>(null);
+    const [editForm, setEditForm] = useState({
+        resourceId: '',
+        staffId: '',
+        startTime: '',
+        endTime: '',
+        reason: ''
+    });
+
+    // --- SELECTION DATA STATE ---
+    const [availableResources, setAvailableResources] = useState<any[]>([]);
+    const [availableStaff, setAvailableStaff] = useState<any[]>([]);
+    const [loadingSelectionData, setLoadingSelectionData] = useState(false);
 
     // --- ACTIONS ---
 
@@ -91,6 +109,65 @@ export const OperationPlanPage: React.FC = () => {
             setPlanToDelete(null);
         } catch (error) {
             alert("Failed to delete plan. See console.");
+        }
+    };
+
+    // --- EDIT ACTIONS ---
+    const openEditModal = async (planId: string, task: ScheduledTask) => {
+        setEditingPlanId(planId);
+        setEditingTask(task);
+        setEditForm({
+            resourceId: task.resourceId,
+            staffId: task.staffId || '',
+            startTime: task.startTime,
+            endTime: task.endTime,
+            reason: ''
+        });
+        setIsEditModalOpen(true);
+
+        // Fetch selection data if not already loaded
+        if (availableResources.length === 0) {
+            setLoadingSelectionData(true);
+            try {
+                const data = await schedulingService.getResourcesAndStaff();
+                setAvailableResources(data.resources);
+                setAvailableStaff(data.staff);
+            } catch (error) {
+                console.error("Failed to load selection data", error);
+            } finally {
+                setLoadingSelectionData(false);
+            }
+        }
+    };
+
+    const handleUpdateTask = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingPlanId || !editingTask) return;
+
+        try {
+            // Cast task to any to access _id which comes from backend but might not be in type
+            const taskId = (editingTask as any)._id;
+            if (!taskId) {
+                alert("Task ID not found. Cannot update.");
+                return;
+            }
+
+            const result = await schedulingService.updateOperationPlanTask(editingPlanId, taskId, editForm);
+            
+            // Update local state
+            setHistory(history.map(p => p.planId === editingPlanId ? result.plan : p));
+            
+            setIsEditModalOpen(false);
+            setEditingPlanId(null);
+            setEditingTask(null);
+            
+            if (result.warnings && result.warnings.length > 0) {
+                alert(`Task updated with warnings:\n${result.warnings.join('\n')}`);
+            } else {
+                alert('Task updated successfully!');
+            }
+        } catch (error: any) {
+            alert(`Failed to update task: ${error.message}`);
         }
     };
 
@@ -286,6 +363,12 @@ export const OperationPlanPage: React.FC = () => {
                                                                                 </svg>
                                                                                 Resource: <span className="font-medium text-green-600">{task.resourceKind}</span>
                                                                             </span>
+                                                                            <span className="inline-flex items-center gap-1 text-sm text-gray-700">
+                                                                                <svg className="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                                                                </svg>
+                                                                                Staff: <span className="font-medium text-purple-600">{task.staffShortName || task.staffId || 'N/A'}</span>
+                                                                            </span>
                                                                         </div>
                                                                     </div>
                                                                     <div className="text-right ml-4 bg-blue-50 px-3 py-2 rounded-lg border border-blue-200">
@@ -314,6 +397,12 @@ export const OperationPlanPage: React.FC = () => {
                                                                                 minute: '2-digit' 
                                                                             })}
                                                                         </div>
+                                                                        <button 
+                                                                            onClick={() => openEditModal(plan.planId, task)}
+                                                                            className="mt-2 w-full text-xs bg-blue-600 text-white py-1 px-2 rounded hover:bg-blue-700 transition-colors"
+                                                                        >
+                                                                            Edit
+                                                                        </button>
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -367,6 +456,121 @@ export const OperationPlanPage: React.FC = () => {
                     </div>
                 </div>
             )}
+
+            {/* --- EDIT TASK MODAL --- */}
+            {isEditModalOpen && editingTask && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
+                    <div className="bg-white rounded-lg shadow-xl max-w-lg w-full p-6 animate-fade-in">
+                        <h3 className="text-lg font-medium text-gray-900 mb-4">
+                            Edit Task for VVN {editingTask.vesselVisitBusinessId}
+                        </h3>
+                        
+                        <form onSubmit={handleUpdateTask} className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Resource</label>
+                                {loadingSelectionData ? (
+                                    <p className="text-sm text-gray-500">Loading resources...</p>
+                                ) : (
+                                    <select
+                                        value={editForm.resourceId}
+                                        onChange={e => setEditForm({...editForm, resourceId: e.target.value})}
+                                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                                        required
+                                    >
+                                        <option value="">Select Resource</option>
+                                        {availableResources.map(r => (
+                                            <option key={r.id} value={r.id}>
+                                                {r.name} ({r.type})
+                                            </option>
+                                        ))}
+                                        {/* Fallback if current resource is not in list */}
+                                        {!availableResources.find(r => r.id === editForm.resourceId) && editForm.resourceId && (
+                                            <option value={editForm.resourceId}>{editForm.resourceId} (Current)</option>
+                                        )}
+                                    </select>
+                                )}
+                            </div>
+                            
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Staff</label>
+                                {loadingSelectionData ? (
+                                    <p className="text-sm text-gray-500">Loading staff...</p>
+                                ) : (
+                                    <select
+                                        value={editForm.staffId}
+                                        onChange={e => setEditForm({...editForm, staffId: e.target.value})}
+                                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                                        required
+                                    >
+                                        <option value="">Select Staff</option>
+                                        {availableStaff.map(s => (
+                                            <option key={s.id} value={s.id}>
+                                                {s.name} ({s.role})
+                                            </option>
+                                        ))}
+                                        {/* Fallback if current staff is not in list */}
+                                        {!availableStaff.find(s => s.id === editForm.staffId) && editForm.staffId && (
+                                            <option value={editForm.staffId}>{editForm.staffId} (Current)</option>
+                                        )}
+                                    </select>
+                                )}
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">Start Time</label>
+                                    <input 
+                                        type="datetime-local" 
+                                        value={editForm.startTime ? new Date(editForm.startTime).toISOString().slice(0, 16) : ''}
+                                        onChange={e => setEditForm({...editForm, startTime: new Date(e.target.value).toISOString()})}
+                                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">End Time</label>
+                                    <input 
+                                        type="datetime-local" 
+                                        value={editForm.endTime ? new Date(editForm.endTime).toISOString().slice(0, 16) : ''}
+                                        onChange={e => setEditForm({...editForm, endTime: new Date(e.target.value).toISOString()})}
+                                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                                        required
+                                    />
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Reason for Change</label>
+                                <textarea 
+                                    value={editForm.reason}
+                                    onChange={e => setEditForm({...editForm, reason: e.target.value})}
+                                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                                    rows={2}
+                                    required
+                                    placeholder="e.g., Crane breakdown, Staff unavailable..."
+                                />
+                            </div>
+
+                            <div className="flex justify-end gap-3 mt-6">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsEditModalOpen(false)}
+                                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700"
+                                >
+                                    Save Changes
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
+

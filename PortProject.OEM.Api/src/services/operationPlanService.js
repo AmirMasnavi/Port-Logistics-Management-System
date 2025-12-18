@@ -142,6 +142,39 @@ export class OperationPlanService {
     }
 
     /**
+     * Get list of available resources and staff for selection
+     */
+    async getAvailableResourcesAndStaff(authToken) {
+        try {
+            if (authToken) {
+                this.masterDataGateway.setAuthToken(authToken);
+            }
+
+            const [resources, staff] = await Promise.all([
+                this.masterDataGateway.getAllResources(),
+                this.masterDataGateway.getAllStaff()
+            ]);
+
+            return {
+                resources: resources.map(r => ({
+                    id: r.code || r.Code || r.id,
+                    name: r.description || r.Description || r.name || r.code, 
+                    type: r.kind || r.Kind || 'Unknown'
+                })),
+                staff: staff.map(s => ({
+                    id: s.mecanographicNumber || s.MecanographicNumber || s.id,
+                    name: s.shortName || s.ShortName || s.name || s.id, 
+                    role: s.role || s.Role || 'Unknown'
+                }))
+            };
+        } catch (error) {
+            console.error(`[OEM] Error fetching resources/staff: ${error.message}`);
+            // Return empty lists instead of failing completely
+            return { resources: [], staff: [] };
+        }
+    }
+
+    /**
      * US 4.1.4 - Update a specific task within a plan
      */
     async updateTask(planId, taskId, updateData, userEmail) {
@@ -161,8 +194,43 @@ export class OperationPlanService {
 
         // 3. Prepare new values (use new if provided, else keep old)
         const newResource = updateData.resourceId || task.resourceId;
+        const newStaffId = updateData.staffId || task.staffId;
         const newStart = updateData.startTime ? new Date(updateData.startTime) : new Date(task.startTime);
         const newEnd = updateData.endTime ? new Date(updateData.endTime) : new Date(task.endTime);
+
+        // --- NAME FIX: Handle Staff Name Logic ---
+        let newStaffName = task.staffShortName; // Default to current name
+
+        // Only try to fetch if the Staff ID actually CHANGED
+        if (updateData.staffId && updateData.staffId !== task.staffId) {
+            // Reset to Unknown first so we don't accidentally keep "John Doe" for "Amir"
+            newStaffName = `ID: ${newStaffId}`; 
+
+            const staffDetails = await this.masterDataGateway.getStaffById(newStaffId);
+            
+            if (staffDetails) {
+                // Check both casing formats just to be safe
+                newStaffName = staffDetails.shortName || staffDetails.ShortName || staffDetails.name || staffDetails.Name || newStaffName;
+            }
+        }
+        
+        // --- RESOURCE KIND FIX: Handle Resource Kind Logic ---
+        let newResourceKind = task.resourceKind; // Default to current kind
+        
+        // Only try to fetch if the Resource ID actually CHANGED
+        if (updateData.resourceId && updateData.resourceId !== task.resourceId) {
+            try {
+                // Use the specific getResourceById method
+                const resourceDetails = await this.masterDataGateway.getResourceById(newResource);
+                
+                if (resourceDetails) {
+                    newResourceKind = resourceDetails.kind || resourceDetails.Kind || newResourceKind;
+                }
+            } catch (e) {
+                console.warn(`[OEM] Failed to fetch resource details for kind update: ${e.message}`);
+            }
+        }
+        // -----------------------------------------
 
         // 4. VALIDATION: Check for overlaps (The "Alert" requirement)
         const warnings = [];
@@ -171,29 +239,37 @@ export class OperationPlanService {
         plan.scheduledTasks.forEach(otherTask => {
             if (otherTask._id.toString() === taskId) return; // Skip self
 
-            // If using the same resource...
-            if (otherTask.resourceId === newResource) {
-                const otherStart = new Date(otherTask.startTime);
-                const otherEnd = new Date(otherTask.endTime);
+            const isOverlapping = (newStart < otherTask.endTime && newEnd > otherTask.startTime);
 
-                // Check time overlap: (StartA < EndB) and (EndA > StartB)
-                if (newStart < otherEnd && newEnd > otherStart) {
-                    warnings.push(`Conflict: Resource ${newResource} is already busy with VVN ${otherTask.vesselVisitId} from ${otherStart.toISOString()} to ${otherEnd.toISOString()}`);
+            if (isOverlapping) {
+                // A. STAFF CONFLICT -> BLOCKING ERROR
+                if (otherTask.staffId === newStaffId) {
+                    throw new Error(`BLOCKING: Staff member ${newStaffName} (${newStaffId}) is already assigned to VVN ${otherTask.vesselVisitBusinessId} during this time.`);
+                }
+
+                // B. RESOURCE CONFLICT -> SOFT WARNING
+                if (otherTask.resourceId === newResource) {
+                    warnings.push(`Resource Conflict: ${newResource} is busy with VVN ${otherTask.vesselVisitBusinessId}`);
                 }
             }
         });
 
         // 5. Apply Updates
         task.resourceId = newResource;
+        task.resourceKind = newResourceKind; // Update the kind
+        task.staffId = newStaffId;
+        task.staffShortName = newStaffName;
         task.startTime = newStart;
         task.endTime = newEnd;
-        if (updateData.staffId) task.staffId = updateData.staffId;
 
         // 6. Log the change (The "Audit" requirement)
         plan.changeLogs.push({
             author: userEmail,
             reason: updateData.reason || "Manual update",
-            details: `Updated Task for VVN ${task.vesselVisitId}. Resource: ${oldResource}->${newResource}. Start: ${oldStart.toISOString()}->${newStart.toISOString()}`
+            details: `Updated VVN ${task.vesselVisitBusinessId}. ` +
+                     `Res: ${oldResource}->${newResource}. ` +
+                     `Staff: ${task.staffShortName}->${newStaffName}. ` +
+                     `Time: ${oldStart.toISOString().substr(11,5)}->${newStart.toISOString().substr(11,5)}`
         });
 
         // 7. Save (Mongoose tracks the changes in the subdoc)
