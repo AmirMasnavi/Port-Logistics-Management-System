@@ -64,7 +64,7 @@ jobs:
       - name: Install OEM API Dependencies
         working-directory: ./PortProject.OEM.Api
         run: |
-          npm ci --production
+          npm install --omit=dev
         env:
           NODE_ENV: production
 
@@ -79,7 +79,6 @@ jobs:
           New-Item -ItemType Directory -Force -Path "E:\OemApi"
           Copy-Item ./PortProject.OEM.Api/src -Destination "E:\OemApi\" -Recurse -Force
           Copy-Item ./PortProject.OEM.Api/package.json -Destination "E:\OemApi\" -Force
-          Copy-Item ./PortProject.OEM.Api/package-lock.json -Destination "E:\OemApi\" -Force
           Copy-Item ./PortProject.OEM.Api/.env -Destination "E:\OemApi\" -Force
           Copy-Item ./PortProject.OEM.Api/node_modules -Destination "E:\OemApi\" -Recurse -Force
           Start-Service OemApiService

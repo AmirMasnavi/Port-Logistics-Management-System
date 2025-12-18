@@ -1,6 +1,7 @@
 // Application Service - Business Logic Layer
 // This is the "Use Case" layer that orchestrates domain logic
 
+import type { VesselVisitExecution } from '../../domain/vve/vve.model';
 import { VveValidationError } from '../../domain/vve/vve.errors';
 import type { IVveRepository, VveFilters } from './vve.repository';
 import type { CreateVveDto, UpdateVveDto } from '../../infrastructure/repositories/vve/vve.dto';

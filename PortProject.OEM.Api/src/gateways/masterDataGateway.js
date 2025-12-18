@@ -101,11 +101,66 @@ export class MasterDataGateway {
   }
 
   /**
-   * Add more gateway methods here as needed
-   * For example:
-   * - getVesselAsync(imoNumber)
-   * - getDockAsync(dockId)
-   * - getResourceAsync(resourceId)
+   * Fetch Staff Member details by ID
+   * Compatible with .NET API responses
    */
-}
+  async getStaffById(staffId) {
+    try {
+      // Adjust the URL to match your .NET Staff Controller
+      // Usually: GET http://localhost:5000/api/staff/{id}
+      console.log(`[Gateway] Fetching staff details for: ${staffId}`);
 
+      const response = await this.client.get(`/api/StaffMembers/${staffId}`);
+
+      // Log the response to debug if the name field is 'shortName' or 'ShortName'
+      console.log(`[Gateway] Found staff:`, response.data);
+
+      return response.data;
+    } catch (error) {
+      console.error(`[Gateway] Failed to fetch staff ${staffId}:`, error.message);
+      return null;
+    }
+  }
+
+  /**
+   * Fetch all Staff Members
+   */
+  async getAllStaff() {
+    try {
+      console.log(`[Gateway] Fetching all staff members`);
+      const response = await this.client.get(`/api/StaffMembers`);
+      return response.data;
+    } catch (error) {
+      console.error(`[Gateway] Failed to fetch all staff:`, error.message);
+      return [];
+    }
+  }
+
+  /**
+   * Fetch all Resources
+   */
+  async getAllResources() {
+    try {
+      console.log(`[Gateway] Fetching all resources`);
+      const response = await this.client.get(`/api/Resource`);
+      return response.data;
+    } catch (error) {
+      console.error(`[Gateway] Failed to fetch all resources:`, error.message);
+      return [];
+    }
+  }
+
+  /**
+   * Fetch Resource details by ID (Code)
+   */
+  async getResourceById(resourceId) {
+    try {
+      console.log(`[Gateway] Fetching resource details for: ${resourceId}`);
+      const response = await this.client.get(`/api/Resource/${resourceId}`);
+      return response.data;
+    } catch (error) {
+      console.error(`[Gateway] Failed to fetch resource ${resourceId}:`, error.message);
+      return null;
+    }
+  }
+}

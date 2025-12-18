@@ -15,7 +15,7 @@ const planningApiClient = axios.create({
 });
 
 // --- CONFIGURAÇÃO OEM API (Node.js) ---
-const OEM_API_BASE_URL = import.meta.env.VITE_OEM_API_URL || 'http://localhost:5274/api';
+const OEM_API_BASE_URL = import.meta.env.VITE_OEM_API_URL || 'http://localhost:3001/api';
 
 const oemApiClient = axios.create({
     baseURL: OEM_API_BASE_URL,
@@ -205,6 +205,52 @@ export class SchedulingService {
         } catch (error: any) {
             console.error('Failed to delete plans:', error);
             throw new Error(error.response?.data?.message || 'Failed to delete plans.');
+        }
+    }
+
+    /**
+     * Update a specific task within an operation plan
+     */
+    async updateOperationPlanTask(planId: string, taskId: string, updateData: {
+        resourceId?: string;
+        staffId?: string;
+        startTime?: string;
+        endTime?: string;
+        reason: string;
+        confirmWarnings?: boolean;
+    }): Promise<{ success: boolean; warnings: string[]; requiresConfirmation?: boolean; plan: OperationPlan | null }> {
+        try {
+            console.log(`[OEM] Updating task ${taskId} in plan ${planId}`, updateData);
+            const response = await oemApiClient.patch<{
+                success: boolean;
+                message: string;
+                warnings: string[];
+                requiresConfirmation?: boolean;
+                data: OperationPlan;
+            }>(`/plans/${planId}/tasks/${taskId}`, updateData);
+
+            return {
+                success: response.data.success,
+                warnings: response.data.warnings,
+                requiresConfirmation: response.data.requiresConfirmation,
+                plan: response.data.data
+            };
+        } catch (error: any) {
+            console.error('Failed to update task:', error);
+            throw new Error(error.response?.data?.message || 'Failed to update task.');
+        }
+    }
+
+    /**
+     * Get available resources and staff for selection
+     */
+    async getResourcesAndStaff(): Promise<{ resources: any[], staff: any[] }> {
+        try {
+            const response = await oemApiClient.get<{ success: boolean, data: { resources: any[], staff: any[] } }>('/plans/resources-staff');
+            return response.data.data;
+        } catch (error: any) {
+            console.error('Failed to fetch resources and staff:', error);
+            return { resources: [], staff: [] };
         }
     }
 }
