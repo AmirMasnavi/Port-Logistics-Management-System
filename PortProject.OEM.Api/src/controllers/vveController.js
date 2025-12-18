@@ -118,34 +118,34 @@ export const createVveRouter = (masterDataGateway) => {
    */
   router.get('/', verifyFirebaseToken, async (req, res) => {
     try {
-      const { status, vvnId, vesselIdentifier, fromDate, toDate, includeMetrics } = req.query;
+      const { status, vvnId, vesselIdentifier, fromDate, toDate, berthDockId, includeMetrics } = req.query;
       
       const filters = {};
       if (status) filters.status = status;
       if (vvnId) filters.vvnId = vvnId;
       if (vesselIdentifier) filters.vesselIdentifier = vesselIdentifier;
+      if (berthDockId) filters.berthDockId = berthDockId; 
       if (fromDate) filters.fromDate = fromDate;
       if (toDate) filters.toDate = toDate;
+      if (includeMetrics && (includeMetrics === 'true' || includeMetrics === '1')) filters.includeMetrics = true;
 
-      console.log(`[VVE GET ALL] Query params:`, { status, vvnId, vesselIdentifier, fromDate, toDate, includeMetrics });
+      console.log(`[VVE GET ALL] Query params:`, { status, vvnId, vesselIdentifier, fromDate, toDate, berthDockId, includeMetrics });
       console.log(`[VVE GET ALL] Fetching VVEs with filters:`, filters);
 
       // If includeMetrics is true, fetch VVEs with execution metrics
       let vves;
-      if (includeMetrics === 'true') {
+      if (filters.includeMetrics) {
         // Extract Firebase token from headers
         const authToken = req.headers.authorization?.replace('Bearer ', '');
-        
+
         // Set auth token in gateway for VVN lookups
         if (authToken && vveService.masterDataGateway) {
-          vveService.masterDataGateway.setAuthToken(authToken);
+           vveService.masterDataGateway.setAuthToken(authToken);
         }
-        
         vves = await vveService.getVvesWithMetrics(filters);
       } else {
-        vves = await vveService.getAllVves(filters);
+         vves = await vveService.getAllVves(filters);
       }
-
       console.log(`[VVE GET ALL] Returning ${vves.length} VVEs`);
 
       res.json({
@@ -205,6 +205,8 @@ export const createVveRouter = (masterDataGateway) => {
     [
       body('status').optional().isIn(['In Progress', 'Completed', 'Cancelled']),
       body('actualDepartureTime').optional().isISO8601(),
+      body('actualBerthTime').optional().isISO8601(), 
+      body('berthDockId').optional().isString(),
       body('notes').optional().isString(),
     ],
     async (req, res) => {
@@ -218,15 +220,18 @@ export const createVveRouter = (masterDataGateway) => {
         }
 
         const { vveId } = req.params;
-        const { status, actualDepartureTime, notes } = req.body;
+          const { status, actualDepartureTime, actualBerthTime, berthDockId, notes } = req.body;
 
-        console.log(`[VVE UPDATE] Updating VVE: ${vveId}`);
+          console.log(`[VVE UPDATE] Updating VVE: ${vveId} by user ${req.user?.uid || req.user?.email}`);
 
         // Create DTO
-        const updateDto = new UpdateVveDto({ status, actualDepartureTime, notes });
+        const updateDto = new UpdateVveDto({ status, actualDepartureTime, notes, actualBerthTime, berthDockId });
 
+          // Passa userId para audit logging
+          const performedBy = req.user?.uid || req.user?.email || 'unknown';
+          
         // Execute business logic
-        const vveResponse = await vveService.updateVve(vveId, updateDto);
+        const vveResponse = await vveService.updateVve(vveId, updateDto, performedBy);
 
         res.json({
           success: true,
@@ -243,6 +248,10 @@ export const createVveRouter = (masterDataGateway) => {
             message: error.message,
           });
         }
+
+          if (error.code === 'INVALID_STATE') {
+              return res.status(400).json({ success: false, error: 'Invalid state', message: error.message });
+          }
 
         res.status(500).json({
           success: false,

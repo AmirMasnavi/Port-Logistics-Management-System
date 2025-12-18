@@ -2,7 +2,7 @@
 // Infrastructure Layer
 
 import type { VesselVisitExecution, VveStatus } from '../../../domain/vve/vve.model';
-import type { VveResponseDto } from './vve.dto';
+import type { VveResponseDto, AuditLogEntryDto } from './vve.dto';
 
 export class VveMapper {
     /**
@@ -15,11 +15,14 @@ export class VveMapper {
             vesselIdentifier: dto.vesselIdentifier,
             actualArrivalTime: dto.actualArrivalTime,
             actualDepartureTime: dto.actualDepartureTime,
+            actualBerthTime: dto.actualBerthTime,
+            berthDockId: dto.berthDockId,
             status: dto.status as VveStatus,
             createdBy: dto.createdBy,
             createdAt: dto.createdAt,
             updatedAt: dto.updatedAt,
             notes: dto.notes,
+            auditLogs: dto.auditLogs as AuditLogEntryDto[],
         };
     }
 
@@ -40,11 +43,15 @@ export class VveMapper {
             vesselIdentifier: vve.vesselIdentifier,
             actualArrivalTime: vve.actualArrivalTime,
             actualDepartureTime: vve.actualDepartureTime,
+            actualBerthTime: vve.actualBerthTime,
+            berthDockId: vve.berthDockId,
             status: vve.status,
             createdBy: vve.createdBy,
             createdAt: vve.createdAt,
             updatedAt: vve.updatedAt,
             notes: vve.notes,
+            auditLogs: vve.auditLogs,
+
         };
     }
 }

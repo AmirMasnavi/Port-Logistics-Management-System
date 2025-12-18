@@ -1,7 +1,7 @@
 // Controller Hook - Presentation Layer
 // React hook that manages VVE state and interactions
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { VveService } from '../../app/vve/vve.service';
 import { vveApiRepository } from '../../infrastructure/repositories/vve/vveApi.repository';
 import type { VesselVisitExecution } from '../../domain/vve/vve.model';
@@ -16,6 +16,25 @@ export const useVveController = () => {
     const [error, setError] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
+    const messageTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    useEffect(() => {
+        return () => {
+            if (messageTimeoutRef.current) {
+                clearTimeout(messageTimeoutRef.current);
+            }
+        };
+    }, []);
+
+
+    const setTimedSuccess = (msg: string, ms = 5000) => {
+        setSuccessMessage(msg);
+        if (messageTimeoutRef.current) clearTimeout(messageTimeoutRef.current);
+        messageTimeoutRef.current = setTimeout(() => setSuccessMessage(null), ms);
+    };
+
+   
+    
     const fetchVves = async (filters?: VveFilters) => {
         try {
             setLoading(true);
@@ -28,6 +47,7 @@ export const useVveController = () => {
             setLoading(false);
         }
     };
+
 
     const createVve = async (dto: CreateVveDto): Promise<VesselVisitExecution | null> => {
         try {
@@ -64,15 +84,27 @@ export const useVveController = () => {
             setLoading(true);
             setError(null);
             const updated = await vveService.updateVve(vveId, dto);
-            setSuccessMessage(`VVE updated: ${updated.vveId}`);
+            setVves(prev => prev.map(v => (v.vveId === updated.vveId ? updated : v)));
+            setTimedSuccess(`VVE updated: ${updated.vveId}`);
             return updated;
         } catch (err: any) {
-            setError(err.message || 'Failed to update VVE');
+            const errorMessage = err?.response?.data?.message || err.message || 'Failed to update VVE';
+
+            // Mirror create error handling with specific cases
+            if (err?.response?.status === 404 || errorMessage.includes('not found')) {
+                setError(`❌ VVE not found. Update failed because the record does not exist.`);
+            } else if (err?.response?.status === 409 || errorMessage.includes('conflict') || errorMessage.includes('already exists')) {
+                setError(`⚠️ Conflict updating VVE: ${errorMessage}`);
+            } else if (errorMessage.includes('Validation failed') || err?.response?.status === 400) {
+                setError(`❌ Invalid data: ${errorMessage}`);
+            } else {
+                setError(errorMessage);
+            }
             return null;
         } finally {
             setLoading(false);
         }
-    };
+    };        
 
     const deleteVve = async (vveId: string): Promise<boolean> => {
         try {

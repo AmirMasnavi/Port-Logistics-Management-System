@@ -21,6 +21,10 @@ class VveApiRepository implements IVveRepository {
         if (filters?.status) params.append('status', filters.status);
         if (filters?.vvnId) params.append('vvnId', filters.vvnId);
         if (filters?.vesselIdentifier) params.append('vesselIdentifier', filters.vesselIdentifier);
+        if (filters?.berthDockId) params.append('berthDockId', filters.berthDockId);
+        if (filters?.fromDate) params.append('fromDate', filters.fromDate);
+        if (filters?.toDate) params.append('toDate', filters.toDate);
+        if (filters?.includeMetrics) params.append('includeMetrics', 'true');
         
         const queryString = params.toString();
         const fullUrl = queryString ? `${url}?${queryString}` : url;

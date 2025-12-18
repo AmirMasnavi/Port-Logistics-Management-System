@@ -1,5 +1,20 @@
 ﻿import React, { useState, useEffect } from 'react';
-import { Ship, Calendar, Filter, RefreshCw, AlertCircle, CheckCircle, Clock, XCircle, TrendingUp, TrendingDown, Minus, PlusCircle, FileText } from 'lucide-react';
+import {
+    Ship,
+    Calendar,
+    Filter,
+    RefreshCw,
+    AlertCircle,
+    CheckCircle,
+    Clock,
+    XCircle,
+    TrendingUp,
+    TrendingDown,
+    Minus,
+    PlusCircle,
+    FileText,
+    Edit
+} from 'lucide-react';
 import { vveService, type VveFilters, type VveWithMetrics } from '../services/vveService';
 import StatCard from '../components/common/StatCard';
 import { vvnApiRepository } from '../infrastructure/repositories/vvn/vvnApi.repository';
@@ -10,19 +25,27 @@ import { useVveController } from '../controllers/vve/useVveController';
 
 const VesselVisitsExecutionPage: React.FC = () => {
     const { internalRole } = useAuth();
-    const { createVve, loading: createLoading, error: createError, successMessage, clearMessages } = useVveController();
-    
+    const { createVve, loading: createLoading, error: createError, successMessage, clearMessages, updateVve, loading: updateLoading, error: updateError } = useVveController();
+   
     const [vves, setVves] = useState<VveWithMetrics[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    
+
+    // Update modal states
+    const [showUpdateModal, setShowUpdateModal] = useState(false);
+    const [selectedVve, setSelectedVve] = useState<VveWithMetrics | null>(null);
+    const [updateActualBerthTime, setUpdateActualBerthTime] = useState<string>('');
+    const [updateBerthDockId, setUpdateBerthDockId] = useState<string>('');
+    const [updateNotes, setUpdateNotes] = useState<string>('');
+
     // Filter states
     const [statusFilter, setStatusFilter] = useState<'In Progress' | 'Completed' | 'Cancelled' | ''>('');
     const [vesselFilter, setVesselFilter] = useState<string>('');
+    const [berthFilter, setBerthFilter] = useState<string>(''); // US 4.1.8: filtro por cais/berth
     const [fromDate, setFromDate] = useState<string>('');
     const [toDate, setToDate] = useState<string>('');
     const [showFilters, setShowFilters] = useState(false);
-    
+
     // View mode: 'table' or 'timeline'
     const [viewMode, setViewMode] = useState<'table' | 'timeline'>('table');
 
@@ -44,10 +67,10 @@ const VesselVisitsExecutionPage: React.FC = () => {
         defaultFromDate.setDate(defaultFromDate.getDate() - 30);
         const fromDateStr = defaultFromDate.toISOString().split('T')[0];
         const toDateStr = new Date().toISOString().split('T')[0];
-        
+
         setFromDate(fromDateStr);
         setToDate(toDateStr);
-        
+
         // Call search with the date values directly since state updates are async
         loadInitialData(fromDateStr, toDateStr);
     }, []);
@@ -65,6 +88,21 @@ const VesselVisitsExecutionPage: React.FC = () => {
             setVesselIdentifier(selected.vesselImo || '');
         }
     }, [vvnId, vvns]);
+
+    // Pre-fill update form when a VVE is selected for update
+    useEffect(() => {
+        if (selectedVve) {
+            // Pre-fill fields for in-progress VVE
+            setUpdateActualBerthTime(
+                selectedVve.actualBerthTime
+                    ? new Date(selectedVve.actualBerthTime).toISOString().slice(0, 16)
+                    : new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)
+            );
+            setUpdateBerthDockId(selectedVve.berthDockId || selectedVve.vvnData?.assignedDockId || '');
+            setUpdateNotes(selectedVve.notes || '');
+            clearMessages(); // Limpa mensagens de sucesso/erro anteriores
+        }
+    }, [selectedVve]);
 
     const loadInitialData = async (from: string, to: string) => {
         setLoading(true);
@@ -98,6 +136,7 @@ const VesselVisitsExecutionPage: React.FC = () => {
 
             if (statusFilter) filters.status = statusFilter;
             if (vesselFilter) filters.vesselIdentifier = vesselFilter;
+            if (berthFilter) (filters as any).berthDockId = berthFilter; // US 4.1.8
             if (fromDate) filters.fromDate = fromDate;
             if (toDate) filters.toDate = toDate;
 
@@ -166,8 +205,47 @@ const VesselVisitsExecutionPage: React.FC = () => {
         }
     };
 
-    const formatDateTime = (dateTimeStr: string) => {
+    // Handle Update Submission (New Function)
+    const handleUpdateSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!selectedVve || !updateActualBerthTime || !updateBerthDockId) {
+            return;
+        }
+
+        clearMessages(); // Limpa mensagens anteriores
+
+        try {
+            const isoBerthTime = new Date(updateActualBerthTime).toISOString();
+
+            // DTO simplificado para o update (assumindo que o endpoint só precisa disso)
+            const updateDto: { actualBerthTime: string, berthDockId: string, notes?: string } = {
+                actualBerthTime: isoBerthTime,
+                berthDockId: updateBerthDockId,
+                notes: updateNotes || undefined,
+            };
+
+            const updated = await updateVve(selectedVve.vveId, updateDto); // ASSUME: updateVve(vveId, dto)
+
+            if (updated) {
+                // Fechar modal após sucesso
+                setTimeout(() => {
+                    setShowUpdateModal(false);
+                    setSelectedVve(null);
+                    // Atualizar lista
+                    handleSearch();
+                }, 1500);
+            }
+
+        } catch (err: any) {
+            console.error('Update VVE failed', err);
+            // O useVveController deve definir updateError aqui
+        }
+    };
+
+    const formatDateTime = (dateTimeStr?: string) => {
+        if (!dateTimeStr) return 'N/A';
         const date = new Date(dateTimeStr);
+        if (isNaN(date.getTime())) return 'Invalid Date';
         return date.toLocaleString('en-GB', {
             day: '2-digit',
             month: 'short',
@@ -178,7 +256,7 @@ const VesselVisitsExecutionPage: React.FC = () => {
     };
 
     const formatDuration = (hours: number | null) => {
-        if (hours === null) return 'N/A';
+        if (hours === null || isNaN(hours)) return 'N/A';
         const absHours = Math.abs(hours);
         const h = Math.floor(absHours);
         const m = Math.round((absHours - h) * 60);
@@ -212,29 +290,41 @@ const VesselVisitsExecutionPage: React.FC = () => {
     };
 
     const getDelayIndicator = (delay: number | null) => {
-        if (delay === null) return <Minus className="w-4 h-4 text-gray-400" />;
+        if (delay === null || isNaN(delay)) return <Minus className="w-4 h-4 text-gray-400" />;
         if (delay > 1) return <TrendingDown className="w-4 h-4 text-red-500" />; // Late
         if (delay < -1) return <TrendingUp className="w-4 h-4 text-green-500" />; // Early
         return <Minus className="w-4 h-4 text-blue-500" />; // On time
     };
 
-    // Calculate summary statistics
+    // Calculate summary statistics (safely)
+    const turnaroundValues = vves
+        .map(v => v.metrics?.totalTurnaroundTime)
+        .filter((t): t is number => t !== null && t !== undefined && !isNaN(t));
+    const delayValues = vves
+        .map(v => v.metrics?.arrivalDelay)
+        .filter((d): d is number => d !== null && d !== undefined && !isNaN(d));
+
+    const avgTurnaround = turnaroundValues.length > 0
+        ? turnaroundValues.reduce((s, v) => s + v, 0) / turnaroundValues.length
+        : null;
+
+    const avgDelay = delayValues.length > 0
+        ? delayValues.reduce((s, v) => s + v, 0) / delayValues.length
+        : null;
+
     const stats = {
         total: vves.length,
         completed: vves.filter(v => v.status === 'Completed').length,
         inProgress: vves.filter(v => v.status === 'In Progress').length,
         cancelled: vves.filter(v => v.status === 'Cancelled').length,
-        avgTurnaround: vves
-            .filter(v => v.metrics?.totalTurnaroundTime !== null)
-            .reduce((sum, v) => sum + (v.metrics?.totalTurnaroundTime || 0), 0) / 
-            (vves.filter(v => v.metrics?.totalTurnaroundTime !== null).length || 1),
-        avgDelay: vves
-            .filter(v => v.metrics?.arrivalDelay !== null)
-            .reduce((sum, v) => sum + (v.metrics?.arrivalDelay || 0), 0) / 
-            (vves.filter(v => v.metrics?.arrivalDelay !== null).length || 1),
+        avgTurnaround,
+        avgDelay,
     };
 
     const selectedVvn = vvns.find(v => v.businessId === vvnId);
+
+    // Check for Dock Discrepancy
+    const isDockDiscrepancy = selectedVve && selectedVve.vvnData?.assignedDockId && updateBerthDockId && selectedVve.vvnData.assignedDockId !== updateBerthDockId;
 
     return (
         <div className="container mx-auto">
@@ -250,14 +340,24 @@ const VesselVisitsExecutionPage: React.FC = () => {
                     </p>
                 </div>
                 {(internalRole === 'LogisticsOperator' || internalRole === 'Administrator' || internalRole === 'PortOfficer') && (
-                    <button
+                    <div className="flex items-center gap-3">                       
+                        <button
                         onClick={() => setShowCreateModal(true)}
                         className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors"
                     >
                         <PlusCircle className="w-5 h-5" />
                         Create VVE
                     </button>
-                )}
+                    <button
+                        onClick={() => setShowUpdateModal(true)}
+                        disabled={!selectedVve}
+                        className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors"
+                    >
+                        <Edit className="w-5 h-5" />
+                        Update
+                    </button>
+                    </div>
+                )} 
             </div>
 
             {/* Statistics Cards */}
@@ -480,6 +580,143 @@ const VesselVisitsExecutionPage: React.FC = () => {
                     </div>
                 </div>
             )}
+            {/* Update VVE Modal (New Component) */}
+            {showUpdateModal && selectedVve && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+                            <h2 className="text-2xl font-bold text-gray-900">Update VVE: {selectedVve.vveId}</h2>
+                            <button
+                                onClick={() => { setShowUpdateModal(false); setSelectedVve(null); }}
+                                className="text-gray-400 hover:text-gray-600"
+                            >
+                                <XCircle className="w-6 h-6" />
+                            </button>
+                        </div>
+
+                        <div className="p-6">
+                            {/* Messages */}
+                            {updateError && (
+                                <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-lg">
+                                    <div className="flex items-start gap-3">
+                                        <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+                                        <div>
+                                            <h3 className="font-semibold text-red-900">Error</h3>
+                                            <p className="text-sm text-red-700 mt-1">{updateError}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {successMessage && (
+                                <div className="mb-6 p-4 bg-green-50 border-l-4 border-green-500 rounded-lg">
+                                    <div className="flex items-start gap-3">
+                                        <CheckCircle className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <div>
+                                            <h3 className="font-semibold text-green-900">Success</h3>
+                                            <p className="text-sm text-green-700 mt-1">{successMessage}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Dock Discrepancy Warning */}
+                            {isDockDiscrepancy && (
+                                <div className="mb-6 p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded-lg">
+                                    <div className="flex items-start gap-3">
+                                        <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5 flex-shrink-0" />
+                                        <div>
+                                            <h3 className="font-semibold text-yellow-900">Dock Discrepancy Warning</h3>
+                                            <p className="text-sm text-yellow-800 mt-1">
+                                                The selected Berth Dock ID (**{updateBerthDockId}**) differs from the planned Assigned Dock (**{selectedVve.vvnData?.assignedDockName || selectedVve.vvnData?.assignedDockId || 'N/A'}**). This will be recorded as a deviation.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            <form onSubmit={handleUpdateSubmit} className="space-y-6">
+                                {/* Current VVE Info */}
+                                <div className="p-4 bg-blue-50 rounded-lg border border-blue-200 text-sm">
+                                    <p><span className="font-semibold text-gray-600">Vessel:</span> {selectedVve.vesselIdentifier}</p>
+                                    <p><span className="font-semibold text-gray-600">Planned Dock:</span> {selectedVve.vvnData?.assignedDockName || selectedVve.vvnData?.assignedDockId || 'N/A'}</p>
+                                    <p><span className="font-semibold text-gray-600">Actual Arrival:</span> {formatDateTime(selectedVve.actualArrivalTime)}</p>
+                                </div>
+
+                                {/* Actual Berth Time */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        <Calendar className="w-4 h-4 inline mr-1" />
+                                        Actual Berth Time <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                        type="datetime-local"
+                                        value={updateActualBerthTime}
+                                        onChange={(e) => setUpdateActualBerthTime(e.target.value)}
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg"
+                                        required
+                                    />
+                                    <p className="text-xs text-gray-500 mt-2">
+                                        Record the precise time the vessel was secured at the berth
+                                    </p>
+                                </div>
+
+                                {/* Berth Dock ID */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        <Ship className="w-4 h-4 inline mr-1" />
+                                        Berth Dock Used <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={updateBerthDockId}
+                                        onChange={(e) => setUpdateBerthDockId(e.target.value)}
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg"
+                                        placeholder="E.g., CAIS_SUL_3"
+                                        required
+                                    />
+                                    <p className="text-xs text-gray-500 mt-2">
+                                        The ID of the dock/berth where the vessel was actually moored
+                                    </p>
+                                </div>
+
+                                {/* Notes */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Additional Notes <span className="text-gray-400">(optional)</span>
+                                    </label>
+                                    <textarea
+                                        value={updateNotes}
+                                        onChange={(e) => setUpdateNotes(e.target.value)}
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg resize-none"
+                                        rows={4}
+                                        placeholder="Add any relevant observations, e.g., reason for change of dock..."
+                                    />
+                                </div>
+
+                                {/* Action Buttons */}
+                                <div className="flex justify-end gap-3 pt-4">                                                                      
+                                    <button
+                                        type="button"
+                                        onClick={() => { setShowUpdateModal(false);  }}
+                                        className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
+                                        disabled={updateLoading || !updateActualBerthTime || !updateBerthDockId}
+                                    >
+                                        {updateLoading ? 'Updating...' : 'Update VVE'}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            )}
+            
 
             {/* Filters Card */}
             <div className="bg-white rounded-lg shadow-md p-6 mb-6">
@@ -558,6 +795,21 @@ const VesselVisitsExecutionPage: React.FC = () => {
                                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                 />
                             </div>
+
+                            {/* Berth Filter*/}
+                            <div>
+                                <label htmlFor="berth" className="block text-sm font-medium text-gray-700 mb-2">
+                                    Berth Dock
+                                </label>
+                                <input
+                                    id="berth"
+                                    type="text"
+                                    placeholder="Search berth/dock..."
+                                    value={berthFilter}
+                                    onChange={(e) => setBerthFilter(e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                />
+                            </div>
                         </div>
 
                         {/* Search Button */}
@@ -584,6 +836,7 @@ const VesselVisitsExecutionPage: React.FC = () => {
                                 onClick={() => {
                                     setStatusFilter('');
                                     setVesselFilter('');
+                                    setBerthFilter(''); // limpar berth filter
                                     const defaultFromDate = new Date();
                                     defaultFromDate.setDate(defaultFromDate.getDate() - 30);
                                     setFromDate(defaultFromDate.toISOString().split('T')[0]);
@@ -647,92 +900,108 @@ const VesselVisitsExecutionPage: React.FC = () => {
                             <div className="overflow-x-auto">
                                 <table className="min-w-full divide-y divide-gray-200">
                                     <thead className="bg-gray-50">
-                                        <tr>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                VVE ID
-                                            </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Vessel
-                                            </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Dock
-                                            </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Actual Arrival
-                                            </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Arrival Delay
-                                            </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Turnaround Time
-                                            </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Operation Delay
-                                            </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Status
-                                            </th>
-                                        </tr>
+                                    <tr>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            VVE ID
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Vessel
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Dock
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Actual Arrival
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Berth Time
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Berth Dock
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Arrival Delay
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Turnaround Time
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Operation Delay
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Status
+                                        </th>
+                                    </tr>
                                     </thead>
                                     <tbody className="bg-white divide-y divide-gray-200">
-                                        {vves.map((vve) => (
-                                            <tr key={vve.vveId} className="hover:bg-gray-50 transition-colors">
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                                    {vve.vveId}
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                                                    <div className="flex items-center gap-2">
-                                                        <Ship className="w-4 h-4 text-gray-400" />
-                                                        {vve.vesselIdentifier}
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                                                    {vve.vvnData?.assignedDockName || 'N/A'}
-                                                </td>
-                                                <td className="px-6 py-4 text-sm text-gray-700">
-                                                    {formatDateTime(vve.actualArrivalTime)}
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                                    <div className="flex items-center gap-2">
-                                                        {getDelayIndicator(vve.metrics?.arrivalDelay || null)}
-                                                        <span className={
-                                                            vve.metrics?.arrivalDelay && vve.metrics.arrivalDelay > 1
-                                                                ? 'text-red-600 font-medium'
-                                                                : vve.metrics?.arrivalDelay && vve.metrics.arrivalDelay < -1
+                                    {vves.map((vve) => (
+                                        <tr
+                                            key={vve.vveId}
+                                            onClick={() => setSelectedVve(vve)}
+                                            className={`hover:bg-gray-50 transition-colors cursor-pointer ${selectedVve?.vveId === vve.vveId ? 'bg-blue-50' : ''} `}
+                                        >
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                                {vve.vveId}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                                <div className="flex items-center gap-2">
+                                                    <Ship className="w-4 h-4 text-gray-400" />
+                                                    {vve.vesselIdentifier}
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                                {vve.vvnData?.assignedDockName || 'N/A'}
+                                            </td>
+                                            <td className="px-6 py-4 text-sm text-gray-700">
+                                                {formatDateTime(vve.actualArrivalTime)}
+                                            </td>
+                                            <td className="px-6 py-4 text-sm text-gray-700">
+                                                {formatDateTime(vve.actualBerthTime)}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                                {vve.berthDockId || vve.vvnData?.assignedDockName || 'N/A'}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                                <div className="flex items-center gap-2">
+                                                    {getDelayIndicator(vve.metrics?.arrivalDelay ?? null)}
+                                                    <span className={
+                                                        vve.metrics?.arrivalDelay !== undefined && vve.metrics?.arrivalDelay !== null && vve.metrics.arrivalDelay > 1
+                                                            ? 'text-red-600 font-medium'
+                                                            : vve.metrics?.arrivalDelay !== undefined && vve.metrics?.arrivalDelay !== null && vve.metrics.arrivalDelay < -1
                                                                 ? 'text-green-600 font-medium'
                                                                 : 'text-gray-700'
-                                                        }>
-                                                            {formatDuration(vve.metrics?.arrivalDelay || null)}
+                                                    }>
+                                                            {formatDuration(vve.metrics?.arrivalDelay ?? null)}
                                                         </span>
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                                                    {formatDuration(vve.metrics?.totalTurnaroundTime || null)}
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                                    <div className="flex items-center gap-2">
-                                                        {getDelayIndicator(vve.metrics?.operationDelay || null)}
-                                                        <span className={
-                                                            vve.metrics?.operationDelay && vve.metrics.operationDelay > 1
-                                                                ? 'text-red-600 font-medium'
-                                                                : vve.metrics?.operationDelay && vve.metrics.operationDelay < -1
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                                {formatDuration(vve.metrics?.totalTurnaroundTime ?? null)}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                                <div className="flex items-center gap-2">
+                                                    {getDelayIndicator(vve.metrics?.operationDelay ?? null)}
+                                                    <span className={
+                                                        vve.metrics?.operationDelay !== undefined && vve.metrics?.operationDelay !== null && vve.metrics.operationDelay > 1
+                                                            ? 'text-red-600 font-medium'
+                                                            : vve.metrics?.operationDelay !== undefined && vve.metrics?.operationDelay !== null && vve.metrics.operationDelay < -1
                                                                 ? 'text-green-600 font-medium'
                                                                 : 'text-gray-700'
-                                                        }>
-                                                            {formatDuration(vve.metrics?.operationDelay || null)}
+                                                    }>
+                                                            {formatDuration(vve.metrics?.operationDelay ?? null)}
                                                         </span>
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <div className="flex items-center gap-2">
-                                                        {getStatusIcon(vve.status)}
-                                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadgeClass(vve.status)}`}>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div className="flex items-center gap-2">
+                                                    {getStatusIcon(vve.status)}
+                                                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadgeClass(vve.status)}`}>
                                                             {vve.status}
                                                         </span>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
+                                                </div>
+                                            </td>                                            
+                                        </tr>
+                                    ))}
                                     </tbody>
                                 </table>
                             </div>
@@ -750,8 +1019,8 @@ const VesselVisitsExecutionPage: React.FC = () => {
                                         <div className="absolute left-0 top-0 -ml-2 flex items-center justify-center w-4 h-4">
                                             <div className={`w-4 h-4 rounded-full ${
                                                 vve.status === 'Completed' ? 'bg-green-500' :
-                                                vve.status === 'In Progress' ? 'bg-blue-500' :
-                                                'bg-red-500'
+                                                    vve.status === 'In Progress' ? 'bg-blue-500' :
+                                                        'bg-red-500'
                                             }`}></div>
                                         </div>
 
@@ -776,19 +1045,30 @@ const VesselVisitsExecutionPage: React.FC = () => {
                                                     <p className="font-medium text-gray-900">{formatDateTime(vve.actualArrivalTime)}</p>
                                                 </div>
                                                 <div>
-                                                    <p className="text-gray-500">Arrival Delay</p>
-                                                    <p className="font-medium">{formatDuration(vve.metrics?.arrivalDelay || null)}</p>
+                                                    <p className="text-gray-500">Berth Time</p>
+                                                    <p className="font-medium">{formatDateTime(vve.actualBerthTime)}</p>
                                                 </div>
                                                 <div>
                                                     <p className="text-gray-500">Turnaround Time</p>
-                                                    <p className="font-medium">{formatDuration(vve.metrics?.totalTurnaroundTime || null)}</p>
+                                                    <p className="font-medium">{formatDuration(vve.metrics?.totalTurnaroundTime ?? null)}</p>
                                                 </div>
                                                 <div>
                                                     <p className="text-gray-500">Dock</p>
-                                                    <p className="font-medium">{vve.vvnData?.assignedDockName || 'N/A'}</p>
+                                                    <p className="font-medium">{vve.berthDockId || vve.vvnData?.assignedDockName || 'N/A'}</p>
                                                 </div>
                                             </div>
-                                        </div>
+
+                                            <div className="mt-3 flex items-center gap-4 text-sm text-gray-600">
+                                                <div className="flex items-center gap-2">
+                                                    {getDelayIndicator(vve.metrics?.arrivalDelay ?? null)}
+                                                    <span>{formatDuration(vve.metrics?.arrivalDelay ?? null)}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    {getDelayIndicator(vve.metrics?.operationDelay ?? null)}
+                                                    <span>{formatDuration(vve.metrics?.operationDelay ?? null)}</span>
+                                                </div>
+                                            </div>
+                                        </div>                                        
                                     </div>
                                 ))}
                             </div>
@@ -812,4 +1092,3 @@ const VesselVisitsExecutionPage: React.FC = () => {
 };
 
 export default VesselVisitsExecutionPage;
-

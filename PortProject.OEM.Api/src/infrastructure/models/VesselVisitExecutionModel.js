@@ -30,6 +30,18 @@ const vesselVisitExecutionSchema = new mongoose.Schema({
     type: Date,
     required: true,
   },
+
+    // Novo: actual berth time (horário de acostagem efetivo)
+    actualBerthTime: {
+        type: Date,
+        default: null,
+    },
+    // Novo: dock/berth efetivamente usado (ID)
+    berthDockId: {
+        type: String,
+        default: null,
+        index: true,
+    },
   
   // Creator user ID (from Firebase authentication)
   creatorUserId: {
@@ -56,6 +68,15 @@ const vesselVisitExecutionSchema = new mongoose.Schema({
     type: String,
     default: '',
   },
+
+    auditLogs: [
+        {
+            userId: { type: String, required: true },
+            action: { type: String, required: true }, // e.g. 'update'
+            timestamp: { type: Date, default: Date.now },
+            details: { type: mongoose.Schema.Types.Mixed },
+        },
+    ],
   
   // Timestamps for audit trail
   createdAt: {

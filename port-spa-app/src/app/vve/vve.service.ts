@@ -1,7 +1,6 @@
 // Application Service - Business Logic Layer
 // This is the "Use Case" layer that orchestrates domain logic
 
-import type { VesselVisitExecution } from '../../domain/vve/vve.model';
 import { VveValidationError } from '../../domain/vve/vve.errors';
 import type { IVveRepository, VveFilters } from './vve.repository';
 import type { CreateVveDto, UpdateVveDto } from '../../infrastructure/repositories/vve/vve.dto';
@@ -62,7 +61,7 @@ export class VveService {
     /**
      * Business validation for create operation
      */
-    private validateCreateDto(dto: CreateVveDto): void {
+    private validateCreateDto(dto: CreateVveDto): void {        
         if (!dto.vvnId || dto.vvnId.trim().length === 0) {
             throw new VveValidationError('VVN ID is required');
         }
@@ -91,6 +90,9 @@ export class VveService {
     private validateUpdateDto(dto: UpdateVveDto): void {
         if (dto.actualDepartureTime) {
             const departureTime = new Date(dto.actualDepartureTime);
+            if (isNaN(departureTime.getTime())) {
+                throw new VveValidationError('Actual departure time is not a valid date');
+            }
             const now = new Date();
             const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
             

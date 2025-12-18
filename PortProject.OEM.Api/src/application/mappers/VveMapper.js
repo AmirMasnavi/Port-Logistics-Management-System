@@ -19,12 +19,14 @@ export class VveMapper {
       creatorUserId: model.creatorUserId,
       status: model.status,
       actualDepartureTime: model.actualDepartureTime,
+      actualBerthTime: model.actualBerthTime,
+      berthDockId: model.berthDockId,
       notes: model.notes,
+      auditLogs: model.auditLogs || [],
       createdAt: model.createdAt,
       updatedAt: model.updatedAt,
     });
   }
-
   /**
    * Convert persistence model to list item DTO
    * @param {Object} model - Mongoose model instance or plain object
