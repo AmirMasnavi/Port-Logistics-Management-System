@@ -207,6 +207,52 @@ export class SchedulingService {
             throw new Error(error.response?.data?.message || 'Failed to delete plans.');
         }
     }
+
+    /**
+     * Update a specific task within an operation plan
+     */
+    async updateOperationPlanTask(planId: string, taskId: string, updateData: {
+        resourceId?: string;
+        staffId?: string;
+        startTime?: string;
+        endTime?: string;
+        reason: string;
+        confirmWarnings?: boolean;
+    }): Promise<{ success: boolean; warnings: string[]; requiresConfirmation?: boolean; plan: OperationPlan | null }> {
+        try {
+            console.log(`[OEM] Updating task ${taskId} in plan ${planId}`, updateData);
+            const response = await oemApiClient.patch<{
+                success: boolean;
+                message: string;
+                warnings: string[];
+                requiresConfirmation?: boolean;
+                data: OperationPlan;
+            }>(`/plans/${planId}/tasks/${taskId}`, updateData);
+
+            return {
+                success: response.data.success,
+                warnings: response.data.warnings,
+                requiresConfirmation: response.data.requiresConfirmation,
+                plan: response.data.data
+            };
+        } catch (error: any) {
+            console.error('Failed to update task:', error);
+            throw new Error(error.response?.data?.message || 'Failed to update task.');
+        }
+    }
+
+    /**
+     * Get available resources and staff for selection
+     */
+    async getResourcesAndStaff(): Promise<{ resources: any[], staff: any[] }> {
+        try {
+            const response = await oemApiClient.get<{ success: boolean, data: { resources: any[], staff: any[] } }>('/plans/resources-staff');
+            return response.data.data;
+        } catch (error: any) {
+            console.error('Failed to fetch resources and staff:', error);
+            return { resources: [], staff: [] };
+        }
+    }
 }
 
 export const schedulingService = new SchedulingService();
