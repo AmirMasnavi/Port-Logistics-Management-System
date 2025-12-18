@@ -263,13 +263,38 @@ export class OperationPlanService {
         task.endTime = newEnd;
 
         // 6. Log the change (The "Audit" requirement)
+        // Clean up staff name (remove " (Unknown)" if present)
+        const cleanOldStaffName = (task.staffShortName || 'Unassigned').replace(' (Unknown)', '').trim();
+        const cleanNewStaffName = (newStaffName || 'Unassigned').replace(' (Unknown)', '').trim();
+
+        const changes = [];
+        
+        // Resource Change
+        if (oldResource !== newResource) {
+            if (task.resourceKind !== newResourceKind) {
+                changes.push(`Resource Type: ${task.resourceKind} -> ${newResourceKind}`);
+            } else {
+                changes.push(`Resource: Reassigned (${newResourceKind})`);
+            }
+        }
+
+        // Staff Change
+        if (task.staffId !== newStaffId) {
+            changes.push(`Staff: ${cleanOldStaffName} -> ${cleanNewStaffName}`);
+        }
+
+        // Time Change
+        if (oldStart.getTime() !== newStart.getTime() || task.endTime.getTime() !== newEnd.getTime()) {
+             const formatTime = (d) => d.toISOString().substr(11, 5);
+             changes.push(`Time: ${formatTime(oldStart)} - ${formatTime(task.endTime)} -> ${formatTime(newStart)} - ${formatTime(newEnd)}`);
+        }
+
+        const changeDetails = changes.length > 0 ? changes.join('. ') : "No changes detected";
+
         plan.changeLogs.push({
             author: userEmail,
             reason: updateData.reason || "Manual update",
-            details: `Updated VVN ${task.vesselVisitBusinessId}. ` +
-                     `Res: ${oldResource}->${newResource}. ` +
-                     `Staff: ${task.staffShortName}->${newStaffName}. ` +
-                     `Time: ${oldStart.toISOString().substr(11,5)}->${newStart.toISOString().substr(11,5)}`
+            details: changeDetails
         });
 
         // 7. Save (Mongoose tracks the changes in the subdoc)
