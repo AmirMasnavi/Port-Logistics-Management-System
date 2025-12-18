@@ -159,12 +159,12 @@ export class OperationPlanService {
                 resources: resources.map(r => ({
                     id: r.code || r.Code || r.id,
                     name: r.description || r.Description || r.name || r.code, 
-                    type: r.kind || r.Kind || 'Unknown'
+                    type: r.kind || r.Kind || 'Staff'
                 })),
                 staff: staff.map(s => ({
                     id: s.mecanographicNumber || s.MecanographicNumber || s.id,
                     name: s.shortName || s.ShortName || s.name || s.id, 
-                    role: s.role || s.Role || 'Unknown'
+                    role: s.role || s.Role || 'Staff'
                 }))
             };
         } catch (error) {
@@ -242,17 +242,28 @@ export class OperationPlanService {
             const isOverlapping = (newStart < otherTask.endTime && newEnd > otherTask.startTime);
 
             if (isOverlapping) {
-                // A. STAFF CONFLICT -> BLOCKING ERROR
+                // A. STAFF CONFLICT -> WARNING (Changed from Blocking Error)
                 if (otherTask.staffId === newStaffId) {
-                    throw new Error(`BLOCKING: Staff member ${newStaffName} (${newStaffId}) is already assigned to VVN ${otherTask.vesselVisitBusinessId} during this time.`);
+                    warnings.push(`Staff Conflict: ${newStaffName} is already assigned other task`);
                 }
 
-                // B. RESOURCE CONFLICT -> SOFT WARNING
+                // B. RESOURCE CONFLICT -> WARNING
                 if (otherTask.resourceId === newResource) {
-                    warnings.push(`Resource Conflict: ${newResource} is busy with VVN ${otherTask.vesselVisitBusinessId}`);
+                    warnings.push(`Resource Conflict: This resource is busy with other task`);
                 }
             }
         });
+
+        // CHECK CONFIRMATION
+        // If there are warnings and the user hasn't confirmed them yet, return early
+        if (warnings.length > 0 && !updateData.confirmWarnings) {
+            return {
+                success: false,
+                requiresConfirmation: true,
+                warnings: warnings,
+                plan: null
+            };
+        }
 
         // 5. Apply Updates
         task.resourceId = newResource;
@@ -264,8 +275,8 @@ export class OperationPlanService {
 
         // 6. Log the change (The "Audit" requirement)
         // Clean up staff name (remove " (Unknown)" if present)
-        const cleanOldStaffName = (task.staffShortName || 'Unassigned').replace(' (Unknown)', '').trim();
-        const cleanNewStaffName = (newStaffName || 'Unassigned').replace(' (Unknown)', '').trim();
+        const cleanOldStaffName = (task.staffShortName || 'Unassigned').replace(' (Staff)', '').trim();
+        const cleanNewStaffName = (newStaffName || 'Unassigned').replace(' (Staff)', '').trim();
 
         const changes = [];
         

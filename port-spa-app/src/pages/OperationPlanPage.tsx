@@ -150,7 +150,7 @@ export const OperationPlanPage: React.FC = () => {
         }
     };
 
-    const handleUpdateTask = async (e: React.FormEvent) => {
+    const handleUpdateTask = async (e: React.FormEvent, confirmWarnings: boolean = false) => {
         e.preventDefault();
         if (!editingPlanId || !editingTask) return;
 
@@ -162,10 +162,22 @@ export const OperationPlanPage: React.FC = () => {
                 return;
             }
 
-            const result = await schedulingService.updateOperationPlanTask(editingPlanId, taskId, editForm);
+            const result = await schedulingService.updateOperationPlanTask(editingPlanId, taskId, {
+                ...editForm,
+                confirmWarnings
+            });
             
+            if (result.requiresConfirmation) {
+                // If confirmation is required, we don't close the modal yet
+                // Instead, we pass the warnings back to the modal to display them
+                // The modal will then call this function again with confirmWarnings=true
+                return result.warnings;
+            }
+
             // Update local state
-            setHistory(history.map(p => p.planId === editingPlanId ? result.plan : p));
+            if (result.plan) {
+                setHistory(history.map(p => p.planId === editingPlanId ? result.plan! : p));
+            }
             
             setIsEditModalOpen(false);
             setEditingPlanId(null);
@@ -174,7 +186,7 @@ export const OperationPlanPage: React.FC = () => {
             if (result.warnings && result.warnings.length > 0) {
                 setFeedback({ 
                     type: 'warning', 
-                    message: `Task updated with warnings:\n${result.warnings.join('\n')}` 
+                    message: `Task Does not updated, First resolve the warnings:\n${result.warnings.join('\n')}` 
                 });
             } else {
                 setFeedback({ type: 'success', message: 'Task updated successfully!' });

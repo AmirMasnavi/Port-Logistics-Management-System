@@ -217,19 +217,22 @@ export class SchedulingService {
         startTime?: string;
         endTime?: string;
         reason: string;
-    }): Promise<{ success: boolean; warnings: string[]; plan: OperationPlan }> {
+        confirmWarnings?: boolean;
+    }): Promise<{ success: boolean; warnings: string[]; requiresConfirmation?: boolean; plan: OperationPlan | null }> {
         try {
             console.log(`[OEM] Updating task ${taskId} in plan ${planId}`, updateData);
             const response = await oemApiClient.patch<{
                 success: boolean;
                 message: string;
                 warnings: string[];
+                requiresConfirmation?: boolean;
                 data: OperationPlan;
             }>(`/plans/${planId}/tasks/${taskId}`, updateData);
 
             return {
                 success: response.data.success,
                 warnings: response.data.warnings,
+                requiresConfirmation: response.data.requiresConfirmation,
                 plan: response.data.data
             };
         } catch (error: any) {
