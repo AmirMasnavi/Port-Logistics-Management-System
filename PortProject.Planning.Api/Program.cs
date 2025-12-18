@@ -8,9 +8,13 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins("http://localhost:5173", "http://localhost:5174") // Allow frontend origins
-              .AllowAnyMethod()
-              .AllowAnyHeader();
+        policy.WithOrigins(
+            "http://localhost:5173",
+            "http://localhost:5174",
+            "http://10.9.11.67"  // Production frontend on VM
+        )
+        .AllowAnyMethod()
+        .AllowAnyHeader();
     });
 });
 
