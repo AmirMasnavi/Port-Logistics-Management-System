@@ -5,7 +5,7 @@ import type { VesselVisitExecution } from '../../../domain/vve/vve.model';
 import type { CreateVveDto, UpdateVveDto, VveResponseDto } from './vve.dto';
 import { VveMapper } from './vve.mapper';
 
-const OEM_BASE = import.meta.env.VITE_OEM_API_BASE || 'http://localhost:5274/api';
+const OEM_BASE = import.meta.env.VITE_OEM_API_URL || 'http://localhost:3001/api';
 
 class VveApiRepository implements IVveRepository {
     public async create(dto: CreateVveDto): Promise<VesselVisitExecution> {

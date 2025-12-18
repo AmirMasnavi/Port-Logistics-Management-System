@@ -15,7 +15,7 @@ const planningApiClient = axios.create({
 });
 
 // --- CONFIGURAÇÃO OEM API (Node.js) ---
-const OEM_API_BASE_URL = import.meta.env.VITE_OEM_API_URL || 'http://localhost:5274/api';
+const OEM_API_BASE_URL = import.meta.env.VITE_OEM_API_URL || 'http://localhost:3001/api';
 
 const oemApiClient = axios.create({
     baseURL: OEM_API_BASE_URL,

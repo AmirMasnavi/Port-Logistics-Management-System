@@ -3,7 +3,7 @@ import axios from 'axios';
 import { getAuthToken } from '../firebaseConfig';
 
 // OEM API base URL
-const OEM_API_BASE_URL = import.meta.env.VITE_OEM_API_URL || 'http://localhost:5274/api';
+const OEM_API_BASE_URL = import.meta.env.VITE_OEM_API_URL || 'http://localhost:3001/api';
 
 const vveApiClient = axios.create({
     baseURL: `${OEM_API_BASE_URL}/vve`,
