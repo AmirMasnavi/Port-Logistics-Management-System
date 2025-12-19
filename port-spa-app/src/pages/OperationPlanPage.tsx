@@ -431,6 +431,24 @@ export const OperationPlanPage: React.FC = () => {
                                                                     <div className="text-sm text-gray-600 pl-1">
                                                                         <span className="font-medium text-gray-900">Dock:</span> {task.dockName}
                                                                     </div>
+                                                                    <div className="flex gap-2 mt-2">
+                                                                        <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-green-50 to-green-100 border border-green-200 rounded-lg">
+                                                                            <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                                                                            </svg>
+                                                                            <span className="text-xs font-bold text-green-700">
+                                                                                Loading: {task.loadingTime?.toFixed(1) || '0.0'}h
+                                                                            </span>
+                                                                        </div>
+                                                                        <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-orange-50 to-orange-100 border border-orange-200 rounded-lg">
+                                                                            <svg className="w-4 h-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                                                                            </svg>
+                                                                            <span className="text-xs font-bold text-orange-700">
+                                                                                Unloading: {task.unloadingTime?.toFixed(1) || '0.0'}h
+                                                                            </span>
+                                                                        </div>
+                                                                    </div>
                                                                 </div>
                                                                 
                                                                 <div className="flex items-center gap-4 bg-gray-50 px-4 py-3 rounded-lg border border-gray-100 w-full md:w-auto">

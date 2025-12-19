@@ -539,7 +539,11 @@ public class SchedulingService : ISchedulingService
                 StaffShortName = staffDisplayName,
                 
                 StartTime = scheduledStart,
-                EndTime = scheduledEnd
+                EndTime = scheduledEnd,
+                
+                // Loading and Unloading times from vessel visit
+                LoadingTime = visitDto?.LoadingTime ?? 0,
+                UnloadingTime = visitDto?.UnloadingTime ?? 0
             });
         }
 

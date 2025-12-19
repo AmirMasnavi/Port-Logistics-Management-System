@@ -1,5 +1,4 @@
-﻿// Scheduling types matching the backend DTOs
-
+﻿
 export type SchedulingAlgorithm = 'optimal' | 'heuristic' | 'multicrane' | 'genetic' | 'automatic';
 
 export type CraneMode = 'single' | 'multiple';
@@ -32,6 +31,10 @@ export interface ScheduledTask {
     
     startTime: string;  // ISO datetime string
     endTime: string;    // ISO datetime string
+    
+    // Loading and Unloading times (in hours)
+    loadingTime: number;
+    unloadingTime: number;
 }
 
 export interface DailyScheduleResponse {

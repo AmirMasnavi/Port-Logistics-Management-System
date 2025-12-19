@@ -89,7 +89,9 @@ const SchedulingPage: React.FC = () => {
                     staffShortName: t.staffShortName,
                     staffId: t.staffId,
                     startTime: t.startTime,
-                    endTime: t.endTime
+                    endTime: t.endTime,
+                    loadingTime: t.loadingTime,
+                    unloadingTime: t.unloadingTime
                 }))
             };
 
@@ -630,6 +632,14 @@ const SchedulingPage: React.FC = () => {
                                                                 <div className="text-xs mt-1 text-gray-500">
                                                                     {task.resourceKind} • {task.staffShortName}
                                                                 </div>
+                                                                <div className="flex gap-1.5 mt-2">
+                                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-50 border border-green-200 rounded text-xs font-bold text-green-700">
+                                                                        ↑ {task.loadingTime.toFixed(1)}h
+                                                                    </span>
+                                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-orange-50 border border-orange-200 rounded text-xs font-bold text-orange-700">
+                                                                        ↓ {task.unloadingTime.toFixed(1)}h
+                                                                    </span>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     ))}
@@ -688,6 +698,12 @@ const SchedulingPage: React.FC = () => {
                                                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                                     Duration
                                                                 </th>
+                                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                                    Loading Time
+                                                                </th>
+                                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                                    Unloading Time
+                                                                </th>
                                                             </tr>
                                                         </thead>
                                                         <tbody className="bg-white divide-y divide-gray-200">
@@ -716,6 +732,22 @@ const SchedulingPage: React.FC = () => {
                                                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                                                                         {calculateDuration(task.startTime, task.endTime)}
                                                                     </td>
+                                                                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-50 border border-green-200 rounded-md text-green-700 font-bold">
+                                                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 11l5-5m0 0l5 5m-5-5v12" />
+                                                                            </svg>
+                                                                            {task.loadingTime.toFixed(1)}h
+                                                                        </span>
+                                                                    </td>
+                                                                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-orange-50 border border-orange-200 rounded-md text-orange-700 font-bold">
+                                                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 13l-5 5m0 0l-5-5m5 5V6" />
+                                                                            </svg>
+                                                                            {task.unloadingTime.toFixed(1)}h
+                                                                        </span>
+                                                                    </td>
                                                                 </tr>
                                                             ))}
                                                         </tbody>
@@ -743,6 +775,20 @@ const SchedulingPage: React.FC = () => {
                                                                     </div>
                                                                     <div className="text-xs text-gray-600">
                                                                         {task.resourceKind} • {task.staffShortName} • {calculateDuration(task.startTime, task.endTime)}
+                                                                    </div>
+                                                                    <div className="flex gap-2 mt-1.5">
+                                                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-50 border border-green-200 rounded text-xs font-bold text-green-700">
+                                                                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 11l5-5m0 0l5 5m-5-5v12" />
+                                                                            </svg>
+                                                                            {task.loadingTime.toFixed(1)}h
+                                                                        </span>
+                                                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-orange-50 border border-orange-200 rounded text-xs font-bold text-orange-700">
+                                                                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 13l-5 5m0 0l-5-5m5 5V6" />
+                                                                            </svg>
+                                                                            {task.unloadingTime.toFixed(1)}h
+                                                                        </span>
                                                                     </div>
                                                                 </div>
                                                                 <div className="flex-shrink-0 text-sm text-gray-500">

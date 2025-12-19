@@ -22,4 +22,8 @@ public class ScheduledTaskDto
     
     public DateTime StartTime { get; set; }
     public DateTime EndTime { get; set; }
+    
+    // Loading and Unloading times (in hours)
+    public double LoadingTime { get; set; }
+    public double UnloadingTime { get; set; }
 }
