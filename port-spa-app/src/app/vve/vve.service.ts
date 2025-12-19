@@ -101,6 +101,21 @@ export class VveService {
                 throw new VveValidationError('Departure time cannot be more than 1 hour in the future');
             }
         }
+        if (dto.actualBerthTime) {
+            const berthTime = new Date(dto.actualBerthTime);
+            if (isNaN(berthTime.getTime())) {
+                throw new VveValidationError('Actual berth time is not a valid date');
+            }
+            const now = new Date();
+            const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
+            if (berthTime > oneHourFromNow) {
+                throw new VveValidationError('Berth time cannot be more than 1 hour in the future');
+            }
+        }
+
+        if (dto.berthDockId && typeof dto.berthDockId !== 'string') {
+            throw new VveValidationError('Berth dock ID must be a string');
+        }
 
         if (dto.status && !['In Progress', 'Completed', 'Cancelled'].includes(dto.status)) {
             throw new VveValidationError('Invalid status value');

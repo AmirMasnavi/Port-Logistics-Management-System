@@ -58,11 +58,11 @@ export const useVveController = () => {
             return created;
         } catch (err: any) {
             // Handle specific error cases
-            const errorMessage = err?.response?.data?.message || err.message || 'Failed to create VVE';
+            const errorMessage = err?.response?.data?.message || err.message || 'Failed to create Incident Type';
             
             // Check for conflict error (409) - VVE already exists
             if (err?.response?.status === 409 || errorMessage.includes('already exists')) {
-                setError(`⚠️ A Vessel Visit Execution already exists for this VVN. Please check existing VVE records or select a different vessel visit.`);
+                setError(`⚠️ Incident Type already exists. Please check existing incident types or use a different code.`);
             } 
             // Check for VVN not found error (404)
             else if (err?.response?.status === 404 || errorMessage.includes('not found')) {

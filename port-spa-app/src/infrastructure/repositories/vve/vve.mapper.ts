@@ -18,11 +18,11 @@ export class VveMapper {
             actualBerthTime: dto.actualBerthTime,
             berthDockId: dto.berthDockId,
             status: dto.status as VveStatus,
-            createdBy: dto.createdBy,
+            createdBy: dto.createdBy || (dto as any).creatorUserId,
             createdAt: dto.createdAt,
             updatedAt: dto.updatedAt,
             notes: dto.notes,
-            auditLogs: dto.auditLogs as AuditLogEntryDto[],
+            auditLogs: (dto.auditLogs as AuditLogEntryDto[]) || [],
         };
     }
 

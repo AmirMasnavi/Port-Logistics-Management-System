@@ -11,6 +11,7 @@ import { CreateVveDto, UpdateVveDto } from '../application/dtos/VveDto.js';
 export const createVveRouter = (masterDataGateway) => {
   const router = Router();
   const vveService = new VesselVisitExecutionService(masterDataGateway);
+  
 
   /**
    * @swagger
@@ -222,13 +223,15 @@ export const createVveRouter = (masterDataGateway) => {
         const { vveId } = req.params;
           const { status, actualDepartureTime, actualBerthTime, berthDockId, notes } = req.body;
 
+          // Passa userId para audit logging
+          const performedBy = req.user?.uid || req.user?.email || 'unknown';
+
+
           console.log(`[VVE UPDATE] Updating VVE: ${vveId} by user ${req.user?.uid || req.user?.email}`);
 
         // Create DTO
         const updateDto = new UpdateVveDto({ status, actualDepartureTime, notes, actualBerthTime, berthDockId });
 
-          // Passa userId para audit logging
-          const performedBy = req.user?.uid || req.user?.email || 'unknown';
           
         // Execute business logic
         const vveResponse = await vveService.updateVve(vveId, updateDto, performedBy);
@@ -241,6 +244,15 @@ export const createVveRouter = (masterDataGateway) => {
       } catch (error) {
         console.error('[VVE UPDATE] Error:', error);
 
+          // [CHECKLIST] Mapear erro de validação de domínio ou estado inválido para 400
+          if (error.name === 'VveValidationError' || error.code === 'INVALID_STATE' || error.message.includes('Validation failed')) {
+              return res.status(400).json({
+                  success: false,
+                  error: 'Bad Request',
+                  message: error.message
+              });
+          }
+
         if (error.message.includes('not found')) {
           return res.status(404).json({
             success: false,
@@ -249,8 +261,8 @@ export const createVveRouter = (masterDataGateway) => {
           });
         }
 
-          if (error.code === 'INVALID_STATE') {
-              return res.status(400).json({ success: false, error: 'Invalid state', message: error.message });
+          if (error.message.includes('already exists')) {
+              return res.status(409).json({ success: false, error: 'Conflict', message: error.message });
           }
 
         res.status(500).json({
