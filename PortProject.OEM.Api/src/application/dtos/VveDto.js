@@ -98,6 +98,7 @@ export class VveResponseDto {
     createdAt,
     updatedAt,
     auditLogs = [],
+    executedOperations = [],
   }) {
     this.vveId = vveId;
     this.vvnId = vvnId;
@@ -112,7 +113,7 @@ export class VveResponseDto {
     this.createdAt = createdAt;
     this.updatedAt = updatedAt;
     this.auditLogs = auditLogs;
-
+    this.executedOperations = executedOperations;
   }
 }
 

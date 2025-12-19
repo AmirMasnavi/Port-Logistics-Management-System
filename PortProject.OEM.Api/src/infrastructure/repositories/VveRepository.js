@@ -214,4 +214,70 @@ export class VveRepository extends IVveRepository {
     const sequenceStr = String(sequence).padStart(4, '0');
     return `VVE-${datePrefix}-${sequenceStr}`;
   }
+
+  /**
+   * Update operation status within a VVE
+   * US 4.1.9 - Update executed operations
+   * @param {string} vveId - VVE identifier
+   * @param {string} operationId - Operation identifier
+   * @param {Object} statusData - Status update data
+   * @returns {Promise<Object>} Updated VVE
+   */
+  async updateOperationStatus(vveId, operationId, statusData) {
+    // Find the VVE (not lean, so we can manipulate it)
+    const vve = await this.model.findOne({ vveId });
+    
+    if (!vve) {
+      throw new Error(`VVE '${vveId}' not found`);
+    }
+
+    // Find if this operation already exists in executedOperations
+    let operation = vve.executedOperations.find(op => op.operationId === operationId);
+
+    if (!operation) {
+      // First time tracking this operation - create new entry
+      const newOperation = {
+        operationId,
+        status: statusData.status,
+        startTime: statusData.status === 'STARTED' ? statusData.timestamp : null,
+        startedBy: statusData.status === 'STARTED' ? statusData.operatorId : null,
+        endTime: statusData.status === 'COMPLETED' ? statusData.timestamp : null,
+        completedBy: statusData.status === 'COMPLETED' ? statusData.operatorId : null,
+        actualResource: statusData.resourceId || null,
+        notes: statusData.notes || '',
+      };
+      vve.executedOperations.push(newOperation);
+    } else {
+      // Update existing operation
+      operation.status = statusData.status;
+      
+      if (statusData.status === 'STARTED') {
+        operation.startTime = statusData.timestamp;
+        operation.startedBy = statusData.operatorId;
+      }
+      
+      if (statusData.status === 'COMPLETED') {
+        operation.endTime = statusData.timestamp;
+        operation.completedBy = statusData.operatorId;
+      }
+      
+      if (statusData.status === 'SUSPENDED') {
+        // Just update status, keep existing timestamps
+      }
+      
+      if (statusData.resourceId) {
+        operation.actualResource = statusData.resourceId;
+      }
+      
+      if (statusData.notes) {
+        operation.notes = statusData.notes;
+      }
+    }
+
+    // Save and return
+    vve.updatedAt = new Date();
+    await vve.save();
+    
+    return vve.toObject();
+  }
 }

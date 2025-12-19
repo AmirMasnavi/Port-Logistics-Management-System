@@ -3,6 +3,7 @@ import { body, validationResult } from 'express-validator';
 import { verifyFirebaseToken } from '../config/firebase.js';
 import { VesselVisitExecutionService } from '../services/vesselVisitExecutionService.js';
 import { CreateVveDto, UpdateVveDto } from '../application/dtos/VveDto.js';
+import { UpdateOperationStatusDto } from '../application/dtos/ExecutedOperationDto.js';
 
 /**
  * VVE Controller - Vessel Visit Execution Management
@@ -310,6 +311,116 @@ export const createVveRouter = (masterDataGateway) => {
       });
     } catch (error) {
       console.error('[VVE STATS] Error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Internal server error',
+        message: error.message,
+      });
+    }
+  });
+
+  /**
+   * Update operation status (US 4.1.9)
+   * PUT /:vveId/operations/:operationId/status
+   */
+  router.put(
+    '/:vveId/operations/:operationId/status',
+    verifyFirebaseToken,
+    [
+      body('status').isIn(['PENDING', 'STARTED', 'COMPLETED', 'SUSPENDED']).withMessage('Invalid status'),
+      body('timestamp').optional().isISO8601().withMessage('Invalid timestamp format'),
+      body('resourceId').optional().isString(),
+      body('notes').optional().isString(),
+    ],
+    async (req, res) => {
+      try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+          return res.status(400).json({
+            success: false,
+            errors: errors.array(),
+          });
+        }
+
+        const { vveId, operationId } = req.params;
+        const { status, timestamp, resourceId, notes } = req.body;
+        const operatorId = req.user?.uid || req.user?.email || 'unknown';
+
+        console.log(`[VVE OPERATION UPDATE] Updating operation ${operationId} in VVE ${vveId} to status ${status} by ${operatorId}`);
+
+        // Create DTO
+        const updateDto = new UpdateOperationStatusDto({
+          operationId,
+          status,
+          timestamp,
+          operatorId,
+          resourceId,
+          notes,
+        });
+
+        // Execute business logic
+        const vveResponse = await vveService.updateOperationStatus(vveId, updateDto, operatorId);
+
+        res.json({
+          success: true,
+          message: 'Operation status updated successfully',
+          data: vveResponse,
+        });
+      } catch (error) {
+        console.error('[VVE OPERATION UPDATE] Error:', error);
+
+        if (error.message.includes('not found')) {
+          return res.status(404).json({
+            success: false,
+            error: 'Not found',
+            message: error.message,
+          });
+        }
+
+        if (error.message.includes('Validation failed')) {
+          return res.status(400).json({
+            success: false,
+            error: 'Validation error',
+            message: error.message,
+          });
+        }
+
+        res.status(500).json({
+          success: false,
+          error: 'Internal server error',
+          message: error.message,
+        });
+      }
+    }
+  );
+
+  /**
+   * Get VVE with operation plan comparison (US 4.1.9)
+   * GET /:vveId/operations-detailed
+   */
+  router.get('/:vveId/operations-detailed', verifyFirebaseToken, async (req, res) => {
+    try {
+      const { vveId } = req.params;
+
+      console.log(`[VVE OPERATIONS DETAILED] Fetching operations for VVE: ${vveId}`);
+
+      const vveWithOperations = await vveService.getVveWithPlanComparison(vveId);
+
+      res.json({
+        success: true,
+        data: vveWithOperations,
+      });
+    } catch (error) {
+      console.error('[VVE OPERATIONS DETAILED] Error:', error);
+
+      if (error.message.includes('not found')) {
+        return res.status(404).json({
+          success: false,
+          error: 'Not found',
+          message: error.message,
+        });
+      }
+
       res.status(500).json({
         success: false,
         error: 'Internal server error',

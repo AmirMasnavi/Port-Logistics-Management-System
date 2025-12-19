@@ -1,6 +1,58 @@
 import mongoose from 'mongoose';
 
 /**
+ * Sub-schema for executed operations (container moves/cargo handling)
+ * Tracks actual execution of planned operations
+ */
+const executedOperationSchema = new mongoose.Schema({
+  // Link to the operation ID from the Operation Plan
+  operationId: { 
+    type: String, 
+    required: true 
+  },
+  
+  // Operation status
+  status: { 
+    type: String, 
+    enum: ['PENDING', 'STARTED', 'COMPLETED', 'SUSPENDED'], 
+    default: 'PENDING',
+    required: true
+  },
+  
+  // Start tracking (Who and When)
+  startTime: { 
+    type: Date,
+    default: null
+  },
+  startedBy: { 
+    type: String, // Operator ID (NOT email for GDPR compliance)
+    default: null
+  },
+  
+  // Completion tracking (Who and When)
+  endTime: { 
+    type: Date,
+    default: null
+  },
+  completedBy: { 
+    type: String, // Operator ID
+    default: null
+  },
+  
+  // Resource usage tracking
+  actualResource: { 
+    type: String, // e.g., if they used Crane-02 instead of planned Crane-01
+    default: null
+  },
+  
+  // Optional notes for this specific operation
+  notes: {
+    type: String,
+    default: ''
+  }
+}, { _id: true });
+
+/**
  * Vessel Visit Execution (VVE) Mongoose Schema
  * Infrastructure Layer - Persistence Model
  */
@@ -68,6 +120,9 @@ const vesselVisitExecutionSchema = new mongoose.Schema({
     type: String,
     default: '',
   },
+
+  // Executed operations tracking (US 4.1.9)
+  executedOperations: [executedOperationSchema],
 
     auditLogs: [
         {

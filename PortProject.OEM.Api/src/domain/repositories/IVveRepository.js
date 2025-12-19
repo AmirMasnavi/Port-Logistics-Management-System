@@ -47,5 +47,9 @@ export class IVveRepository {
   async generateNextId() {
     throw new Error('Method not implemented');
   }
+
+  async updateOperationStatus(vveId, operationId, statusData) {
+    throw new Error('Method not implemented');
+  }
 }
 

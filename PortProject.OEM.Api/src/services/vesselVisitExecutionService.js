@@ -1,6 +1,8 @@
 import { CreateVveDto, UpdateVveDto } from '../application/dtos/VveDto.js';
+import { UpdateOperationStatusDto } from '../application/dtos/ExecutedOperationDto.js';
 import { VveMapper } from '../application/mappers/VveMapper.js';
 import { VveRepository } from '../infrastructure/repositories/VveRepository.js';
+import { OperationPlanRepository } from '../infrastructure/repositories/OperationPlanRepository.js';
 
 /**
  * Service for Vessel Visit Execution operations
@@ -10,6 +12,7 @@ export class VesselVisitExecutionService {
   constructor(masterDataGateway) {
     this.masterDataGateway = masterDataGateway;
     this.vveRepository = new VveRepository();
+    this.operationPlanRepository = new OperationPlanRepository();
   }
 
   /**
@@ -260,7 +263,6 @@ export class VesselVisitExecutionService {
     
     if (dto.notes !== undefined) {
       // preserve and append (if existing) instead of overriding
-        const existingNotes = existingVve.notes || '';
         updateData.notes = dto.notes;
         changeDetails.notes = dto.notes;
     }
@@ -336,6 +338,130 @@ export class VesselVisitExecutionService {
       inProgress,
       completed,
       cancelled,
+    };
+  }
+
+  /**
+   * Update operation status (US 4.1.9)
+   * @param {string} vveId - VVE identifier
+   * @param {UpdateOperationStatusDto} dto - Operation status update DTO
+   * @param {string} operatorId - Operator performing the update
+   * @returns {Promise<VveResponseDto>} Updated VVE
+   */
+  async updateOperationStatus(vveId, dto, operatorId) {
+    // 1. Validate DTO
+    const validation = dto.validate();
+    if (!validation.isValid) {
+      throw new Error(`Validation failed: ${validation.errors.join(', ')}`);
+    }
+
+    // 2. Check if VVE exists
+    const existingVve = await this.vveRepository.findById(vveId);
+    if (!existingVve) {
+      throw new Error(`VVE '${vveId}' not found`);
+    }
+
+    // 3. Prepare status data
+    const statusData = {
+      status: dto.status,
+      timestamp: dto.timestamp,
+      operatorId: operatorId, // Use the authenticated user's ID
+      resourceId: dto.resourceId,
+      notes: dto.notes,
+    };
+
+    console.log(`[VVE Service] Updating operation ${dto.operationId} in VVE ${vveId} to status ${dto.status} by ${operatorId}`);
+
+    // 4. Update in repository
+    const updatedVve = await this.vveRepository.updateOperationStatus(vveId, dto.operationId, statusData);
+
+    // 5. Return mapped DTO
+    return VveMapper.toResponseDto(updatedVve);
+  }
+
+  /**
+   * Get VVE with operation plan comparison (US 4.1.9)
+   * Merges execution data with planned operations and calculates DELAYED status
+   * @param {string} vveId - VVE identifier
+   * @returns {Promise<Object>} VVE with merged operation data
+   */
+  async getVveWithPlanComparison(vveId) {
+    // 1. Get VVE execution data
+    const vve = await this.vveRepository.findById(vveId);
+    if (!vve) {
+      throw new Error(`VVE '${vveId}' not found`);
+    }
+
+    console.log(`[VVE Service] Fetching plan comparison for VVE ${vveId} (VVN: ${vve.vvnId})`);
+
+    // 2. Get the operation plan for this vessel visit
+    // Extract the date from VVE's actualArrivalTime
+    const arrivalDate = new Date(vve.actualArrivalTime);
+    const dateStr = arrivalDate.toISOString().split('T')[0]; // YYYY-MM-DD
+
+    // Find plans for this date and vessel
+    const plans = await this.operationPlanRepository.findAll({ 
+      date: dateStr,
+      vesselVisitId: vve.vvnId 
+    });
+
+    console.log(`[VVE Service] Found ${plans.length} operation plans for date ${dateStr} and vessel ${vve.vvnId}`);
+
+    let combinedOperations;
+    
+    if (plans.length > 0) {
+      // Use the first (most recent) plan
+      const plan = plans[0];
+      
+      // Filter tasks for this vessel visit
+      const vesselTasks = plan.scheduledTasks.filter(
+        task => task.vesselVisitId === vve.vvnId || task.vesselVisitBusinessId === vve.vvnId
+      );
+
+      console.log(`[VVE Service] Found ${vesselTasks.length} scheduled tasks for this vessel in plan ${plan.planId}`);
+
+      // 3. Merge planned operations with execution data
+      combinedOperations = vesselTasks.map((plannedOp, index) => {
+        // Generate operation ID if not present (using index as fallback)
+        const opId = plannedOp.operationId || plannedOp._id?.toString() || `op-${index}`;
+        
+        // Find corresponding executed operation
+        const executedOp = vve.executedOperations?.find(eo => eo.operationId === opId);
+        
+        // Use mapper to create comparison DTO with computed status
+        return VveMapper.toOperationComparisonDto(
+          { ...plannedOp, operationId: opId },
+          executedOp
+        );
+      });
+    } else {
+      console.log(`[VVE Service] No operation plan found for this vessel visit`);
+      
+      // If no plan exists, just return executed operations (if any)
+      combinedOperations = (vve.executedOperations || []).map(eo => ({
+        operationId: eo.operationId,
+        executedStatus: eo.status,
+        actualStartTime: eo.startTime,
+        actualEndTime: eo.endTime,
+        startedBy: eo.startedBy,
+        completedBy: eo.completedBy,
+        actualResource: eo.actualResource,
+        computedStatus: eo.status,
+        notes: eo.notes,
+        // No planned data available
+        plannedStartTime: null,
+        plannedEndTime: null,
+        plannedResource: null,
+        plannedStaff: null,
+      }));
+    }
+
+    // 4. Return VVE with combined operations
+    return {
+      ...VveMapper.toResponseDto(vve),
+      operations: combinedOperations,
+      planExists: plans.length > 0,
+      planId: plans.length > 0 ? plans[0].planId : null,
     };
   }
 }
