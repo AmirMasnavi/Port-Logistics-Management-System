@@ -380,6 +380,11 @@ export class VesselVisitExecutionService {
       changeDetails.actualDepartureTime = updateData.actualDepartureTime;
     }
 
+      if (dto.actualBerthTime !== undefined) {
+          updateData.actualBerthTime = new Date(dto.actualBerthTime);
+          changeDetails.actualBerthTime = updateData.actualBerthTime;
+      }
+
     if (dto.berthDockId !== undefined) {
       updateData.berthDockId = dto.berthDockId;
       changeDetails.berthDockId = dto.berthDockId;

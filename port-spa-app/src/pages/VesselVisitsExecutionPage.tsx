@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+﻿import React, {useState, useEffect, useMemo} from 'react';
 import {
     Ship,
     Calendar,
@@ -62,6 +62,31 @@ const VesselVisitsExecutionPage: React.FC = () => {
     });
     const [notes, setNotes] = useState('');
     const [generateInitialOperations, setGenerateInitialOperations] = useState(true); // Default to true for auto-generation
+
+    // === Lista de docks disponíveis (necessária para label amigável) ===
+    const availableDocks = useMemo(() => {
+        const map = new Map<string, string>();
+        const add = (id?: string | null, name?: string | null) => {
+            if (!id && !name) return;
+            const key = (id || name || '').toString().trim();
+            const label = (name || id || '').toString().trim();
+            if (!key) return;
+            map.set(key, label);
+        };
+
+        vves.forEach(v => {
+            add(v.berthDockId, (v as any).berthDockName);
+            if (v.vvnData) add(v.vvnData.assignedDockId, v.vvnData.assignedDockName);
+        });
+
+        vvns.forEach(v => {
+            add(v.assignedDockId, v.assignedDockName);
+        });
+
+        return Array.from(map.entries())
+            .map(([value, label]) => ({ value, label }))
+            .sort((a, b) => a.label.localeCompare(b.label));
+    }, [vves, vvns]);
 
     useEffect(() => {
         // Load VVEs on component mount with default last 30 days
@@ -221,11 +246,45 @@ const VesselVisitsExecutionPage: React.FC = () => {
         try {
             const isoBerthTime = new Date(updateActualBerthTime).toISOString();
 
+            const plannedDockId = selectedVve.vvnData?.assignedDockId;
+            const plannedDockLabel = selectedVve.vvnData?.assignedDockName || plannedDockId || 'N/A';
+            const usedDockLabel = availableDocks.find(d => d.value === updateBerthDockId)?.label || updateBerthDockId;
+
+            let finalNotes: string | undefined = updateNotes.trim() || undefined;
+
+            // Timestamp atual formatado para legibilidade
+            const timestamp = new Date().toISOString();
+            const readableTimestamp = new Date().toLocaleString('en-GB', {
+                day: '2-digit', month: 'short', year: 'numeric',
+                hour: '2-digit', minute: '2-digit', second: '2-digit'
+            });
+
+            // Nota de auditoria geral (sempre adicionada em qualquer update)
+            const auditNote = `Audit: VVE updated by ${internalRole || 'User'} — Actual Berth Time: ${updateActualBerthTime}, Berth Dock: ${updateBerthDockId} — ${readableTimestamp} (${timestamp})`;
+
+            // Nota específica se houver mudança de dock
+            let deviationNote = '';
+            if (plannedDockId && plannedDockId !== updateBerthDockId) {
+                deviationNote = `System: Dock changed from ${plannedDockLabel} to ${usedDockLabel} (recorded as deviation) — ${readableTimestamp}`;
+            }
+
+            // Monta as notas finais na ordem correta: notas do usuário → desvio (se houver) → auditoria
+            const notesParts = [finalNotes, deviationNote, auditNote].filter(Boolean);
+            finalNotes = notesParts.join('\n\n');
+            
+            // Adiciona nota automática se houver discrepância
+            if (plannedDockId && plannedDockId !== updateBerthDockId) {
+                const timestamp = new Date().toISOString();
+                const systemNote = `System: Dock changed from ${plannedDockLabel} to ${usedDockLabel} (recorded as deviation) — ${timestamp}`;
+
+                finalNotes = finalNotes ? `${finalNotes}\n\n${systemNote}` : systemNote;
+            }
+
             // DTO simplificado para o update (assumindo que o endpoint só precisa disso)
-            const updateDto: { actualBerthTime: string, berthDockId: string, notes?: string } = {
+            const updateDto = {
                 actualBerthTime: isoBerthTime,
                 berthDockId: updateBerthDockId,
-                notes: updateNotes || undefined,
+                notes: finalNotes,
             };
 
             const updated = await updateVve(selectedVve.vveId, updateDto); // ASSUME: updateVve(vveId, dto)
@@ -242,7 +301,6 @@ const VesselVisitsExecutionPage: React.FC = () => {
 
         } catch (err: any) {
             console.error('Update VVE failed', err);
-            // O useVveController deve definir updateError aqui
         }
     };
 
@@ -329,7 +387,7 @@ const VesselVisitsExecutionPage: React.FC = () => {
 
     // Check for Dock Discrepancy
     const isDockDiscrepancy = selectedVve && selectedVve.vvnData?.assignedDockId && updateBerthDockId && selectedVve.vvnData.assignedDockId !== updateBerthDockId;
-
+    
     return (
         <div className="container mx-auto">
             {/* Page Header */}
@@ -342,6 +400,9 @@ const VesselVisitsExecutionPage: React.FC = () => {
                     <p className="text-gray-600 mt-1">
                         Monitor and analyze vessel visit execution history and performance metrics
                     </p>
+                    <p className="text-sm text-blue-700 mt-3 font-medium">
+                        👆 Select an <strong>In Progress</strong> VVE row in the table below and click <strong>Update</strong> to record actual berth time and dock used.
+                    </p>
                 </div>
                 {(internalRole === 'LogisticsOperator' || internalRole === 'Administrator' || internalRole === 'PortOfficer') && (
                     <div className="flex items-center gap-3">                       
@@ -352,14 +413,19 @@ const VesselVisitsExecutionPage: React.FC = () => {
                         <PlusCircle className="w-5 h-5" />
                         Create VVE
                     </button>
-                    <button
-                        onClick={() => setShowUpdateModal(true)}
-                        disabled={!selectedVve}
-                        className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors"
-                    >
-                        <Edit className="w-5 h-5" />
-                        Update
-                    </button>
+                        <button
+                            onClick={() => setShowUpdateModal(true)}
+                            disabled={!selectedVve || selectedVve.status !== 'In Progress'}
+                            className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-colors ${
+                                !selectedVve || selectedVve.status !== 'In Progress'
+                                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                            }`}
+                            title={!selectedVve ? 'Select an In Progress VVE first' : selectedVve.status !== 'In Progress' ? 'Only In Progress VVEs can be updated' : 'Update selected VVE'}
+                        >
+                            <Edit className="w-5 h-5" />
+                            Update
+                        </button>
                     </div>
                 )} 
             </div>
@@ -697,16 +763,26 @@ const VesselVisitsExecutionPage: React.FC = () => {
                                         <Ship className="w-4 h-4 inline mr-1" />
                                         Berth Dock Used <span className="text-red-500">*</span>
                                     </label>
-                                    <input
-                                        type="text"
-                                        value={updateBerthDockId}
+                                    <select
+                                        value={updateBerthDockId || ''}
                                         onChange={(e) => setUpdateBerthDockId(e.target.value)}
                                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg"
-                                        placeholder="E.g., CAIS_SUL_3"
                                         required
-                                    />
+                                    >
+                                        <option value="">
+                                            {availableDocks.length === 0
+                                                ? '-- No docks registered yet --'
+                                                : '-- Select the dock used --'
+                                            }
+                                        </option>
+                                        {availableDocks.map((dock) => (
+                                            <option key={dock.value} value={dock.value}>
+                                                {dock.label}
+                                            </option>
+                                        ))}
+                                    </select>
                                     <p className="text-xs text-gray-500 mt-2">
-                                        The ID of the dock/berth where the vessel was actually moored
+                                        Select from the docks already created/used in the system
                                     </p>
                                 </div>
 
@@ -968,8 +1044,13 @@ const VesselVisitsExecutionPage: React.FC = () => {
                                         <tr
                                             key={vve.vveId}
                                             onClick={() => setSelectedVve(vve)}
-                                            className={`hover:bg-gray-50 transition-colors cursor-pointer ${selectedVve?.vveId === vve.vveId ? 'bg-blue-50' : ''} `}
-                                        >
+                                            className={`hover:bg-gray-50 transition-colors cursor-pointer ${
+                                                selectedVve?.vveId === vve.vveId
+                                                    ? vve.status === 'In Progress'
+                                                        ? 'bg-blue-100 border-l-4 border-blue-600' 
+                                                        : 'bg-blue-50'
+                                                    : ''
+                                            } ${vve.status === 'In Progress' ? 'font-medium' : ''}`}                                        >
                                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                                 {vve.vveId}
                                             </td>
