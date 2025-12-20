@@ -22,6 +22,7 @@ import type { CreateVveDto } from '../infrastructure/repositories/vve/vve.dto';
 import type { VesselVisitNotification } from '../domain/vvn/vvn.model';
 import { useAuth } from '../auth/AuthProvider';
 import { useVveController } from '../controllers/vve/useVveController';
+import { OperationExecutionTable } from '../components/vve/OperationExecutionTable';
 
 const VesselVisitsExecutionPage: React.FC = () => {
     const { internalRole } = useAuth();
@@ -1085,6 +1086,62 @@ const VesselVisitsExecutionPage: React.FC = () => {
                     <p className="text-gray-600">
                         No vessel visit executions match your search criteria. Try adjusting the filters.
                     </p>
+                </div>
+            )}
+
+            {/* Operation Execution Tracking (US 4.1.9) */}
+            {selectedVve && selectedVve.status === 'In Progress' && (
+                <div className="mt-6 bg-blue-50 border-2 border-blue-200 rounded-lg p-6">
+                    <div className="mb-4 flex items-center justify-between">
+                        <div>
+                            <h2 className="text-2xl font-bold text-gray-900">Operation Execution Tracking</h2>
+                            <p className="text-sm text-gray-600 mt-1">
+                                Tracking operations for {selectedVve.vesselIdentifier} - {selectedVve.vveId}
+                            </p>
+                        </div>
+                        <button
+                            onClick={() => setSelectedVve(null)}
+                            className="px-4 py-2 text-sm bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                        >
+                            Close Tracking
+                        </button>
+                    </div>
+                    <OperationExecutionTable vveId={selectedVve.vveId} />
+                </div>
+            )}
+
+            {/* Helper message when VVE is selected but not In Progress */}
+            {selectedVve && selectedVve.status !== 'In Progress' && (
+                <div className="mt-6 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg">
+                    <div className="flex">
+                        <AlertCircle className="h-5 w-5 text-yellow-400 mr-3" />
+                        <div>
+                            <h3 className="text-sm font-medium text-yellow-800">
+                                Operation Tracking Not Available
+                            </h3>
+                            <p className="text-sm text-yellow-700 mt-1">
+                                Operation tracking is only available for "In Progress" VVEs. 
+                                The selected VVE ({selectedVve.vveId}) has status: {selectedVve.status}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Helper message when no VVE is selected */}
+            {!selectedVve && vves.length > 0 && (
+                <div className="mt-6 bg-blue-50 border-l-4 border-blue-400 p-4 rounded-lg">
+                    <div className="flex">
+                        <AlertCircle className="h-5 w-5 text-blue-400 mr-3" />
+                        <div>
+                            <h3 className="text-sm font-medium text-blue-800">
+                                💡 Track Operation Execution
+                            </h3>
+                            <p className="text-sm text-blue-700 mt-1">
+                                Click on any "In Progress" VVE in the table above to view and manage its operations in real-time.
+                            </p>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

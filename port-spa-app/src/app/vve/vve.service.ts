@@ -5,6 +5,7 @@ import type { VesselVisitExecution } from '../../domain/vve/vve.model';
 import { VveValidationError } from '../../domain/vve/vve.errors';
 import type { IVveRepository, VveFilters } from './vve.repository';
 import type { CreateVveDto, UpdateVveDto } from '../../infrastructure/repositories/vve/vve.dto';
+import type { VveOperationsDetailedResponse, UpdateOperationStatusDto } from '../../domain/vve/operation-execution.types';
 
 export class VveService {
     private readonly vveRepo: IVveRepository;
@@ -105,5 +106,28 @@ export class VveService {
         if (dto.status && !['In Progress', 'Completed', 'Cancelled'].includes(dto.status)) {
             throw new VveValidationError('Invalid status value');
         }
+    }
+
+    /**
+     * Get VVE with operation plan comparison (US 4.1.9)
+     */
+    async getVveOperationsDetailed(vveId: string): Promise<VveOperationsDetailedResponse> {
+        return this.vveRepo.getOperationsDetailed(vveId);
+    }
+
+    /**
+     * Update operation status (US 4.1.9)
+     */
+    async updateOperationStatus(
+        vveId: string,
+        operationId: string,
+        dto: UpdateOperationStatusDto
+    ): Promise<void> {
+        // Business validation
+        if (!dto.status || !['STARTED', 'COMPLETED', 'SUSPENDED'].includes(dto.status)) {
+            throw new VveValidationError('Invalid operation status');
+        }
+        
+        return this.vveRepo.updateOperationStatus(vveId, operationId, dto);
     }
 }

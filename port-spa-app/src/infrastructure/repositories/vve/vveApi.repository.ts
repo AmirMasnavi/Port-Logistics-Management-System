@@ -3,6 +3,7 @@ import { apiClient } from '../../../services/apiService';
 import type { IVveRepository, VveFilters } from '../../../app/vve/vve.repository';
 import type { VesselVisitExecution } from '../../../domain/vve/vve.model';
 import type { CreateVveDto, UpdateVveDto, VveResponseDto } from './vve.dto';
+import type { VveOperationsDetailedResponse, UpdateOperationStatusDto } from '../../../domain/vve/operation-execution.types';
 import { VveMapper } from './vve.mapper';
 
 const OEM_BASE = import.meta.env.VITE_OEM_API_URL || 'http://localhost:3001/api';
@@ -49,6 +50,27 @@ class VveApiRepository implements IVveRepository {
         const url = `${OEM_BASE}/vve/${encodeURIComponent(vveId)}`;
         await apiClient.delete(url);
         return true;
+    }
+
+    /**
+     * Get VVE with operation plan comparison (US 4.1.9)
+     */
+    public async getOperationsDetailed(vveId: string): Promise<VveOperationsDetailedResponse> {
+        const url = `${OEM_BASE}/vve/${encodeURIComponent(vveId)}/operations-detailed`;
+        const response = await apiClient.get<{ success: boolean; data: VveOperationsDetailedResponse }>(url);
+        return response.data.data;
+    }
+
+    /**
+     * Update operation status (US 4.1.9)
+     */
+    public async updateOperationStatus(
+        vveId: string,
+        operationId: string,
+        dto: UpdateOperationStatusDto
+    ): Promise<void> {
+        const url = `${OEM_BASE}/vve/${encodeURIComponent(vveId)}/operations/${encodeURIComponent(operationId)}/status`;
+        await apiClient.put(url, dto);
     }
 }
 

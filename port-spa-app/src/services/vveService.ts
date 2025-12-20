@@ -1,6 +1,7 @@
 ﻿// VVE Service - Vessel Visit Execution API
 import axios from 'axios';
 import { getAuthToken } from '../firebaseConfig';
+import type { VveOperationsDetailedResponse, UpdateOperationStatusDto } from '../domain/vve/operation-execution.types';
 
 // OEM API base URL
 const OEM_API_BASE_URL = import.meta.env.VITE_OEM_API_URL || 'http://localhost:3001/api';
@@ -200,7 +201,37 @@ export class VveService {
             throw new Error(error.response?.data?.message || 'Failed to fetch statistics.');
         }
     }
+
+    /**
+     * Get VVE with operation plan comparison (US 4.1.9)
+     */
+    async getVveOperationsDetailed(vveId: string): Promise<VveOperationsDetailedResponse> {
+        try {
+            const response = await vveApiClient.get<{ success: boolean; data: VveOperationsDetailedResponse }>(
+                `/${vveId}/operations-detailed`
+            );
+            
+            return response.data.data;
+        } catch (error: any) {
+            console.error('Failed to fetch operation details:', error);
+            throw new Error(error.response?.data?.message || 'Failed to fetch operation details.');
+        }
+    }
+
+    /**
+     * Update operation status (US 4.1.9)
+     */
+    async updateOperationStatus(vveId: string, operationId: string, dto: UpdateOperationStatusDto): Promise<void> {
+        try {
+            await vveApiClient.put(
+                `/${vveId}/operations/${operationId}/status`,
+                dto
+            );
+        } catch (error: any) {
+            console.error('Failed to update operation status:', error);
+            throw new Error(error.response?.data?.message || 'Failed to update operation status.');
+        }
+    }
 }
 
 export const vveService = new VveService();
-
