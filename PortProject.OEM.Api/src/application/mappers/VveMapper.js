@@ -82,6 +82,9 @@ export class VveMapper {
     
     return new OperationComparisonDto({
       operationId: plannedOp.operationId || plannedOp._id,
+      // Operation details
+      name: executedOp?.name || plannedOp.name || '',
+      type: executedOp?.type || plannedOp.type || 'Other',
       // Planned data
       plannedStartTime: plannedOp.startTime,
       plannedEndTime: plannedOp.endTime,

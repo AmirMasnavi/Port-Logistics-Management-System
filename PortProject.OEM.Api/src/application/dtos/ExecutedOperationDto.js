@@ -9,6 +9,8 @@ export class UpdateOperationStatusDto {
     this.timestamp = data.timestamp ? new Date(data.timestamp) : new Date();
     this.operatorId = data.operatorId; // The user ID (NOT email for GDPR)
     this.resourceId = data.resourceId; // Optional: if they changed resource
+    this.name = data.name || ''; // Operation name
+    this.type = data.type || 'Other'; // Operation type (Loading, Unloading, etc.)
     this.notes = data.notes || '';
   }
 
@@ -70,6 +72,9 @@ export class ExecutedOperationResponseDto {
 export class OperationComparisonDto {
   constructor({
     operationId,
+    // Operation details
+    name,
+    type,
     // Planned data
     plannedStartTime,
     plannedEndTime,
@@ -90,6 +95,10 @@ export class OperationComparisonDto {
     delayMinutes,
     notes,
   }) {
+    // Operation details
+    this.name = name || '';
+    this.type = type || 'Other';
+    
     // Planned information
     this.operationId = operationId;
     this.plannedStartTime = plannedStartTime;

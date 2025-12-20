@@ -1,21 +1,28 @@
 import React, { useState, useEffect } from 'react';
-    import { Play, CheckCircle, Clock, AlertCircle, Loader2, Edit2, XCircle, PlusCircle } from 'lucide-react';
-    import type { VveOperationsDetailedResponse, OperationComparison } from '../../domain/vve/operation-execution.types';
-    import { vveService } from '../../services/vveService';
-    import { useAuth } from '../../auth/AuthProvider';
+import { Play, CheckCircle, Clock, AlertCircle, Loader2, Edit2, XCircle, PlusCircle, RefreshCw, Ship } from 'lucide-react';
+import type { VveOperationsDetailedResponse, OperationComparison } from '../../domain/vve/operation-execution.types';
+import { vveService } from '../../services/vveService';
+import { useAuth } from '../../auth/AuthProvider';
+import { resourceApiRepository } from '../../infrastructure/repositories/resource/resourceApi.repository';
+import { ResourceService } from '../../app/resource/resource.service';
+import type { Resource } from '../../domain/resource/resource.model';
     
     interface Props {
         vveId: string;
     }
     
     export const OperationExecutionTable: React.FC<Props> = ({ vveId }) => {
-        const [data, setData] = useState<VveOperationsDetailedResponse | null>(null);
-        const [loading, setLoading] = useState(true);
-        const [error, setError] = useState<string | null>(null);
-        const [updatingOp, setUpdatingOp] = useState<string | null>(null);
-        const { user } = useAuth();
-        
-        // Modal states
+    const [data, setData] = useState<VveOperationsDetailedResponse | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [updatingOp, setUpdatingOp] = useState<string | null>(null);
+    const { user } = useAuth();
+    
+    // Resources state
+    const [resources, setResources] = useState<Resource[]>([]);
+    const [loadingResources, setLoadingResources] = useState(true);
+    
+    // Modal states
         const [showEditModal, setShowEditModal] = useState(false);
         const [editingOperation, setEditingOperation] = useState<OperationComparison | null>(null);
         const [editStatus, setEditStatus] = useState<'STARTED' | 'COMPLETED' | 'SUSPENDED'>('STARTED');
@@ -23,40 +30,66 @@ import React, { useState, useEffect } from 'react';
         const [editEndTime, setEditEndTime] = useState<string>('');
         const [editResourceId, setEditResourceId] = useState<string>('');
         const [editNotes, setEditNotes] = useState<string>('');
+        const [editName, setEditName] = useState<string>('');
+        const [editType, setEditType] = useState<'Loading' | 'Unloading' | 'Preparation' | 'Completion' | 'Inspection' | 'Other'>('Other');
         
         // Add Operation modal states
         const [showAddModal, setShowAddModal] = useState(false);
         const [newOperationId, setNewOperationId] = useState<string>('');
-        const [newStatus, setNewStatus] = useState<'STARTED' | 'COMPLETED' | 'SUSPENDED'>('STARTED');
+        const [newStatus, setNewStatus] = useState<'PENDING' | 'STARTED' | 'COMPLETED' | 'SUSPENDED'>('PENDING');
         const [newStartTime, setNewStartTime] = useState<string>('');
         const [newEndTime, setNewEndTime] = useState<string>('');
         const [newResourceId, setNewResourceId] = useState<string>('');
         const [newNotes, setNewNotes] = useState<string>('');
+        const [newName, setNewName] = useState<string>('');
+        const [newType, setNewType] = useState<'Loading' | 'Unloading' | 'Preparation' | 'Completion' | 'Inspection' | 'Other'>('Loading');
     
         // Load operation data
-        const loadData = async () => {
-            try {
-                setLoading(true);
-                setError(null);
-                const response = await vveService.getVveOperationsDetailed(vveId);
-                setData(response);
-            } catch (err) {
-                console.error('Error loading operations:', err);
-                setError('Failed to load operations. Please try again.');
-            } finally {
-                setLoading(false);
-            }
-        };
+    const loadData = async () => {
+        try {
+            setLoading(true);
+            setError(null);
+            const response = await vveService.getVveOperationsDetailed(vveId);
+            setData(response);
+        } catch (err) {
+            console.error('Error loading operations:', err);
+            setError('Failed to load operations. Please try again.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Load resources
+    const loadResources = async () => {
+        try {
+            setLoadingResources(true);
+            const resourceService = new ResourceService(resourceApiRepository);
+            const fetchedResources = await resourceService.fetchAllResources();
+            setResources(fetchedResources);
+        } catch (err) {
+            console.error('Error loading resources:', err);
+        } finally {
+            setLoadingResources(false);
+        }
+    };
+
+    // Get resource name by ID
+    const getResourceName = (resourceId: string | undefined): string => {
+        if (!resourceId) return '-';
+        const resource = resources.find(r => r.code === resourceId);
+        return resource ? resource.description : resourceId;
+    };
     
         useEffect(() => {
-            loadData();
-            // Optional: Auto-refresh every 30 seconds
-            const interval = setInterval(loadData, 30000);
-            return () => clearInterval(interval);
-        }, [vveId]);
+        loadData();
+        loadResources(); // Load resources once on mount
+        // Note: Auto-refresh disabled to prevent unwanted table refreshes
+        // Users can manually refresh if needed
+    }, [vveId]);
     
         // Open edit modal with operation details
         const openEditModal = (operation: OperationComparison) => {
+            console.log('Opening edit modal for operation:', operation);
             setEditingOperation(operation);
             
             // Pre-fill form with existing data or defaults
@@ -70,20 +103,36 @@ import React, { useState, useEffect } from 'react';
             const now = new Date();
             const localNow = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
             
-            setEditStartTime(
-                operation.actualStartTime 
-                    ? new Date(operation.actualStartTime).toISOString().slice(0, 16)
-                    : localNow
-            );
-            
-            setEditEndTime(
-                operation.actualEndTime 
-                    ? new Date(operation.actualEndTime).toISOString().slice(0, 16)
-                    : ''
-            );
+            try {
+                setEditStartTime(
+                    operation.actualStartTime 
+                        ? new Date(operation.actualStartTime).toISOString().slice(0, 16)
+                        : localNow
+                );
+                
+                setEditEndTime(
+                    operation.actualEndTime 
+                        ? new Date(operation.actualEndTime).toISOString().slice(0, 16)
+                        : ''
+                );
+            } catch (error) {
+                console.error('Error formatting dates:', error);
+                setEditStartTime(localNow);
+                setEditEndTime('');
+            }
             
             setEditResourceId(operation.actualResource || operation.plannedResource || '');
             setEditNotes(operation.notes || '');
+            setEditName(operation.name || extractOperationName(operation.operationId));
+            
+            // Ensure we only set valid type values
+            const validTypes: Array<'Loading' | 'Unloading' | 'Preparation' | 'Completion' | 'Inspection' | 'Other'> = 
+                ['Loading', 'Unloading', 'Preparation', 'Completion', 'Inspection', 'Other'];
+            const opType = operation.type && validTypes.includes(operation.type as any) 
+                ? operation.type 
+                : 'Other';
+            setEditType(opType as any);
+            
             setShowEditModal(true);
         };
         
@@ -92,11 +141,13 @@ import React, { useState, useEffect } from 'react';
             e.preventDefault();
             
             if (!user?.uid || !editingOperation) {
+                console.error('Update failed: User not authenticated or no operation selected', { user: !!user, editingOperation });
                 alert('User not authenticated or no operation selected');
                 return;
             }
             
             try {
+                console.log('Updating operation:', editingOperation.operationId);
                 setUpdatingOp(editingOperation.operationId);
                 
                 // Prepare update data
@@ -118,12 +169,24 @@ import React, { useState, useEffect } from 'react';
                     updateData.resourceId = editResourceId;
                 }
                 
+                // Add name if provided
+                if (editName && editName.trim() !== '') {
+                    updateData.name = editName;
+                }
+                
+                // Add type
+                if (editType) {
+                    updateData.type = editType;
+                }
+                
                 // Add notes if provided
                 if (editNotes) {
                     updateData.notes = editNotes;
                 }
                 
+                console.log('Sending update data:', updateData);
                 await vveService.updateOperationStatus(vveId, editingOperation.operationId, updateData);
+                console.log('Operation updated successfully');
                 
                 // Close modal and refresh data
                 setShowEditModal(false);
@@ -143,11 +206,13 @@ import React, { useState, useEffect } from 'react';
             const localNow = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
             
             setNewOperationId('');
-            setNewStatus('STARTED');
-            setNewStartTime(localNow);
+            setNewStatus('PENDING');
+            setNewStartTime('');
             setNewEndTime('');
             setNewResourceId('');
             setNewNotes('');
+            setNewName('');
+            setNewType('Loading');
             setShowAddModal(true);
         };
         
@@ -160,13 +225,11 @@ import React, { useState, useEffect } from 'react';
                 return;
             }
             
-            if (!newOperationId.trim()) {
-                alert('Operation ID is required');
-                return;
-            }
+            // Auto-generate ID if not provided (though we removed the input, so it will be empty)
+            const opId = newOperationId.trim() || `OP-${Date.now()}`;
             
             try {
-                setUpdatingOp(newOperationId);
+                setUpdatingOp(opId);
                 
                 const addData: any = {
                     status: newStatus,
@@ -185,11 +248,19 @@ import React, { useState, useEffect } from 'react';
                     addData.resourceId = newResourceId;
                 }
                 
+                if (newName && newName.trim() !== '') {
+                    addData.name = newName;
+                }
+                
+                if (newType) {
+                    addData.type = newType;
+                }
+                
                 if (newNotes) {
                     addData.notes = newNotes;
                 }
                 
-                await vveService.updateOperationStatus(vveId, newOperationId, addData);
+                await vveService.updateOperationStatus(vveId, opId, addData);
                 
                 // Close modal and refresh
                 setShowAddModal(false);
@@ -208,14 +279,14 @@ import React, { useState, useEffect } from 'react';
                 alert('User not authenticated');
                 return;
             }
-    
+
             try {
                 setUpdatingOp(opId);
                 await vveService.updateOperationStatus(vveId, opId, {
                     status: newStatus,
                     timestamp: new Date().toISOString(),
                 });
-                
+
                 // Refresh data to show updated status
                 await loadData();
             } catch (err) {
@@ -226,38 +297,81 @@ import React, { useState, useEffect } from 'react';
             }
         };
     
-        // Get status badge styling
-        const getStatusBadge = (status: string) => {
-            const baseClasses = 'px-3 py-1 rounded-full text-xs font-semibold inline-flex items-center gap-1';
-            
-            switch (status) {
-                case 'COMPLETED':
-                    return `${baseClasses} bg-green-100 text-green-800`;
-                case 'STARTED':
-                    return `${baseClasses} bg-blue-100 text-blue-800`;
-                case 'DELAYED':
-                    return `${baseClasses} bg-red-100 text-red-800 animate-pulse`;
-                case 'SUSPENDED':
-                    return `${baseClasses} bg-yellow-100 text-yellow-800`;
-                default: // PENDING
-                    return `${baseClasses} bg-gray-100 text-gray-800`;
-            }
-        };
+    // Modern status badge with vibrant colors
+    const getStatusBadge = (status: string) => {
+        const baseClasses = 'px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wide inline-flex items-center gap-2 shadow-sm transition-all duration-200 hover:shadow-md';
+        
+        switch (status) {
+            case 'COMPLETED':
+                return `${baseClasses} bg-gradient-to-r from-green-500 to-emerald-600 text-white`;
+            case 'STARTED':
+                return `${baseClasses} bg-gradient-to-r from-blue-500 to-indigo-600 text-white animate-pulse`;
+            case 'DELAYED':
+                return `${baseClasses} bg-gradient-to-r from-red-500 to-rose-600 text-white animate-pulse`;
+            case 'SUSPENDED':
+                return `${baseClasses} bg-gradient-to-r from-yellow-400 to-orange-500 text-white`;
+            default: // PENDING
+                return `${baseClasses} bg-gradient-to-r from-gray-400 to-slate-500 text-white`;
+        }
+    };
     
-        // Get status icon
-        const getStatusIcon = (status: string) => {
-            switch (status) {
-                case 'COMPLETED':
-                    return <CheckCircle className="h-4 w-4" />;
-                case 'STARTED':
-                    return <Play className="h-4 w-4" />;
-                case 'DELAYED':
-                    return <AlertCircle className="h-4 w-4" />;
-                default:
-                    return <Clock className="h-4 w-4" />;
-            }
-        };
+    // Status icons with better visuals
+    const getStatusIcon = (status: string) => {
+        const iconClass = "h-4 w-4";
+        switch (status) {
+            case 'COMPLETED':
+                return <CheckCircle className={iconClass} />;
+            case 'STARTED':
+                return <Play className={iconClass} />;
+            case 'DELAYED':
+                return <AlertCircle className={iconClass} />;
+            case 'SUSPENDED':
+                return <XCircle className={iconClass} />;
+            default: // PENDING
+                return <Clock className={iconClass} />;
+        }
+    };
     
+    // Extract friendly operation name from operation ID (fallback)
+    const extractOperationName = (opId: string): string => {
+        // Loading operations
+        if (opId.includes('_exec_1') && opId.toLowerCase().includes('load')) return 'Position Crane & Secure Cargo';
+        if (opId.includes('_exec_2') && opId.toLowerCase().includes('load')) return 'Lift Cargo from Dock';
+        if (opId.includes('_exec_3') && opId.toLowerCase().includes('load')) return 'Transfer Cargo to Vessel';
+        if (opId.includes('_exec_4') && opId.toLowerCase().includes('load')) return 'Place & Secure Cargo in Hold';
+        if (opId.includes('_prep') && opId.toLowerCase().includes('load')) return 'Pre-Loading Inspection & Safety Check';
+        if (opId.includes('_comp') && opId.toLowerCase().includes('load')) return 'Final Cargo Securing & Documentation';
+        
+        // Unloading operations
+        if (opId.includes('_exec_1') && opId.toLowerCase().includes('unload')) return 'Release Cargo Securing in Hold';
+        if (opId.includes('_exec_2') && opId.toLowerCase().includes('unload')) return 'Lift Cargo from Vessel';
+        if (opId.includes('_exec_3') && opId.toLowerCase().includes('unload')) return 'Transfer Cargo to Dock';
+        if (opId.includes('_exec_4') && opId.toLowerCase().includes('unload')) return 'Place Cargo in Storage Area';
+        if (opId.includes('_prep') && opId.toLowerCase().includes('unload')) return 'Pre-Unloading Inspection & Safety Check';
+        if (opId.includes('_comp') && opId.toLowerCase().includes('unload')) return 'Final Inspection & Documentation';
+        
+        // Generic operations
+        if (opId.includes('_prep')) return 'Safety Check & Equipment Setup';
+        if (opId.includes('_exec_1')) return 'Primary Operation (Part 1)';
+        if (opId.includes('_exec_2')) return 'Primary Operation (Part 2)';
+        if (opId.includes('_exec_3')) return 'Primary Operation (Part 3)';
+        if (opId.includes('_exec_4')) return 'Primary Operation (Part 4)';
+        if (opId.includes('_comp')) return 'Final Verification & Teardown';
+        if (opId.includes('_single')) return 'Cargo Operation';
+        return 'Operation';
+    };
+
+    // Extract operation type from operation ID (fallback)
+    const extractOperationType = (opId: string): string => {
+        if (opId.toLowerCase().includes('load') && !opId.toLowerCase().includes('unload')) return 'Loading';
+        if (opId.toLowerCase().includes('unload')) return 'Unloading';
+        if (opId.includes('_prep')) return 'Preparation';
+        if (opId.includes('_exec')) return 'Execution';
+        if (opId.includes('_comp')) return 'Completion';
+        if (opId.includes('_single')) return 'Single Task';
+        return 'Task';
+    };
+
         // Format time
         const formatTime = (isoString?: string) => {
             if (!isoString) return '-';
@@ -299,184 +413,269 @@ import React, { useState, useEffect } from 'react';
     
         return (
             <>
-            <div className="space-y-4">
-                {/* Header Info */}
-                <div className="bg-white rounded-lg shadow p-4 flex items-center justify-between">
-                    <div>
-                        <h3 className="text-lg font-semibold text-gray-900">
-                            {data.vesselIdentifier}
-                        </h3>
-                        <p className="text-sm text-gray-600">VVE: {data.vveId}</p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <div className="text-right">
+            <div className="space-y-6">
+                {/* Modern Header Card */}
+                <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl shadow-xl p-6 text-white">
+                    <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                                <Ship className="h-8 w-8" />
+                                <h3 className="text-2xl font-bold">
+                                    {data.vesselIdentifier}
+                                </h3>
+                            </div>
+                            <p className="text-blue-100 text-sm">VVE: {data.vveId}</p>
+                        </div>
+                        <div className="flex items-center gap-4">
                             {data.planExists ? (
-                                <div className="text-sm">
-                                    <span className="text-gray-600">Plan:</span>{' '}
-                                    <span className="font-medium text-blue-600">{data.planId}</span>
+                                <div className="bg-white bg-opacity-20 backdrop-blur-sm rounded-xl px-4 py-3 text-center">
+                                    <div className="text-xs text-blue-100 mb-1">Operation Plan</div>
+                                    <div className="font-bold text-white">{data.planId}</div>
                                 </div>
                             ) : (
-                                <div className="text-sm text-yellow-600">
-                                    <AlertCircle className="inline h-4 w-4 mr-1" />
-                                    No operation plan found
+                                <div className="bg-yellow-400 bg-opacity-90 rounded-xl px-4 py-3 flex items-center gap-2">
+                                    <AlertCircle className="h-5 w-5 text-yellow-900" />
+                                    <span className="text-sm font-semibold text-yellow-900">No Plan</span>
                                 </div>
                             )}
+                            
+                            {/* Add Operation Button - Always visible for manual operations */}
+                            <button
+                                onClick={openAddModal}
+                                className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-2"
+                                title="Create a new operation manually"
+                            >
+                                <PlusCircle className="h-5 w-5" />
+                                Create Operation
+                            </button>
+                            
+                            {/* Manual Refresh Button */}
+                            <button
+                                onClick={loadData}
+                                disabled={loading}
+                                className="bg-white bg-opacity-20 backdrop-blur-sm hover:bg-opacity-30 rounded-xl p-3 transition-all duration-200 disabled:opacity-50"
+                                title="Refresh operations data"
+                            >
+                                <RefreshCw className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
+                            </button>
                         </div>
-                        {/* Add Operation Button */}
-                        <button
-                            onClick={openAddModal}
-                            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-                            title="Add a new operation manually"
-                        >
-                            <PlusCircle className="h-4 w-4 mr-2" />
-                            Add Operation
-                        </button>
                     </div>
                 </div>
     
-                {/* Operations Progress */}
+                {/* Operations Progress Card */}
                 {data.operations.length > 0 && (
-                    <div className="bg-white rounded-lg shadow p-4">
-                        <div className="flex items-center justify-between mb-2">
-                            <h4 className="text-sm font-medium text-gray-700">Progress</h4>
-                            <span className="text-sm text-gray-600">
-                                {data.operations.filter(op => op.computedStatus === 'COMPLETED').length} / {data.operations.length} completed
-                            </span>
+                    <div className="bg-white rounded-xl shadow-md p-6 border border-gray-200">
+                        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+                            {/* Progress Stats */}
+                            <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg p-4 border border-gray-200">
+                                <div className="text-xs text-gray-600 font-semibold uppercase mb-1">Total</div>
+                                <div className="text-3xl font-bold text-gray-900">{data.operations.length}</div>
+                                <div className="text-xs text-gray-500 mt-1">Operations</div>
+                            </div>
+                            <div className="bg-gradient-to-br from-gray-50 to-slate-100 rounded-lg p-4 border border-gray-300">
+                                <div className="text-xs text-gray-600 font-semibold uppercase mb-1">Pending</div>
+                                <div className="text-3xl font-bold text-slate-700">
+                                    {data.operations.filter(op => op.computedStatus === 'PENDING').length}
+                                </div>
+                                <div className="text-xs text-gray-500 mt-1">Waiting</div>
+                            </div>
+                            <div className="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-lg p-4 border border-blue-200">
+                                <div className="text-xs text-blue-700 font-semibold uppercase mb-1">Started</div>
+                                <div className="text-3xl font-bold text-blue-700">
+                                    {data.operations.filter(op => op.computedStatus === 'STARTED').length}
+                                </div>
+                                <div className="text-xs text-blue-600 mt-1">In Progress</div>
+                            </div>
+                            <div className="bg-gradient-to-br from-green-50 to-emerald-100 rounded-lg p-4 border border-green-200">
+                                <div className="text-xs text-green-700 font-semibold uppercase mb-1">Completed</div>
+                                <div className="text-3xl font-bold text-green-700">
+                                    {data.operations.filter(op => op.computedStatus === 'COMPLETED').length}
+                                </div>
+                                <div className="text-xs text-green-600 mt-1">Done</div>
+                            </div>
+                            <div className="bg-gradient-to-br from-red-50 to-rose-100 rounded-lg p-4 border border-red-200">
+                                <div className="text-xs text-red-700 font-semibold uppercase mb-1">Issues</div>
+                                <div className="text-3xl font-bold text-red-700">
+                                    {data.operations.filter(op => op.computedStatus === 'DELAYED' || op.computedStatus === 'SUSPENDED').length}
+                                </div>
+                                <div className="text-xs text-red-600 mt-1">Attention</div>
+                            </div>
                         </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div
-                                className="bg-green-600 h-2 rounded-full transition-all duration-300"
-                                style={{
-                                    width: `${(data.operations.filter(op => op.computedStatus === 'COMPLETED').length / data.operations.length) * 100}%`
-                                }}
-                            />
+                        
+                        {/* Progress Bar */}
+                        <div className="space-y-2">
+                            <div className="flex items-center justify-between text-sm">
+                                <span className="font-semibold text-gray-700">Overall Progress</span>
+                                <span className="text-gray-600">
+                                    {data.operations.filter(op => op.computedStatus === 'COMPLETED').length} / {data.operations.length} completed
+                                </span>
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden shadow-inner">
+                                <div
+                                    className="bg-gradient-to-r from-green-500 to-emerald-600 h-3 rounded-full transition-all duration-500 shadow-sm"
+                                    style={{
+                                        width: `${(data.operations.filter(op => op.computedStatus === 'COMPLETED').length / data.operations.length) * 100}%`
+                                    }}
+                                />
+                            </div>
                         </div>
                     </div>
                 )}
     
-                {/* Operations Table */}
-                <div className="bg-white rounded-lg shadow overflow-hidden">
+                {/* Operations Table - Modern Design */}
+                <div className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200">
                     <div className="overflow-x-auto">
                         <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
+                            <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
                                 <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
                                         Operation
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
                                         Planned Time
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
                                         Actual Time
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
                                         Resource
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
                                         Status
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Action
+                                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                                        Actions
                                     </th>
                                 </tr>
                             </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
+                            <tbody className="bg-white divide-y divide-gray-100">
                                 {data.operations.length === 0 ? (
                                     <tr>
-                                        <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
-                                            No operations found for this vessel visit
+                                        <td colSpan={6} className="px-6 py-16 text-center">
+                                            <div className="flex flex-col items-center justify-center text-gray-400">
+                                                <AlertCircle className="h-12 w-12 mb-3" />
+                                                <p className="text-lg font-medium">No operations found</p>
+                                                <p className="text-sm mt-1">This vessel visit has no scheduled operations yet</p>
+                                            </div>
                                         </td>
                                     </tr>
                                 ) : (
-                                    data.operations.map((op) => (
+                                    data.operations.map((op, index) => (
                                         <tr
                                             key={op.operationId}
-                                            className={`hover:bg-gray-50 ${op.computedStatus === 'DELAYED' ? 'bg-red-50' : ''}`}
+                                            className={`
+                                                transition-all duration-200 hover:bg-gray-50
+                                                ${op.computedStatus === 'DELAYED' ? 'bg-red-50 border-l-4 border-red-500' : ''}
+                                                ${op.computedStatus === 'STARTED' ? 'bg-blue-50 border-l-4 border-blue-500' : ''}
+                                                ${op.computedStatus === 'COMPLETED' ? 'bg-green-50 border-l-4 border-green-500' : ''}
+                                                ${op.computedStatus === 'SUSPENDED' ? 'bg-yellow-50 border-l-4 border-yellow-500' : ''}
+                                            `}
                                         >
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm font-medium text-gray-900">
-                                                    {op.operationId}
-                                                </div>
-                                                {op.vesselImo && (
-                                                    <div className="text-xs text-gray-500">{op.vesselImo}</div>
-                                                )}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm text-gray-900">
-                                                    {formatTime(op.plannedStartTime)}
-                                                </div>
-                                                <div className="text-xs text-gray-500">
-                                                    to {formatTime(op.plannedEndTime)}
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm text-gray-900">
-                                                    {formatTime(op.actualStartTime)}
-                                                </div>
-                                                {op.actualEndTime && (
-                                                    <div className="text-xs text-gray-500">
-                                                        to {formatTime(op.actualEndTime)}
+                                            <td className="px-6 py-5">
+                                                <div className="flex items-start gap-3">
+                                                    <div className="flex-shrink-0 w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-sm font-bold text-gray-600">
+                                                        {index + 1}
                                                     </div>
-                                                )}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                                <div className="text-gray-900">
-                                                    {op.actualResource || op.plannedResource || '-'}
+                                                    <div>
+                                                        <div className="text-sm font-semibold text-gray-900 mb-1">
+                                                            {op.name || extractOperationName(op.operationId)}
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded-md font-medium">
+                                                                {op.type || extractOperationType(op.operationId)}
+                                                            </span>
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                                {op.actualResource && op.actualResource !== op.plannedResource && (
-                                                    <div className="text-xs text-orange-600">
-                                                        (planned: {op.plannedResource})
-                                                    </div>
-                                                )}
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <span className={getStatusBadge(op.computedStatus)}>
-                                                    {getStatusIcon(op.computedStatus)}
-                                                    {op.computedStatus}
-                                                </span>
-                                                {op.delayMinutes != null && op.delayMinutes > 0 && (
-                                                    <div className="text-xs text-red-600 mt-1">
-                                                        +{op.delayMinutes} min delay
+                                            <td className="px-6 py-5">
+                                                <div className="text-sm">
+                                                    <div className="text-gray-900 font-medium">
+                                                        {formatTime(op.plannedStartTime)}
                                                     </div>
-                                                )}
+                                                    <div className="text-xs text-gray-500 mt-1">
+                                                        to {formatTime(op.plannedEndTime)}
+                                                    </div>
+                                                </div>
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                            <td className="px-6 py-5">
+                                                <div className="text-sm">
+                                                    {op.actualStartTime ? (
+                                                        <>
+                                                            <div className="text-gray-900 font-medium">
+                                                                {formatTime(op.actualStartTime)}
+                                                            </div>
+                                                            {op.actualEndTime && (
+                                                                <div className="text-xs text-gray-500 mt-1">
+                                                                    to {formatTime(op.actualEndTime)}
+                                                                </div>
+                                                            )}
+                                                        </>
+                                                    ) : (
+                                                        <span className="text-gray-400 text-sm italic">Not started</span>
+                                                    )}
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-5 text-sm">
+                                                <div>
+                                                    <div className="text-gray-900 font-medium">
+                                                        {getResourceName(op.actualResource || op.plannedResource)}
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-5">
+                                                <div className="space-y-2">
+                                                    <span className={getStatusBadge(op.computedStatus)}>
+                                                        {getStatusIcon(op.computedStatus)}
+                                                        {op.computedStatus}
+                                                    </span>
+                                                    {op.delayMinutes != null && op.delayMinutes > 0 && (
+                                                        <div className="text-xs text-red-600 font-semibold flex items-center gap-1">
+                                                            <AlertCircle className="h-3 w-3" />
+                                                            +{op.delayMinutes} min delay
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-5">
                                                 {updatingOp === op.operationId ? (
-                                                    <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+                                                    <div className="flex items-center justify-center">
+                                                        <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+                                                    </div>
                                                 ) : (
                                                     <div className="flex flex-col gap-2">
-                                                        {/* Quick action buttons */}
-                                                        <div className="flex items-center gap-2">
-                                                            {op.computedStatus === 'PENDING' || op.computedStatus === 'DELAYED' ? (
-                                                                <button
-                                                                    onClick={() => handleStatusChange(op.operationId, 'STARTED')}
-                                                                    className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                                                                >
-                                                                    <Play className="h-3 w-3 mr-1" />
-                                                                    Start
-                                                                </button>
-                                                            ) : op.computedStatus === 'STARTED' ? (
-                                                                <button
-                                                                    onClick={() => handleStatusChange(op.operationId, 'COMPLETED')}
-                                                                    className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-                                                                >
-                                                                    <CheckCircle className="h-3 w-3 mr-1" />
-                                                                    Complete
-                                                                </button>
-                                                            ) : (
-                                                                <span className="text-gray-400 text-xs">Done</span>
-                                                            )}
-                                                        </div>
-                                                        
-                                                        {/* Edit button - ALWAYS VISIBLE with text label */}
+                                                        {/* Status Change Buttons */}
+                                                        {op.computedStatus === 'PENDING' || op.computedStatus === 'DELAYED' ? (
+                                                            <button
+                                                                onClick={() => handleStatusChange(op.operationId, 'STARTED')}
+                                                                className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-xs font-bold rounded-lg text-white bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 shadow-md hover:shadow-lg transition-all duration-200"
+                                                            >
+                                                                <Play className="h-4 w-4 mr-1" />
+                                                                Start Now
+                                                            </button>
+                                                        ) : op.computedStatus === 'STARTED' ? (
+                                                            <button
+                                                                onClick={() => handleStatusChange(op.operationId, 'COMPLETED')}
+                                                                className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-xs font-bold rounded-lg text-white bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 shadow-md hover:shadow-lg transition-all duration-200"
+                                                            >
+                                                                <CheckCircle className="h-4 w-4 mr-1" />
+                                                                Complete
+                                                            </button>
+                                                        ) : (
+                                                            <span className="text-gray-400 text-xs font-medium text-center py-2">
+                                                                ✓ Done
+                                                            </span>
+                                                        )}
+
+                                                        {/* Edit Button - Always visible for non-completed */}
                                                         {op.computedStatus !== 'COMPLETED' && (
                                                             <button
                                                                 onClick={() => openEditModal(op)}
-                                                                className="inline-flex items-center justify-center px-3 py-1.5 border-2 border-orange-400 text-xs font-medium rounded-md text-orange-700 bg-orange-50 hover:bg-orange-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 transition-colors"
-                                                                title="Edit operation details (modify time, resource, status)"
+                                                                className="inline-flex items-center justify-center px-4 py-2 border-2 border-orange-400 text-xs font-bold rounded-lg text-orange-700 bg-white hover:bg-orange-50 transition-all duration-200 shadow-sm hover:shadow-md"
+                                                                title="Edit details"
                                                             >
                                                                 <Edit2 className="h-3 w-3 mr-1" />
-                                                                Edit Details
+                                                                Edit
                                                             </button>
                                                         )}
                                                     </div>
@@ -526,6 +725,45 @@ import React, { useState, useEffect } from 'react';
                                         </div>
                                     )}
                                 </div>
+                            </div>
+
+                            {/* Operation Name */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Operation Name
+                                </label>
+                                <input
+                                    type="text"
+                                    value={editName}
+                                    onChange={(e) => setEditName(e.target.value)}
+                                    placeholder="e.g., Lift Cargo from Vessel"
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                />
+                                <p className="text-xs text-gray-500 mt-1">
+                                    Descriptive name for this operation
+                                </p>
+                            </div>
+
+                            {/* Operation Type */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Operation Type
+                                </label>
+                                <select
+                                    value={editType}
+                                    onChange={(e) => setEditType(e.target.value as any)}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                >
+                                    <option value="Loading">Loading</option>
+                                    <option value="Unloading">Unloading</option>
+                                    <option value="Preparation">Preparation</option>
+                                    <option value="Completion">Completion</option>
+                                    <option value="Inspection">Inspection</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                                <p className="text-xs text-gray-500 mt-1">
+                                    Type of cargo operation
+                                </p>
                             </div>
 
                             {/* Status Selection */}
@@ -585,15 +823,23 @@ import React, { useState, useEffect } from 'react';
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
                                     Resource Used
                                 </label>
-                                <input
-                                    type="text"
+                                <select
                                     value={editResourceId}
                                     onChange={(e) => setEditResourceId(e.target.value)}
-                                    placeholder="e.g., CRANE-02, FORKLIFT-05"
                                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                />
+                                    disabled={loadingResources}
+                                >
+                                    <option value="">-- Select Resource --</option>
+                                    {resources.map((resource) => (
+                                        <option key={resource.code} value={resource.code}>
+                                            {resource.description}
+                                        </option>
+                                    ))}
+                                </select>
                                 <p className="text-xs text-gray-500 mt-1">
-                                    If different from planned resource: {editingOperation.plannedResource || 'None'}
+                                    {editingOperation.plannedResource 
+                                        ? `Planned: ${getResourceName(editingOperation.plannedResource)}`
+                                        : 'No planned resource'}
                                 </p>
                             </div>
 
@@ -668,21 +914,43 @@ import React, { useState, useEffect } from 'react';
                                 </p>
                             </div>
 
-                            {/* Operation ID */}
+                            {/* Operation Name */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Operation ID <span className="text-red-500">*</span>
+                                    Operation Name
                                 </label>
                                 <input
                                     type="text"
-                                    value={newOperationId}
-                                    onChange={(e) => setNewOperationId(e.target.value)}
-                                    placeholder="e.g., OP-001, LOAD-CONTAINER-123"
+                                    value={newName}
+                                    onChange={(e) => setNewName(e.target.value)}
+                                    placeholder="e.g., Lift Cargo from Vessel"
                                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                    required
                                 />
                                 <p className="text-xs text-gray-500 mt-1">
-                                    Unique identifier for this operation
+                                    Descriptive name for this operation
+                                </p>
+                            </div>
+
+                            {/* Operation Type */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Operation Type <span className="text-red-500">*</span>
+                                </label>
+                                <select
+                                    value={newType}
+                                    onChange={(e) => setNewType(e.target.value as any)}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    required
+                                >
+                                    <option value="Loading">Loading</option>
+                                    <option value="Unloading">Unloading</option>
+                                    <option value="Preparation">Preparation</option>
+                                    <option value="Completion">Completion</option>
+                                    <option value="Inspection">Inspection</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                                <p className="text-xs text-gray-500 mt-1">
+                                    Type of cargo operation
                                 </p>
                             </div>
 
@@ -693,10 +961,11 @@ import React, { useState, useEffect } from 'react';
                                 </label>
                                 <select
                                     value={newStatus}
-                                    onChange={(e) => setNewStatus(e.target.value as 'STARTED' | 'COMPLETED' | 'SUSPENDED')}
+                                    onChange={(e) => setNewStatus(e.target.value as 'PENDING' | 'STARTED' | 'COMPLETED' | 'SUSPENDED')}
                                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                     required
                                 >
+                                    <option value="PENDING">Pending</option>
                                     <option value="STARTED">Started</option>
                                     <option value="COMPLETED">Completed</option>
                                     <option value="SUSPENDED">Suspended</option>
@@ -704,21 +973,23 @@ import React, { useState, useEffect } from 'react';
                             </div>
 
                             {/* Start Time */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Start Time <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="datetime-local"
-                                    value={newStartTime}
-                                    onChange={(e) => setNewStartTime(e.target.value)}
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                    required
-                                />
-                                <p className="text-xs text-gray-500 mt-1">
-                                    When the operation started
-                                </p>
-                            </div>
+                            {newStatus !== 'PENDING' && (
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Start Time <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                        type="datetime-local"
+                                        value={newStartTime}
+                                        onChange={(e) => setNewStartTime(e.target.value)}
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                        required={newStatus !== 'PENDING'}
+                                    />
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        When the operation started
+                                    </p>
+                                </div>
+                            )}
 
                             {/* End Time - only show if status is COMPLETED */}
                             {newStatus === 'COMPLETED' && (
@@ -744,13 +1015,19 @@ import React, { useState, useEffect } from 'react';
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
                                     Resource Used
                                 </label>
-                                <input
-                                    type="text"
+                                <select
                                     value={newResourceId}
                                     onChange={(e) => setNewResourceId(e.target.value)}
-                                    placeholder="e.g., CRANE-01, FORKLIFT-05, LOADER-03"
                                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                />
+                                    disabled={loadingResources}
+                                >
+                                    <option value="">-- Select Resource --</option>
+                                    {resources.map((resource) => (
+                                        <option key={resource.code} value={resource.code}>
+                                            {resource.description}
+                                        </option>
+                                    ))}
+                                </select>
                                 <p className="text-xs text-gray-500 mt-1">
                                     Equipment or resource used for this operation
                                 </p>

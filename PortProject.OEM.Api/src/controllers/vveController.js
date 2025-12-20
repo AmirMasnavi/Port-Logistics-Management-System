@@ -56,6 +56,7 @@ export const createVveRouter = (masterDataGateway) => {
       body('vesselIdentifier').notEmpty().withMessage('Vessel identifier is required'),
       body('actualArrivalTime').isISO8601().withMessage('Valid arrival time is required'),
       body('notes').optional().isString(),
+      body('generateInitialOperations').optional().isBoolean().withMessage('generateInitialOperations must be a boolean'),
     ],
     async (req, res) => {
       try {
@@ -68,13 +69,13 @@ export const createVveRouter = (masterDataGateway) => {
           });
         }
 
-        const { vvnId, vesselIdentifier, actualArrivalTime, notes } = req.body;
+        const { vvnId, vesselIdentifier, actualArrivalTime, notes, generateInitialOperations } = req.body;
         const creatorUserId = req.user?.uid || req.user?.email || 'unknown';
 
-        console.log(`[VVE CREATE] Creating VVE for VVN: ${vvnId}, User: ${creatorUserId}`);
+        console.log(`[VVE CREATE] Creating VVE for VVN: ${vvnId}, User: ${creatorUserId}, generateInitialOperations: ${generateInitialOperations}`);
 
         // Create DTO
-        const createDto = new CreateVveDto({ vvnId, vesselIdentifier, actualArrivalTime, notes });
+        const createDto = new CreateVveDto({ vvnId, vesselIdentifier, actualArrivalTime, notes, generateInitialOperations });
 
         // Execute business logic
         const vveResponse = await vveService.createVve(createDto, creatorUserId);
@@ -343,7 +344,7 @@ export const createVveRouter = (masterDataGateway) => {
         }
 
         const { vveId, operationId } = req.params;
-        const { status, timestamp, resourceId, notes } = req.body;
+        const { status, timestamp, resourceId, notes, name, type } = req.body;
         const operatorId = req.user?.uid || req.user?.email || 'unknown';
 
         console.log(`[VVE OPERATION UPDATE] Updating operation ${operationId} in VVE ${vveId} to status ${status} by ${operatorId}`);
@@ -356,6 +357,8 @@ export const createVveRouter = (masterDataGateway) => {
           operatorId,
           resourceId,
           notes,
+          name,
+          type
         });
 
         // Execute business logic

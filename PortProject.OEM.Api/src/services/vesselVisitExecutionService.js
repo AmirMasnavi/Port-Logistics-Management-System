@@ -3,6 +3,7 @@ import { UpdateOperationStatusDto } from '../application/dtos/ExecutedOperationD
 import { VveMapper } from '../application/mappers/VveMapper.js';
 import { VveRepository } from '../infrastructure/repositories/VveRepository.js';
 import { OperationPlanRepository } from '../infrastructure/repositories/OperationPlanRepository.js';
+import { generateSmartOperations, mergeOperationsWithExecutionData } from '../application/utils/SmartOperationGenerator.js';
 
 /**
  * Service for Vessel Visit Execution operations
@@ -28,6 +29,13 @@ export class VesselVisitExecutionService {
       throw new Error(`Validation failed: ${validation.errors.join(', ')}`);
     }
 
+    console.log(`[VVE CREATE] DTO received:`, {
+      vvnId: dto.vvnId,
+      vesselIdentifier: dto.vesselIdentifier,
+      generateInitialOperations: dto.generateInitialOperations,
+      actualArrivalTime: dto.actualArrivalTime
+    });
+
     // 2. Check if VVN exists in Master Data
     const vvn = await this.masterDataGateway.getVvnAsync(dto.vvnId);
     if (!vvn) {
@@ -52,12 +60,128 @@ export class VesselVisitExecutionService {
       creatorUserId,
       status: 'In Progress',
       notes: dto.notes || '',
+      executedOperations: [], // Initialize empty
     };
 
-    // 6. Save to repository
+    // 6. Optionally generate initial operations from the plan
+    console.log(`[VVE CREATE] generateInitialOperations flag: ${dto.generateInitialOperations}`);
+    
+    if (dto.generateInitialOperations) {
+      console.log(`\n${'='.repeat(80)}`);
+      console.log(`[VVE Service] 🚀 SMART OPERATION GENERATION - START`);
+      console.log(`${'='.repeat(80)}`);
+      console.log(`[VVE Service] VVE ID: ${vveId}`);
+      console.log(`[VVE Service] VVN ID to match: "${dto.vvnId}"`);
+      console.log(`[VVE Service] Vessel IMO: ${dto.vesselIdentifier}`);
+      
+      try {
+        // Extract the date from actualArrivalTime
+        const arrivalDate = new Date(dto.actualArrivalTime);
+        const dateStr = arrivalDate.toISOString().split('T')[0]; // YYYY-MM-DD
+        console.log(`[VVE Service] Arrival date: ${dateStr}`);
+        console.log(`${'─'.repeat(80)}`);
+
+        // Find operation plan for this date and vessel
+        console.log(`[VVE Service] 🔍 Searching for operation plans...`);
+        console.log(`[VVE Service] Search criteria: date="${dateStr}", vesselVisitId="${dto.vvnId}"`);
+        
+        const plans = await this.operationPlanRepository.findAll({
+          date: dateStr,
+          vesselVisitId: dto.vvnId 
+        });
+
+        console.log(`[VVE Service] 📋 Found ${plans.length} plan(s) for date ${dateStr}`);
+
+        if (plans.length > 0) {
+          const plan = plans[0];
+          console.log(`[VVE Service] ✓ Using plan: ${plan.planId}`);
+          console.log(`[VVE Service] ✓ Total tasks in plan: ${plan.scheduledTasks?.length || 0}`);
+          console.log(`${'─'.repeat(80)}`);
+          
+          // Show all tasks and matching logic
+          console.log(`[VVE Service] 🔍 VESSEL MATCHING:`);
+          console.log(`[VVE Service] Looking for VVN: "${dto.vvnId}"\n`);
+          
+          plan.scheduledTasks.forEach((task, idx) => {
+            const matchVesselVisitId = task.vesselVisitId === dto.vvnId;
+            const matchBusinessId = task.vesselVisitBusinessId === dto.vvnId;
+            const matches = matchVesselVisitId || matchBusinessId;
+            
+            console.log(`[VVE Service] Task #${idx + 1}:`);
+            console.log(`[VVE Service]   vesselVisitId: "${task.vesselVisitId}" ${matchVesselVisitId ? '✅ MATCH!' : '❌'}`);
+            console.log(`[VVE Service]   vesselVisitBusinessId: "${task.vesselVisitBusinessId}" ${matchBusinessId ? '✅ MATCH!' : '❌'}`);
+            console.log(`[VVE Service]   vesselImo: "${task.vesselImo}"`);
+            console.log(`[VVE Service]   → Result: ${matches ? '✅ WILL USE THIS TASK' : '⏭️  Skip'}\n`);
+          });
+          
+          // Filter tasks for this vessel visit
+          const vesselTasks = plan.scheduledTasks.filter(
+            task => task.vesselVisitId === dto.vvnId || task.vesselVisitBusinessId === dto.vvnId
+          );
+
+          console.log(`${'─'.repeat(80)}`);
+          console.log(`[VVE Service] 🎯 RESULT: ${vesselTasks.length} matching task(s) found`);
+
+          if (vesselTasks.length === 0) {
+            console.log(`[VVE Service] ❌ NO MATCHING TASKS!`);
+            console.log(`[VVE Service] The VVN "${dto.vvnId}" is not in this plan.`);
+            console.log(`[VVE Service] Available VVNs in this plan:`);
+            const availableVvns = [...new Set(plan.scheduledTasks.map(t => 
+              t.vesselVisitBusinessId || t.vesselVisitId
+            ))].filter(Boolean);
+            availableVvns.forEach(vvn => console.log(`[VVE Service]   • ${vvn}`));
+            console.log(`[VVE Service] 💡 Create a VVE for one of the above VVNs to generate operations.`);
+          } else {
+            console.log(`[VVE Service] ✅ Matched ${vesselTasks.length} task(s). Generating operations...\n`);
+            
+            // Generate operations for each task and add them as PENDING
+            vesselTasks.forEach((task, taskIdx) => {
+              console.log(`[VVE Service] 🔧 Task ${taskIdx + 1}/${vesselTasks.length}: Generating smart operations...`);
+              const virtualOps = generateSmartOperations(task);
+              console.log(`[VVE Service] ⚙️  Generated ${virtualOps.length} operations`);
+              
+              // Convert virtual operations to executed operations with PENDING status
+              virtualOps.forEach((op, opIdx) => {
+                vveData.executedOperations.push({
+                  operationId: op.operationId,
+                  name: op.name,
+                  type: op.type,
+                  status: 'PENDING',
+                  startTime: null,
+                  endTime: null,
+                  startedBy: null,
+                  completedBy: null,
+                  actualResource: op.resourceId,
+                  notes: `Auto-generated: ${op.name}`,
+                });
+                
+                if (opIdx === 0) {
+                  console.log(`[VVE Service]    Sample: ${op.name} (${op.type})`);
+                }
+              });
+            });
+
+            console.log(`\n[VVE Service] ✅ SUCCESS! Generated ${vveData.executedOperations.length} total operations`);
+          }
+        } else {
+          console.log(`[VVE Service] ❌ No operation plan found for date ${dateStr}`);
+          console.log(`[VVE Service] Cannot generate smart operations without a plan.`);
+        }
+      } catch (error) {
+        console.error(`[VVE Service] ❌ ERROR during auto-generation:`, error.message);
+        console.error(error.stack);
+        // Don't fail the VVE creation if operation generation fails
+      }
+      console.log(`${'='.repeat(80)}`);
+      console.log(`[VVE Service] 🚀 SMART OPERATION GENERATION - END\n`);
+    } else {
+      console.log(`[VVE Service] ⏭️  Auto-generation disabled (checkbox not checked)`);
+    }
+
+    // 7. Save to repository
     const savedVve = await this.vveRepository.create(vveData);
 
-    // 7. Map to response DTO
+    // 8. Map to response DTO
     return VveMapper.toResponseDto(savedVve);
   }
 
@@ -368,6 +492,8 @@ export class VesselVisitExecutionService {
       operatorId: operatorId, // Use the authenticated user's ID
       resourceId: dto.resourceId,
       notes: dto.notes,
+      name: dto.name,
+      type: dto.type
     };
 
     console.log(`[VVE Service] Updating operation ${dto.operationId} in VVE ${vveId} to status ${dto.status} by ${operatorId}`);
@@ -381,7 +507,7 @@ export class VesselVisitExecutionService {
 
   /**
    * Get VVE with operation plan comparison (US 4.1.9)
-   * Merges execution data with planned operations and calculates DELAYED status
+   * Uses Smart Operation Generator to create detailed operations from planned tasks
    * @param {string} vveId - VVE identifier
    * @returns {Promise<Object>} VVE with merged operation data
    */
@@ -400,66 +526,112 @@ export class VesselVisitExecutionService {
     const dateStr = arrivalDate.toISOString().split('T')[0]; // YYYY-MM-DD
 
     // Find plans for this date and vessel
-    const plans = await this.operationPlanRepository.findAll({ 
+    const plans = await this.operationPlanRepository.findAll({
       date: dateStr,
       vesselVisitId: vve.vvnId 
     });
 
     console.log(`[VVE Service] Found ${plans.length} operation plans for date ${dateStr} and vessel ${vve.vvnId}`);
 
-    let combinedOperations;
+    let detailedOperations = [];
     
     if (plans.length > 0) {
       // Use the first (most recent) plan
       const plan = plans[0];
       
-      // Filter tasks for this vessel visit
+      // 3. Filter tasks for this vessel visit
       const vesselTasks = plan.scheduledTasks.filter(
         task => task.vesselVisitId === vve.vvnId || task.vesselVisitBusinessId === vve.vvnId
       );
 
       console.log(`[VVE Service] Found ${vesselTasks.length} scheduled tasks for this vessel in plan ${plan.planId}`);
 
-      // 3. Merge planned operations with execution data
-      combinedOperations = vesselTasks.map((plannedOp, index) => {
-        // Generate operation ID if not present (using index as fallback)
-        const opId = plannedOp.operationId || plannedOp._id?.toString() || `op-${index}`;
+      // 4. Generate detailed operations using Smart Operation Generator
+      const matchedOperationIds = new Set();
+
+      vesselTasks.forEach(task => {
+        // A. Generate virtual operations from the planned task
+        const virtualOps = generateSmartOperations(task);
         
-        // Find corresponding executed operation
-        const executedOp = vve.executedOperations?.find(eo => eo.operationId === opId);
-        
-        // Use mapper to create comparison DTO with computed status
-        return VveMapper.toOperationComparisonDto(
-          { ...plannedOp, operationId: opId },
-          executedOp
+        console.log(`[VVE Service] Generated ${virtualOps.length} operations for task ${task._id}`);
+
+        // B. Merge with saved execution data from VVE
+        const mergedOps = mergeOperationsWithExecutionData(
+          virtualOps,
+          vve.executedOperations || []
         );
+        
+        // Track which executed operations were matched
+        mergedOps.forEach(op => {
+            if (vve.executedOperations.some(eo => eo.operationId === op.operationId)) {
+                matchedOperationIds.add(op.operationId);
+            }
+        });
+
+        detailedOperations = detailedOperations.concat(mergedOps);
       });
+
+      // C. Add any manual operations that weren't part of the plan
+      const manualOperations = (vve.executedOperations || [])
+        .filter(eo => !matchedOperationIds.has(eo.operationId))
+        .map(eo => ({
+            operationId: eo.operationId,
+            name: eo.name || 'Manual Operation',
+            type: eo.type || 'Other',
+            
+            executedStatus: eo.status,
+            computedStatus: eo.status,
+            
+            actualStartTime: eo.startTime,
+            actualEndTime: eo.endTime,
+            startedBy: eo.startedBy,
+            completedBy: eo.completedBy,
+            actualResource: eo.actualResource,
+            notes: eo.notes,
+            
+            // No planned data for manual operations
+            plannedStartTime: null,
+            plannedEndTime: null,
+            plannedResource: null,
+        }));
+        
+      if (manualOperations.length > 0) {
+          console.log(`[VVE Service] Found ${manualOperations.length} manual operations not in plan`);
+          detailedOperations = detailedOperations.concat(manualOperations);
+      }
+
+      // 5. Sort chronologically
+      detailedOperations.sort((a, b) => {
+          const timeA = a.plannedStartTime ? new Date(a.plannedStartTime) : (a.actualStartTime ? new Date(a.actualStartTime) : new Date(0));
+          const timeB = b.plannedStartTime ? new Date(b.plannedStartTime) : (b.actualStartTime ? new Date(b.actualStartTime) : new Date(0));
+          return timeA - timeB;
+      });
+
+      console.log(`[VVE Service] Total detailed operations: ${detailedOperations.length}`);
     } else {
-      console.log(`[VVE Service] No operation plan found for this vessel visit`);
+      console.log(`[VVE Service] No operation plan found - returning executed operations only`);
       
       // If no plan exists, just return executed operations (if any)
-      combinedOperations = (vve.executedOperations || []).map(eo => ({
+      detailedOperations = (vve.executedOperations || []).map(eo => ({
         operationId: eo.operationId,
-        executedStatus: eo.status,
+        status: eo.status,
         actualStartTime: eo.startTime,
         actualEndTime: eo.endTime,
         startedBy: eo.startedBy,
         completedBy: eo.completedBy,
         actualResource: eo.actualResource,
-        computedStatus: eo.status,
         notes: eo.notes,
         // No planned data available
         plannedStartTime: null,
         plannedEndTime: null,
         plannedResource: null,
-        plannedStaff: null,
       }));
     }
 
-    // 4. Return VVE with combined operations
+    // 6. Return VVE with generated + merged operations
     return {
       ...VveMapper.toResponseDto(vve),
-      operations: combinedOperations,
+      operations: detailedOperations,
       planExists: plans.length > 0,
       planId: plans.length > 0 ? plans[0].planId : null,
     };

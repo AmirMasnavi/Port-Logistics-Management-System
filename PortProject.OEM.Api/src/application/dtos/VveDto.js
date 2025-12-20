@@ -2,11 +2,12 @@
  * DTO for creating a new VVE
  */
 export class CreateVveDto {
-  constructor({ vvnId, vesselIdentifier, actualArrivalTime, notes = '' }) {
+  constructor({ vvnId, vesselIdentifier, actualArrivalTime, notes = '', generateInitialOperations = false }) {
     this.vvnId = vvnId;
     this.vesselIdentifier = vesselIdentifier;
     this.actualArrivalTime = actualArrivalTime;
     this.notes = notes;
+    this.generateInitialOperations = generateInitialOperations;
   }
 
   validate() {

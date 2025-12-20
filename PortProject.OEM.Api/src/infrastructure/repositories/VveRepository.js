@@ -238,6 +238,8 @@ export class VveRepository extends IVveRepository {
       // First time tracking this operation - create new entry
       const newOperation = {
         operationId,
+        name: statusData.name || '',
+        type: statusData.type || 'Other',
         status: statusData.status,
         startTime: statusData.status === 'STARTED' ? statusData.timestamp : null,
         startedBy: statusData.status === 'STARTED' ? statusData.operatorId : null,
@@ -267,6 +269,22 @@ export class VveRepository extends IVveRepository {
       
       if (statusData.resourceId) {
         operation.actualResource = statusData.resourceId;
+      }
+      
+      if (statusData.name) {
+        operation.name = statusData.name;
+      }
+      
+      if (statusData.type) {
+        operation.type = statusData.type;
+      }
+      
+      if (statusData.notes) {
+        operation.notes = statusData.notes;
+      }
+      
+      if (statusData.type) {
+        operation.type = statusData.type;
       }
       
       if (statusData.notes) {

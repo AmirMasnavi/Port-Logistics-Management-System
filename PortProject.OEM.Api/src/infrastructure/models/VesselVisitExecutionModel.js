@@ -11,6 +11,19 @@ const executedOperationSchema = new mongoose.Schema({
     required: true 
   },
   
+  // Operation name (e.g., "Safety Check & Equipment Setup")
+  name: {
+    type: String,
+    default: ''
+  },
+  
+  // Operation type (Loading or Unloading)
+  type: {
+    type: String,
+    enum: ['Loading', 'Unloading', 'Preparation', 'Completion', 'Inspection', 'Other'],
+    default: 'Other'
+  },
+  
   // Operation status
   status: { 
     type: String, 

@@ -13,6 +13,10 @@ export type OperationExecutionStatus = 'PENDING' | 'STARTED' | 'COMPLETED' | 'SU
 export interface OperationComparison {
     operationId: string;
     
+    // Operation details
+    name?: string;  // Operation name (e.g., "Lift Cargo from Vessel")
+    type?: 'Loading' | 'Unloading' | 'Preparation' | 'Completion' | 'Inspection' | 'Other';  // Operation type
+    
     // Planned data
     plannedStartTime?: string;
     plannedEndTime?: string;

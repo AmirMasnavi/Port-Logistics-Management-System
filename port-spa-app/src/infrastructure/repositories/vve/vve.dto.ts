@@ -4,6 +4,7 @@ export interface CreateVveDto {
     vesselIdentifier: string;
     actualArrivalTime: string; // ISO string
     notes?: string;
+    generateInitialOperations?: boolean; // Auto-generate operations from plan
 }
 
 export interface UpdateVveDto {
