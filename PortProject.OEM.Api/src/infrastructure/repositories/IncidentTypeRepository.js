@@ -1,10 +1,9 @@
-﻿// javascript
-import { IIncidentTypeRepository } from '../../domain/repositories/IIncidentTypeRepository.js';
+﻿import { IIncidentTypeRepository } from '../../domain/repositories/IIncidentTypeRepository.js';
 import { IncidentTypeModel } from '../models/IncidentTypeModel.js';
 
 /**
- * MongoDB implementation of IncidentType Repository
- * Infrastructure layer - implements the repository interface
+ * MongoDB implementation of Incident Type Repository
+ * Camada de Infraestrutura - Implementa o contrato definido no Domínio
  */
 export class IncidentTypeRepository extends IIncidentTypeRepository {
     constructor() {
@@ -12,25 +11,9 @@ export class IncidentTypeRepository extends IIncidentTypeRepository {
         this.model = IncidentTypeModel;
     }
 
-    _isObjectId(value) {
-        return typeof value === 'string' && /^[0-9a-fA-F]{24}$/.test(value);
-    }
-
-    _buildIdQuery(id) {
-        const ors = [];
-        if (!id) return {};
-        ors.push({ id }); // if a GUID/string id field exists
-        // try code match too (some callers may pass code)
-        ors.push({ code: id });
-        // safe _id match only if looks like ObjectId
-        if (this._isObjectId(id)) ors.push({ _id: id });
-        return { $or: ors };
-    }
-
     /**
-     * Create a new IncidentType
-     * @param {Object} data
-     * @returns {Promise<Object>}
+     * Cria um novo Tipo de Incidente
+     * @param {Object} data - Dados do tipo (code, name, severity, parentId, etc.)
      */
     async create(data) {
         const document = new this.model(data);
@@ -38,104 +21,88 @@ export class IncidentTypeRepository extends IIncidentTypeRepository {
     }
 
     /**
-     * Find by id-like value (matches id field, code or _id when appropriate)
-     * @param {string} id
-     * @returns {Promise<Object|null>}
+     * Procura por ID interno do MongoDB
      */
     async findById(id) {
-        const query = this._buildIdQuery(id);
-        if (Object.keys(query).length === 0) return null;
-        return await this.model.findOne(query).lean();
+        return await this.model.findById(id).lean();
     }
 
     /**
-     * Find by business code
-     * @param {string} code
-     * @returns {Promise<Object|null>}
+     * Procura por código único de negócio (ex: T-INC001)
      */
     async findByCode(code) {
         return await this.model.findOne({ code }).lean();
     }
 
     /**
-     * Find all incident types with optional filters:
-     * filters: { parentId, severity, q }
-     * @param {Object} filters
-     * @returns {Promise<Array<Object>>}
+     * Lista tipos com filtros (Hierarquia, Severidade e Pesquisa)
+     * US Requirement: "grouping and filtering by parent type"
+     * @param {Object} filters - { parentId, severity, q }
      */
     async findAll(filters = {}) {
         const query = {};
 
-        if (filters.parentId) {
-            query.parentId = filters.parentId;
+        // Suporte à Estrutura Hierárquica
+        if (filters.parentId !== undefined) {
+            query.parentId = (filters.parentId === 'null' || filters.parentId === null)
+                ? null
+                : filters.parentId;
         }
 
+        // Filtro por Severidade (Minor, Major, Critical)
         if (filters.severity) {
             query.severity = filters.severity;
         }
 
-        if (filters.q) {
-            const qRegex = { $regex: filters.q, $options: 'i' };
-            query.$or = [{ code: qRegex }, { name: qRegex }, { description: qRegex }];
+        // Pesquisa textual intuitiva (Nome ou Código)
+        if (filters.search) {
+            query.$or = [
+                { name: { $regex: filters.search, $options: 'i' } },
+                { code: { $regex: filters.search, $options: 'i' } }
+            ];
         }
 
-        // Default sort by createdAt desc
-        return await this.model.find(query).sort({ createdAt: -1 }).lean();
+        console.log(`[IncidentType Repository] MongoDB query:`, JSON.stringify(query, null, 2));
+
+        // Retorna ordenado por nome para a SPA
+        return await this.model.find(query).sort({ name: 1 }).lean();
     }
 
     /**
-     * Update by id-like value
-     * @param {string} id
-     * @param {Object} data
-     * @returns {Promise<Object>}
+     * Atualiza os dados do tipo
      */
     async update(id, data) {
-        const query = this._buildIdQuery(id);
-        if (Object.keys(query).length === 0) {
-            throw new Error(`IncidentType '${id}' not found`);
-        }
-
-        const updated = await this.model.findOneAndUpdate(
-            query,
+        const updated = await this.model.findByIdAndUpdate(
+            id,
             { ...data, updatedAt: new Date() },
             { new: true, runValidators: true }
         ).lean();
 
         if (!updated) {
-            throw new Error(`IncidentType '${id}' not found`);
+            throw new Error(`Incident Type with ID '${id}' not found`);
         }
 
         return updated;
     }
 
     /**
-     * Delete by id-like value
-     * @param {string} id
-     * @returns {Promise<boolean>}
+     * Elimina um tipo (Nota: O service deve validar se tem filhos antes de chamar isto)
      */
     async delete(id) {
-        const query = this._buildIdQuery(id);
-        if (Object.keys(query).length === 0) return false;
-        const result = await this.model.deleteOne(query);
+        const result = await this.model.deleteOne({ _id: id });
         return result.deletedCount > 0;
     }
 
     /**
-     * Exists check by id-like value
-     * @param {string} id
-     * @returns {Promise<boolean>}
+     * Verifica existência por ID
      */
     async exists(id) {
-        const query = this._buildIdQuery(id);
-        if (Object.keys(query).length === 0) return false;
-        const count = await this.model.countDocuments(query);
+        const count = await this.model.countDocuments({ _id: id });
         return count > 0;
     }
 
     /**
-     * Exists check by business code
-     * @param {string} code
-     * @returns {Promise<boolean>}
+     * Verifica se o código já está em uso
      */
     async existsByCode(code) {
         const count = await this.model.countDocuments({ code });
@@ -143,10 +110,18 @@ export class IncidentTypeRepository extends IIncidentTypeRepository {
     }
 
     /**
-     * Count all incident types
-     * @returns {Promise<number>}
+     * Conta total de tipos no catálogo
      */
     async countAll() {
         return await this.model.countDocuments();
+    }
+
+    /**
+     * Verifica se um tipo tem "filhos" (subtipos)
+     * Essencial para a lógica de "Cannot delete if has children"
+     */
+    async hasChildren(id) {
+        const count = await this.model.countDocuments({ parentId: id });
+        return count > 0;
     }
 }

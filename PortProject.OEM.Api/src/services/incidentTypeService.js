@@ -1,22 +1,26 @@
-﻿// javascript
+﻿// File: src/services/incidentTypeService.js
+
 import { CreateIncidentTypeDto, UpdateIncidentTypeDto } from '../application/dtos/IncidentTypeDto.js';
-import { IncidentTypeMapper } from '../application/mappers/IncidentTypeMapper.js';
 import { IncidentTypeRepository } from '../infrastructure/repositories/IncidentTypeRepository.js';
+import { MasterDataGateway } from '../gateways/masterDataGateway.js';
 
 /**
- * Service para IncidentType - contém regras de negócio e usa o repositório MongoDB.
+ * Service layer for IncidentType
+ * Contains business logic and uses the local MongoDB repository
  */
 export class IncidentTypeService {
-    constructor(masterDataGateway) {
-        this.masterDataGateway = masterDataGateway;
-        this.incidentTypeRepository = new IncidentTypeRepository();
+    constructor() {
+        // Local MongoDB repository for Incident Types (master data stored in OEM DB)
+        this.repository = new IncidentTypeRepository();
+
+        // Gateway to external Port System API (used for other master data, e.g. vessels, berths, etc.)
+        // Not used for Incident Types — they are local to OEM
+        const portApiUrl = process.env.PORT_API_URL || 'http://localhost:5273';
+        const portApiToken = process.env.MASTER_DATA_API_TOKEN; // optional
     }
 
     /**
-     * Cria um novo IncidentType
-     * @param {CreateIncidentTypeDto} dto
-     * @param {string} performedBy
-     * @returns {Promise<Object>} modelo criado (Mongoose document / plain)
+     * Creates a new Incident Type
      */
     async createIncidentType(dto, performedBy = 'system') {
         const validation = dto.validate();
@@ -24,65 +28,62 @@ export class IncidentTypeService {
             throw new Error(`Validation failed: ${validation.errors.join(', ')}`);
         }
 
-        // Verifica parent se fornecido
+        // Validate parent if provided
         if (dto.parentId) {
-            const parentExists = await this.incidentTypeRepository.exists(dto.parentId);
+            const parentExists = await this.repository.exists(dto.parentId);
             if (!parentExists) {
-                throw new Error(`Parent IncidentType '${dto.parentId}' not found`);
+                throw new Error(`Parent Incident Type '${dto.parentId}' not found`);
             }
         }
 
-        // Verifica unicidade do code
-        const existsCode = await this.incidentTypeRepository.existsByCode(dto.code);
-        if (existsCode) {
-            throw new Error(`IncidentType with code '${dto.code}' already exists`);
+        // Check code uniqueness
+        const codeExists = await this.repository.existsByCode(dto.code);
+        if (codeExists) {
+            throw new Error(`Incident Type with code '${dto.code}' already exists`);
         }
 
         const data = {
-            code: dto.code,
-            name: dto.name,
-            description: dto.description || null,
+            code: dto.code.trim(),
+            name: dto.name.trim(),
+            description: dto.description?.trim() || null,
             severity: dto.severity,
             parentId: dto.parentId || null,
             createdBy: performedBy,
             updatedBy: performedBy,
         };
 
-        const saved = await this.incidentTypeRepository.create(data);
+        const saved = await this.repository.create(data);
         return saved;
     }
 
     /**
-     * Retorna todos IncidentTypes conforme filtros.
-     * @param {Object} filters - { parentId, severity, q }
-     * @returns {Promise<Array<Object>>}
+     * Retrieves all Incident Types with optional filters and populates parent data
      */
     async getAllIncidentTypes(filters = {}) {
-        const items = await this.incidentTypeRepository.findAll(filters);
+        const items = await this.repository.findAll(filters);
 
+        // Populate parent information for hierarchy support
         for (const item of items) {
             if (item.parentId) {
-                const parent = await this.incidentTypeRepository.findById(item.parentId);
+                const parent = await this.repository.findById(item.parentId);
                 if (parent) {
                     item.parent = parent;
                 }
             }
         }
+
         return items;
     }
 
     /**
-     * Retorna um IncidentType por id-like value.
-     * @param {string} id
-     * @returns {Promise<Object|null>}
+     * Gets a single Incident Type by ID with parent populated
      */
     async getIncidentTypeById(id) {
-        const item = await this.incidentTypeRepository.findById(id);
+        const item = await this.repository.findById(id);
         if (!item) return null;
 
-        // Tenta popular parent metadata para facilitar o mapper
         if (item.parentId) {
-            const parent = await this.incidentTypeRepository.findById(item.parentId);
+            const parent = await this.repository.findById(item.parentId);
             if (parent) {
                 item.parent = parent;
             }
@@ -92,11 +93,7 @@ export class IncidentTypeService {
     }
 
     /**
-     * Atualiza um IncidentType
-     * @param {string} id
-     * @param {UpdateIncidentTypeDto} dto
-     * @param {string} performedBy
-     * @returns {Promise<Object>} objeto atualizado
+     * Updates an existing Incident Type
      */
     async updateIncidentType(id, dto, performedBy = 'system') {
         const validation = dto.validate();
@@ -104,73 +101,67 @@ export class IncidentTypeService {
             throw new Error(`Validation failed: ${validation.errors.join(', ')}`);
         }
 
-        const existing = await this.incidentTypeRepository.findById(id);
+        const existing = await this.repository.findById(id);
         if (!existing) {
-            throw new Error(`IncidentType '${id}' not found`);
+            throw new Error(`Incident Type '${id}' not found`);
         }
 
-        // Se mudou o code, garante unicidade
-        if (dto.code && dto.code !== existing.code) {
-            const codeTaken = await this.incidentTypeRepository.existsByCode(dto.code);
+        // Check code uniqueness if changed
+        if (dto.code && dto.code.trim() !== existing.code) {
+            const codeTaken = await this.repository.existsByCode(dto.code.trim());
             if (codeTaken) {
-                throw new Error(`IncidentType with code '${dto.code}' already exists`);
+                throw new Error(`Incident Type with code '${dto.code}' already exists`);
             }
         }
 
-        // Verifica parent
+        // Validate parent
         if (dto.parentId) {
-            // não permitir parent = self
-            const idLike = id;
-            if (dto.parentId === idLike || dto.parentId === (existing.id || existing._id || existing.Id)) {
-                throw new Error('ParentId cannot be the same as the IncidentType id');
+            if (dto.parentId === id) {
+                throw new Error('An Incident Type cannot be its own parent');
             }
-            const parentExists = await this.incidentTypeRepository.exists(dto.parentId);
+
+            const parentExists = await this.repository.exists(dto.parentId);
             if (!parentExists) {
-                throw new Error(`Parent IncidentType '${dto.parentId}' not found`);
+                throw new Error(`Parent Incident Type '${dto.parentId}' not found`);
             }
         }
 
         const updateData = {
-            code: dto.code,
-            name: dto.name,
-            description: dto.description || null,
+            code: dto.code?.trim(),
+            name: dto.name.trim(),
+            description: dto.description?.trim() || null,
             severity: dto.severity,
             parentId: dto.parentId || null,
             updatedBy: performedBy,
         };
 
-        const updated = await this.incidentTypeRepository.update(id, updateData);
+        const updated = await this.repository.update(id, updateData);
         return updated;
     }
 
     /**
-     * Remove um IncidentType (não permite remoção se tiver filhos)
-     * @param {string} id
-     * @param {string} performedBy
-     * @returns {Promise<boolean>}
+     * Deletes an Incident Type (blocks if it has children)
      */
     async deleteIncidentType(id, performedBy = 'system') {
-        // Verificar existência
-        const existing = await this.incidentTypeRepository.findById(id);
+        const existing = await this.repository.findById(id);
         if (!existing) {
-            throw new Error(`IncidentType '${id}' not found`);
+            throw new Error(`Incident Type '${id}' not found`);
         }
 
-        // Impedir remoção quando houver filhos
-        const children = await this.incidentTypeRepository.findAll({ parentId: id });
-        if (children && children.length > 0) {
-            throw new Error(`Cannot delete IncidentType '${id}' because it has child incident types`);
+        // Prevent deletion if has children
+        const children = await this.repository.findAll({ parentId: id });
+        if (children.length > 0) {
+            throw new Error(`Cannot delete Incident Type '${id}' because it has child types`);
         }
 
-        const result = await this.incidentTypeRepository.delete(id);
-        return result;
+        const success = await this.repository.delete(id);
+        return success;
     }
 
     /**
-     * Contagem total
-     * @returns {Promise<number>}
+     * Returns total count of Incident Types
      */
     async countIncidentTypes() {
-        return await this.incidentTypeRepository.countAll();
+        return await this.repository.countAll();
     }
 }

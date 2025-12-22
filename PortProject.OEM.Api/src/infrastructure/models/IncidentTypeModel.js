@@ -11,21 +11,17 @@ const incidentTypeSchema = new mongoose.Schema({
         type: String,
         required: true,
         unique: true,
-        index: true,
-        maxlength: 32,
     },
 
     // Human friendly name
     name: {
         type: String,
         required: true,
-        maxlength: 128,
     },
 
     // Optional detailed description
     description: {
         type: String,
-        default: null,
     },
 
     // Severity enum

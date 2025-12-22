@@ -1,70 +1,74 @@
 ﻿// javascript
-import { IncidentTypeResponseDto, IncidentTypeListItemDto } from '../dtos/IncidentTypeDto.js';
+import {
+    IncidentTypeResponseDto,
+    IncidentTypeListItemDto,
+} from '../dtos/IncidentTypeDto.js';
 
 /**
- * Mapper para IncidentType — converte modelos de persistência em DTOs da camada de aplicação.
+ * Mapper for IncidentType conversions between layers
+ * Follows the Onion Architecture principle of separation of concerns
  */
 export class IncidentTypeMapper {
+
     /**
-     * Converte um modelo (objeto Mongoose / plain) para IncidentTypeResponseDto
-     * @param {Object} model
-     * @returns {IncidentTypeResponseDto}
+     * Convert persistence model to response DTO
+     * @param {Object} model - Mongoose model instance or plain object
+     * @returns {IncidentTypeResponseDto} Response DTO
      */
     static toResponseDto(model) {
         return new IncidentTypeResponseDto({
-            id: model.id || model._id || model.Id || null,
+            id: model.id || model._id,
             code: model.code,
             name: model.name,
-            description: model.description ?? null,
+            description: model.description,
             severity: model.severity,
-            parentId: model.parentId ?? (model.parent ? (model.parent.id || model.parent._id) : null),
-            parentCode: model.parent?.code ?? null,
-            parentName: model.parent?.name ?? null,
-            createdAt: model.createdAt ?? model.created_at ?? null,
-            updatedAt: model.updatedAt ?? model.updated_at ?? null,
+            parentId: model.parentId,
+            parentCode: model.parent?.code || null,
+            parentName: model.parent?.name || null,
+            createdAt: model.createdAt,
+            updatedAt: model.updatedAt,
         });
     }
 
     /**
-     * Converte um modelo para a versão simplificada usada em listas
-     * @param {Object} model
-     * @returns {IncidentTypeListItemDto}
+     * Convert persistence model to list item DTO
+     * @param {Object} model - Mongoose model instance or plain object
+     * @returns {IncidentTypeListItemDto} List item DTO
      */
     static toListItemDto(model) {
         return new IncidentTypeListItemDto({
-            id: model.id || model._id || model.Id || null,
+            id: model.id || model._id,
             code: model.code,
             name: model.name,
             severity: model.severity,
-            parentId: model.parentId ?? (model.parent ? (model.parent.id || model.parent._id) : null),
-            parentName: model.parent?.name ?? null,
-            createdAt: model.createdAt ?? model.created_at ?? null,
+            parentId: model.parentId,
+            parentName: model.parent?.name || null,
+            createdAt: model.createdAt,
         });
     }
 
     /**
-     * Converte um array de modelos para array de IncidentTypeListItemDto
-     * @param {Array<Object>} models
-     * @returns {Array<IncidentTypeListItemDto>}
+     * Convert array of models to list of DTOs
+     * @param {Array<Object>} models - Array of mongoose models
+     * @returns {Array<IncidentTypeListItemDto>} Array of list item DTOs
      */
     static toListDto(models) {
-        return (models || []).map(model => this.toListItemDto(model));
+        return models.map(model => this.toListItemDto(model));
     }
 
     /**
-     * Constrói uma árvore hierárquica a partir de uma lista plana de modelos.
-     * Retorna array de nós raiz; cada nó é um IncidentTypeResponseDto com propriedade `children`.
+     * Build a hierarchical tree from a flat list
+     * Each node is a plain object with a `children` property
      * @param {Array<Object>} models
      * @returns {Array<Object>}
      */
     static toTreeDto(models) {
-        const items = (models || []).map(m => {
-            const dto = this.toResponseDto(m);
-            // transformar em objeto plain e adicionar children
-            return { ...dto, children: [] };
-        });
+        const items = models.map(model => ({
+            ...this.toResponseDto(model),
+            children: [],
+        }));
 
-        const map = new Map(items.map(it => [it.id, it]));
+        const map = new Map(items.map(item => [item.id, item]));
         const roots = [];
 
         for (const item of items) {
