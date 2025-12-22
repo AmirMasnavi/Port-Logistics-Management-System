@@ -21,6 +21,7 @@ import VesselVisitsExecutionPage from './pages/VesselVisitsExecutionPage.tsx';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import PrivacyPolicyGuard from './components/auth/PrivacyPolicyGuard';
 import DataRightsPage from './pages/DataRightsPage';
+import IncidentTypePage from './pages/IncidentTypePage';
 
 import { OperationPlanPage } from './pages/OperationPlanPage';
 import PlanningResourceAllocationsPage from './pages/PlanningResourceAllocationsPage';
@@ -81,6 +82,7 @@ function App() {
                             <Route element={<RoleProtectedRoute allowedRoles={canManagePort} />}>
                                 <Route path="/vessel-types" element={<VesselTypesPage />} />
                                 <Route path="/shippingagentorganization" element={<ShippingAgentOrganization />} />
+                                <Route path="/incident-types" element={<IncidentTypePage />} /> 
                             </Route>
 
                             {/* --- Role-Protected Routes for Planners (Admin, Officer) --- */}
@@ -88,8 +90,9 @@ function App() {
                                 <Route path="/port-facilities" element={<PortFacilitiesPage />} />
                                 {/* Assuming Docks fall under the same planning permissions */}
                                 <Route path="/docks" element={<DockPage />} /> 
-                                {/* New: Resource allocation summary */}
+                                {/* Resource allocation summary */}
                                 <Route path="/planning/resource-allocations" element={<PlanningResourceAllocationsPage />} />
+                                
                             </Route>
 
                             {/* --- Vessels List (Admin, Officer, Logistics) --- */}

@@ -23,6 +23,7 @@ import {
     Calendar, // For Scheduling
     Album,
     AlertTriangle, // For Missing Plans
+    CloudSunRain,
 } from 'lucide-react';
 
 // 2. Create a new, reusable component for our icon-links
@@ -142,6 +143,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                     <>
                         <NavItem to="/vessel-types" label={t('nav.vesselTypes')} icon={Anchor} isExpanded={isExpanded} />
                         <NavItem to="/vessels" label="Vessels" icon={Ship} isExpanded={isExpanded} />
+                        <NavItem to="/incident-types" label="Incident Types" icon={CloudSunRain} isExpanded={isExpanded} />
+
                     </>
                 )}
                 {/* Port Facilities & Docks: Admin, Officer, Logistics */}
@@ -201,7 +204,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                     )}
                 </button>
             </div>
-        </aside>
+        </aside> 
      );
  };
 
