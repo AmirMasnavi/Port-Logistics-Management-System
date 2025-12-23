@@ -30,11 +30,10 @@ if (!(Test-Path -Path $BackupPath)) {
 Log-Message "Starting backup process for $DbName..." "INFO"
 
 # 2. Execute Dump
-& $mysqldump --host=$DbHost --user=$DbUser --password=$DbPassword --column-statistics=0 --result-file=$fullPath $DbName 2> $null
+$process = Start-Process -FilePath $mysqldump -ArgumentList "--host=$DbHost --user=$DbUser --password=$DbPassword --column-statistics=0 --result-file=$fullPath $DbName" -NoNewWindow -Wait -PassThru
 
-# 3. Check Exit Code (The Source of Truth)
-if ($LASTEXITCODE -ne 0) {
-    Log-Message "MYSQLDUMP FAILED with Exit Code: $LASTEXITCODE" "ERROR"
+if ($process.ExitCode -ne 0) {
+    Log-Message "MYSQLDUMP FAILED with Exit Code: $($process.ExitCode)" "ERROR"
     exit 1
 }
 
