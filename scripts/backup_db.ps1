@@ -11,15 +11,15 @@ $date = Get-Date -Format "yyyyMMdd"
 $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
 $fileName = "$($DbName)_$($date).sql"
 $fullPath = Join-Path $BackupPath $fileName
-$logFile = Join-Path $BackupPath "backup_history.log" # <--- NEW: Define Log File
+$logFile = Join-Path $BackupPath "backup_history.log" #
 $mysqldump = "E:\MySQL\mysql-9.5.0\mysql-9.5.0-winx64\bin\mysqldump.exe"
 
 # --- HELPER FUNCTION FOR LOGGING ---
 function Log-Message {
     param ([string]$Msg, [string]$Level)
     $logEntry = "[$Level] $timestamp - $Msg"
-    Write-Host $logEntry               # Print to GitHub Console
-    Add-Content $logFile $logEntry     # <--- NEW: Save to File
+    Write-Host $logEntry
+    Add-Content $logFile $logEntry
 }
 
 # 1. Create Directory
@@ -31,7 +31,13 @@ Log-Message "Starting backup process for $DbName..." "INFO"
 
 # 2. Execute Dump
 try {
-    & $mysqldump --host=$DbHost --user=$DbUser --password=$DbPassword --column-statistics=0 --result-file=$fullPath $DbName 2>&1 | Out-Null
+    $dumpOutput = & $mysqldump --host=$DbHost --user=$DbUser --password=$DbPassword --column-statistics=0 --result-file=$fullPath $DbName 2>&1
+    
+    # If mysqldump failed (Exit Code is not 0), we print the error and stop.
+    if ($LASTEXITCODE -ne 0) {
+        Log-Message "MYSQLDUMP ERROR: $dumpOutput" "ERROR"
+        exit 1
+    }
     
     # 3. Validation
     if (Test-Path $fullPath) {
