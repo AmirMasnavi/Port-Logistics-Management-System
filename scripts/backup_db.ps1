@@ -30,29 +30,26 @@ if (!(Test-Path -Path $BackupPath)) {
 Log-Message "Starting backup process for $DbName..." "INFO"
 
 # 2. Execute Dump
-try {
-    $dumpOutput = & $mysqldump --host=$DbHost --user=$DbUser --password=$DbPassword --column-statistics=0 --result-file=$fullPath $DbName 2>&1
-    
-    # If mysqldump failed (Exit Code is not 0), we print the error and stop.
-    if ($LASTEXITCODE -ne 0) {
-        Log-Message "MYSQLDUMP ERROR: $dumpOutput" "ERROR"
-        exit 1
-    }
-    
-    # 3. Validation
-    if (Test-Path $fullPath) {
-        $size = (Get-Item $fullPath).Length
-        if ($size -gt 0) {
-            Log-Message "SUCCESS: Backup created at $fileName. Size: $size bytes." "INFO"
-        } else {
-            Log-Message "FAILURE: File created but size is 0 bytes." "ERROR"
-            exit 1
-        }
+$dumpOutput = & $mysqldump --host=$DbHost --user=$DbUser --password=$DbPassword --column-statistics=0 --result-file=$fullPath $DbName 2>&1
+
+# 3. Check Exit Code (The Source of Truth)
+if ($LASTEXITCODE -ne 0) {
+    # If the tool actually failed (crashed), it returns a non-zero code.
+    Log-Message "MYSQLDUMP FAILED with Exit Code: $LASTEXITCODE" "ERROR"
+    Log-Message "Tool Output: $dumpOutput" "ERROR"
+    exit 1
+}
+
+# 4. Validation (Check if file exists)
+if (Test-Path $fullPath) {
+    $size = (Get-Item $fullPath).Length
+    if ($size -gt 0) {
+        Log-Message "SUCCESS: Backup created at $fileName. Size: $size bytes." "INFO"
     } else {
-        Log-Message "FAILURE: Backup file was not created." "ERROR"
+        Log-Message "FAILURE: File created but size is 0 bytes." "ERROR"
         exit 1
     }
-} catch {
-    Log-Message "CRITICAL ERROR: $($_.Exception.Message)" "ERROR"
+} else {
+    Log-Message "FAILURE: Backup file was not created." "ERROR"
     exit 1
 }
