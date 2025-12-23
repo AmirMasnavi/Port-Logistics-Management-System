@@ -154,7 +154,7 @@ export const createOperationPlanRouter = () => {
     router.delete('/debug/reset', async (req, res) => {
         try {
             await service.repository.model.deleteMany({});
-            res.json({ message: "Base de dados limpa com sucesso!" });
+            res.json({ message: "Database successfully cleaned!" });
         } catch (e) {
             res.status(500).json({ error: e.message });
         }

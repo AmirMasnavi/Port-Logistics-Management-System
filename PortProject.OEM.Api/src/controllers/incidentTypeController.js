@@ -15,11 +15,11 @@ export const createIncidentTypeRouter = (masterDataGateway) => {
         '/',
         verifyFirebaseToken,
         [
-            body('code').notEmpty().withMessage('Code é obrigatório').isLength({ max: 32 }).withMessage('Code máximo 32 chars'),
-            body('name').notEmpty().withMessage('Name é obrigatório').isLength({ max: 128 }).withMessage('Name máximo 128 chars'),
+            body('code').notEmpty().withMessage('Code é obrigatório'),
+            body('name').notEmpty().withMessage('Name é obrigatório'),
             body('severity').notEmpty().isIn(['Minor', 'Major', 'Critical']).withMessage('Severity inválida'),
-            body('description').optional().isString(),
-            body('parentId').optional().isString().withMessage('ParentId deve ser string válida'),
+            body('description').isString(),
+            body('parentId').optional({ nullable: true }).isString().withMessage('ParentId deve ser string válida'),
         ],
         async (req, res) => {
             try {
@@ -51,16 +51,16 @@ export const createIncidentTypeRouter = (masterDataGateway) => {
         [
             query('parentId').optional().isString(),
             query('severity').optional().isIn(['Minor', 'Major', 'Critical']),
-            query('q').optional().isString(),
+            query('search').optional().isString(),
             query('tree').optional().isIn(['true', 'false']),
         ],
         async (req, res) => {
             try {
-                const { parentId, severity, q, tree } = req.query;
+                const { parentId, severity, search, tree } = req.query;
                 const filters = {};
                 if (parentId) filters.parentId = parentId;
                 if (severity) filters.severity = severity;
-                if (q) filters.q = q;
+                if (search) filters.search = search;
 
                 const items = await incidentTypeService.getAllIncidentTypes(filters);
                 if (tree && (tree === 'true' || tree === '1')) {
@@ -77,6 +77,33 @@ export const createIncidentTypeRouter = (masterDataGateway) => {
         }
     );
 
+    router.get(
+        '/code/:code',
+        verifyFirebaseToken,
+        [param('code').isString().notEmpty()],
+        async (req, res) => {
+            try {
+                const { code } = req.params;
+                const items = await incidentTypeService.getAllIncidentTypes({ search: code });
+
+                const found = items.find(i => (i.code || '').toLowerCase() === code.toLowerCase());
+                if (!found) {
+                    return res.status(404).json({
+                        success: false,
+                        error: 'Not found',
+                        message: `Incident type with code “${code}” not found`
+                    });
+                }
+
+                const dto = IncidentTypeMapper.toResponseDto(found);
+                return res.json({ success: true, data: dto });
+            } catch (error) {
+                console.error('[INCIDENT TYPE GET BY CODE] Error:', error);
+                return res.status(500).json({ success: false, error: 'Internal server error', message: error.message });
+            }
+        }
+    );     
+    
     // Get by id
     router.get(
         '/:id',
@@ -102,10 +129,10 @@ export const createIncidentTypeRouter = (masterDataGateway) => {
         verifyFirebaseToken,
         [
             param('id').isString(),
-            body('code').notEmpty().withMessage('Code é obrigatório').isLength({ max: 32 }),
-            body('name').notEmpty().withMessage('Name é obrigatório').isLength({ max: 128 }),
+            body('code').notEmpty().withMessage('Code é obrigatório'),
+            body('name').notEmpty().withMessage('Name é obrigatório'),
             body('severity').notEmpty().isIn(['Minor', 'Major', 'Critical']),
-            body('description').optional().isString(),
+            body('description').notEmpty().isString(),
             body('parentId').optional().isString(),
         ],
         async (req, res) => {
