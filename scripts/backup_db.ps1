@@ -30,13 +30,11 @@ if (!(Test-Path -Path $BackupPath)) {
 Log-Message "Starting backup process for $DbName..." "INFO"
 
 # 2. Execute Dump
-$dumpOutput = & $mysqldump --host=$DbHost --user=$DbUser --password=$DbPassword --column-statistics=0 --result-file=$fullPath $DbName 2>&1
+& $mysqldump --host=$DbHost --user=$DbUser --password=$DbPassword --column-statistics=0 --result-file=$fullPath $DbName 2> $null
 
 # 3. Check Exit Code (The Source of Truth)
 if ($LASTEXITCODE -ne 0) {
-    # If the tool actually failed (crashed), it returns a non-zero code.
     Log-Message "MYSQLDUMP FAILED with Exit Code: $LASTEXITCODE" "ERROR"
-    Log-Message "Tool Output: $dumpOutput" "ERROR"
     exit 1
 }
 
