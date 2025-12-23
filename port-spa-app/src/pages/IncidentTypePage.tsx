@@ -19,7 +19,6 @@ import { incidentTypeService, type IncidentTypeFilters } from '../services/incid
 import type {
     IncidentTypeResponseDto,
     CreateIncidentTypeDto,
-    UpdateIncidentTypeDto
 } from '../infrastructure/repositories/incidentType/incidentType.dto';
 import ConfirmationModal from '../components/common/ConfirmationModal';
 
@@ -172,14 +171,30 @@ const IncidentTypePage: React.FC = () => {
                 </td>
                 <td className="px-6 py-4">{getSeverityBadge(item.severity)}</td>
                 <td className="px-6 py-4">
-                    <p className="text-sm text-gray-600 max-w-xs truncate" title={item.description}>
-                        {item.description || <span className="text-gray-400 italic">{item.description}</span>}
+                    <p
+                        className="text-sm text-gray-600 max-w-xs truncate"
+                        title={item.description || 'No description provided'}
+                        aria-label={item.description || 'No description provided'}
+                    >
+                        {item.description
+                            ? item.description
+                            : <span className="text-gray-400 italic">No description provided</span>}
                     </p>
                 </td>
                 <td className="px-6 py-4 text-right">
                     <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
-                            onClick={() => { setEditingItem(item); setForm({ ...form, ...item } as any); setShowModal(true); }}
+                            onClick={() => {
+                                setEditingItem(item);
+                                setForm({
+                                    code: item.code,
+                                    name: item.name,
+                                    description: item.description || '',
+                                    severity: item.severity,
+                                    parentId: item.parentId || undefined
+                                });
+                                setShowModal(true);
+                            }}
                             className="p-2 text-gray-600 hover:text-blue-600 hover:bg-white rounded-lg border border-transparent hover:border-blue-200 shadow-sm transition-all"
                         >
                             <Edit2 size={16} />
@@ -389,7 +404,7 @@ const IncidentTypePage: React.FC = () => {
                                         <option key={i.id} value={i.id}>{i.name} [{i.code}]</option>
                                     ))}
                                 </select>
-                                <p className="text-[10px] text-gray-400 ml-1 italic italic">Groups incidents like "Fog" under "Environmental Conditions"</p>
+                                <p className="text-[10px] text-gray-400 ml-1 italic">Groups incidents like "Fog" under "Environmental Conditions"</p>
                             </div>
 
                             <div className="space-y-2">
@@ -443,3 +458,4 @@ const IncidentTypePage: React.FC = () => {
 };
 
 export default IncidentTypePage;
+

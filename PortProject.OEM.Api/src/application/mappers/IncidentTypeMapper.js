@@ -40,6 +40,7 @@ export class IncidentTypeMapper {
             id: model.id || model._id,
             code: model.code,
             name: model.name,
+            description: model.description,
             severity: model.severity,
             parentId: model.parentId,
             parentName: model.parent?.name || null,
