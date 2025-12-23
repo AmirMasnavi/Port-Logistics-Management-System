@@ -18,8 +18,8 @@ export const createIncidentTypeRouter = (masterDataGateway) => {
             body('code').notEmpty().withMessage('Code é obrigatório'),
             body('name').notEmpty().withMessage('Name é obrigatório'),
             body('severity').notEmpty().isIn(['Minor', 'Major', 'Critical']).withMessage('Severity inválida'),
-            body('description').notEmpty().isString(),
-            body('parentId').optional().isString().withMessage('ParentId deve ser string válida'),
+            body('description').isString(),
+            body('parentId').optional({ nullable: true }).isString().withMessage('ParentId deve ser string válida'),
         ],
         async (req, res) => {
             try {

@@ -38,7 +38,11 @@ const operationPlanSchema = new mongoose.Schema({
         staffShortName: String,
         
         startTime: Date,
-        endTime: Date
+        endTime: Date,
+        
+        // Loading and Unloading times (in hours)
+        loadingTime: Number,
+        unloadingTime: Number
     }],
     createdAt: { type: Date, default: Date.now }
 });
