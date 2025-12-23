@@ -202,9 +202,6 @@ import type { Resource } from '../../domain/resource/resource.model';
         
         // Open add operation modal
         const openAddModal = () => {
-            const now = new Date();
-            const localNow = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-            
             setNewOperationId('');
             setNewStatus('PENDING');
             setNewStartTime('');
@@ -983,7 +980,7 @@ import type { Resource } from '../../domain/resource/resource.model';
                                         value={newStartTime}
                                         onChange={(e) => setNewStartTime(e.target.value)}
                                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                        required={newStatus !== 'PENDING'}
+                                        required
                                     />
                                     <p className="text-xs text-gray-500 mt-1">
                                         When the operation started

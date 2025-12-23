@@ -5,6 +5,7 @@ import type {
     CreateIncidentTypeDto,
     UpdateIncidentTypeDto,
     IncidentTypeResponseDto,
+    IncidentTypeListItemDto
 } from '../infrastructure/repositories/incidentType/incidentType.dto';
 import {getAuthToken} from "../firebaseConfig.ts";
 

@@ -19,7 +19,6 @@ import { incidentTypeService, type IncidentTypeFilters } from '../services/incid
 import type {
     IncidentTypeResponseDto,
     CreateIncidentTypeDto,
-    UpdateIncidentTypeDto
 } from '../infrastructure/repositories/incidentType/incidentType.dto';
 import ConfirmationModal from '../components/common/ConfirmationModal';
 
