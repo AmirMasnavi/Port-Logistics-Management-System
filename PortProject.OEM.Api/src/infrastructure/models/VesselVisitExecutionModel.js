@@ -20,7 +20,7 @@ const executedOperationSchema = new mongoose.Schema({
   // Operation type (Loading or Unloading)
   type: {
     type: String,
-    enum: ['Loading', 'Unloading', 'Preparation', 'Completion', 'Inspection', 'Other'],
+    enum: ['WAITING', 'LOADING', 'UNLOADING', 'Other', 'Loading', 'Unloading', 'Preparation', 'Completion', 'Inspection'], // Keeping legacy types for safety, but UI uses uppercase
     default: 'Other'
   },
   

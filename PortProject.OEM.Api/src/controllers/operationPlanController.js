@@ -1,6 +1,7 @@
 ﻿import { Router } from 'express';
 import { verifyFirebaseToken } from '../config/firebase.js';
 import { OperationPlanService } from '../services/operationPlanService.js';
+import { generateSmartOperations } from '../application/utils/SmartOperationGenerator.js';
 
 export const createOperationPlanRouter = () => {
     const router = Router();
@@ -22,10 +23,19 @@ export const createOperationPlanRouter = () => {
 
             const plans = await service.getAllPlans(filters);
 
+            // Enrich tasks with Smart Operations
+            const enrichedPlans = plans.map(plan => ({
+                ...plan,
+                scheduledTasks: plan.scheduledTasks.map(task => ({
+                    ...task,
+                    subOperations: generateSmartOperations(task)
+                }))
+            }));
+
             res.json({
                 success: true,
-                count: plans.length,
-                data: plans
+                count: enrichedPlans.length,
+                data: enrichedPlans
             });
         } catch (error) {
             console.error('[OEM GET ERROR]:', error);

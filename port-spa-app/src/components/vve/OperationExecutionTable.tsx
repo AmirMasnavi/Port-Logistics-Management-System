@@ -6,7 +6,52 @@ import { useAuth } from '../../auth/AuthProvider';
 import { resourceApiRepository } from '../../infrastructure/repositories/resource/resourceApi.repository';
 import { ResourceService } from '../../app/resource/resource.service';
 import type { Resource } from '../../domain/resource/resource.model';
-    
+
+    // Extract friendly operation name from operation ID (fallback)
+    const extractOperationName = (opId: string): string => {
+        // New Smart Operation IDs
+        if (opId.includes('_wait_1')) return 'Safety Clearance & Positioning';
+        if (opId.includes('_unload_1')) return 'Deck/Hatch Clearance';
+        if (opId.includes('_unload_2')) return 'Principal Cargo Discharge';
+        if (opId.includes('_load_1')) return 'Principal Cargo Loading';
+        if (opId.includes('_load_2')) return 'Lashing & Securing';
+
+        // Legacy / Fallback
+        // Loading operations
+        if (opId.includes('_exec_1') && opId.toLowerCase().includes('load')) return 'Position Crane & Secure Cargo';
+        if (opId.includes('_exec_2') && opId.toLowerCase().includes('load')) return 'Lift Cargo from Dock';
+        if (opId.includes('_exec_3') && opId.toLowerCase().includes('load')) return 'Transfer Cargo to Vessel';
+        if (opId.includes('_exec_4') && opId.toLowerCase().includes('load')) return 'Place & Secure Cargo in Hold';
+        if (opId.includes('_prep') && opId.toLowerCase().includes('load')) return 'Pre-Loading Inspection & Safety Check';
+        if (opId.includes('_comp') && opId.toLowerCase().includes('load')) return 'Final Cargo Securing & Documentation';
+        
+        // Unloading operations
+        if (opId.includes('_exec_1') && opId.toLowerCase().includes('unload')) return 'Release Cargo Securing in Hold';
+        if (opId.includes('_exec_2') && opId.toLowerCase().includes('unload')) return 'Lift Cargo from Vessel';
+        if (opId.includes('_exec_3') && opId.toLowerCase().includes('unload')) return 'Transfer Cargo to Dock';
+        if (opId.includes('_exec_4') && opId.toLowerCase().includes('unload')) return 'Place Cargo in Storage Area';
+        if (opId.includes('_prep') && opId.toLowerCase().includes('unload')) return 'Pre-Unloading Inspection & Safety Check';
+        if (opId.includes('_comp') && opId.toLowerCase().includes('unload')) return 'Final Inspection & Documentation';
+        
+        // Generic operations
+        if (opId.includes('_prep')) return 'Safety Check & Equipment Setup';
+        if (opId.includes('_exec_1')) return 'Primary Operation (Part 1)';
+        if (opId.includes('_exec_2')) return 'Primary Operation (Part 2)';
+        if (opId.includes('_exec_3')) return 'Primary Operation (Part 3)';
+        if (opId.includes('_exec_4')) return 'Primary Operation (Part 4)';
+        if (opId.includes('_comp')) return 'Final Verification & Teardown';
+        if (opId.includes('_single')) return 'Cargo Operation';
+        return 'Operation';
+    };
+
+    // Extract operation type from operation ID (fallback)
+    const extractOperationType = (opId: string): string => {
+        if (opId.toLowerCase().includes('wait')) return 'WAITING';
+        if (opId.toLowerCase().includes('load') && !opId.toLowerCase().includes('unload')) return 'LOADING';
+        if (opId.toLowerCase().includes('unload')) return 'UNLOADING';
+        return 'Other';
+    };
+
     interface Props {
         vveId: string;
     }
@@ -31,7 +76,7 @@ import type { Resource } from '../../domain/resource/resource.model';
         const [editResourceId, setEditResourceId] = useState<string>('');
         const [editNotes, setEditNotes] = useState<string>('');
         const [editName, setEditName] = useState<string>('');
-        const [editType, setEditType] = useState<'Loading' | 'Unloading' | 'Preparation' | 'Completion' | 'Inspection' | 'Other'>('Other');
+        const [editType, setEditType] = useState<'WAITING' | 'UNLOADING' | 'LOADING' | 'Other'>('Other');
         
         // Add Operation modal states
         const [showAddModal, setShowAddModal] = useState(false);
@@ -42,7 +87,7 @@ import type { Resource } from '../../domain/resource/resource.model';
         const [newResourceId, setNewResourceId] = useState<string>('');
         const [newNotes, setNewNotes] = useState<string>('');
         const [newName, setNewName] = useState<string>('');
-        const [newType, setNewType] = useState<'Loading' | 'Unloading' | 'Preparation' | 'Completion' | 'Inspection' | 'Other'>('Loading');
+        const [newType, setNewType] = useState<'WAITING' | 'UNLOADING' | 'LOADING' | 'Other'>('LOADING');
     
         // Load operation data
     const loadData = async () => {
@@ -126,8 +171,8 @@ import type { Resource } from '../../domain/resource/resource.model';
             setEditName(operation.name || extractOperationName(operation.operationId));
             
             // Ensure we only set valid type values
-            const validTypes: Array<'Loading' | 'Unloading' | 'Preparation' | 'Completion' | 'Inspection' | 'Other'> = 
-                ['Loading', 'Unloading', 'Preparation', 'Completion', 'Inspection', 'Other'];
+            const validTypes: Array<'WAITING' | 'UNLOADING' | 'LOADING' | 'Other'> = 
+                ['WAITING', 'UNLOADING', 'LOADING', 'Other'];
             const opType = operation.type && validTypes.includes(operation.type as any) 
                 ? operation.type 
                 : 'Other';
@@ -209,7 +254,7 @@ import type { Resource } from '../../domain/resource/resource.model';
             setNewResourceId('');
             setNewNotes('');
             setNewName('');
-            setNewType('Loading');
+            setNewType('LOADING');
             setShowAddModal(true);
         };
         
@@ -277,11 +322,18 @@ import type { Resource } from '../../domain/resource/resource.model';
                 return;
             }
 
+            // Find the operation to get its current type and name
+            const operation = data?.operations.find(op => op.operationId === opId);
+            const type = operation?.type || extractOperationType(opId);
+            const name = operation?.name || extractOperationName(opId);
+
             try {
                 setUpdatingOp(opId);
                 await vveService.updateOperationStatus(vveId, opId, {
                     status: newStatus,
                     timestamp: new Date().toISOString(),
+                    type: type as any,
+                    name: name
                 });
 
                 // Refresh data to show updated status
@@ -329,46 +381,6 @@ import type { Resource } from '../../domain/resource/resource.model';
         }
     };
     
-    // Extract friendly operation name from operation ID (fallback)
-    const extractOperationName = (opId: string): string => {
-        // Loading operations
-        if (opId.includes('_exec_1') && opId.toLowerCase().includes('load')) return 'Position Crane & Secure Cargo';
-        if (opId.includes('_exec_2') && opId.toLowerCase().includes('load')) return 'Lift Cargo from Dock';
-        if (opId.includes('_exec_3') && opId.toLowerCase().includes('load')) return 'Transfer Cargo to Vessel';
-        if (opId.includes('_exec_4') && opId.toLowerCase().includes('load')) return 'Place & Secure Cargo in Hold';
-        if (opId.includes('_prep') && opId.toLowerCase().includes('load')) return 'Pre-Loading Inspection & Safety Check';
-        if (opId.includes('_comp') && opId.toLowerCase().includes('load')) return 'Final Cargo Securing & Documentation';
-        
-        // Unloading operations
-        if (opId.includes('_exec_1') && opId.toLowerCase().includes('unload')) return 'Release Cargo Securing in Hold';
-        if (opId.includes('_exec_2') && opId.toLowerCase().includes('unload')) return 'Lift Cargo from Vessel';
-        if (opId.includes('_exec_3') && opId.toLowerCase().includes('unload')) return 'Transfer Cargo to Dock';
-        if (opId.includes('_exec_4') && opId.toLowerCase().includes('unload')) return 'Place Cargo in Storage Area';
-        if (opId.includes('_prep') && opId.toLowerCase().includes('unload')) return 'Pre-Unloading Inspection & Safety Check';
-        if (opId.includes('_comp') && opId.toLowerCase().includes('unload')) return 'Final Inspection & Documentation';
-        
-        // Generic operations
-        if (opId.includes('_prep')) return 'Safety Check & Equipment Setup';
-        if (opId.includes('_exec_1')) return 'Primary Operation (Part 1)';
-        if (opId.includes('_exec_2')) return 'Primary Operation (Part 2)';
-        if (opId.includes('_exec_3')) return 'Primary Operation (Part 3)';
-        if (opId.includes('_exec_4')) return 'Primary Operation (Part 4)';
-        if (opId.includes('_comp')) return 'Final Verification & Teardown';
-        if (opId.includes('_single')) return 'Cargo Operation';
-        return 'Operation';
-    };
-
-    // Extract operation type from operation ID (fallback)
-    const extractOperationType = (opId: string): string => {
-        if (opId.toLowerCase().includes('load') && !opId.toLowerCase().includes('unload')) return 'Loading';
-        if (opId.toLowerCase().includes('unload')) return 'Unloading';
-        if (opId.includes('_prep')) return 'Preparation';
-        if (opId.includes('_exec')) return 'Execution';
-        if (opId.includes('_comp')) return 'Completion';
-        if (opId.includes('_single')) return 'Single Task';
-        return 'Task';
-    };
-
         // Format time
         const formatTime = (isoString?: string) => {
             if (!isoString) return '-';
@@ -751,11 +763,9 @@ import type { Resource } from '../../domain/resource/resource.model';
                                     onChange={(e) => setEditType(e.target.value as any)}
                                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                 >
-                                    <option value="Loading">Loading</option>
-                                    <option value="Unloading">Unloading</option>
-                                    <option value="Preparation">Preparation</option>
-                                    <option value="Completion">Completion</option>
-                                    <option value="Inspection">Inspection</option>
+                                    <option value="WAITING">WAITING</option>
+                                    <option value="LOADING">LOADING</option>
+                                    <option value="UNLOADING">UNLOADING</option>
                                     <option value="Other">Other</option>
                                 </select>
                                 <p className="text-xs text-gray-500 mt-1">
@@ -939,11 +949,9 @@ import type { Resource } from '../../domain/resource/resource.model';
                                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                     required
                                 >
-                                    <option value="Loading">Loading</option>
-                                    <option value="Unloading">Unloading</option>
-                                    <option value="Preparation">Preparation</option>
-                                    <option value="Completion">Completion</option>
-                                    <option value="Inspection">Inspection</option>
+                                    <option value="WAITING">WAITING</option>
+                                    <option value="LOADING">LOADING</option>
+                                    <option value="UNLOADING">UNLOADING</option>
                                     <option value="Other">Other</option>
                                 </select>
                                 <p className="text-xs text-gray-500 mt-1">

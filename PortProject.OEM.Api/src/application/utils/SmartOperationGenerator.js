@@ -6,116 +6,71 @@
  */
 
 /**
- * Generate detailed operations from a scheduled task
+ * Generates operations for US 4.1.9 and US 4.2.4 (3D Model Support)
+ * Structure: WAITING -> UNLOADING -> LOADING
  * @param {Object} task - Scheduled task from operation plan
+ * @param {Date|null} actualStartTime - Optional actual start time to shift operations
  * @returns {Array<Object>} Array of detailed operation objects
  */
-export const generateSmartOperations = (task) => {
+export const generateSmartOperations = (task, actualStartTime = null) => {
     const startTime = new Date(task.startTime);
     const endTime = new Date(task.endTime);
     const totalDurationMs = endTime - startTime;
 
-    // Determine operation base type from task type
-    const taskType = (task.type || 'Operation').toLowerCase();
-    const isLoading = taskType.includes('load') && !taskType.includes('unload');
-    const isUnloading = taskType.includes('unload');
+    // Calculate time offset if actualStartTime is provided
+    let timeOffset = 0;
+    if (actualStartTime) {
+        timeOffset = new Date(actualStartTime).getTime() - startTime.getTime();
+    }
+
+    // --- TIME SPLIT STRATEGY ---
+    // 1. WAITING: 10% of time (Max 30 mins)
+    let waitDuration = Math.min(totalDurationMs * 0.10, 30 * 60 * 1000);
     
-    // Determine the operation type
-    let operationType = 'Other';
-    if (isLoading) {
-        operationType = 'Loading';
-    } else if (isUnloading) {
-        operationType = 'Unloading';
-    }
-
-    // --- TIME ALLOCATION LOGIC ---
-
-    // 1. Preparation Phase (15% of total time, max 45 mins)
-    let prepDuration = Math.min(totalDurationMs * 0.15, 45 * 60 * 1000);
-
-    // 2. Completion Phase (10% of total time, max 30 mins)
-    let completionDuration = Math.min(totalDurationMs * 0.10, 30 * 60 * 1000);
-
-    // 3. Execution Phase (The rest, split into multiple parts)
-    let executionDuration = totalDurationMs - prepDuration - completionDuration;
-
-    // For very short tasks (under 30 mins), create a single operation
-    if (totalDurationMs < 30 * 60 * 1000) {
-        return [
-            {
-                operationId: `${task._id}_single`,
-                parentTaskId: task._id,
-                name: isLoading ? 'Load Cargo' : isUnloading ? 'Unload Cargo' : 'Execute Operation',
-                type: operationType,
-                resourceId: task.resourceId,
-                plannedStartTime: startTime.toISOString(),
-                plannedEndTime: endTime.toISOString(),
-                status: 'PENDING',
-            },
-        ];
-    }
+    // 2. WORKING TIME: The rest
+    let workingDuration = totalDurationMs - waitDuration;
+    
+    // 3. SPLIT WORK: 50% Unload, 50% Load (Standard Turnaround)
+    let unloadDuration = workingDuration / 2;
+    let loadDuration = workingDuration / 2;
 
     const operations = [];
-    let currentTime = startTime.getTime();
+    let currentTime = startTime.getTime() + timeOffset;
 
-    // --- HELPER: Add Operation ---
+    // Helper to add tasks
     const addOp = (suffix, name, type, duration) => {
         const opStart = new Date(currentTime);
         const opEnd = new Date(currentTime + duration);
-
+        
         operations.push({
-            operationId: `${task._id}_${suffix}`,
-            parentTaskId: task._id,
+            operationId: `${task._id || task.id || 'task'}_${suffix}`,
+            parentTaskId: task._id || task.id,
             name: name,
-            type: type,
+            type: type, // THIS IS KEY FOR 3D MODEL: 'WAITING', 'UNLOADING', 'LOADING'
             resourceId: task.resourceId,
             plannedStartTime: opStart.toISOString(),
             plannedEndTime: opEnd.toISOString(),
-            status: 'PENDING',
+            status: "PENDING"
         });
-
+        
         currentTime += duration;
     };
 
-    // --- PHASE 1: PREPARATION ---
-    if (isLoading) {
-        addOp('prep', 'Pre-Loading Safety Inspection', 'Preparation', prepDuration);
-    } else if (isUnloading) {
-        addOp('prep', 'Pre-Unloading Safety Inspection', 'Preparation', prepDuration);
-    } else {
-        addOp('prep', 'Equipment Setup & Safety Check', 'Preparation', prepDuration);
-    }
+    // --- PHASE 1: WAITING (The Setup) ---
+    // Subtask 1: Safety & Positioning
+    addOp("wait_1", "Safety Clearance & Positioning", "WAITING", waitDuration);
 
-    // --- PHASE 2: EXECUTION (Split into realistic cargo handling phases) ---
-    if (isLoading) {
-        // Loading operations: Position → Lift → Transfer → Place
-        const phaseTime = executionDuration / 2;
-        
-        addOp('exec_1', 'Cargo Transfer: Dock to Vessel', 'Loading', phaseTime);
-        addOp('exec_2', 'Cargo Stowage & Securing', 'Loading', phaseTime);
-        
-    } else if (isUnloading) {
-        // Unloading operations: Release → Lift → Transfer → Place
-        const phaseTime = executionDuration / 2;
-        
-        addOp('exec_1', 'Cargo Release & Lifting', 'Unloading', phaseTime);
-        addOp('exec_2', 'Cargo Transfer: Vessel to Dock', 'Unloading', phaseTime);
-        
-    } else {
-        // Generic operations for other task types
-        const phaseTime = executionDuration / 2;
-        addOp('exec_1', 'Primary Operation Execution (Part 1)', operationType, phaseTime);
-        addOp('exec_2', 'Primary Operation Execution (Part 2)', operationType, phaseTime);
-    }
+    // --- PHASE 2: UNLOADING (Removing Cargo) ---
+    // Subtask 1: Hatch / Deck Clearing
+    addOp("unload_1", "Deck/Hatch Clearance", "UNLOADING", unloadDuration * 0.2); 
+    // Subtask 2: Main Discharge
+    addOp("unload_2", "Principal Cargo Discharge", "UNLOADING", unloadDuration * 0.8);
 
-    // --- PHASE 3: COMPLETION ---
-    if (isLoading) {
-        addOp('comp', 'Loading Completion & Documentation', 'Completion', completionDuration);
-    } else if (isUnloading) {
-        addOp('comp', 'Unloading Completion & Documentation', 'Completion', completionDuration);
-    } else {
-        addOp('comp', 'Operation Completion & Teardown', 'Completion', completionDuration);
-    }
+    // --- PHASE 3: LOADING (Adding Cargo) ---
+    // Subtask 1: Main Loading
+    addOp("load_1", "Principal Cargo Loading", "LOADING", loadDuration * 0.8);
+    // Subtask 2: Securing
+    addOp("load_2", "Lashing & Securing", "LOADING", loadDuration * 0.2);
 
     return operations;
 };

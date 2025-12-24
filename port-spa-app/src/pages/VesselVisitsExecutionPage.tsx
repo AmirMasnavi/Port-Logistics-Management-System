@@ -61,7 +61,6 @@ const VesselVisitsExecutionPage: React.FC = () => {
         return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0,16);
     });
     const [notes, setNotes] = useState('');
-    const [generateInitialOperations, setGenerateInitialOperations] = useState(true); // Default to true for auto-generation
 
     // === Lista de docks disponíveis (necessária para label amigável) ===
     const availableDocks = useMemo(() => {
@@ -208,7 +207,6 @@ const VesselVisitsExecutionPage: React.FC = () => {
                 vesselIdentifier,
                 actualArrivalTime: iso,
                 notes: notes || undefined,
-                generateInitialOperations, // Include the auto-generation flag
             };
 
             const created = await createVve(dto);
@@ -218,7 +216,6 @@ const VesselVisitsExecutionPage: React.FC = () => {
                 setVvnId('');
                 setVesselIdentifier('');
                 setNotes('');
-                setGenerateInitialOperations(true); // Reset to default
                 const now = new Date();
                 setActualArrivalTime(new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0,16));
                 
@@ -618,31 +615,6 @@ const VesselVisitsExecutionPage: React.FC = () => {
                                     </p>
                                 </div>
 
-                                {/* Auto-Generate Operations Checkbox */}
-                                <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
-                                    <div className="flex items-start gap-3">
-                                        <input
-                                            type="checkbox"
-                                            id="generateOperations"
-                                            checked={generateInitialOperations}
-                                            onChange={(e) => setGenerateInitialOperations(e.target.checked)}
-                                            className="mt-1 w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
-                                        />
-                                        <div className="flex-1">
-                                            <label htmlFor="generateOperations" className="block text-sm font-semibold text-gray-900 cursor-pointer">
-                                                🚀 Auto-generate operations from plan
-                                            </label>
-                                            <p className="text-xs text-gray-600 mt-1">
-                                                Automatically create detailed operations based on the scheduled tasks in the Operation Plan. 
-                                                This will populate the operations table with pre-made operations (Preparation, Execution, Completion phases) 
-                                                so you can immediately start tracking execution progress.
-                                            </p>
-                                            <p className="text-xs text-blue-700 mt-2 font-medium">
-                                                ✓ Recommended: Keep this enabled to have operations ready in the table immediately after creation.
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
 
                                 {/* Action Buttons */}
                                 <div className="flex justify-end gap-3 pt-4">

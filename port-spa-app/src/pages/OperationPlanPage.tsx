@@ -487,6 +487,31 @@ export const OperationPlanPage: React.FC = () => {
                                                                     </button>
                                                                 </div>
                                                             </div>
+
+                                                            {/* --- NEW SECTION: Display the Smart Generated Sub-Ops --- */}
+                                                            <div className="mt-4 border-t border-gray-100 pt-4">
+                                                                <h5 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Detailed Operations Breakdown</h5>
+                                                                <div className="space-y-2">
+                                                                    {task.subOperations?.map((subOp) => (
+                                                                        <div key={subOp.operationId} className="flex items-center text-sm bg-gray-50 p-2 rounded border border-gray-100">
+                                                                            <div className={`w-2 h-2 rounded-full mr-3 ${
+                                                                                subOp.type === 'LOADING' ? 'bg-green-500' : 
+                                                                                subOp.type === 'UNLOADING' ? 'bg-yellow-500' : 
+                                                                                subOp.type === 'WAITING' ? 'bg-blue-400' : 'bg-gray-400'
+                                                                            }`}></div>
+                                                                            <span className="font-medium w-32 text-gray-700">{subOp.type}</span>
+                                                                            <span className="flex-1 text-gray-600">{subOp.name}</span>
+                                                                            <span className="text-gray-500 text-xs font-mono bg-white px-2 py-1 rounded border border-gray-200">
+                                                                                {new Date(subOp.plannedStartTime).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})} 
+                                                                                - 
+                                                                                {new Date(subOp.plannedEndTime).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}
+                                                                            </span>
+                                                                        </div>
+                                                                    )) || (
+                                                                        <span className="text-gray-400 italic text-sm">No detailed breakdown available.</span>
+                                                                    )}
+                                                                </div>
+                                                            </div>
                                                         </div>
                                                     ))}
                                                 </div>

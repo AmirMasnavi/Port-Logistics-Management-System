@@ -60,128 +60,13 @@ export class VesselVisitExecutionService {
       creatorUserId,
       status: 'In Progress',
       notes: dto.notes || '',
-      executedOperations: [], // Initialize empty
+      executedOperations: [], // Initialize empty - Operations are generated Just-In-Time
     };
 
-    // 6. Optionally generate initial operations from the plan
-    console.log(`[VVE CREATE] generateInitialOperations flag: ${dto.generateInitialOperations}`);
-    
-    if (dto.generateInitialOperations) {
-      console.log(`\n${'='.repeat(80)}`);
-      console.log(`[VVE Service] 🚀 SMART OPERATION GENERATION - START`);
-      console.log(`${'='.repeat(80)}`);
-      console.log(`[VVE Service] VVE ID: ${vveId}`);
-      console.log(`[VVE Service] VVN ID to match: "${dto.vvnId}"`);
-      console.log(`[VVE Service] Vessel IMO: ${dto.vesselIdentifier}`);
-      
-      try {
-        // Extract the date from actualArrivalTime
-        const arrivalDate = new Date(dto.actualArrivalTime);
-        const dateStr = arrivalDate.toISOString().split('T')[0]; // YYYY-MM-DD
-        console.log(`[VVE Service] Arrival date: ${dateStr}`);
-        console.log(`${'─'.repeat(80)}`);
-
-        // Find operation plan for this date and vessel
-        console.log(`[VVE Service] 🔍 Searching for operation plans...`);
-        console.log(`[VVE Service] Search criteria: date="${dateStr}", vesselVisitId="${dto.vvnId}"`);
-        
-        const plans = await this.operationPlanRepository.findAll({
-          date: dateStr,
-          vesselVisitId: dto.vvnId 
-        });
-
-        console.log(`[VVE Service] 📋 Found ${plans.length} plan(s) for date ${dateStr}`);
-
-        if (plans.length > 0) {
-          const plan = plans[0];
-          console.log(`[VVE Service] ✓ Using plan: ${plan.planId}`);
-          console.log(`[VVE Service] ✓ Total tasks in plan: ${plan.scheduledTasks?.length || 0}`);
-          console.log(`${'─'.repeat(80)}`);
-          
-          // Show all tasks and matching logic
-          console.log(`[VVE Service] 🔍 VESSEL MATCHING:`);
-          console.log(`[VVE Service] Looking for VVN: "${dto.vvnId}"\n`);
-          
-          plan.scheduledTasks.forEach((task, idx) => {
-            const matchVesselVisitId = task.vesselVisitId === dto.vvnId;
-            const matchBusinessId = task.vesselVisitBusinessId === dto.vvnId;
-            const matches = matchVesselVisitId || matchBusinessId;
-            
-            console.log(`[VVE Service] Task #${idx + 1}:`);
-            console.log(`[VVE Service]   vesselVisitId: "${task.vesselVisitId}" ${matchVesselVisitId ? '✅ MATCH!' : '❌'}`);
-            console.log(`[VVE Service]   vesselVisitBusinessId: "${task.vesselVisitBusinessId}" ${matchBusinessId ? '✅ MATCH!' : '❌'}`);
-            console.log(`[VVE Service]   vesselImo: "${task.vesselImo}"`);
-            console.log(`[VVE Service]   → Result: ${matches ? '✅ WILL USE THIS TASK' : '⏭️  Skip'}\n`);
-          });
-          
-          // Filter tasks for this vessel visit
-          const vesselTasks = plan.scheduledTasks.filter(
-            task => task.vesselVisitId === dto.vvnId || task.vesselVisitBusinessId === dto.vvnId
-          );
-
-          console.log(`${'─'.repeat(80)}`);
-          console.log(`[VVE Service] 🎯 RESULT: ${vesselTasks.length} matching task(s) found`);
-
-          if (vesselTasks.length === 0) {
-            console.log(`[VVE Service] ❌ NO MATCHING TASKS!`);
-            console.log(`[VVE Service] The VVN "${dto.vvnId}" is not in this plan.`);
-            console.log(`[VVE Service] Available VVNs in this plan:`);
-            const availableVvns = [...new Set(plan.scheduledTasks.map(t => 
-              t.vesselVisitBusinessId || t.vesselVisitId
-            ))].filter(Boolean);
-            availableVvns.forEach(vvn => console.log(`[VVE Service]   • ${vvn}`));
-            console.log(`[VVE Service] 💡 Create a VVE for one of the above VVNs to generate operations.`);
-          } else {
-            console.log(`[VVE Service] ✅ Matched ${vesselTasks.length} task(s). Generating operations...\n`);
-            
-            // Generate operations for each task and add them as PENDING
-            vesselTasks.forEach((task, taskIdx) => {
-              console.log(`[VVE Service] 🔧 Task ${taskIdx + 1}/${vesselTasks.length}: Generating smart operations...`);
-              const virtualOps = generateSmartOperations(task);
-              console.log(`[VVE Service] ⚙️  Generated ${virtualOps.length} operations`);
-              
-              // Convert virtual operations to executed operations with PENDING status
-              virtualOps.forEach((op, opIdx) => {
-                vveData.executedOperations.push({
-                  operationId: op.operationId,
-                  name: op.name,
-                  type: op.type,
-                  status: 'PENDING',
-                  startTime: null,
-                  endTime: null,
-                  startedBy: null,
-                  completedBy: null,
-                  actualResource: op.resourceId,
-                  notes: `Auto-generated: ${op.name}`,
-                });
-                
-                if (opIdx === 0) {
-                  console.log(`[VVE Service]    Sample: ${op.name} (${op.type})`);
-                }
-              });
-            });
-
-            console.log(`\n[VVE Service] ✅ SUCCESS! Generated ${vveData.executedOperations.length} total operations`);
-          }
-        } else {
-          console.log(`[VVE Service] ❌ No operation plan found for date ${dateStr}`);
-          console.log(`[VVE Service] Cannot generate smart operations without a plan.`);
-        }
-      } catch (error) {
-        console.error(`[VVE Service] ❌ ERROR during auto-generation:`, error.message);
-        console.error(error.stack);
-        // Don't fail the VVE creation if operation generation fails
-      }
-      console.log(`${'='.repeat(80)}`);
-      console.log(`[VVE Service] 🚀 SMART OPERATION GENERATION - END\n`);
-    } else {
-      console.log(`[VVE Service] ⏭️  Auto-generation disabled (checkbox not checked)`);
-    }
-
-    // 7. Save to repository
+    // 6. Save to repository
     const savedVve = await this.vveRepository.create(vveData);
 
-    // 8. Map to response DTO
+    // 7. Map to response DTO
     return VveMapper.toResponseDto(savedVve);
   }
 
@@ -556,7 +441,8 @@ export class VesselVisitExecutionService {
 
       vesselTasks.forEach(task => {
         // A. Generate virtual operations from the planned task
-        const virtualOps = generateSmartOperations(task);
+        // Pass actualArrivalTime to shift operations if needed (US 4.1.8)
+        const virtualOps = generateSmartOperations(task, vve.actualArrivalTime);
         
         console.log(`[VVE Service] Generated ${virtualOps.length} operations for task ${task._id}`);
 
@@ -633,12 +519,25 @@ export class VesselVisitExecutionService {
       }));
     }
 
+    // Calculate Real-Time Status for 3D Model (Gap 1)
+    const now = new Date();
+    const activeOp = detailedOperations.find(op => 
+        op.executedStatus === 'IN_PROGRESS' || 
+        (op.computedStatus === 'PENDING' && op.plannedStartTime && new Date(op.plannedStartTime) <= now && new Date(op.plannedEndTime) >= now)
+    );
+
     // 6. Return VVE with generated + merged operations
     return {
       ...VveMapper.toResponseDto(vve),
       operations: detailedOperations,
       planExists: plans.length > 0,
       planId: plans.length > 0 ? plans[0].planId : null,
+      // Add this for the 3D Model:
+      realTimeStatus: {
+          resourceId: "1", // Default or derived from activeOp
+          state: activeOp ? activeOp.type : "IDLE", // WAITING, LOADING, UNLOADING, or IDLE
+          percentage: 50 // Placeholder - could be calculated based on time elapsed
+      }
     };
   }
 }

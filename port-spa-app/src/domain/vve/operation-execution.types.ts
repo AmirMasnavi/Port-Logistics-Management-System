@@ -15,7 +15,7 @@ export interface OperationComparison {
     
     // Operation details
     name?: string;  // Operation name (e.g., "Lift Cargo from Vessel")
-    type?: 'Loading' | 'Unloading' | 'Preparation' | 'Completion' | 'Inspection' | 'Other';  // Operation type
+    type?: 'WAITING' | 'LOADING' | 'UNLOADING' | 'Other' ;  // Operation type
     
     // Planned data
     plannedStartTime?: string;
@@ -62,4 +62,6 @@ export interface UpdateOperationStatusDto {
     timestamp?: string;    // ISO datetime, defaults to now on backend
     resourceId?: string;   // Optional: different resource used
     notes?: string;
+    name?: string;
+    type?: 'WAITING' | 'LOADING' | 'UNLOADING' | 'Other' | 'Loading' | 'Unloading' | 'Preparation' | 'Completion' | 'Inspection';
 }
