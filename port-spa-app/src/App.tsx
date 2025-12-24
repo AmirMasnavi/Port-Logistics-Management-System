@@ -22,6 +22,7 @@ import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import PrivacyPolicyGuard from './components/auth/PrivacyPolicyGuard';
 import DataRightsPage from './pages/DataRightsPage';
 import IncidentTypePage from './pages/IncidentTypePage';
+import IncidentsPage from './pages/IncidentsPage';
 
 import { OperationPlanPage } from './pages/OperationPlanPage';
 import PlanningResourceAllocationsPage from './pages/PlanningResourceAllocationsPage';
@@ -112,7 +113,9 @@ function App() {
                                 <Route path="/scheduling" element={<SchedulingPage />} />
                                 <Route path="/missing-plans" element={<MissingPlans />} />
                                 <Route path="/operation-plans" element={<OperationPlanPage />} />
-                                <Route path="/vessel-visit-executions" element={<VesselVisitsExecutionPage />} />                            </Route>
+                                <Route path="/vessel-visit-executions" element={<VesselVisitsExecutionPage />} />
+                                <Route path="/incidents" element={<IncidentsPage />} />
+                            </Route>
                             
                             {/* --- Role-Protected Routes for VVN Management (Admin, Agent) --- */}
                             <Route element={<RoleProtectedRoute allowedRoles={canManageVVN} />}>
