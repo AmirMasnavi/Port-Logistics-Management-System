@@ -9,6 +9,7 @@ export const ROLE_ADMIN = 'Administrator';
 export const ROLE_OFFICER = 'PortAuthorityOfficer';
 export const ROLE_LOGISTICS = 'LogisticsOperator';
 export const ROLE_AGENT = 'ShippingAgentRepresentative';
+export const ROLE_PORT_OPERATIONS_SUPERVISOR = 'PortOperationsSupervisor';
 
 // Permission Sets for different feature areas
 // Used to check if a user's role is in the set of allowed roles.
@@ -27,6 +28,8 @@ export const canViewResources = new Set([ROLE_ADMIN, ROLE_OFFICER, ROLE_LOGISTIC
 
 // Roles that can view the 3D visualization
 export const canViewVisualization = new Set([ROLE_ADMIN, ROLE_OFFICER, ROLE_LOGISTICS]);
+
+export const canManagePortOperationsSupervisor = new Set([ROLE_ADMIN, ROLE_PORT_OPERATIONS_SUPERVISOR]);
 
 //Roles that can view IARTI
 export const canViewIARTI = new Set([ROLE_ADMIN, ROLE_LOGISTICS]);

@@ -86,3 +86,19 @@
   }
 }
 
+.custom-scrollbar::-webkit-scrollbar {
+    width: 6px; /* Largura da barra */
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent; /* Fundo da calha */
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #cbd5e1; /* Cor cinza (Tailwind slate-300) similar à sua imagem */
+    border-radius: 10px; /* Bordas arredondadas */
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8; /* Cor um pouco mais escura ao passar o rato */
+}

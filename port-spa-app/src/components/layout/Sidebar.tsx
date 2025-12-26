@@ -2,7 +2,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthProvider'; // [cite: 192]
-import { canManagePort, canViewPlanning, isAdmin, canViewVisualization, canViewIARTI, canViewResources } from '../../auth/permissions';
+import { canManagePort, canViewPlanning, isAdmin, canViewVisualization, canViewIARTI, canViewResources, canManagePortOperationsSupervisor } from '../../auth/permissions';
 
 import { t } from '../../i18nClient';
 // 1. Import the icons we need from lucide-react
@@ -24,6 +24,7 @@ import {
     Album,
     AlertTriangle, // For Missing Plans
     CloudSunRain,
+    ChartColumnStacked
 } from 'lucide-react';
 
 // 2. Create a new, reusable component for our icon-links
@@ -131,8 +132,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                 )}
             </div>
             {/* 9. Pass 'isExpanded' down to all NavItems */}
-            
-            <nav className="flex-1 flex flex-col items-center space-y-3">
+
+            <nav className="flex-1 flex flex-col items-center space-y-3 overflow-y-auto overflow-x-hidden pr-1 custom-scrollbar">
                 {/* Dashboard: Everyone */}
                 <NavItem to="/" label={t('nav.dashboard')} icon={LayoutDashboard} isExpanded={isExpanded} />
                 {/* Vessel Visits: Everyone */}
@@ -179,18 +180,24 @@ const Sidebar: React.FC<SidebarProps> = ({
                 {canViewVisualization.has(internalRole || '') && (
                     <NavItem to="/visualization" label={t('nav.visualization')} icon={Box} isExpanded={isExpanded} />
                 )}
+                
+                {canManagePortOperationsSupervisor.has(internalRole || '') && (
+                    <NavItem to="/complementary-task-categories" label={t('Complementary Task Categories')} icon={ChartColumnStacked} isExpanded={isExpanded} />
+                )}
+
                 {/* Admin Page: Admin only */}
                 {isAdmin.has(internalRole || '') && (
                     <>
-                        <hr className="w-full my-2" />
+                        <hr className="w-full my-2 border-gray-200" />
                         <NavItem to="/admin/users" label={t('nav.userAdmin')} icon={Settings} isExpanded={isExpanded} />
                     </>
-                )}
+                )}                
+                
             </nav>
 
             {/* Logout button */}
             {/* 10. The Logout button, now also expanding */}
-            <div className="mt-auto w-full">
+            <div className="mt-auto pt-4 flex-shrink-0 w-full border-t border-gray-100">
                 <button
                     onClick={logout}
                     title={t('button.logout')}

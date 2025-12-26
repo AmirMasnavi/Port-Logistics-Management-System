@@ -23,9 +23,11 @@ import PrivacyPolicyGuard from './components/auth/PrivacyPolicyGuard';
 import DataRightsPage from './pages/DataRightsPage';
 import IncidentTypePage from './pages/IncidentTypePage';
 import IncidentsPage from './pages/IncidentsPage';
+import ComplementaryTaskCategoriesPage from './pages/ComplementaryTaskCategoriesPage'; 
 
 import { OperationPlanPage } from './pages/OperationPlanPage';
 import PlanningResourceAllocationsPage from './pages/PlanningResourceAllocationsPage';
+
 
 // --- Centralized Permission Sets ---
 import {
@@ -36,7 +38,8 @@ import {
     canViewVisualization,
     canViewIARTI,
     canViewVessels,
-    canViewResources
+    canViewResources,
+    canManagePortOperationsSupervisor
 } from './auth/permissions';
 import Dashboard from './pages/Dashboard';
 
@@ -86,6 +89,12 @@ function App() {
                                 <Route path="/incident-types" element={<IncidentTypePage />} /> 
                             </Route>
 
+                            <Route element={<RoleProtectedRoute allowedRoles={canManagePort} />}>
+                                <Route path="/vessel-types" element={<VesselTypesPage />} />
+                                <Route path="/shippingagentorganization" element={<ShippingAgentOrganization />} />
+                                <Route path="/incident-types" element={<IncidentTypePage />} />
+                            </Route>
+
                             {/* --- Role-Protected Routes for Planners (Admin, Officer) --- */}
                             <Route element={<RoleProtectedRoute allowedRoles={canViewPlanning} />}>
                                 <Route path="/port-facilities" element={<PortFacilitiesPage />} />
@@ -96,6 +105,10 @@ function App() {
                                 
                             </Route>
 
+                            <Route element={<RoleProtectedRoute allowedRoles={canManagePortOperationsSupervisor} />}>
+                                <Route path="/complementary-task-categories" element={<ComplementaryTaskCategoriesPage />} />
+                            </Route>
+                            
                             {/* --- Vessels List (Admin, Officer, Logistics) --- */}
                             {/* Moved here so Logistics can access Vessels but not Agent Config */}
                             <Route element={<RoleProtectedRoute allowedRoles={canViewVessels} />}>
