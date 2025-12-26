@@ -12,6 +12,7 @@ import { swaggerSpec } from './config/swagger.js';
 import { createOperationPlanRouter } from './controllers/operationPlanController.js';
 import {createIncidentTypeRouter} from "./controllers/incidentTypeController.js";
 import {createIncidentRouter} from "./controllers/incidentController.js";
+import { createComplementaryTaskCategoryRouter } from './controllers/complementaryTaskCategoriesController.js';
 
 // Load environment variables
 dotenv.config();
@@ -84,6 +85,7 @@ app.use('/api/vve', createVveRouter(masterDataGateway));
 app.use('/api/plans', createOperationPlanRouter());
 app.use('/api/incident-type', createIncidentTypeRouter(masterDataGateway));
 app.use('/api/incidents', createIncidentRouter(masterDataGateway));
+app.use('/api/complementary-task-categories', createComplementaryTaskCategoryRouter(masterDataGateway));
 
 
 // Root endpoint
