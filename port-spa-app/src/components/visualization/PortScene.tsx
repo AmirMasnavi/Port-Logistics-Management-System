@@ -525,10 +525,17 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
         console.log(`📹 Camera moving to Perpendicular View: [${newCameraPos.join(', ')}]`);
     }, []);
 
-    // Função para fechar o card (passar para o ClickableElement)
+    // Função para fechar o card (desselecionar elemento)
     const handleDeselect = React.useCallback(() => {
         setSelectedId(null);            // Limpa seleção (fecha UI)
         setSelectedElement(null);       // Apaga luz/highlight
+    }, []);
+    
+    // Separate function for camera reset with view toggle (only triggered by 'r' key)
+    const handleCameraReset = React.useCallback(() => {
+        // Clear any selection first
+        setSelectedId(null);
+        setSelectedElement(null);
         
         // Show indicator
         setShowViewModeIndicator(true);
@@ -558,7 +565,7 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
     // Keyboard shortcuts handler
     React.useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
-            // Escape key - deselect current element
+            // Escape key - deselect current element (doesn't change view)
             if (event.key === 'Escape') {
                 if (selectedId) {
                     console.log('⌨️ Escape pressed - deselecting element');
@@ -566,10 +573,10 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
                 }
             }
             
-            // 'r' key - reset camera to initial position
+            // 'r' key - reset camera and toggle view
             if (event.key === 'r' || event.key === 'R') {
-                console.log('⌨️ R pressed - resetting camera');
-                handleDeselect();
+                console.log('⌨️ R pressed - resetting camera and toggling view');
+                handleCameraReset();
             }
         };
 
@@ -577,7 +584,7 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
         return () => {
             window.removeEventListener('keydown', handleKeyDown);
         };
-    }, [selectedId, handleDeselect]);
+    }, [selectedId, handleDeselect, handleCameraReset]);
 
     // Debug: Log when selectedElement changes
     React.useEffect(() => {
