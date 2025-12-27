@@ -61,6 +61,19 @@ export interface VveListItem {
     createdAt: string;
 }
 
+export interface ExecutedOperation {
+    operationId: string;
+    name: string;
+    type: 'WAITING' | 'LOADING' | 'UNLOADING' | 'Other' | 'Loading' | 'Unloading' | 'Preparation' | 'Completion' | 'Inspection';
+    status: 'PENDING' | 'STARTED' | 'COMPLETED' | 'SUSPENDED';
+    startTime?: string;
+    startedBy?: string;
+    endTime?: string;
+    completedBy?: string;
+    actualResource?: string;
+    notes?: string;
+}
+
 export interface VveWithMetrics extends VveListItem {
     actualDepartureTime?: string;
     actualBerthTime?: string;
@@ -70,6 +83,7 @@ export interface VveWithMetrics extends VveListItem {
     updatedAt: string;
     metrics: ExecutionMetrics | null;
     vvnData: VvnData | null;
+    executedOperations?: ExecutedOperation[];
 }
 
 export interface CreateVveRequest {

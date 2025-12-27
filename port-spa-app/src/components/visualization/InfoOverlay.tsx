@@ -192,13 +192,26 @@ export const InfoOverlay: React.FC<InfoOverlayProps> = ({
             case 'vessel':
                 content = elementData.vesselVisit && (
                     <>
-                        <InfoRow label="Status" value={elementData.vesselVisit.status || 'N/A'} />
+                        {/* Show operational status from VVE instead of VVN status */}
+                        <InfoRow 
+                            label="Operational Status" 
+                            value={elementData.operationalStatus || 'N/A'}
+                            valueClassName={
+                                elementData.operationalStatus === 'LOADING' ? 'text-blue-600 font-bold' :
+                                elementData.operationalStatus === 'UNLOADING' ? 'text-green-600 font-bold' :
+                                elementData.operationalStatus === 'WAITING' ? 'text-yellow-600 font-bold' :
+                                'text-gray-600'
+                            }
+                        />
+                        {/* Show VVN status for reference */}
+                        <InfoRow label="VVN Status" value={elementData.vesselVisit.status || 'N/A'} />
                         <InfoRow label="ETA" value={elementData.vesselVisit.estimatedArrival || elementData.vesselVisit.arrivalDate || 'N/A'} />
                         <InfoRow label="ETD" value={elementData.vesselVisit.estimatedDeparture || elementData.vesselVisit.departureDate || 'N/A'} />
                         <InfoRow label="Assigned Dock" value={elementData.vesselVisit.assignedDockName || 'N/A'} />
-                        {elementData.vesselVisit.operations && (
+                        {/* Show active operation details if available */}
+                        {elementData.vveData?.executedOperations && (
                             <InfoRow 
-                                label="Ongoing Operations" 
+                                label="Active Operations" 
                                 value={`${elementData.vesselVisit.operations.length} operation(s)`} 
                             />
                         )}
@@ -395,13 +408,13 @@ export const InfoOverlay: React.FC<InfoOverlayProps> = ({
     );
 };
 
-const InfoRow: React.FC<{ label: string; value: string | number }> = ({ label, value }) => (
+const InfoRow: React.FC<{ label: string; value: string | number; valueClassName?: string }> = ({ label, value, valueClassName }) => (
     <div className="flex justify-between items-center gap-3 text-sm group hover:bg-blue-50/50 px-2 py-1.5 rounded-lg transition-all duration-200">
         <span className="font-semibold text-gray-700 whitespace-nowrap flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 group-hover:scale-125 transition-transform"></span>
             {label}:
         </span>
-        <span className="text-gray-900 font-medium text-right break-words bg-white/60 px-2 py-0.5 rounded group-hover:bg-white/80 transition-colors">
+        <span className={valueClassName || "text-gray-900 font-medium text-right break-words bg-white/60 px-2 py-0.5 rounded group-hover:bg-white/80 transition-colors"}>
             {value}
         </span>
     </div>

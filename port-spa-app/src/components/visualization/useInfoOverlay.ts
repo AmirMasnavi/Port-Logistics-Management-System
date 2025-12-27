@@ -4,6 +4,7 @@ import { StorageAreaService } from '../../app/storageArea/storageArea.service';
 import { storageAreaApiRepository } from '../../infrastructure/repositories/storageArea/storageAreaApi.repository';
 import { ResourceService } from '../../app/resource/resource.service';
 import { resourceApiRepository } from '../../infrastructure/repositories/resource/resourceApi.repository';
+import { vveService } from '../../services/vveService';
 
 const storageAreaService = new StorageAreaService(storageAreaApiRepository);
 const resourceService = new ResourceService(resourceApiRepository);
@@ -93,12 +94,45 @@ export const useInfoOverlay = () => {
                             const vesselDetails = await getVesselByImo(vesselVisit.vesselImo);
                             console.log('🚢 ✅ Vessel details fetched:', vesselDetails);
                             
+                            // Fetch VVE data to get operational status (LOADING/UNLOADING/WAITING)
+                            console.log('🚢 Fetching VVE data for vessel IMO:', vesselVisit.vesselImo);
+                            let vveData = null;
+                            let operationalStatus = vesselVisit.status; // Fallback to VVN status
+                            
+                            try {
+                                const vves = await vveService.getAllVves({ status: 'In Progress' });
+                                vveData = vves.find(vve => 
+                                    vve.vesselIdentifier === vesselVisit.vesselImo || 
+                                    vve.vesselIdentifier === selectedElement.id
+                                );
+                                
+                                if (vveData) {
+                                    console.log('🚢 ✅ VVE data found:', vveData);
+                                    // Find active operation (status = 'STARTED')
+                                    const activeOperation = vveData.executedOperations?.find(op => op.status === 'STARTED');
+                                    
+                                    if (activeOperation) {
+                                        operationalStatus = activeOperation.type.toUpperCase(); // LOADING, UNLOADING, etc.
+                                        console.log('🚢 ✅ Active operation found:', activeOperation.type);
+                                    } else if (vveData.status === 'In Progress') {
+                                        operationalStatus = 'WAITING';
+                                        console.log('🚢 VVE is active but no operation started - defaulting to WAITING');
+                                    }
+                                } else {
+                                    console.log('🚢 No VVE data found for this vessel');
+                                }
+                            } catch (error) {
+                                console.warn('🚢 ⚠️ Failed to fetch VVE data:', error);
+                            }
+                            
                             data = {
                                 ...vesselDetails,
                                 vesselVisit: vesselVisit,
-                                imo: vesselVisit.vesselImo
+                                imo: vesselVisit.vesselImo,
+                                vveData: vveData,
+                                operationalStatus: operationalStatus // LOADING, UNLOADING, WAITING, or VVN status
                             };
-                            console.log('🚢 ✅ Final vessel data prepared:', data);
+                            console.log('🚢 ✅ Final vessel data prepared with operational status:', data);
                         } else {
                             console.warn('🚢 ⚠️ Could not find vessel visit or vesselImo is missing');
                             console.warn('🚢 vesselVisit found:', !!vesselVisit);

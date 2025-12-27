@@ -12,6 +12,8 @@ import {
     getDockById,
     getAllDocks,
 } from '../services/apiService';
+import { vveService } from '../services/vveService';
+import type { VveWithMetrics } from '../services/vveService';
 import { StorageAreaService } from '../app/storageArea/storageArea.service';
 import { storageAreaApiRepository } from '../infrastructure/repositories/storageArea/storageAreaApi.repository';
 import { ResourceService } from '../app/resource/resource.service';
@@ -37,6 +39,7 @@ import { generateWarehouseLayout } from '../services/warehouseLayoutService';
         const [layout, setLayout] = useState<PortLayout | null>(null);
         const [vessels, setVessels] = useState<RenderableVessel[]>([]);
         const [resources, setResources] = useState<RenderableResource[]>([]);
+        const [vesselStatuses, setVesselStatuses] = useState<VveWithMetrics[]>([]);
         const [loading, setLoading] = useState(true);
         const [error, setError] = useState<string | null>(null);
         const [selectedLayout, setSelectedLayout] = useState('layout1');
@@ -47,6 +50,25 @@ import { generateWarehouseLayout } from '../services/warehouseLayoutService';
         // Initialize info overlay hook
         const { isVisible, selectedElement, elementData, selectElement } = useInfoOverlay();
         
+        // Poll for vessel statuses
+        useEffect(() => {
+            const fetchVesselStatuses = async () => {
+                try {
+                    // Fetch active VVEs (In Progress)
+                    const vves = await vveService.getAllVves({ status: 'In Progress' });
+                    console.log('📡 Fetched active vessel statuses:', vves);
+                    setVesselStatuses(vves);
+                } catch (err) {
+                    console.error('Failed to fetch vessel statuses', err);
+                }
+            };
+
+            fetchVesselStatuses(); // Initial fetch
+            const interval = setInterval(fetchVesselStatuses, 5000); // Poll every 5s
+
+            return () => clearInterval(interval);
+        }, []);
+
         useEffect(() => {
             const fetchData = async () => {
                 setLoading(true);
@@ -547,6 +569,7 @@ import { generateWarehouseLayout } from '../services/warehouseLayoutService';
                                 layoutElements={layout.elements} 
                                 vessels={vessels} 
                                 resources={resources} 
+                                vesselStatuses={vesselStatuses}
                                 onElementSelect={selectElement}
                             />
                         </div>

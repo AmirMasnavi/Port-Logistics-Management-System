@@ -11,6 +11,7 @@ import {
 } from './models';
 import { useMemo, useRef } from 'react';
 import * as THREE from 'three';
+import type { VveWithMetrics } from '../../services/vveService';
 
 // Global scale factor to make the whole port layout "bigger" in world units
 const WORLD_SCALE = 3; // tweak this to 2, 3, 4... until the map feels right
@@ -50,6 +51,7 @@ interface PortSceneProps {
     vessels: RenderableVessel[];
     resources: RenderableResource[];
     containers?: RenderableContainer[]; // optional (defaults to [])
+    vesselStatuses?: VveWithMetrics[]; // New prop for vessel statuses
     onElementSelect?: (elementInfo: { type: 'vessel' | 'dock' | 'yard' | 'building' | 'resource'; id: string; name?: string }) => void;
 }
 
@@ -423,7 +425,7 @@ function seededRandom(seed: string) {
     };
 }
 
-const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resources, containers, onElementSelect }) => {
+const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resources, containers, vesselStatuses = [], onElementSelect }) => {
     // 🚢 DEBUG: Log props received by PortScene
     console.log('🎬 ========== PortScene RENDER ==========');
     console.log('🎬 PortScene received props:');
@@ -1348,7 +1350,27 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
                 scaledVessels.forEach((v, idx) => {
                     console.log(`  Rendering vessel ${idx + 1}: id=${v.id}, name=${v.name}, position=[${v.position.join(', ')}], hasModel=${!!v.modelUrl}`);
                 });
-                return scaledVessels.map(v => (
+                return scaledVessels.map(v => {
+                    // Find VVE for this vessel
+                    const vve = vesselStatuses.find(s => s.vesselIdentifier === v.imo || s.vesselIdentifier === v.id);
+                    
+                    // Find the currently active operation (status = 'STARTED')
+                    const activeOperation = vve?.executedOperations?.find(op => op.status === 'STARTED');
+                    
+                    // Determine operational status from active operation type
+                    // Priority: Active operation type > VVE status
+                    let operationalStatus: string | undefined;
+                    if (activeOperation) {
+                        // Use the operation type as the operational status
+                        operationalStatus = activeOperation.type.toUpperCase();
+                    } else if (vve && vve.status === 'In Progress') {
+                        // Fallback: if VVE is active but no specific operation, assume WAITING
+                        operationalStatus = 'WAITING';
+                    }
+                    
+                    console.log(`  Vessel ${v.name}: VVE status=${vve?.status}, Active operation=${activeOperation?.type}, Display status=${operationalStatus}`);
+                    
+                    return (
                     <ClickableElement
                         key={v.id}
                         position={v.position}
@@ -1368,11 +1390,26 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
                                 position={v.position}
                                 // vessels.size can be either a number or an array; pass it through or fallback to 0.5
                                 scale={Array.isArray(v.size) ? (v.size as any) : (v.size ?? 0.5)}
-                                rotation={v.rotation}
+                                rotation={v.rotation || [0, 0, 0]}
+                                status={operationalStatus} // Pass operational status (WAITING/LOADING/UNLOADING)
                             />
                         )}
+                        
+                        {/* Status Indicator Tooltip */}
+                        {operationalStatus && (
+                            <Html position={[0, 20, 0]} center distanceFactor={15}>
+                                <div className={`px-2 py-1 rounded text-xs font-bold text-white whitespace-nowrap shadow-lg ${
+                                    operationalStatus === 'LOADING' ? 'bg-blue-500' :
+                                    operationalStatus === 'UNLOADING' ? 'bg-green-500' :
+                                    operationalStatus === 'WAITING' ? 'bg-yellow-500' :
+                                    'bg-gray-500'
+                                }`}>
+                                    {operationalStatus}
+                                </div>
+                            </Html>
+                        )}
                     </ClickableElement>
-                ));
+                )});
             })()}
 
             {/* Render cranes: imported model if available, else procedural based on area type */}
