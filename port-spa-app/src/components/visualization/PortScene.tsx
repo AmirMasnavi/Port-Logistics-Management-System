@@ -485,7 +485,14 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
     // Camera animation state
     const [targetCameraPosition, setTargetCameraPosition] = React.useState<[number, number, number] | null>(null);
     const [targetCameraLookAt, setTargetCameraLookAt] = React.useState<[number, number, number] | null>(null);
-
+    
+    // Camera view mode state: 'isometric' or 'topdown'
+    const [cameraViewMode, setCameraViewMode] = React.useState<'isometric' | 'topdown'>('isometric');
+    
+    // State for showing the view mode indicator
+    const [showViewModeIndicator, setShowViewModeIndicator] = React.useState(false);
+    const viewModeTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+    
     // Handler for element selection
     const handleElementSelect = React.useCallback((position: [number, number, number], id?: string,  size?: [number, number, number]) => {
         console.log(`🎯 Element selected at [${position.join(', ')}]`);
@@ -520,9 +527,31 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
     const handleDeselect = React.useCallback(() => {
         setSelectedId(null);            // Limpa seleção (fecha UI)
         setSelectedElement(null);       // Apaga luz/highlight
-        setTargetCameraPosition([0, 60, 80]); // Reseta câmara para posição inicial
-        setTargetCameraLookAt([0, 0, 0]);
-    }, []);
+        
+        // Show indicator
+        setShowViewModeIndicator(true);
+        if (viewModeTimeoutRef.current) {
+            clearTimeout(viewModeTimeoutRef.current);
+        }
+        viewModeTimeoutRef.current = setTimeout(() => {
+            setShowViewModeIndicator(false);
+        }, 3000);
+        
+        // Contextual Reset: Toggle between Isometric and Top-Down views
+        if (cameraViewMode === 'isometric') {
+            // Switch to Top-Down (Blueprint) view
+            console.log('📹 Switching to TOP-DOWN (Blueprint) view');
+            setTargetCameraPosition([0, 100, 0]); // Directly above, high altitude
+            setTargetCameraLookAt([0, 0, 0]);
+            setCameraViewMode('topdown');
+        } else {
+            // Switch to Isometric (Standard Overview) view
+            console.log('📹 Switching to ISOMETRIC (Standard Overview) view');
+            setTargetCameraPosition([0, 60, 80]); // 45-degree angle view
+            setTargetCameraLookAt([0, 0, 0]);
+            setCameraViewMode('isometric');
+        }
+    }, [cameraViewMode]);
 
     // Keyboard shortcuts handler
     React.useEffect(() => {
@@ -543,7 +572,9 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
         };
 
         window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+        };
     }, [selectedId, handleDeselect]);
 
     // Debug: Log when selectedElement changes
@@ -1490,6 +1521,31 @@ const PortScene: React.FC<PortSceneProps> = ({ layoutElements, vessels, resource
             />
         </Canvas>
         
+        {/* Camera View Mode Indicator Button - Only visible temporarily after view change */}
+        {showViewModeIndicator && (
+            <div
+                className="absolute bottom-4 left-4 z-10 bg-gradient-to-br from-purple-500 to-purple-700 text-white rounded-lg px-4 py-3 flex items-center gap-2 shadow-2xl animate-fade-in pointer-events-none"
+                style={{
+                    animation: 'fadeIn 0.3s ease-in-out'
+                }}
+            >
+                {cameraViewMode === 'topdown' ? (
+                    <>
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                        </svg>
+                        <span className="text-sm font-semibold">Top-Down View</span>
+                    </>
+                ) : (
+                    <>
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                        </svg>
+                        <span className="text-sm font-semibold">Isometric View</span>
+                    </>
+                )}
+            </div>
+        )}
         {/* Keyboard Shortcuts Help Button */}
         <KeyboardShortcutsHelp />
         </div>
@@ -1583,7 +1639,7 @@ const KeyboardShortcutsHelp: React.FC = () => {
                                 <div className="flex items-center gap-2 mb-3">
                                     <div className="bg-gradient-to-r from-purple-500 to-pink-500 p-2 rounded-lg">
                                         <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
                                         </svg>
                                     </div>
                                     <h4 className="text-gray-800 font-semibold text-base">Keyboard Controls</h4>
@@ -1617,7 +1673,7 @@ const ShortcutRow: React.FC<{ shortcut: string; description: string; icon?: stri
     const getIcon = () => {
         switch(icon) {
             case 'cursor':
-                return <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5" /></svg>;
+                return <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" /></svg>;
             case 'rotate':
                 return <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>;
             case 'move':
