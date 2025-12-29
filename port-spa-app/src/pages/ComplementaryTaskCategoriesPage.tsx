@@ -9,51 +9,65 @@ import {
     X,
     CheckCircle2,
     AlertCircle,
-    AlertTriangle,
     Clock,
+    ChevronDown,
+    ChevronUp,
 } from 'lucide-react';
+
 import * as categoryService from '../services/complementaryTaskCategoriesService';
 import type {
     ComplementaryTaskCategoryFilters,
     CreateComplementaryTaskCategoryDto,
     UpdateComplementaryTaskCategoryDto,
 } from '../services/complementaryTaskCategoriesService';
+
 import ConfirmationModal from '../components/common/ConfirmationModal';
-import type {
-    ComplementaryTaskCategory
-} from "../domain/complementaryTaskCategories/complementaryTaskCategories.model.ts";
+import type { ComplementaryTaskCategory } from '../domain/complementaryTaskCategories/complementaryTaskCategories.model.ts';
+
+// Available groups
+const GROUPS = [
+    'Safety and Security',
+    'Maintenance',
+    'Cleaning and Housekeeping',
+    'Bunkering and Supply',
+    'Crew and Personnel',
+    'Regulatory and Surveys',
+    'Weather and External Delays',
+    'Other',
+] as const;
+
+type Group = typeof GROUPS[number];
 
 const ComplementaryTaskCategoriesPage: React.FC = () => {
-    // Core state
     const [categories, setCategories] = useState<ComplementaryTaskCategory[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-    // Filters
     const [filters, setFilters] = useState<ComplementaryTaskCategoryFilters>({});
     const [showFilters, setShowFilters] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
 
-    // Modal state
+    // Groups filter state: all selected by default
+    const [selectedGroups, setSelectedGroups] = useState<Set<Group>>(new Set(GROUPS));
+
     const [showModal, setShowModal] = useState(false);
     const [editingItem, setEditingItem] = useState<ComplementaryTaskCategory | null>(null);
-    const [form, setForm] = useState<Partial<CreateComplementaryTaskCategoryDto>>({
+    const [form, setForm] = useState<Partial<CreateComplementaryTaskCategoryDto & { group: Group }>>({
         code: '',
         name: '',
         description: '',
+        group: 'Safety and Security',
         defaultDurationMinutes: undefined,
         expectedImpactMinutes: undefined,
         isActive: true,
     });
 
-    // Delete modal
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [selectedDeletingId, setSelectedDeletingId] = useState<string | null>(null);
 
     useEffect(() => {
         loadData();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [filters]);
 
     const loadData = async () => {
@@ -75,6 +89,7 @@ const ComplementaryTaskCategoriesPage: React.FC = () => {
             code: '',
             name: '',
             description: '',
+            group: 'Safety and Security',
             defaultDurationMinutes: undefined,
             expectedImpactMinutes: undefined,
             isActive: true,
@@ -85,9 +100,10 @@ const ComplementaryTaskCategoriesPage: React.FC = () => {
     const openEditModal = (cat: ComplementaryTaskCategory) => {
         setEditingItem(cat);
         setForm({
-            code: cat.code, // presentation only, code is not updated on PATCH
+            code: cat.code,
             name: cat.name,
             description: cat.description || '',
+            group: (cat as any).group || 'Other',
             defaultDurationMinutes: cat.defaultDurationMinutes ?? undefined,
             expectedImpactMinutes: cat.expectedImpactMinutes ?? undefined,
             isActive: cat.isActive,
@@ -98,55 +114,57 @@ const ComplementaryTaskCategoriesPage: React.FC = () => {
     const closeModal = () => {
         setShowModal(false);
         setEditingItem(null);
-        setForm({
-            code: '',
-            name: '',
-            description: '',
-            defaultDurationMinutes: undefined,
-            expectedImpactMinutes: undefined,
-            isActive: true,
-        });
     };
 
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
-        setError(null)
+        setError(null);
 
-        if (!editingItem && categories.some(c => c.code === form.code)) {
-            setError(`The code ${form.code} already exists in the catalog.`);
-            setLoading(false);
-            return;
+        if (!editingItem) {
+            const codeExists = categories.some(
+                (c) => c.code.toUpperCase() === form.code?.trim().toUpperCase()
+            );
+            if (codeExists) {
+                setError(`The code ${form.code} already exists in the catalog.`);
+                setLoading(false);
+                return;
+            }
         }
-        
+
         try {
             if (editingItem) {
-                const payload: UpdateComplementaryTaskCategoryDto = {
-                    name: form.name,
-                    description: form.description,
+                const payload: UpdateComplementaryTaskCategoryDto & { group?: string } = {
+                    name: form.name!.trim(),
+                    description: form.description?.trim(),
                     defaultDurationMinutes: form.defaultDurationMinutes,
                     expectedImpactMinutes: form.expectedImpactMinutes,
                     isActive: form.isActive,
+                    group: form.group,
                 };
                 await categoryService.updateComplementaryTaskCategory(editingItem.categoryId, payload);
                 setSuccessMessage('Category updated successfully');
             } else {
-                const payload: CreateComplementaryTaskCategoryDto = {
-                    code: form.code!.toUpperCase().trim(), 
-                    name: form.name!,
-                    description: form.description || '',
-                    defaultDurationMinutes: form.defaultDurationMinutes ?? undefined,
-                    expectedImpactMinutes: form.expectedImpactMinutes ?? undefined,
+                const payload: CreateComplementaryTaskCategoryDto & { group: string } = {
+                    code: form.code!.trim().toUpperCase(),
+                    name: form.name!.trim(),
+                    description: form.description?.trim() || '',
+                    group: form.group!,
+                    defaultDurationMinutes: form.defaultDurationMinutes ?? null,
+                    expectedImpactMinutes: form.expectedImpactMinutes ?? null,
                     isActive: form.isActive ?? true,
                 };
                 await categoryService.createComplementaryTaskCategory(payload);
                 setSuccessMessage('Category created successfully');
             }
-            setSuccessMessage('Category saved successfully');
+
             await loadData();
             closeModal();
         } catch (err: any) {
-            const msg = err.response?.status === 409 ? "Conflict: Unique code already in use." : (err?.message || 'Error saving category');
+            const msg =
+                err.response?.status === 409
+                    ? 'Conflict: Unique code already in use.'
+                    : err?.message || 'Error saving category';
             setError(msg);
         } finally {
             setLoading(false);
@@ -166,42 +184,53 @@ const ComplementaryTaskCategoriesPage: React.FC = () => {
             await categoryService.deleteComplementaryTaskCategory(selectedDeletingId);
             setSuccessMessage('Category deleted successfully');
             await loadData();
-            setIsDeleteModalOpen(false);
-            setSelectedDeletingId(null);
         } catch (err: any) {
             setError(err?.message || 'Error deleting category');
         } finally {
             setLoading(false);
+            setIsDeleteModalOpen(false);
+            setSelectedDeletingId(null);
         }
     };
 
     const applyFilters = () => {
         loadData();
+        setShowFilters(false);
     };
 
     const resetFilters = () => {
         setFilters({});
         setSearchTerm('');
+        setSelectedGroups(new Set(GROUPS));
+        setShowFilters(false);
     };
 
-    const formatDuration = (minutes?: number | null) => {
-        if (minutes === null || minutes === undefined) return 'N/A';
-        const m = Number(minutes);
-        if (Number.isNaN(m)) return 'N/A';
+    const formatDuration = (minutes?: number | null): string => {
+        if (minutes === null || minutes === undefined || minutes === 0) return 'N/A';
+        const m = Math.floor(Number(minutes));
+        if (isNaN(m)) return 'N/A';
         const hours = Math.floor(m / 60);
         const mins = m % 60;
         return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
     };
 
-    const filteredCategories = categories.filter((c) => {
-        const q = searchTerm.trim().toLowerCase();
-        if (q === '') return true;
-        return (
-            c.code.toLowerCase().includes(q) ||
-            c.name.toLowerCase().includes(q) ||
-            (c.description || '').toLowerCase().includes(q)
-        );
-    });
+    // Client-side filtering (search + groups)
+    const filteredCategories = categories
+        .filter((c) => {
+            const q = searchTerm.trim().toLowerCase();
+            const matchesSearch =
+                q === '' ||
+                c.code.toLowerCase().includes(q) ||
+                c.name.toLowerCase().includes(q) ||
+                (c.description || '').toLowerCase().includes(q);
+
+            const catGroup = (c as any).group as Group | undefined;
+            const matchesGroup =
+                selectedGroups.size === GROUPS.length || (catGroup && selectedGroups.has(catGroup));
+
+            return matchesSearch && matchesGroup;
+        })
+        .sort((a, b) => a.code.localeCompare(b.code));
 
     return (
         <div className="p-6 bg-gray-50 min-h-screen">
@@ -209,9 +238,12 @@ const ComplementaryTaskCategoriesPage: React.FC = () => {
             <div className="flex justify-between items-center mb-8">
                 <div>
                     <h1 className="text-3xl font-bold text-gray-800">Complementary Task Categories</h1>
-                    <p className="text-gray-500 mt-1">Classify non\-cargo\-related activities for consistent logging</p>
+                    <p className="text-gray-500 mt-1">
+                        Classify non-cargo-related activities for consistent logging during vessel visits
+                    </p>
                 </div>
-                <div className="flex gap-3">
+
+                <div>
                     <button
                         onClick={openCreateModal}
                         className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 shadow-sm flex items-center gap-2"
@@ -222,7 +254,7 @@ const ComplementaryTaskCategoriesPage: React.FC = () => {
                 </div>
             </div>
 
-            {/* Success/Error */}
+            {/* Messages */}
             {successMessage && (
                 <div className="mb-4 p-4 bg-green-100 text-green-800 rounded-lg flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -234,6 +266,7 @@ const ComplementaryTaskCategoriesPage: React.FC = () => {
                     </button>
                 </div>
             )}
+
             {error && (
                 <div className="mb-4 p-4 bg-red-100 text-red-800 rounded-lg flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -256,16 +289,19 @@ const ComplementaryTaskCategoriesPage: React.FC = () => {
                             placeholder="Search categories..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                            className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                         />
                     </div>
+
                     <button
                         onClick={() => setShowFilters(!showFilters)}
                         className="px-4 py-2 border rounded-lg hover:bg-gray-50 flex items-center gap-2"
                     >
                         <Filter className="w-4 h-4" />
                         Filters
+                        {showFilters ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                     </button>
+
                     <button
                         onClick={loadData}
                         className="px-4 py-2 border rounded-lg hover:bg-gray-50 flex items-center gap-2"
@@ -276,9 +312,47 @@ const ComplementaryTaskCategoriesPage: React.FC = () => {
                 </div>
 
                 {showFilters && (
-                    <div className="mt-4 pt-4 border-t grid grid-cols-5 gap-4">
+                    <div className="mt-6 pt-6 border-t grid grid-cols-1 md:grid-cols-5 gap-4">
+                        {/* Groups filter - exatamente como o Status */}
                         <div>
-                            <label className="block text-sm font-medium mb-1">Code \(exact\)</label>
+                            <label className="block text-sm font-medium mb-1">Groups</label>
+                            <select
+                                className="w-full border rounded-lg p-2"
+                                value={
+                                    selectedGroups.size === GROUPS.length
+                                        ? ''
+                                        : selectedGroups.size === 0
+                                            ? 'none'
+                                            : Array.from(selectedGroups)[0]
+                                }
+                                onChange={(e) => {
+                                    const v = e.target.value;
+                                    if (v === '') {
+                                        setSelectedGroups(new Set(GROUPS));
+                                        setFilters({ ...filters, group: undefined }); 
+                                    } else if (v === 'none') {
+                                        setSelectedGroups(new Set());
+                                        setFilters({ ...filters, group: undefined });
+                                    } else {
+                                        const g = v as Group;
+                                        setSelectedGroups(new Set([g]));
+                                        setFilters({ ...filters, group: g }); 
+                                    }
+                                }}
+                            >
+                                <option value="">All Groups</option>
+                                <option value="none">None</option>
+                                {GROUPS.map((group) => (
+                                    <option key={group} value={group}>
+                                        {group}
+                                    </option>
+                                ))}
+                            </select>                            
+                        </div>
+
+                        {/* Other filters */}
+                        <div>
+                            <label className="block text-sm font-medium mb-1">Code (exact)</label>
                             <input
                                 className="w-full border rounded-lg p-2"
                                 value={filters.code || ''}
@@ -286,6 +360,7 @@ const ComplementaryTaskCategoriesPage: React.FC = () => {
                                 placeholder="CTC001"
                             />
                         </div>
+
                         <div>
                             <label className="block text-sm font-medium mb-1">Name contains</label>
                             <input
@@ -295,11 +370,18 @@ const ComplementaryTaskCategoriesPage: React.FC = () => {
                                 placeholder="Security, Cleaning..."
                             />
                         </div>
+
                         <div>
-                            <label className="block text-sm font-medium mb-1">Active</label>
+                            <label className="block text-sm font-medium mb-1">Status</label>
                             <select
                                 className="w-full border rounded-lg p-2"
-                                value={filters.active === undefined ? '' : filters.active ? 'true' : 'false'}
+                                value={
+                                    filters.active === undefined
+                                        ? ''
+                                        : filters.active
+                                            ? 'true'
+                                            : 'false'
+                                }
                                 onChange={(e) => {
                                     const v = e.target.value;
                                     setFilters({
@@ -313,41 +395,50 @@ const ComplementaryTaskCategoriesPage: React.FC = () => {
                                 <option value="false">Inactive</option>
                             </select>
                         </div>
+
                         <div>
-                            <label className="block text-sm font-medium mb-1">Min expected impact \(min\)</label>
+                            <label className="block text-sm font-medium mb-1">Default duration (min)</label>
                             <input
                                 type="number"
                                 min={0}
                                 className="w-full border rounded-lg p-2"
-                                value={filters.minImpactMinutes ?? ''}
+                                value={filters.defaultDurationMinutes ?? ''}
                                 onChange={(e) =>
                                     setFilters({
                                         ...filters,
-                                        minImpactMinutes: e.target.value === '' ? undefined : Number(e.target.value),
+                                        defaultDurationMinutes: e.target.value === '' ? undefined : Number(e.target.value),
                                     })
                                 }
                             />
                         </div>
+
                         <div>
-                            <label className="block text-sm font-medium mb-1">Max expected impact \(min\)</label>
+                            <label className="block text-sm font-medium mb-1">Expected impact (min)</label>
                             <input
                                 type="number"
                                 min={0}
                                 className="w-full border rounded-lg p-2"
-                                value={filters.maxImpactMinutes ?? ''}
+                                value={filters.expectedImpactMinutes ?? ''}
                                 onChange={(e) =>
                                     setFilters({
                                         ...filters,
-                                        maxImpactMinutes: e.target.value === '' ? undefined : Number(e.target.value),
+                                        expectedImpactMinutes: e.target.value === '' ? undefined : Number(e.target.value),
                                     })
                                 }
                             />
                         </div>
-                        <div className="col-span-5 flex gap-2 justify-end">
-                            <button onClick={resetFilters} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">
+
+                        <div className="md:col-span-5 flex gap-2 justify-end">
+                            <button
+                                onClick={resetFilters}
+                                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                            >
                                 Clear
                             </button>
-                            <button onClick={applyFilters} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                            <button
+                                onClick={applyFilters}
+                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                            >
                                 Apply Filters
                             </button>
                         </div>
@@ -355,92 +446,115 @@ const ComplementaryTaskCategoriesPage: React.FC = () => {
                 )}
             </div>
 
-            {/* List */}
+            {/* Categories list */}
             {loading ? (
                 <div className="text-center py-12">
                     <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
                 </div>
             ) : filteredCategories.length === 0 ? (
                 <div className="text-center py-12 bg-white rounded-lg shadow-sm">
-                    <AlertTriangle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                     <p className="text-gray-500">No categories found</p>
                 </div>
             ) : (
-                <div className="grid gap-4">
-                    {filteredCategories.map((cat) => (
-                        <div key={cat.categoryId} className="bg-white p-5 rounded-lg shadow border-l-4 border-gray-300">
-                            <div className="flex justify-between items-start">
-                                <div className="flex-1">
-                                    <div className="flex items-center gap-3 mb-2">
-                                        <h3 className="font-bold text-lg text-gray-800">{cat.name}</h3>
-                                        <span className="text-xs px-3 py-1 rounded-full font-medium bg-gray-100 text-gray-800 font-mono">
-                                            {cat.code}
-                                        </span>
-                                        <span
-                                            className={`text-xs px-3 py-1 rounded-full font-medium ${
-                                                cat.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-600'
-                                            }`}
+                <div className="grid gap-5">
+                    {filteredCategories.map((cat) => {
+                        const group = (cat as any).group || 'Other';
+                        return (
+                            <div
+                                key={cat.categoryId}
+                                className="bg-white p-6 rounded-lg shadow-sm border-l-4 border-blue-500 hover:shadow-md transition-shadow"
+                            >
+                                <div className="flex justify-between items-start">
+                                    <div className="flex-1">
+                                        <div className="flex items-center gap-3 mb-3">
+                                            <h3 className="font-bold text-xl text-gray-800">{cat.name}</h3>
+                                            <span className="text-xs px-3 py-1 rounded-full font-mono bg-gray-100 text-gray-800">
+                        {cat.code}
+                      </span>
+                                            <span className="text-xs px-3 py-1 rounded-full bg-indigo-100 text-indigo-800 font-medium">
+                        {group}
+                      </span>
+                                            <span
+                                                className={`text-xs px-3 py-1 rounded-full font-medium ${
+                                                    cat.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-600'
+                                                }`}
+                                            >
+                        {cat.isActive ? 'Active' : 'Inactive'}
+                      </span>
+                                        </div>
+
+                                        {cat.description && (
+                                            <p className="text-sm text-gray-600 mb-4">{cat.description}</p>
+                                        )}
+
+                                        <div className="mb-4">
+                                            <span className="text-sm font-medium text-gray-600">Group:</span>
+                                            <span className="ml-2 text-sm font-semibold text-indigo-700">{group}</span>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+                                            <div>
+                        <span className="text-gray-500 font-medium flex items-center gap-1">
+                          <Clock className="w-4 h-4" />
+                          Default duration:
+                        </span>
+                                                <p className="text-gray-800 font-semibold">
+                                                    {formatDuration(cat.defaultDurationMinutes)}
+                                                </p>
+                                            </div>
+
+                                            <div>
+                        <span className="text-gray-500 font-medium flex items-center gap-1">
+                          <Clock className="w-4 h-4" />
+                          Expected impact:
+                        </span>
+                                                <p className="text-gray-800 font-semibold">
+                                                    {formatDuration(cat.expectedImpactMinutes)}
+                                                </p>
+                                            </div>
+
+                                            <div>
+                                                <span className="text-gray-500 font-medium">Created on:</span>
+                                                <p className="text-gray-700">
+                                                    {cat.createdAt ? new Date(cat.createdAt).toLocaleString() : '—'}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex gap-2 ml-4">
+                                        <button
+                                            onClick={() => openEditModal(cat)}
+                                            className="p-2 text-blue-600 hover:bg-blue-50 rounded transition"
+                                            title="Edit"
                                         >
-                                            {cat.isActive ? 'Active' : 'Inactive'}
-                                        </span>
+                                            <Edit2 className="w-5 h-5" />
+                                        </button>
+                                        <button
+                                            onClick={() => confirmDelete(cat.categoryId)}
+                                            className="p-2 text-red-600 hover:bg-red-50 rounded transition"
+                                            title="Delete"
+                                        >
+                                            <Trash2 className="w-5 h-5" />
+                                        </button>
                                     </div>
-
-                                    <p className="text-sm text-gray-600 mb-3">{cat.description}</p>
-
-                                    <div className="grid grid-cols-4 gap-4 text-sm">
-                                        <div>
-                                            <span className="text-gray-500 font-medium flex items-center gap-1">
-                                                <Clock className="w-3 h-3" />
-                                                Default duration:
-                                            </span>
-                                            <p className="text-gray-700 font-semibold">{formatDuration(cat.defaultDurationMinutes)}</p>
-                                        </div>
-                                        <div>
-                                            <span className="text-gray-500 font-medium flex items-center gap-1">
-                                                <Clock className="w-3 h-3" />
-                                                Expected impact:
-                                            </span>
-                                            <p className="text-gray-700 font-semibold">{formatDuration(cat.expectedImpactMinutes)}</p>
-                                        </div>
-                                        <div>
-                                            <span className="text-gray-500 font-medium">Created at:</span>
-                                            <p className="text-gray-700">
-                                                {cat.createdAt ? new Date(cat.createdAt).toLocaleString() : '—'}
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Actions */}
-                                <div className="flex gap-2 ml-4">
-                                    <button
-                                        onClick={() => openEditModal(cat)}
-                                        className="p-2 text-blue-600 hover:bg-blue-50 rounded"
-                                        title="Edit"
-                                    >
-                                        <Edit2 className="w-4 h-4" />
-                                    </button>
-                                    <button
-                                        onClick={() => confirmDelete(cat.categoryId)}
-                                        className="p-2 text-red-600 hover:bg-red-50 rounded"
-                                        title="Delete"
-                                    >
-                                        <Trash2 className="w-4 h-4" />
-                                    </button>
                                 </div>
                             </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             )}
 
             {/* Create/Edit Modal */}
             {showModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
                     <div className="bg-white p-6 rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-                        <h2 className="text-2xl font-bold mb-4">{editingItem ? 'Edit Category' : 'New Category'}</h2>
+                        <h2 className="text-2xl font-bold mb-6">
+                            {editingItem ? 'Edit Category' : 'New Category'}
+                        </h2>
+
                         <form onSubmit={handleSave}>
-                            <div className="space-y-4">
+                            <div className="space-y-5">
                                 {!editingItem && (
                                     <div>
                                         <label className="block text-sm font-medium mb-1">
@@ -448,76 +562,117 @@ const ComplementaryTaskCategoriesPage: React.FC = () => {
                                         </label>
                                         <input
                                             required
-                                            className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500"
+                                            className="w-full border p-3 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                                             value={form.code}
                                             onChange={(e) => setForm({ ...form, code: e.target.value })}
-                                            placeholder="Ex.: CTC001"
+                                            placeholder="e.g. CTC001"
                                         />
                                         <p className="text-xs text-gray-500 mt-1">
                                             The code must be unique and cannot be changed later.
                                         </p>
                                     </div>
                                 )}
+
+                                {editingItem && (
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">Code</label>
+                                        <input
+                                            disabled
+                                            className="w-full border p-3 rounded-lg bg-gray-100"
+                                            value={form.code}
+                                        />
+                                    </div>
+                                )}
+
                                 <div>
                                     <label className="block text-sm font-medium mb-1">
                                         Name <span className="text-red-500">*</span>
                                     </label>
                                     <input
                                         required
-                                        className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500"
+                                        className="w-full border p-3 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                                         value={form.name}
                                         onChange={(e) => setForm({ ...form, name: e.target.value })}
-                                        placeholder="Ex.: Security Check, Hull Maintenance"
+                                        placeholder="e.g. Security Check, Hull Maintenance"
                                     />
                                 </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium mb-1">
+                                        Group <span className="text-red-500">*</span>
+                                    </label>
+                                    <select
+                                        required
+                                        className="w-full border p-3 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                        value={form.group}
+                                        onChange={(e) => setForm({ ...form, group: e.target.value as Group })}
+                                    >
+                                        {GROUPS.map((g) => (
+                                            <option key={g} value={g}>
+                                                {g}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <p className="text-xs text-gray-500 mt-1">Choose the group this category belongs to.</p>
+                                </div>
+
                                 <div>
                                     <label className="block text-sm font-medium mb-1">Description</label>
                                     <textarea
-                                        className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500"
+                                        className="w-full border p-3 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                                         rows={3}
                                         value={form.description}
                                         onChange={(e) => setForm({ ...form, description: e.target.value })}
-                                        placeholder="Brief description of the task context"
+                                        placeholder="Brief description of the task type or context"
                                     />
                                 </div>
-                                <div className="grid grid-cols-2 gap-4">
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                     <div>
-                                        <label className="block text-sm font-medium mb-1">Default duration (min)</label>
+                                        <label className="block text-sm font-medium mb-1">
+                                            Default duration (minutes, optional)
+                                        </label>
                                         <input
                                             type="number"
                                             min={0}
-                                            className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500"
+                                            className="w-full border p-3 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                                             value={form.defaultDurationMinutes ?? ''}
                                             onChange={(e) =>
                                                 setForm({
                                                     ...form,
-                                                    defaultDurationMinutes: e.target.value === '' ? undefined : Number(e.target.value),
+                                                    defaultDurationMinutes:
+                                                        e.target.value === '' ? undefined : Number(e.target.value),
                                                 })
                                             }
-                                            placeholder="Ex.: 60"
+                                            placeholder="e.g. 60"
                                         />
                                     </div>
+
                                     <div>
-                                        <label className="block text-sm font-medium mb-1">Expected impact \(min, optional\)</label>
+                                        <label className="block text-sm font-medium mb-1">
+                                            Expected impact (minutes, optional)
+                                        </label>
                                         <input
                                             type="number"
                                             min={0}
-                                            className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500"
+                                            className="w-full border p-3 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                                             value={form.expectedImpactMinutes ?? ''}
                                             onChange={(e) =>
                                                 setForm({
                                                     ...form,
-                                                    expectedImpactMinutes: e.target.value === '' ? undefined : Number(e.target.value),
+                                                    expectedImpactMinutes:
+                                                        e.target.value === '' ? undefined : Number(e.target.value),
                                                 })
                                             }
-                                            placeholder="Ex.: 60"
+                                            placeholder="e.g. 60"
                                         />
                                     </div>
                                 </div>
+
                                 <div>
-                                    <label className="block text-sm font-medium mb-1">Active</label>
+                                    <label className="block text-sm font-medium mb-1">Status</label>
                                     <select
-                                        className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500"
+                                        className="w-full border p-3 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                                         value={form.isActive ? 'true' : 'false'}
                                         onChange={(e) => setForm({ ...form, isActive: e.target.value === 'true' })}
                                     >
@@ -526,11 +681,20 @@ const ComplementaryTaskCategoriesPage: React.FC = () => {
                                     </select>
                                 </div>
                             </div>
-                            <div className="mt-6 flex justify-end gap-3">
-                                <button type="button" onClick={closeModal} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">
+
+                            <div className="mt-8 flex justify-end gap-3">
+                                <button
+                                    type="button"
+                                    onClick={closeModal}
+                                    className="px-5 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                                >
                                     Cancel
                                 </button>
-                                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700" disabled={loading}>
+                                <button
+                                    type="submit"
+                                    disabled={loading}
+                                    className="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-70"
+                                >
                                     {loading ? 'Saving...' : editingItem ? 'Update' : 'Create'}
                                 </button>
                             </div>

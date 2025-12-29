@@ -7,6 +7,7 @@
     expectedImpactMinutes?: number | null;
     isActive: boolean;
     createdAt?: string;
+    group?: string;
 }
 
 export interface CreateComplementaryTaskCategoryDto {
@@ -16,6 +17,7 @@ export interface CreateComplementaryTaskCategoryDto {
     defaultDurationMinutes?: number | null;
     expectedImpactMinutes?: number | null;
     isActive?: boolean;
+    group?: string;
 }
 
 export interface UpdateComplementaryTaskCategoryDto {
@@ -24,4 +26,5 @@ export interface UpdateComplementaryTaskCategoryDto {
     defaultDurationMinutes?: number | null;
     expectedImpactMinutes?: number | null;
     isActive?: boolean;
+    group?: string;
 }

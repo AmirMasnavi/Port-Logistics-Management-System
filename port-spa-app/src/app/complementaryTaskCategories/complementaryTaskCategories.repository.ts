@@ -8,8 +8,9 @@ export interface ComplementaryTaskCategoryFilters {
     code?: string;
     nameContains?: string;
     active?: boolean;
-    minImpactMinutes?: number;
-    maxImpactMinutes?: number;
+    defaultDurationMinutes?: number;
+    expectedImpactMinutes?: number;
+    group?: string;
 }
 
 export interface IComplementaryTaskCategoryRepository {

@@ -20,10 +20,10 @@ export const createComplementaryTaskCategoryRouter = () => {
         [
             query('code').optional().isString(),
             query('nameContains').optional().isString(),
-            // aceita 'true'/'false' em string
             query('active').optional().isIn(['true', 'false']),
-            query('minImpactMinutes').optional().isInt({ min: 0 }),
-            query('maxImpactMinutes').optional().isInt({ min: 0 }),
+            query('defaultDurationMinutes').optional().isInt({ min: 0 }),
+            query('expectedImpactMinutes').optional().isInt({ min: 0 }),
+            query('group').optional().isString(),
         ],
         async (req, res) => {
             const errors = validationResult(req);
@@ -36,16 +36,21 @@ export const createComplementaryTaskCategoryRouter = () => {
                     code: req.query.code,
                     nameContains: req.query.nameContains,
                     active: req.query.active !== undefined ? req.query.active === 'true' : undefined,
-                    minImpactMinutes:
-                        req.query.minImpactMinutes !== undefined ? parseInt(req.query.minImpactMinutes, 10) : undefined,
-                    maxImpactMinutes:
-                        req.query.maxImpactMinutes !== undefined ? parseInt(req.query.maxImpactMinutes, 10) : undefined,
+                    defaultDurationMinutes:
+                        req.query.defaultDurationMinutes !== undefined
+                            ? parseInt(req.query.defaultDurationMinutes, 10)
+                            : undefined,
+                    expectedImpactMinutes:
+                        req.query.expectedImpactMinutes !== undefined
+                            ? parseInt(req.query.expectedImpactMinutes, 10)
+                            : undefined,
+                    group: req.query.group !== undefined ? String(req.query.group) : undefined,
                 });
 
                 const categories = await categoryService.searchCategories(filters);
                 const dtos = ComplementaryTaskCategoryMapper.toListDto
                     ? ComplementaryTaskCategoryMapper.toListDto(categories)
-                    : categories;
+                    : categories.map(ComplementaryTaskCategoryMapper.toDto);
 
                 return res.json({ success: true, count: dtos.length, data: dtos });
             } catch (error) {
@@ -66,6 +71,7 @@ export const createComplementaryTaskCategoryRouter = () => {
             body('defaultDurationMinutes').optional().isInt({ min: 0 }),
             body('expectedImpactMinutes').optional().isInt({ min: 0 }),
             body('isActive').optional().isBoolean(),
+            body('group').optional().isString(), 
         ],
         async (req, res) => {
             const errors = validationResult(req);
@@ -79,12 +85,13 @@ export const createComplementaryTaskCategoryRouter = () => {
                 const data = ComplementaryTaskCategoryMapper.toDto ? ComplementaryTaskCategoryMapper.toDto(created) : created;
                 return res.status(201).json({ success: true, data });
             } catch (error) {
-                const isDup = (error?.message || '').toLowerCase().includes('already exists');
-                return res.status(isDup ? 409 : 500).json({
-                    success: false,
-                    error: isDup ? 'Conflict' : 'Internal server error',
-                    message: error.message,
-                });
+                if (String(error.message || '').toLowerCase().includes('already exists')) {
+                    return res.status(409).json({ success: false, error: 'Conflict', message: error.message });
+                }
+                console.error('[CTC CREATE] Error:', error);
+                return res
+                    .status(500)
+                    .json({ success: false, error: 'Internal server error', message: error.message });
             }
         }
     );
@@ -101,16 +108,19 @@ export const createComplementaryTaskCategoryRouter = () => {
             }
 
             try {
-                const item = await categoryService.getCategoryById(req.params.id);
-                const data = ComplementaryTaskCategoryMapper.toDto ? ComplementaryTaskCategoryMapper.toDto(item) : item;
-                return res.json({ success: true, data });
+                const category = await categoryService.getCategoryById(req.params.id);
+                const dto = ComplementaryTaskCategoryMapper.toDto
+                    ? ComplementaryTaskCategoryMapper.toDto(category)
+                    : category;
+                return res.status(200).json({ success: true, data: dto });
             } catch (error) {
-                const notFound = (error?.message || '').toLowerCase().includes('not found');
-                return res.status(notFound ? 404 : 500).json({
-                    success: false,
-                    error: notFound ? 'Not Found' : 'Internal server error',
-                    message: error.message,
-                });
+                if (String(error.message || '').includes('not found')) {
+                    return res.status(404).json({ success: false, error: 'Not Found', message: error.message });
+                }
+                console.error('[CTC GET BY ID] Error:', error);
+                return res
+                    .status(500)
+                    .json({ success: false, error: 'Internal server error', message: error.message });
             }
         }
     );
@@ -120,12 +130,13 @@ export const createComplementaryTaskCategoryRouter = () => {
         '/:id',
         verifyFirebaseToken,
         [
-            param('id').isString(),
+            param('id').notEmpty().isString(),
             body('name').optional().isString(),
             body('description').optional().isString(),
             body('defaultDurationMinutes').optional().isInt({ min: 0 }),
             body('expectedImpactMinutes').optional().isInt({ min: 0 }),
             body('isActive').optional().isBoolean(),
+            body('group').optional().isString(), 
         ],
         async (req, res) => {
             const errors = validationResult(req);
@@ -139,12 +150,13 @@ export const createComplementaryTaskCategoryRouter = () => {
                 const data = ComplementaryTaskCategoryMapper.toDto ? ComplementaryTaskCategoryMapper.toDto(updated) : updated;
                 return res.json({ success: true, data });
             } catch (error) {
-                const notFound = (error?.message || '').toLowerCase().includes('not found');
-                return res.status(notFound ? 404 : 500).json({
-                    success: false,
-                    error: notFound ? 'Not Found' : 'Internal server error',
-                    message: error.message,
-                });
+                if (String(error.message || '').includes('not found')) {
+                    return res.status(404).json({ success: false, error: 'Not Found', message: error.message });
+                }
+                console.error('[CTC UPDATE] Error:', error);
+                return res
+                    .status(500)
+                    .json({ success: false, error: 'Internal server error', message: error.message });
             }
         }
     );
@@ -154,12 +166,13 @@ export const createComplementaryTaskCategoryRouter = () => {
         '/:id',
         verifyFirebaseToken,
         [
-            param('id').isString(),
+            param('id').notEmpty().isString(),
             body('name').optional().isString(),
             body('description').optional().isString(),
             body('defaultDurationMinutes').optional().isInt({ min: 0 }),
             body('expectedImpactMinutes').optional().isInt({ min: 0 }),
             body('isActive').optional().isBoolean(),
+            body('group').optional().isString(), 
         ],
         async (req, res) => {
             const errors = validationResult(req);
@@ -187,7 +200,7 @@ export const createComplementaryTaskCategoryRouter = () => {
     router.delete(
         '/:id',
         verifyFirebaseToken,
-        [param('id').isString()],
+        [param('id').notEmpty().isString()],
         async (req, res) => {
             const errors = validationResult(req);
             if (!errors.isEmpty()) {
@@ -196,14 +209,15 @@ export const createComplementaryTaskCategoryRouter = () => {
 
             try {
                 await categoryService.deleteCategory(req.params.id, req.user?.uid || 'system');
-                return res.json({ success: true, deleted: true });
+                return res.status(204).send();
             } catch (error) {
-                const notFound = (error?.message || '').toLowerCase().includes('not found');
-                return res.status(notFound ? 404 : 500).json({
-                    success: false,
-                    error: notFound ? 'Not Found' : 'Internal server error',
-                    message: error.message,
-                });
+                if (String(error.message || '').includes('not found')) {
+                    return res.status(404).json({ success: false, error: 'Not Found', message: error.message });
+                }
+                console.error('[CTC DELETE] Error:', error);
+                return res
+                    .status(500)
+                    .json({ success: false, error: 'Internal server error', message: error.message });
             }
         }
     );

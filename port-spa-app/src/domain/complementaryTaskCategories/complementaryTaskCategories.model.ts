@@ -7,4 +7,5 @@
     expectedImpactMinutes?: number | null; // Impacto esperado (opcional)
     isActive: boolean; // Ativo/inativo
     createdAt?: string; // ISO Date
+    group?: string; 
 }

@@ -10,7 +10,8 @@ export class ComplementaryTaskCategoryMapper {
             defaultDurationMinutes: model.defaultDurationMinutes ?? null,
             expectedImpactMinutes: model.expectedImpactMinutes ?? null,
             isActive: model.isActive ?? true,
-            createdAt: model.createdAt
+            createdAt: model.createdAt,
+            group: model.group,
         });
     }
 
