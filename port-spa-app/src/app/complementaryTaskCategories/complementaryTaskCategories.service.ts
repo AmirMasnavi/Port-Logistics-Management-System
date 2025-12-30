@@ -94,7 +94,12 @@ export class ComplementaryTaskCategoryService {
                 errors.push('expectedImpactMinutes must be a non-negative integer');
             }
         }
-
+        if (dto.isActive !== undefined && typeof dto.isActive !== 'boolean') {
+            errors.push('isActive must be a boolean');
+        }
+        if (dto.group !== undefined && dto.group.trim().length === 0) {
+            errors.push('group cannot be empty');
+        }
         if (errors.length > 0) {
             throw new ComplementaryTaskCategoryValidationError(errors.join(', '));
         }
@@ -116,7 +121,12 @@ export class ComplementaryTaskCategoryService {
                 errors.push('expectedImpactMinutes must be a non-negative integer');
             }
         }
-
+        if (dto.isActive !== undefined && typeof dto.isActive !== 'boolean') {
+            errors.push('isActive must be a boolean');
+        }
+        if (dto.group !== undefined && dto.group.trim().length === 0) {
+            errors.push('group cannot be empty');
+        }
         if (errors.length > 0) {
             throw new ComplementaryTaskCategoryValidationError(errors.join(', '));
         }

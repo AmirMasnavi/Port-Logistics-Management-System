@@ -45,22 +45,27 @@ export class ComplementaryTaskCategoryRepository {
             query.isActive = !!filters.active;
         }
 
-        // Expected impact minutes range
-        if (filters.minImpactMinutes !== undefined || filters.maxImpactMinutes !== undefined) {
-            query.expectedImpactMinutes = {};
-            if (filters.minImpactMinutes !== undefined) {
-                query.expectedImpactMinutes.$gte = Number(filters.minImpactMinutes);
-            }
-            if (filters.maxImpactMinutes !== undefined) {
-                query.expectedImpactMinutes.$lte = Number(filters.maxImpactMinutes);
-            }
+        if (filters.defaultDurationMinutes !== undefined && filters.defaultDurationMinutes !== null) {
+            query.defaultDurationMinutes = Number(filters.defaultDurationMinutes);
         }
 
+        // Exact expected impact
+        if (filters.expectedImpactMinutes !== undefined && filters.expectedImpactMinutes !== null) {
+            query.expectedImpactMinutes = Number(filters.expectedImpactMinutes);
+        }
+
+        if (filters.group !== undefined && filters.group !== null && String(filters.group).trim() !== '') {
+            query.group = String(filters.group).trim();
+        }
+        
+        
         return await ComplementaryTaskCategory.find(query).sort({ createdAt: -1 });
     }
 
+
     async delete(categoryId) {
         const id = String(categoryId || '').trim();
+        if (!id) return null;
         return await ComplementaryTaskCategory.findOneAndDelete({ categoryId: id });
     }
 }

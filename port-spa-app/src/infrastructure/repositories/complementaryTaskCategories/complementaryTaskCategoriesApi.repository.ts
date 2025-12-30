@@ -34,8 +34,13 @@ class ComplementaryTaskCategoryApiRepository implements IComplementaryTaskCatego
         if (filters?.code) params.append('code', filters.code);
         if (filters?.nameContains) params.append('nameContains', filters.nameContains);
         if (filters?.active !== undefined) params.append('active', String(filters.active));
-        if (filters?.minImpactMinutes !== undefined) params.append('minImpactMinutes', String(filters.minImpactMinutes));
-        if (filters?.maxImpactMinutes !== undefined) params.append('maxImpactMinutes', String(filters.maxImpactMinutes));
+        if (filters?.defaultDurationMinutes !== undefined) {
+            params.append('defaultDurationMinutes', String(filters.defaultDurationMinutes));
+        }
+        if (filters?.expectedImpactMinutes !== undefined) {
+            params.append('expectedImpactMinutes', String(filters.expectedImpactMinutes));
+        }
+        if (filters?.group) params.append('group', filters.group);
 
         const queryString = params.toString();
         const fullUrl = queryString ? `${url}?${queryString}` : url;

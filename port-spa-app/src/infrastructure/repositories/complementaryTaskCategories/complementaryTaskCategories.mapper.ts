@@ -13,6 +13,7 @@ export class ComplementaryTaskCategoryMapper {
             expectedImpactMinutes: dto.expectedImpactMinutes ?? null,
             isActive: dto.isActive,
             createdAt: dto.createdAt,
+            group: dto.group ?? 'Other',
         };
     }
 
