@@ -1,0 +1,87 @@
+@startuml
+!theme plain
+autonumber
+
+box "Frontend System (Port SPA)" #LightCoral
+    participant "Web Client (SPA/Browser)" as WebClient
+    participant "Local Storage / Memory" as LocalStorage
+end box
+
+box "Backend System (Sistema AIT)" #LightBlue
+    participant "HTTP Request" as HttpRequest
+    participant "Route / Middleware" as Route
+    participant "Auth Controller" as Controller
+    participant "Auth Service" as AuthService
+    box "Security" #LightYellow
+        participant "Token Validator (JWKS / Introspect)" as TokenValidator
+        participant "BCrypt Password Validator (legacy)" as PasswordVal
+    end box
+    box "Persistence" #LightGreen
+        participant "User Repository" as Repo
+    end box
+end box
+
+box "Identity Provider (IAM)" #LightGray
+    participant "Authorization Endpoint (/authorize)" as IAMAuth
+    participant "Token Endpoint (/token)" as IAMToken
+    participant "JWKS / Introspection" as IAMJWKS
+end box
+
+' --- Login via Authorization Code + PKCE (SPA) ---
+WebClient -> Controller : 1.0: User clicks "Login"
+activate WebClient
+activate Controller
+Controller --> WebClient : 1.1: 302 Redirect to IAM /authorize (client_id, redirect_uri, code_challenge...)
+deactivate Controller
+
+WebClient -> IAMAuth : 1.2: Browser -> IAM (user authenticates)
+activate IAMAuth
+IAMAuth --> WebClient : 1.3: Redirect back to SPA with authorization code
+deactivate IAMAuth
+
+WebClient -> IAMToken : 1.4: POST /token (code + code_verifier) — exchange for access_token + id_token + refresh_token
+activate IAMToken
+IAMToken --> WebClient : 1.5: Tokens (access_token, id_token, refresh_token)
+deactivate IAMToken
+
+WebClient -> LocalStorage : 1.6: Store tokens (in-memory or secure storage; avoid localStorage if possible)
+activate LocalStorage
+LocalStorage --> WebClient : 1.7: Stored
+deactivate LocalStorage
+
+' --- Protected request with Bearer token ---
+WebClient -> HttpRequest : 2.0: GET /api/protected (Authorization: Bearer <access_token>)
+activate WebClient
+activate HttpRequest
+HttpRequest -> Route : 2.1: Middleware extracts Bearer token
+activate Route
+Route -> TokenValidator : 2.2: Validate token signature and claims (JWKS) OR call introspection
+activate TokenValidator
+TokenValidator -> IAMJWKS : 2.3: Retrieve JWKS / Introspect token
+activate IAMJWKS
+IAMJWKS --> TokenValidator : 2.4: Public keys / token active + claims
+deactivate IAMJWKS
+TokenValidator --> Route : 2.5: Token valid, attach user context
+deactivate TokenValidator
+
+Route -> Controller : 2.6: Forward request with user context
+activate Controller
+Controller -> AuthService : 2.7: Business logic (use user context)
+activate AuthService
+AuthService -> Repo : 2.8: Read domain data
+activate Repo
+Repo --> AuthService : 2.9: Domain data
+deactivate Repo
+AuthService --> Controller : 2.10: Result
+deactivate AuthService
+Controller --> HttpRequest : 2.11: HTTP 200 (resource)
+deactivate Controller
+HttpRequest --> WebClient : 2.12: Response (resource)
+deactivate HttpRequest
+
+deactivate WebClient
+
+' --- Notes: legacy internal auth flow (kept for reference) ---
+' If the system still issues its own JWTs, the flow would differ: authenticate credentials -> backend generates token -> client stores token.
+
+@enduml
