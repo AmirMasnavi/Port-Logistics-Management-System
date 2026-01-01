@@ -1,6 +1,6 @@
 /*
-    IARTI - PROLOG SCHEDULING SERVER (v5 - Multi-Crane + Genetic Algorithm)
-    Includes US 3.4.2 (Optimal), US 3.4.4 (Heuristic), US 3.4.5 (Multi-Crane), and Genetic Algorithm
+    IARTI - PROLOG SCHEDULING SERVER (v5 - Multi-Crane + Genetic Algorithm + Rebalancing Algorithm)
+    Includes US 3.4.2 (Optimal), US 3.4.4 (Heuristic), US 3.4.5 (Multi-Crane), Genetic Algorithm and Rebalancing Algorithm
 */
 
 % --- 1. HTTP Server Libraries ---
@@ -12,11 +12,15 @@
 
 % --- 2. LOAD GA MODULE ---
 :- consult('ga_scheduling.pl').
+:- consult('rebalance_scheduling.pl').
 
 % --- 3. SHARED Scheduling Logic ---
 :- dynamic vessel/5.
 :- dynamic shortest_delay/2.
 max_cranes(2). % Constraint for US 3.4.5 (Multi-Crane)
+
+:- dynamic vessel_info/3. % vessel_info(Id, Length, CargoWeight)
+:- dynamic dock_info/3.   % dock_info(Id, MaxLength, Cranes)
 
 % sequence_temporization/2: Calculates the timeline
 sequence_temporization(LV, SeqTriplets) :-
@@ -157,6 +161,7 @@ obtain_multicrane_schedule(ScheduleJSON, TotalDelay) :-
 :- http_handler('/api/schedule/heuristic', handle_schedule_heuristic, [method(post)]).
 :- http_handler('/api/schedule/multicrane', handle_schedule_multicrane, [method(post)]).
 :- http_handler('/api/schedule/genetic', handle_schedule_genetic, [method(post)]).
+:- http_handler('/api/schedule/rebalance', handle_schedule_rebalance, [method(post)]).
 
 server(Port) :-
     http_server(http_dispatch, [port(Port)]).
@@ -285,6 +290,47 @@ handle_schedule_genetic(Request) :-
             mutation_rate: MutRate
         }
     }).
+   
+% ============================================================
+% HANDLER: REBALANCE (US 4.3.3)
+% ============================================================
+handle_schedule_rebalance(Request) :-
+    cors_enable(Request, [methods([post])]),
+    http_read_json(Request, JSON_Data, [json_object(list)]),
+    
+    % The request must contain both 'vessels' and 'docks' lists
+    (   member(vessels=VesselsJSON, JSON_Data),
+        member(docks=DocksJSON, JSON_Data) ->
+        
+        % 1. Load dynamic facts into memory
+        process_vessels_rebalance(VesselsJSON),
+        process_docks_rebalance(DocksJSON),
+        
+        % 2. Run the Genetic Algorithm for Rebalancing
+        get_time(Ti),
+        obtain_rebalancing_schedule(BestMapping, BestDelay),
+        get_time(Tf),
+        ExecutionTime is Tf - Ti,
+        
+        % 3. Format the result back to JSON
+        format_rebalance_json(BestMapping, MappingJSON),
+        
+        % 4. Cleanup memory to avoid interference in next requests
+        retractall(vessel(_, _, _, _, _)),
+        retractall(vessel_info(_, _, _)),
+        retractall(dock_info(_, _, _)),
+        
+        reply_json(json{
+            schedule: MappingJSON,
+            totalDelay: BestDelay,
+            executionTime: ExecutionTime,
+            type: "rebalancing"
+        })
+    ;   
+        % Error handling if JSON structure is wrong
+        reply_json(json{error: "Missing vessels or docks in request body"}, [status(400)])
+    ).    
+    
 
 % --- HELPERS ---
 process_vessels([]). 
@@ -305,7 +351,36 @@ format_schedule_json([], []).
 format_schedule_json([(Vessel, Start, End) | RestTriplets], [ [VesselStr, Start, End] | RestJSON ]) :-
     atom_string(Vessel, VesselStr),
     format_schedule_json(RestTriplets, RestJSON).
+    
+    
+% Process vessels list from JSON
+process_vessels_rebalance([]).
+process_vessels_rebalance([json(V)|Rest]) :-
+    member(id=IdStr, V), atom_string(Id, IdStr),
+    member(arrival=Arr, V),
+    member(departure=Dep, V),
+    member(unload=U, V),
+    member(load=L, V),
+    member(length=Len, V),
+    asserta(vessel(Id, Arr, Dep, U, L)),
+    asserta(vessel_info(Id, Len, 0)), % CargoWeight default 0
+    process_vessels_rebalance(Rest).
 
+% Process docks list from JSON
+process_docks_rebalance([]).
+process_docks_rebalance([json(D)|Rest]) :-
+    member(id=IdStr, D), atom_string(Id, IdStr),
+    member(maxLength=ML, D),
+    member(cranes=Cr, D),
+    asserta(dock_info(Id, ML, Cr)),
+    process_docks_rebalance(Rest).
+
+% Convert the (Vessel, Dock) pairs back to JSON structure
+format_rebalance_json([], []).
+format_rebalance_json([(V, D)|Rest], [json([vessel=VStr, dock=DStr])|RestJSON]) :-
+    atom_string(V, VStr), 
+    atom_string(D, DStr),
+    format_rebalance_json(Rest, RestJSON).
 :- server(5001).
 
 
