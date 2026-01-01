@@ -12,7 +12,7 @@
 
 % --- 2. LOAD GA MODULE ---
 :- consult('ga_scheduling.pl').
-:- consult('rebalance_scheduling.pl').
+:- consult('rebalancing_scheduling.pl').
 
 % --- 3. SHARED Scheduling Logic ---
 :- dynamic vessel/5.
