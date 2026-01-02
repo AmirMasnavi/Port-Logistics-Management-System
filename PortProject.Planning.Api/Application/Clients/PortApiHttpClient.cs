@@ -32,7 +32,8 @@ public class PortApiHttpClient : IPortApiHttpClient
         // if the main API doesn't accept that exact string. We'll request all and let SchedulingService filter if needed.
         try
         {
-            return await _httpClient.GetFromJsonAsync<IEnumerable<StaffMemberDto>>("/api/StaffMembers") ?? Enumerable.Empty<StaffMemberDto>();
+            return await _httpClient.GetFromJsonAsync<IEnumerable<StaffMemberDto>>("/api/StaffMembers") ??
+                   Enumerable.Empty<StaffMemberDto>();
         }
         catch (HttpRequestException ex)
         {
@@ -48,20 +49,20 @@ public class PortApiHttpClient : IPortApiHttpClient
         var fromDateTime = date.ToDateTime(new TimeOnly(0, 0));
         var toDateTime = date.ToDateTime(new TimeOnly(23, 59, 59));
         string fromString = Uri.EscapeDataString(fromDateTime.ToString("s")); // 2025-11-13T00:00:00
-        string toString = Uri.EscapeDataString(toDateTime.ToString("s"));   // 2025-11-13T23:59:59
+        string toString = Uri.EscapeDataString(toDateTime.ToString("s")); // 2025-11-13T23:59:59
 
         var url = $"/api/notifications/search?status=Submitted&from={fromString}&to={toString}";
 
         Console.WriteLine($"[Planning] Requesting pending visits for date: {date}");
         Console.WriteLine($"[Planning] URL: {url}");
-        
+
         var response = await _httpClient.GetAsync(url);
         var content = await response.Content.ReadAsStringAsync();
 
         // Log for diagnostics - helps to see what's returned by the main API
         Console.WriteLine($"[Planning] GET {url} -> {(int)response.StatusCode} {response.ReasonPhrase}");
         Console.WriteLine($"[Planning] Response Content Length: {content.Length} chars");
-        
+
         // Log first 500 chars to see structure without flooding console
         if (content.Length > 0)
         {
@@ -81,19 +82,21 @@ public class PortApiHttpClient : IPortApiHttpClient
             var visits = JsonSerializer.Deserialize<IEnumerable<VesselVisitDto>>(content, options);
             var visitList = visits?.ToList() ?? new List<VesselVisitDto>();
             Console.WriteLine($"[Planning] Successfully deserialized {visitList.Count} vessel visits");
-            
+
             if (visitList.Count == 0)
             {
-                Console.WriteLine($"[Planning] WARNING: No vessel visits found for date {date} with status 'Submitted'");
+                Console.WriteLine(
+                    $"[Planning] WARNING: No vessel visits found for date {date} with status 'Submitted'");
             }
             else
             {
                 foreach (var visit in visitList)
                 {
-                    Console.WriteLine($"[Planning] Found visit: ID={visit.Id}, BusinessId={visit.BusinessId}, VesselImo={visit.VesselImo ?? "NULL"}, Arrival={visit.EstimatedArrival}, Departure={visit.EstimatedDeparture}, DockId={visit.DockId}, DockName={visit.DockName ?? "NULL"}");
+                    Console.WriteLine(
+                        $"[Planning] Found visit: ID={visit.Id}, BusinessId={visit.BusinessId}, VesselImo={visit.VesselImo ?? "NULL"}, Arrival={visit.EstimatedArrival}, Departure={visit.EstimatedDeparture}, DockId={visit.DockId}, DockName={visit.DockName ?? "NULL"}");
                 }
             }
-            
+
             return visitList;
         }
         catch (Exception ex)
@@ -120,13 +123,15 @@ public class PortApiHttpClient : IPortApiHttpClient
                 var fallbackResp = await _httpClient.GetAsync(fallbackUrl);
                 if (!fallbackResp.IsSuccessStatusCode)
                 {
-                    Console.WriteLine($"[Planning] Fallback GET {fallbackUrl} -> {(int)fallbackResp.StatusCode} {fallbackResp.ReasonPhrase}");
+                    Console.WriteLine(
+                        $"[Planning] Fallback GET {fallbackUrl} -> {(int)fallbackResp.StatusCode} {fallbackResp.ReasonPhrase}");
                     return Enumerable.Empty<ResourceDto>();
                 }
 
                 var fallbackContent = await fallbackResp.Content.ReadAsStringAsync();
                 var fallbackOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-                var fallbackResources = JsonSerializer.Deserialize<IEnumerable<ResourceDto>>(fallbackContent, fallbackOptions);
+                var fallbackResources =
+                    JsonSerializer.Deserialize<IEnumerable<ResourceDto>>(fallbackContent, fallbackOptions);
                 return fallbackResources ?? Enumerable.Empty<ResourceDto>();
             }
             catch (Exception ex)
@@ -150,7 +155,8 @@ public class PortApiHttpClient : IPortApiHttpClient
                 {
                     var fallbackContent = await fallbackResp.Content.ReadAsStringAsync();
                     var fallbackOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-                    var fallbackResources = JsonSerializer.Deserialize<IEnumerable<ResourceDto>>(fallbackContent, fallbackOptions);
+                    var fallbackResources =
+                        JsonSerializer.Deserialize<IEnumerable<ResourceDto>>(fallbackContent, fallbackOptions);
                     return fallbackResources ?? Enumerable.Empty<ResourceDto>();
                 }
             }
@@ -187,7 +193,8 @@ public class PortApiHttpClient : IPortApiHttpClient
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[Planning] Failed to deserialize StaffMemberDto for qualification {qualificationCode}: {ex}");
+                Console.WriteLine(
+                    $"[Planning] Failed to deserialize StaffMemberDto for qualification {qualificationCode}: {ex}");
                 return Enumerable.Empty<StaffMemberDto>();
             }
         }
@@ -198,7 +205,8 @@ public class PortApiHttpClient : IPortApiHttpClient
         }
     }
 
-    public async Task<IEnumerable<OperationPlanDto>> GetSavedOperationPlansAsync(DateTime periodStartUtc, DateTime periodEndUtc)
+    public async Task<IEnumerable<OperationPlanDto>> GetSavedOperationPlansAsync(DateTime periodStartUtc,
+        DateTime periodEndUtc)
     {
         try
         {
@@ -218,9 +226,11 @@ public class PortApiHttpClient : IPortApiHttpClient
                     var content = await response.Content.ReadAsStringAsync();
                     if (!response.IsSuccessStatusCode)
                     {
-                        Console.WriteLine($"[Planning] GET {url} -> {(int)response.StatusCode} {response.ReasonPhrase}");
+                        Console.WriteLine(
+                            $"[Planning] GET {url} -> {(int)response.StatusCode} {response.ReasonPhrase}");
                         continue;
                     }
+
                     var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
                     var plans = JsonSerializer.Deserialize<IEnumerable<OperationPlanDto>>(content, options);
                     if (plans != null) return plans;
@@ -235,7 +245,25 @@ public class PortApiHttpClient : IPortApiHttpClient
         {
             Console.WriteLine($"[Planning] GetSavedOperationPlansAsync global failure: {ex.Message}");
         }
+
         // Fallback: no plans
         return Enumerable.Empty<OperationPlanDto>();
+    }
+
+    public async Task<IEnumerable<VesselVisitDto>> GetApprovedVisitsAsync(DateOnly date)
+    {
+        var from = date.ToDateTime(TimeOnly.MinValue).ToString("s");
+        var to = date.ToDateTime(TimeOnly.MaxValue).ToString("s");
+        // Filtro por status 'Approved' conforme AC1
+        var url = $"/api/notifications/search?status=Approved&from={from}&to={to}";
+        return await _httpClient.GetFromJsonAsync<IEnumerable<VesselVisitDto>>(url) ??
+               Enumerable.Empty<VesselVisitDto>();
+    }
+
+    public async Task<bool> UpdateVesselVisitDockAsync(string visitId, string newDockId)
+    {
+        var response =
+            await _httpClient.PatchAsJsonAsync($"/api/notifications/{visitId}/dock", new { dockId = newDockId });
+        return response.IsSuccessStatusCode;
     }
 }

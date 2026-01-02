@@ -1,5 +1,4 @@
-﻿
-export type SchedulingAlgorithm = 'optimal' | 'heuristic' | 'multicrane' | 'genetic' | 'automatic';
+﻿export type SchedulingAlgorithm = 'optimal' | 'heuristic' | 'multicrane' | 'genetic' | 'automatic' | 'rebalancing';
 
 export type CraneMode = 'single' | 'multiple';
 
@@ -11,10 +10,23 @@ export interface GeneticAlgorithmParams {
     craneMode: CraneMode;
 }
 
+// US 4.3.3 - Rebalancing algorithm parameters
+export interface RebalancingAlgorithmParams {
+    expectedDepartureDelaysWeight: number;
+    dockCapacityAndCongestionWeight: number;
+    craneAvailabilityWeight: number;
+    maxIterations: number;
+    desiredTimeSeconds: number;
+    enforceVesselAndDockConstraints: boolean;
+    variant: 'simulatedAnnealing' | 'tabuSearch' | string;
+}
+
 export interface DailyScheduleRequest {
     date: string; // ISO date string (YYYY-MM-DD)
     algorithm?: SchedulingAlgorithm; // Algorithm to use (default: optimal)
     geneticParams?: GeneticAlgorithmParams; // Parameters for genetic algorithm
+    // US 4.3.3 - Parameters for rebalancing algorithm (used when algorithm === 'rebalancing')
+    rebalancingParams?: RebalancingAlgorithmParams;
 }
 
 export interface ScheduledTask {
@@ -80,3 +92,23 @@ export interface MissingPlansResponse {
     existingPlans: ExistingPlanSummary[];
 }
 
+// US 4.3.3 - Rebalancing proposal response from Planning API
+export interface RebalancingProposal {
+    proposalId: string;
+    date: string;
+    algorithm: 'rebalancing';
+    baselineTasks: ScheduledTask[];
+    proposedTasks: ScheduledTask[];
+    totalDelayBaseline: number;
+    totalDelayProposed: number;
+    warnings: string[];
+    // Convenience metric that backend may include (optional): improvement in minutes
+    improvementMinutes?: number;
+}
+
+// US 4.3.3 - Confirm rebalancing proposal request
+export interface RebalancingConfirmRequest {
+    proposalId: string;
+    officerId: string;
+    comments?: string;
+}

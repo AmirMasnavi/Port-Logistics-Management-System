@@ -3,6 +3,10 @@ import axios from 'axios';
 import type { DailyScheduleRequest, DailyScheduleResponse, SchedulingAlgorithm, GeneticAlgorithmParams, ScheduledTask, MissingPlansResponse } from '../types/scheduling.types';
 import { getAuthToken } from '../firebaseConfig';
 
+
+// Add US 4.3.3 types import (keeps existing imports intact)
+import type { RebalancingAlgorithmParams, RebalancingProposal, RebalancingConfirmRequest } from '../types/scheduling.types';
+
 // Planning API base URL - should be configured in environment
 const PLANNING_API_BASE_URL = import.meta.env.VITE_PLANNING_API_URL || 'http://localhost:5000';
 
@@ -72,19 +76,22 @@ export class SchedulingService {
     /**
      * Generate a daily schedule for the specified date
      * @param date - Date in YYYY-MM-DD format
-     * @param algorithm - Algorithm to use (optimal, heuristic, multicrane, genetic)
+     * @param algorithm - Algorithm to use (optimal, heuristic, multicrane, genetic, rebalancing)
      * @param geneticParams - Parameters for genetic algorithm (optional, required if algorithm is 'genetic')
+     * @param rebalancingParams - Parameters for rebalancing algorithm (optional, required if algorithm is 'rebalancing')
      * @returns DailyScheduleResponse with scheduled tasks and warnings
      */
     async generateDailySchedule(
         date: string,
         algorithm: SchedulingAlgorithm = 'optimal',
-        geneticParams?: GeneticAlgorithmParams
+        geneticParams?: GeneticAlgorithmParams,
+        rebalancingParams?: RebalancingAlgorithmParams
     ): Promise<DailyScheduleResponse> {
         const request: DailyScheduleRequest = { 
             date, 
             algorithm,
-            geneticParams 
+            geneticParams,
+            rebalancingParams
         };
         
         // Log the request for debugging
@@ -100,6 +107,10 @@ export class SchedulingService {
             console.error('Failed to generate daily schedule:', error);
             console.error('Error response:', error.response);
             console.error('Error data:', error.response?.data);
+            
+            if (axios.isAxiosError(error) && error.code === 'ERR_NETWORK') {
+                throw new Error(`Planning API unreachable at ${PLANNING_API_BASE_URL}. Please ensure the backend is running and CORS allows this origin.`);
+            }
             
             if (axios.isAxiosError(error) && error.response) {
                 // Try to extract the detail from ProblemDetails format
@@ -239,6 +250,37 @@ export class SchedulingService {
             console.error('Failed to update task:', error);
             throw new Error(error.response?.data?.message || 'Failed to update task.');
         }
+    }
+
+    // US 4.3.3 - Generate daily schedule using rebalancing algorithm (non-breaking helper)
+    async generateRebalancingDaily(
+        date: string,
+        params: RebalancingAlgorithmParams
+    ): Promise<DailyScheduleResponse> {
+        const request: DailyScheduleRequest = { date, algorithm: 'rebalancing', rebalancingParams: params };
+        console.log('[Scheduling] Rebalancing daily payload:', JSON.stringify(request, null, 2));
+        const response = await planningApiClient.post<DailyScheduleResponse>('/api/Scheduling/daily', request);
+        return response.data;
+    }
+
+    // US 4.3.3 - Generate a rebalancing proposal (baseline vs proposed)
+    async generateRebalancingProposal(request: DailyScheduleRequest): Promise<RebalancingProposal> {
+        const normalized: DailyScheduleRequest = { ...request, algorithm: 'rebalancing' };
+        console.log('[Scheduling] Proposal payload:', JSON.stringify(normalized, null, 2));
+        const response = await planningApiClient.post<RebalancingProposal>(
+            '/api/Scheduling/rebalance/proposal',
+            normalized
+        );
+        return response.data;
+    }
+
+    // US 4.3.3 - Confirm a rebalancing proposal
+    async confirmRebalancing(req: RebalancingConfirmRequest): Promise<{ proposalId: string; officerId: string; timestamp: string; comments?: string }> {
+        const response = await planningApiClient.post<{ proposalId: string; officerId: string; timestamp: string; comments?: string }>(
+            '/api/Scheduling/rebalance/confirm',
+            req
+        );
+        return response.data;
     }
 
     /**

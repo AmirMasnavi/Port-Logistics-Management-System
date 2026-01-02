@@ -16,4 +16,7 @@ public interface IPortApiHttpClient
     
     // New: fetch saved operation plans from core API filtered by period
     Task<IEnumerable<OperationPlanDto>> GetSavedOperationPlansAsync(DateTime periodStartUtc, DateTime periodEndUtc);
+    
+   Task<IEnumerable<VesselVisitDto>> GetApprovedVisitsAsync(DateOnly date);
+   Task<bool> UpdateVesselVisitDockAsync(string visitId, string newDockId);
 }

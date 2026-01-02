@@ -29,7 +29,42 @@ public class SchedulingService : ISchedulingService
         _logger = logger;
     }
 
-    public async Task<DailyScheduleResponseDto> GenerateDailySchedule(DateOnly date, string algorithm = "optimal", GeneticAlgorithmParamsDto? geneticParams = null)
+    public async Task<RebalancingProposalDto> GenerateRebalancingProposal(
+        DateOnly date,
+        RebalancingAlgorithmParamsDto parameters)
+    {
+        // 1. Gerar schedule baseline (sem rebalancing)
+        var baseline = await GenerateDailySchedule(date, "optimal");
+    
+        // 2. Gerar schedule proposto (com rebalancing)
+        var proposed = await GenerateDailySchedule(date, "rebalancing", rebalancingParams: parameters);
+    
+        // 3. Calcular melhoria
+        var improvementHours = baseline.TotalDelay - proposed.TotalDelay;
+    
+        return new RebalancingProposalDto
+        {
+            ProposalId = Guid.NewGuid().ToString(),
+            Date = date.ToString("yyyy-MM-dd"),
+            TotalDelayBaseline = baseline.TotalDelay,
+            TotalDelayProposed = proposed.TotalDelay,
+            ImprovementMinutes = improvementHours * 60,
+            BaselineTasks = baseline.ScheduledTasks,
+            ProposedTasks = proposed.ScheduledTasks,
+            Warnings = proposed.Warnings
+        };
+    }
+
+    public Task ConfirmRebalancing(string proposalId, string officerId, string? comments = null)
+    {
+        _logger.LogInformation("[US 4.3.3] Confirmed proposal {ProposalId} by officer {OfficerId}: {Comments}",
+            proposalId, officerId, comments ?? "No comments");
+    
+        // TODO: Persistir confirmação em base de dados (futuro)
+        return Task.CompletedTask;
+    }
+    
+    public async Task<DailyScheduleResponseDto> GenerateDailySchedule(DateOnly date, string algorithm = "optimal", GeneticAlgorithmParamsDto? geneticParams = null, RebalancingAlgorithmParamsDto? rebalancingParams = null)
     {
         var schedule = new DailyScheduleResponseDto { Date = date };
         // Métricas de Execução
@@ -134,7 +169,23 @@ public class SchedulingService : ISchedulingService
         
         // Track the actual algorithm used for response
         schedule.AlgorithmUsed = algorithm;
-
+        
+        // US 4.3.3: default rebalancing params (mirrors genetic style)
+        if (string.Equals(algorithm, "rebalancing", StringComparison.OrdinalIgnoreCase) && rebalancingParams == null)
+        {
+            rebalancingParams = new RebalancingAlgorithmParamsDto
+            {
+                ExpectedDepartureDelaysWeight = 1.0,
+                DockCapacityAndCongestionWeight = 0.6,
+                CraneAvailabilityWeight = 0.8,
+                MaxIterations = 300,
+                DesiredTimeSeconds = 15,
+                EnforceVesselAndDockConstraints = true,
+                Variant = "simulatedAnnealing"
+            };
+            _logger.LogInformation("[US 4.3.3] Using default rebalancing parameters.");
+        }
+        
         // --- 3. PREPARE DATA FOR PROLOG ---
        
         
@@ -165,47 +216,62 @@ public class SchedulingService : ISchedulingService
         try
         {
             var prologClient = _httpClientFactory.CreateClient("PrologApiClient");
-            
             _logger.LogInformation("Sending {Count} vessels to Prolog server using {Algorithm} algorithm...", prologVesselList.Count, algorithm);
-            // Algorithm Isolation and Routing
-            // Garante que o pedido é encaminhado para o endpoint correto baseado no input.
-            // 'heuristic' -> /api/schedule/heuristic (US 3.4.4)
-            // 'optimal'   -> /api/schedule/optimal   (US 3.4.2)
-            // 'genetic' => "http://localhost:5001/api/schedule/genetic",  // ADD GENETIC ENDPOINT
             string prologEndpoint = algorithm?.ToLower() switch
             {
                 "heuristic" => "http://localhost:5001/api/schedule/heuristic",
                 "multicrane" => "http://localhost:5001/api/schedule/multicrane",
-                "genetic" => "http://localhost:5001/api/schedule/genetic",  // ADD GENETIC ENDPOINT
-                _ => "http://localhost:5001/api/schedule/optimal" // default
+                "genetic" => "http://localhost:5001/api/schedule/genetic",
+                // US 4.3.3: add rebalancing endpoint
+                "rebalancing" => "http://localhost:5001/api/rebalance",
+                _ => "http://localhost:5001/api/schedule/optimal"
             };
-            
             _logger.LogInformation("Using Prolog endpoint: {Endpoint}", prologEndpoint);
             
-            HttpResponseMessage prologResponse = await prologClient.PostAsJsonAsync(prologEndpoint, prologVesselList);
-
+            HttpResponseMessage prologResponse;
+            if (string.Equals(algorithm, "rebalancing", StringComparison.OrdinalIgnoreCase))
+            {
+                // US 4.3.3: send combined payload with parameters
+                var p = rebalancingParams!;
+                _logger.LogInformation("[US 4.3.3] Rebalancing Params - DepartureWeight: {Dep}, DockWeight: {Dock}, CraneWeight: {Crane}, MaxIters: {Iters}, Time: {Time}s, EnforceConstraints: {Enforce}, Variant: {Variant}",
+                    p.ExpectedDepartureDelaysWeight,
+                    p.DockCapacityAndCongestionWeight,
+                    p.CraneAvailabilityWeight,
+                    p.MaxIterations,
+                    p.DesiredTimeSeconds,
+                    p.EnforceVesselAndDockConstraints,
+                    p.Variant);
+                var payload = new { vessels = prologVesselList, @params = rebalancingParams };
+                prologResponse = await prologClient.PostAsJsonAsync(prologEndpoint, payload);
+            }
+            else
+            {
+                // ...existing code...
+                prologResponse = await prologClient.PostAsJsonAsync(prologEndpoint, prologVesselList);
+            }
+            
             if (prologResponse.IsSuccessStatusCode)
             {
                 // Read the raw response first for logging
                 var rawResponse = await prologResponse.Content.ReadAsStringAsync();
                 _logger.LogInformation("[DIAG] Raw Prolog response: {Response}", rawResponse);
-                
+
                 // Deserialize the JSON response from Prolog: { "schedule": [...], "delay": ... }
                 prologResult = System.Text.Json.JsonSerializer.Deserialize<PrologScheduleResponse>(rawResponse, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                
+
                 if (prologResult == null)
                 {
                      _logger.LogError("Failed to deserialize response from Prolog.");
                      return Finish(); // Return empty schedule on error
                 }
-                
+
                 // Captura de Métricas
                 // O TotalDelay é capturado diretamente da resposta do Prolog para logs/auditoria inicial.
                 // Nota: O tempo de execução (ExecutionTimeMs) é calculado pelo Stopwatch no método 'Finish()'.
-                
+
                 schedule.TotalDelay = prologResult.Delay;
-                
-                _logger.LogInformation("Received schedule from Prolog with {Count} tasks and delay {Delay} hours", 
+
+                _logger.LogInformation("Received schedule from Prolog with {Count} tasks and delay {Delay} hours",
                     prologResult.Schedule.Count, prologResult.Delay);
                 _logger.LogInformation("[DIAG] TotalDelay set to: {TotalDelay}", schedule.TotalDelay);
             }
@@ -220,7 +286,7 @@ public class SchedulingService : ISchedulingService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to call Prolog server. Is it running at http://localhost:5001?");
-            return Finish(); 
+            return Finish();
         }
         
         // --- 5. MAP PROLOG RESULT TO C# DTO ---

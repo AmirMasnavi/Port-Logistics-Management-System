@@ -1,7 +1,7 @@
 ﻿import React, { useState } from 'react';
 import { Calendar, Clock, AlertCircle, RefreshCw, Download, Settings, Save, ChevronDown, ChevronUp, Eye, Ship } from 'lucide-react';
 import { schedulingService } from '../services/schedulingService';
-import type { DailyScheduleResponse, SchedulingAlgorithm, GeneticAlgorithmParams, CraneMode } from '../types/scheduling.types';
+import type { DailyScheduleResponse, SchedulingAlgorithm, GeneticAlgorithmParams, CraneMode, RebalancingAlgorithmParams, RebalancingProposal } from '../types/scheduling.types';
 import type { CreateOperationPlanRequest } from '../services/schedulingService';
 import StatCard from '../components/common/StatCard';
 
@@ -27,6 +27,20 @@ const SchedulingPage: React.FC = () => {
     const [mutationRate, setMutationRate] = useState<number>(0.2);
     const [desiredTimeSeconds, setDesiredTimeSeconds] = useState<number>(5);
     const [craneMode, setCraneMode] = useState<CraneMode>('single');
+
+    // US 4.3.3 - Rebalancing state
+    const [showRebalanceParams, setShowRebalanceParams] = useState(false);
+    const [rebalanceParams, setRebalanceParams] = useState<RebalancingAlgorithmParams>({
+        expectedDepartureDelaysWeight: 1.0,
+        dockCapacityAndCongestionWeight: 0.6,
+        craneAvailabilityWeight: 0.8,
+        maxIterations: 300,
+        desiredTimeSeconds: 15,
+        enforceVesselAndDockConstraints: true,
+        variant: 'simulatedAnnealing'
+    });
+    const [proposal, setProposal] = useState<RebalancingProposal | null>(null);
+    const [confirming, setConfirming] = useState(false);
 
     const handleGenerateSchedule = async () => {
         setLoading(true);
@@ -108,6 +122,45 @@ const SchedulingPage: React.FC = () => {
             setTimeout(() => {
                 setSaveStatus('idle');
             }, 5000);
+        }
+    };
+
+    const handleGenerateRebalanceProposal = async () => {
+        setLoading(true);
+        setError(null);
+        setProposal(null);
+        try {
+            const result = await schedulingService.generateRebalancingProposal({
+                date: selectedDate,
+                algorithm: 'rebalancing',
+                rebalancingParams: rebalanceParams
+            });
+            setProposal(result);
+        } catch (err: any) {
+            console.error('Failed to generate rebalancing proposal:', err);
+            setError(err.message || 'Failed to generate rebalancing proposal.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleConfirmRebalance = async () => {
+        if (!proposal) return;
+        setConfirming(true);
+        try {
+            await schedulingService.confirmRebalancing({
+                proposalId: proposal.proposalId,
+                officerId: 'OFFICER-001',
+                comments: 'Confirmed via SchedulingPage'
+            });
+            // Refresh schedule using rebalancing to apply changes
+            const refreshed = await schedulingService.generateRebalancingDaily(selectedDate, rebalanceParams);
+            setScheduleData(refreshed);
+        } catch (err: any) {
+            console.error('Failed to confirm rebalancing:', err);
+            setError(err.message || 'Failed to confirm rebalancing.');
+        } finally {
+            setConfirming(false);
         }
     };
 
@@ -248,6 +301,7 @@ const SchedulingPage: React.FC = () => {
                                 const algo = e.target.value as SchedulingAlgorithm;
                                 setSelectedAlgorithm(algo);
                                 setShowGeneticParams(algo === 'genetic');
+                                setShowRebalanceParams(algo === 'rebalancing');
                             }}
                             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-lg"
                         >
@@ -256,6 +310,7 @@ const SchedulingPage: React.FC = () => {
                             <option value="heuristic">Heuristic (Fast Approximation)</option>
                             <option value="multicrane">Multi-Crane (Advanced)</option>
                             <option value="genetic">Genetic Algorithm (AI-Based)</option>
+                            <option value="rebalancing">Rebalancing (US 4.3.3)</option>
                         </select>
                     </div>
 
@@ -427,6 +482,123 @@ const SchedulingPage: React.FC = () => {
                                         </button>
                                     </div>
                                     <p className="mt-1 text-xs text-gray-500">Pre-configured parameter sets</p>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* US 4.3.3 - Rebalancing Parameters Panel */}
+                {selectedAlgorithm === 'rebalancing' && (
+                    <div className="mt-6 pt-6 border-t border-gray-200">
+                        <button
+                            onClick={() => setShowRebalanceParams(!showRebalanceParams)}
+                            className="w-full flex items-center justify-between text-left mb-4"
+                        >
+                            <div className="flex items-center gap-2">
+                                <Settings className="w-5 h-5 text-gray-700" />
+                                <h3 className="text-lg font-semibold text-gray-800">Rebalancing Parameters</h3>
+                            </div>
+                            {showRebalanceParams ? (
+                                <ChevronUp className="w-5 h-5 text-gray-500" />
+                            ) : (
+                                <ChevronDown className="w-5 h-5 text-gray-500" />
+                            )}
+                        </button>
+
+                        {showRebalanceParams && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 bg-gray-50 p-4 rounded-lg">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Departure Delays Weight</label>
+                                    <input type="number" step="0.1" value={rebalanceParams.expectedDepartureDelaysWeight}
+                                        onChange={e => setRebalanceParams({ ...rebalanceParams, expectedDepartureDelaysWeight: Number(e.target.value) })}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Dock Congestion Weight</label>
+                                    <input type="number" step="0.1" value={rebalanceParams.dockCapacityAndCongestionWeight}
+                                        onChange={e => setRebalanceParams({ ...rebalanceParams, dockCapacityAndCongestionWeight: Number(e.target.value) })}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Crane Availability Weight</label>
+                                    <input type="number" step="0.1" value={rebalanceParams.craneAvailabilityWeight}
+                                        onChange={e => setRebalanceParams({ ...rebalanceParams, craneAvailabilityWeight: Number(e.target.value) })}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Max Iterations</label>
+                                    <input type="number" value={rebalanceParams.maxIterations}
+                                        onChange={e => setRebalanceParams({ ...rebalanceParams, maxIterations: Number(e.target.value) })}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Desired Time (s)</label>
+                                    <input type="number" value={rebalanceParams.desiredTimeSeconds}
+                                        onChange={e => setRebalanceParams({ ...rebalanceParams, desiredTimeSeconds: Number(e.target.value) })}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Variant</label>
+                                    <select value={rebalanceParams.variant}
+                                        onChange={e => setRebalanceParams({ ...rebalanceParams, variant: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white">
+                                        <option value="simulatedAnnealing">Simulated Annealing</option>
+                                        <option value="tabuSearch">Tabu Search</option>
+                                    </select>
+                                </div>
+                                <div className="md:col-span-3">
+                                    <label className="inline-flex items-center">
+                                        <input type="checkbox" className="mr-2" checked={rebalanceParams.enforceVesselAndDockConstraints}
+                                            onChange={e => setRebalanceParams({ ...rebalanceParams, enforceVesselAndDockConstraints: e.target.checked })} />
+                                        Enforce vessel/dock constraints during rebalancing
+                                    </label>
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="flex gap-3 mt-4">
+                            <button onClick={handleGenerateRebalanceProposal} disabled={loading} className="btn btn-secondary px-4 py-2 flex items-center gap-2">
+                                <Eye className="w-5 h-5" /> Preview Proposal
+                            </button>
+                            <button onClick={handleConfirmRebalance} disabled={!proposal || confirming} className="btn btn-primary px-4 py-2 flex items-center gap-2">
+                                <Save className="w-5 h-5" /> Confirm Rebalancing
+                            </button>
+                        </div>
+
+                        {proposal && (
+                            <div className="mt-6 bg-white rounded-lg shadow p-4">
+                                <h4 className="text-lg font-semibold mb-2">Rebalancing Proposal</h4>
+                                <p className="text-sm text-gray-600 mb-4">Improvement: {proposal.improvementMinutes ?? Math.max(0, (proposal.totalDelayBaseline - proposal.totalDelayProposed) * 60).toFixed(0)} minutes. Total Delay: baseline {proposal.totalDelayBaseline.toFixed(2)}h → proposed {proposal.totalDelayProposed.toFixed(2)}h</p>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <h5 className="font-medium mb-2">Baseline Allocation</h5>
+                                        {proposal.baselineTasks.length === 0 ? (
+                                            <p className="text-gray-500">No baseline tasks.</p>
+                                        ) : (
+                                            <ul className="space-y-2">
+                                                {proposal.baselineTasks.map((t, idx) => (
+                                                    <li key={`b-${idx}`} className="border rounded p-2 text-sm">
+                                                        <span className="font-mono">{t.vesselVisitBusinessId}</span> at {t.dockName} {formatDateAndTime(t.startTime)} → {formatDateAndTime(t.endTime)}
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        )}
+                                    </div>
+                                    <div>
+                                        <h5 className="font-medium mb-2">Proposed Allocation</h5>
+                                        {proposal.proposedTasks.length === 0 ? (
+                                            <p className="text-gray-500">No proposed tasks.</p>
+                                        ) : (
+                                            <ul className="space-y-2">
+                                                {proposal.proposedTasks.map((t, idx) => (
+                                                    <li key={`p-${idx}`} className="border rounded p-2 text-sm">
+                                                        <span className="font-mono">{t.vesselVisitBusinessId}</span> at {t.dockName} {formatDateAndTime(t.startTime)} → {formatDateAndTime(t.endTime)}
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         )}

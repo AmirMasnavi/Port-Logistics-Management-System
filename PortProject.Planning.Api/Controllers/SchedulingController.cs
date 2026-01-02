@@ -23,8 +23,8 @@ public class SchedulingController : ControllerBase
 
     /// <summary>
     /// Generates a daily schedule for all pending vessel visits.
-    /// Supports 'algorithm' parameter for UI selection (optimal/heuristic).
-    /// (Implements US 3.4.2)
+    /// Supports 'algorithm' parameter for UI selection (optimal/heuristic/genetic/rebalancing).
+    /// (Implements US 3.4.2 and US 4.3.3 when algorithm = rebalancing)
     /// </summary>
     [HttpPost("daily")]
     [Produces("application/json")]
@@ -49,10 +49,25 @@ public class SchedulingController : ControllerBase
                     request.GeneticParams.CraneMode);
             }
             
+            // Log rebalancing parameters if provided (mirror genetic example)
+            if (string.Equals(request.Algorithm, "rebalancing", StringComparison.OrdinalIgnoreCase) && request.RebalancingParams != null)
+            {
+                var p = request.RebalancingParams;
+                _logger.LogInformation("[US 4.3.3] Rebalancing Params - DepartureWeight: {Dep}, DockWeight: {Dock}, CraneWeight: {Crane}, MaxIters: {Iters}, Time: {Time}s, EnforceConstraints: {Enforce}, Variant: {Variant}",
+                    p.ExpectedDepartureDelaysWeight,
+                    p.DockCapacityAndCongestionWeight,
+                    p.CraneAvailabilityWeight,
+                    p.MaxIterations,
+                    p.DesiredTimeSeconds,
+                    p.EnforceVesselAndDockConstraints,
+                    p.Variant);
+            }
+            
             var schedule = await _schedulingService.GenerateDailySchedule(
                 request.Date, 
                 request.Algorithm ?? "optimal",
-                request.GeneticParams);
+                request.GeneticParams,
+                request.RebalancingParams);
             
             _logger.LogInformation("Successfully generated schedule with {TaskCount} tasks", schedule.ScheduledTasks.Count);
             return Ok(schedule);
@@ -68,4 +83,100 @@ public class SchedulingController : ControllerBase
             });
         }
     }
+    
+    
+    /// <summary>
+    /// US 4.3.3: Generates a rebalancing proposal comparing baseline vs proposed allocation
+    /// </summary>
+    [HttpPost("rebalance/proposal")]
+    [Produces("application/json")]
+    [ProducesResponseType(typeof(RebalancingProposalDto), 200)]
+    [ProducesResponseType(typeof(ProblemDetails), 400)]
+    [ProducesResponseType(typeof(ProblemDetails), 500)]
+    public async Task<IActionResult> GenerateRebalancingProposal([FromBody] DailyScheduleRequestDto request)
+    {
+        try
+        {
+            _logger.LogInformation("[US 4.3.3] Generating rebalancing proposal for date: {Date}", request.Date);
+            
+            if (request.RebalancingParams == null)
+            {
+                return BadRequest(new ProblemDetails
+                {
+                    Status = 400,
+                    Title = "Invalid request",
+                    Detail = "RebalancingParams are required for rebalancing proposal"
+                });
+            }
+            
+            var proposal = await _schedulingService.GenerateRebalancingProposal(
+                request.Date,
+                request.RebalancingParams ?? new RebalancingAlgorithmParamsDto());
+            
+            _logger.LogInformation("[US 4.3.3] Proposal generated - Baseline delay: {Baseline}h, Proposed delay: {Proposed}h",
+                proposal.TotalDelayBaseline, proposal.TotalDelayProposed);
+            
+            return Ok(proposal);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[US 4.3.3] Error generating rebalancing proposal for date {Date}", request.Date);
+            return StatusCode(500, new ProblemDetails
+            {
+                Status = 500,
+                Title = "Error generating rebalancing proposal",
+                Detail = ex.Message
+            });
+        }
+    }
+    /// <summary>
+        /// US 4.3.3: Confirms a rebalancing proposal
+        /// </summary>
+        [HttpPost("rebalance/confirm")]
+        [Produces("application/json")]
+        [ProducesResponseType(typeof(object), 200)]
+        [ProducesResponseType(typeof(ProblemDetails), 400)]
+        [ProducesResponseType(typeof(ProblemDetails), 500)]
+        public async Task<IActionResult> ConfirmRebalancing([FromBody] RebalancingConfirmRequestDto request)
+        {
+            try
+            {
+                _logger.LogInformation("[US 4.3.3] Confirming rebalancing proposal {ProposalId} by officer {OfficerId}",
+                    request.ProposalId, request.OfficerId);
+                
+                if (string.IsNullOrWhiteSpace(request.ProposalId) || string.IsNullOrWhiteSpace(request.OfficerId))
+                {
+                    return BadRequest(new ProblemDetails
+                    {
+                        Status = 400,
+                        Title = "Invalid request",
+                        Detail = "ProposalId and OfficerId are required"
+                    });
+                }
+                
+                await _schedulingService.ConfirmRebalancing(
+                    request.ProposalId,
+                    request.OfficerId,
+                    request.Comments);
+                _logger.LogInformation("[US 4.3.3] Rebalancing proposal {ProposalId} confirmed successfully", request.ProposalId);
+            
+                return Ok(new
+                {
+                    proposalId = request.ProposalId,
+                    officerId = request.OfficerId,
+                    timestamp = DateTime.UtcNow,
+                    comments = request.Comments
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[US 4.3.3] Error confirming rebalancing proposal {ProposalId}", request.ProposalId);
+                return StatusCode(500, new ProblemDetails
+                {
+                    Status = 500,
+                    Title = "Error confirming rebalancing",
+                    Detail = ex.Message
+                });
+            }
+        }
 }
