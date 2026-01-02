@@ -298,15 +298,19 @@ handle_schedule_rebalance(Request) :-
     cors_enable(Request, [methods([post])]),
     http_read_json(Request, JSON_Data, [json_object(list)]),
     
+    % When JSON is {"vessels": [...], "docks": [...]}, Prolog parses it as json([vessels=..., docks=...])
+    % So we need to extract from the json(...) wrapper first
+    (   JSON_Data = json(DataList) -> true ; DataList = JSON_Data ),
+    
     % The request must contain both 'vessels' and 'docks' lists
-    (   member(vessels=VesselsJSON, JSON_Data),
-        member(docks=DocksJSON, JSON_Data) ->
+    (   member(vessels=VesselsJSON, DataList),
+        member(docks=DocksJSON, DataList) ->
         
         % 1. Load dynamic facts into memory
         process_vessels_rebalance(VesselsJSON),
         process_docks_rebalance(DocksJSON),
         
-        % 2. Run the Genetic Algorithm for Rebalancing
+        % 2. Run the rebalancing algorithm
         get_time(Ti),
         obtain_rebalancing_schedule(BestMapping, BestDelay),
         get_time(Tf),
@@ -357,11 +361,14 @@ format_schedule_json([(Vessel, Start, End) | RestTriplets], [ [VesselStr, Start,
 process_vessels_rebalance([]).
 process_vessels_rebalance([json(V)|Rest]) :-
     member(id=IdStr, V), atom_string(Id, IdStr),
-    member(arrival=Arr, V),
-    member(departure=Dep, V),
+    member(arrival=ArrStr, V),
+    member(departure=DepStr, V),
     member(unload=U, V),
     member(load=L, V),
     member(length=Len, V),
+    % Convert string values to numbers
+    atom_number(ArrStr, Arr),
+    atom_number(DepStr, Dep),
     asserta(vessel(Id, Arr, Dep, U, L)),
     asserta(vessel_info(Id, Len, 0)), % CargoWeight default 0
     process_vessels_rebalance(Rest).

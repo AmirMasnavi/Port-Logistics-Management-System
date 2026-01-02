@@ -51,6 +51,7 @@ const SchedulingPage: React.FC = () => {
 
         try {
             let geneticParams: GeneticAlgorithmParams | undefined = undefined;
+            let rebalancingParams: RebalancingAlgorithmParams | undefined = undefined;
             
             if (selectedAlgorithm === 'genetic') {
                 geneticParams = {
@@ -62,10 +63,16 @@ const SchedulingPage: React.FC = () => {
                 };
             }
             
+            // US 4.3.3 - Pass rebalancing parameters when rebalancing algorithm is selected
+            if (selectedAlgorithm === 'rebalancing') {
+                rebalancingParams = rebalanceParams;
+            }
+            
             const result = await schedulingService.generateDailySchedule(
                 selectedDate, 
                 selectedAlgorithm,
-                geneticParams
+                geneticParams,
+                rebalancingParams
             );
             setScheduleData(result);
         } catch (err: any) {
@@ -91,6 +98,8 @@ const SchedulingPage: React.FC = () => {
                     desiredTimeSeconds,
                     craneMode
                 } : undefined,
+                // US 4.3.3 - Include rebalancing parameters when saving a rebalancing schedule
+                rebalancingParams: selectedAlgorithm === 'rebalancing' ? rebalanceParams : undefined,
                 totalDelay: scheduleData.totalDelay,
                 executionTimeMs: scheduleData.executionTimeMs,
                 scheduledTasks: scheduleData.scheduledTasks.map(t => ({

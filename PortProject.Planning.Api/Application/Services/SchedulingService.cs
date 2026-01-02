@@ -99,10 +99,12 @@ public class SchedulingService : ISchedulingService
         // Diagnostic logging: dump what we received from the main API so we can compare with the test harness
         try
         {
+            var dockSummaries = docks.Select(d => new { d.Id, d.Name, Length = d.EffectiveLengthInMeters, Cranes = d.EffectiveNumberOfSTSCranes }).ToList();
             var visitSummaries = clientVisits.Select(v => new { v.Id, v.EstimatedArrival, v.EstimatedDeparture, v.UnloadingTime, v.LoadingTime }).ToList();
             var staffSummaries = staff.Select(s => new { s.MecanographicNumber, s.OperationalWindow, Qualifications = s.QualificationCodes }).ToList();
             var resourceSummaries = resources.Select(r => new { r.Code, r.Status, r.OperationalWindowStart, r.OperationalWindowEnd, Qualifications = r.QualificationRequirements }).ToList();
 
+            _logger.LogInformation("[DIAG] Fetched {DockCount} docks: {Docks}", dockSummaries.Count, System.Text.Json.JsonSerializer.Serialize(dockSummaries));
             _logger.LogInformation("[DIAG] Fetched {VisitCount} visits: {Visits}", visitSummaries.Count, System.Text.Json.JsonSerializer.Serialize(visitSummaries));
             _logger.LogInformation("[DIAG] Fetched {StaffCount} staff: {Staff}", staffSummaries.Count, System.Text.Json.JsonSerializer.Serialize(staffSummaries));
             _logger.LogInformation("[DIAG] Fetched {ResourceCount} resources: {Resources}", resourceSummaries.Count, System.Text.Json.JsonSerializer.Serialize(resourceSummaries));
@@ -190,20 +192,59 @@ public class SchedulingService : ISchedulingService
        
         
         DateTime dayStart = date.ToDateTime(TimeOnly.MinValue);
-        // Send BusinessId to Prolog instead of Id (GUID), since API doesn't return GUID Id field
-        var prologVesselList = clientVisits.Select(v => new PrologVesselRequest
+        
+        // US 4.3.3: Prepare separate payloads for rebalancing vs other algorithms
+        List<PrologRebalancingVesselRequest>? prologRebalancingVesselList = null;
+        List<PrologDockRequest>? prologDockList = null;
+        List<PrologVesselRequest>? prologVesselList = null;
+        
+        if (string.Equals(algorithm, "rebalancing", StringComparison.OrdinalIgnoreCase))
         {
-            Id = v.BusinessId,  // Use BusinessId instead of v.Id.ToString()
-            EstimatedArrival = ((int)(v.EstimatedArrival - dayStart).TotalHours).ToString(),
-            EstimatedDeparture = ((int)(v.EstimatedDeparture - dayStart).TotalHours).ToString(),
-            UnloadingTime = v.UnloadingTime,
-            LoadingTime = v.LoadingTime
-        }).ToList();
+            // Rebalancing uses different field names: arrival, departure, unload, load, length
+            prologRebalancingVesselList = clientVisits.Select(v => new PrologRebalancingVesselRequest
+            {
+                Id = v.BusinessId,
+                Arrival = ((int)(v.EstimatedArrival - dayStart).TotalHours).ToString(),
+                Departure = ((int)(v.EstimatedDeparture - dayStart).TotalHours).ToString(),
+                Unload = v.UnloadingTime,
+                Load = v.LoadingTime,
+                Length = 25.0 // Default vessel length (reduced to fit on available docks)
+            }).ToList();
+            
+            // Prepare dock payload
+            prologDockList = docks.Select(d => new PrologDockRequest
+            {
+                Id = d.Id,
+                MaxLength = d.EffectiveLengthInMeters, // Use effective property with default
+                Cranes = d.EffectiveNumberOfSTSCranes   // Use effective property with default
+            }).ToList();
+        }
+        else
+        {
+            // Other algorithms use: estimatedArrival, estimatedDeparture, unloadingTime, loadingTime
+            prologVesselList = clientVisits.Select(v => new PrologVesselRequest
+            {
+                Id = v.BusinessId,
+                EstimatedArrival = ((int)(v.EstimatedArrival - dayStart).TotalHours).ToString(),
+                EstimatedDeparture = ((int)(v.EstimatedDeparture - dayStart).TotalHours).ToString(),
+                UnloadingTime = v.UnloadingTime,
+                LoadingTime = v.LoadingTime
+            }).ToList();
+        }
 
         // Diagnostic: log the exact payload that will be sent to Prolog
         try
         {
-            _logger.LogInformation("[DIAG] Prolog payload: {Payload}", System.Text.Json.JsonSerializer.Serialize(prologVesselList));
+            if (string.Equals(algorithm, "rebalancing", StringComparison.OrdinalIgnoreCase))
+            {
+                _logger.LogInformation("[DIAG] Prolog rebalancing payload - Vessels: {Vessels}, Docks: {Docks}", 
+                    System.Text.Json.JsonSerializer.Serialize(prologRebalancingVesselList),
+                    System.Text.Json.JsonSerializer.Serialize(prologDockList));
+            }
+            else
+            {
+                _logger.LogInformation("[DIAG] Prolog payload: {Payload}", System.Text.Json.JsonSerializer.Serialize(prologVesselList));
+            }
         }
         catch (Exception ex)
         {
@@ -216,14 +257,17 @@ public class SchedulingService : ISchedulingService
         try
         {
             var prologClient = _httpClientFactory.CreateClient("PrologApiClient");
-            _logger.LogInformation("Sending {Count} vessels to Prolog server using {Algorithm} algorithm...", prologVesselList.Count, algorithm);
+            int vesselCount = string.Equals(algorithm, "rebalancing", StringComparison.OrdinalIgnoreCase) 
+                ? prologRebalancingVesselList!.Count 
+                : prologVesselList!.Count;
+            _logger.LogInformation("Sending {Count} vessels to Prolog server using {Algorithm} algorithm...", vesselCount, algorithm);
             string prologEndpoint = algorithm?.ToLower() switch
             {
                 "heuristic" => "http://localhost:5001/api/schedule/heuristic",
                 "multicrane" => "http://localhost:5001/api/schedule/multicrane",
                 "genetic" => "http://localhost:5001/api/schedule/genetic",
                 // US 4.3.3: add rebalancing endpoint
-                "rebalancing" => "http://localhost:5001/api/rebalance",
+                "rebalancing" => "http://localhost:5001/api/schedule/rebalance",
                 _ => "http://localhost:5001/api/schedule/optimal"
             };
             _logger.LogInformation("Using Prolog endpoint: {Endpoint}", prologEndpoint);
@@ -231,7 +275,7 @@ public class SchedulingService : ISchedulingService
             HttpResponseMessage prologResponse;
             if (string.Equals(algorithm, "rebalancing", StringComparison.OrdinalIgnoreCase))
             {
-                // US 4.3.3: send combined payload with parameters
+                // US 4.3.3: send vessels and docks payload for rebalancing
                 var p = rebalancingParams!;
                 _logger.LogInformation("[US 4.3.3] Rebalancing Params - DepartureWeight: {Dep}, DockWeight: {Dock}, CraneWeight: {Crane}, MaxIters: {Iters}, Time: {Time}s, EnforceConstraints: {Enforce}, Variant: {Variant}",
                     p.ExpectedDepartureDelaysWeight,
@@ -241,12 +285,44 @@ public class SchedulingService : ISchedulingService
                     p.DesiredTimeSeconds,
                     p.EnforceVesselAndDockConstraints,
                     p.Variant);
-                var payload = new { vessels = prologVesselList, @params = rebalancingParams };
-                prologResponse = await prologClient.PostAsJsonAsync(prologEndpoint, payload);
+                
+                // Diagnostic: Check if lists are populated
+                _logger.LogInformation("[US 4.3.3] Rebalancing vessel count: {VesselCount}, Dock count: {DockCount}", 
+                    prologRebalancingVesselList?.Count ?? 0, 
+                    prologDockList?.Count ?? 0);
+                
+                if (prologRebalancingVesselList == null || !prologRebalancingVesselList.Any())
+                {
+                    _logger.LogError("[US 4.3.3] ERROR: prologRebalancingVesselList is null or empty!");
+                }
+                if (prologDockList == null || !prologDockList.Any())
+                {
+                    _logger.LogError("[US 4.3.3] ERROR: prologDockList is null or empty!");
+                }
+                
+                // Prolog server expects: { vessels: [...], docks: [...] }
+                var payload = new { vessels = prologRebalancingVesselList, docks = prologDockList };
+                
+                // Log the actual JSON that will be sent
+                string jsonPayload;
+                try
+                {
+                    jsonPayload = System.Text.Json.JsonSerializer.Serialize(payload);
+                    _logger.LogInformation("[US 4.3.3] Sending to Prolog: {Json}", jsonPayload);
+                }
+                catch (Exception logEx)
+                {
+                    _logger.LogWarning(logEx, "[US 4.3.3] Failed to serialize payload for logging");
+                    jsonPayload = "{}";
+                }
+                
+                // Use StringContent with explicit JSON to ensure proper serialization
+                var content = new StringContent(jsonPayload, System.Text.Encoding.UTF8, "application/json");
+                prologResponse = await prologClient.PostAsync(prologEndpoint, content);
             }
             else
             {
-                // ...existing code...
+                // Other algorithms just send vessel list
                 prologResponse = await prologClient.PostAsJsonAsync(prologEndpoint, prologVesselList);
             }
             
@@ -256,7 +332,83 @@ public class SchedulingService : ISchedulingService
                 var rawResponse = await prologResponse.Content.ReadAsStringAsync();
                 _logger.LogInformation("[DIAG] Raw Prolog response: {Response}", rawResponse);
 
-                // Deserialize the JSON response from Prolog: { "schedule": [...], "delay": ... }
+                // US 4.3.3: Rebalancing uses a different response format
+                if (string.Equals(algorithm, "rebalancing", StringComparison.OrdinalIgnoreCase))
+                {
+                    var rebalancingResult = System.Text.Json.JsonSerializer.Deserialize<PrologRebalancingResponse>(rawResponse, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                    
+                    if (rebalancingResult == null || rebalancingResult.Schedule == null)
+                    {
+                        _logger.LogError("Failed to deserialize rebalancing response from Prolog.");
+                        return Finish();
+                    }
+                    
+                    schedule.TotalDelay = rebalancingResult.TotalDelay;
+                    _logger.LogInformation("Received rebalancing schedule from Prolog with {Count} mappings and delay {Delay} hours",
+                        rebalancingResult.Schedule.Count, rebalancingResult.TotalDelay);
+                    
+                    // Process rebalancing result - convert vessel-to-dock mappings into scheduled tasks
+                    var rebalancingVisitMap = clientVisits.ToDictionary(v => v.BusinessId.ToLowerInvariant(), v => v, StringComparer.OrdinalIgnoreCase);
+                    var rebalancingDockMap = docks.ToDictionary(d => d.Id.ToLowerInvariant(), d => d, StringComparer.OrdinalIgnoreCase);
+                    
+                    foreach (var mapping in rebalancingResult.Schedule)
+                    {
+                        // Find vessel visit
+                        if (!rebalancingVisitMap.TryGetValue(mapping.Vessel.ToLowerInvariant(), out var visit))
+                        {
+                            _logger.LogWarning("Vessel {Vessel} from rebalancing result not found in visits", mapping.Vessel);
+                            continue;
+                        }
+                        
+                        // Find dock
+                        string dockName = mapping.Dock;
+                        if (rebalancingDockMap.TryGetValue(mapping.Dock.ToLowerInvariant(), out var foundDock))
+                        {
+                            dockName = foundDock.Name;
+                        }
+                        
+                        // Calculate schedule times based on vessel's estimated arrival and work duration
+                        var scheduledStart = visit.EstimatedArrival;
+                        var requiredHours = visit.UnloadingTime + visit.LoadingTime;
+                        var scheduledEnd = scheduledStart.AddHours(requiredHours);
+                        
+                        // Get a default resource and staff (rebalancing focuses on dock assignment, not detailed resource allocation)
+                        var requestedResource = resources.FirstOrDefault(r => r.Code == "1") ?? resources.FirstOrDefault();
+                        var assignedStaff = staff.FirstOrDefault();
+                        
+                        var resourceDisplayKind = requestedResource?.Kind ?? "Resource";
+                        var staffDisplayName = assignedStaff?.ShortName ?? assignedStaff?.MecanographicNumber ?? "UNASSIGNED";
+                        
+                        _logger.LogInformation("Creating rebalancing task: Vessel {Vessel} → Dock {Dock} ({DockName}), Start: {Start}, End: {End}",
+                            visit.BusinessId, mapping.Dock, dockName, scheduledStart, scheduledEnd);
+                        
+                        schedule.ScheduledTasks.Add(new ScheduledTaskDto
+                        {
+                            // IDs
+                            VesselVisitId = visit.BusinessId,
+                            DockId = mapping.Dock,
+                            StaffId = assignedStaff?.MecanographicNumber ?? "UNASSIGNED",
+                            ResourceId = requestedResource?.Code ?? "1",
+                            
+                            // Display names
+                            VesselImo = visit.VesselImo,
+                            VesselVisitBusinessId = visit.BusinessId,
+                            DockName = dockName,
+                            ResourceKind = resourceDisplayKind,
+                            StaffShortName = staffDisplayName,
+                            
+                            StartTime = scheduledStart,
+                            EndTime = scheduledEnd,
+                            LoadingTime = visit.LoadingTime,
+                            UnloadingTime = visit.UnloadingTime
+                        });
+                    }
+                    
+                    _logger.LogInformation("Successfully created {Count} scheduled tasks from rebalancing result", schedule.ScheduledTasks.Count);
+                    return Finish();
+                }
+
+                // Deserialize regular scheduling response
                 prologResult = System.Text.Json.JsonSerializer.Deserialize<PrologScheduleResponse>(rawResponse, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
                 if (prologResult == null)
@@ -848,6 +1000,45 @@ public class SchedulingService : ISchedulingService
 
         [JsonPropertyName("loadingTime")]
         public double LoadingTime { get; set; }
+        
+        // US 4.3.3: Optional length field for rebalancing algorithm
+        [JsonPropertyName("length")]
+        public double? Length { get; set; }
+    }
+    
+    // US 4.3.3: Vessel payload specifically for rebalancing algorithm (different field names)
+    private class PrologRebalancingVesselRequest
+    {
+        [JsonPropertyName("id")]
+        public string Id { get; set; }
+
+        [JsonPropertyName("arrival")]
+        public string Arrival { get; set; }
+
+        [JsonPropertyName("departure")]
+        public string Departure { get; set; }
+
+        [JsonPropertyName("unload")]
+        public double Unload { get; set; }
+
+        [JsonPropertyName("load")]
+        public double Load { get; set; }
+        
+        [JsonPropertyName("length")]
+        public double Length { get; set; }
+    }
+    
+    // US 4.3.3: Dock payload for rebalancing algorithm
+    private class PrologDockRequest
+    {
+        [JsonPropertyName("id")]
+        public string Id { get; set; }
+        
+        [JsonPropertyName("maxLength")]
+        public double MaxLength { get; set; }
+        
+        [JsonPropertyName("cranes")]
+        public int Cranes { get; set; }
     }
 
     private class PrologScheduleResponse
@@ -873,6 +1064,31 @@ public class SchedulingService : ISchedulingService
 
         [JsonPropertyName("delay")]
         public double Delay { get; set; }
+    }
+
+    // US 4.3.3: Separate response class for rebalancing algorithm
+    private class PrologRebalancingResponse
+    {
+        [JsonPropertyName("schedule")]
+        public List<VesselDockMapping>? Schedule { get; set; }
+        
+        [JsonPropertyName("totalDelay")]
+        public double TotalDelay { get; set; }
+        
+        [JsonPropertyName("executionTime")]
+        public double ExecutionTime { get; set; }
+        
+        [JsonPropertyName("type")]
+        public string? Type { get; set; }
+    }
+    
+    private class VesselDockMapping
+    {
+        [JsonPropertyName("vessel")]
+        public string Vessel { get; set; } = "";
+        
+        [JsonPropertyName("dock")]
+        public string Dock { get; set; } = "";
     }
 
     // Helper: check if resource operational window (start/end strings) covers the entire task interval.

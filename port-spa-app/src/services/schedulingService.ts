@@ -46,6 +46,7 @@ export interface CreateOperationPlanRequest {
     date: string;
     algorithm: string;
     geneticParams?: GeneticAlgorithmParams;
+    rebalancingParams?: RebalancingAlgorithmParams; // US 4.3.3 - Add rebalancing parameters
     totalDelay: number;
     executionTimeMs: number;
     scheduledTasks: ScheduledTask[];
@@ -66,6 +67,7 @@ export interface OperationPlan {
         executionTimeMs: number;
     };
     geneticParams?: GeneticAlgorithmParams;
+    rebalancingParams?: RebalancingAlgorithmParams; // US 4.3.3 - Add rebalancing parameters
     scheduledTasksCount?: number;
     scheduledTasks: ScheduledTask[];
     createdBy: string;

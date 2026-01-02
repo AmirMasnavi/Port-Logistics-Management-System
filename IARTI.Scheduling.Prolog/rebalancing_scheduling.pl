@@ -30,7 +30,9 @@ calculate_map_aux([(V, D)|Rest], CurrentTime, TotalDelay) :-
     dock_info(D, _, DCranes),
     
     % (iii) Processing time depends on the number of cranes at the assigned dock
-    ProcTime is ceiling((Unload + Load) / DCranes),
+    % Handle edge case: if DCranes is 0, use 1 as default to avoid division by zero
+    (DCranes > 0 -> EffectiveCranes = DCranes ; EffectiveCranes = 1),
+    ProcTime is ceiling((Unload + Load) / EffectiveCranes),
     
     (Arrival > CurrentTime -> Start = Arrival ; Start is CurrentTime + 1),
     End is Start + ProcTime - 1,
@@ -52,8 +54,14 @@ obtain_rebalancing_schedule(BestMapping, BestDelay) :-
     % Generate all possible valid mappings
     findall(Mapping, generate_all_valid_mappings(VesselList, DockList, Mapping), AllSolutions),
     
-    % Pick the one with the minimum delay
-    find_best_solution(AllSolutions, BestMapping, BestDelay).
+    % Check if any solutions were found
+    (   AllSolutions \= [] ->
+        % Pick the one with the minimum delay
+        find_best_solution(AllSolutions, BestMapping, BestDelay)
+    ;   % No valid solutions found - return empty mapping with delay 0
+        BestMapping = [],
+        BestDelay = 0
+    ).
 
 % Generates a valid mapping by trying every dock for every vessel
 generate_all_valid_mappings([], _, []).
