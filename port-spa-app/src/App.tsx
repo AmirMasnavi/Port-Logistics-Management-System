@@ -23,7 +23,8 @@ import PrivacyPolicyGuard from './components/auth/PrivacyPolicyGuard';
 import DataRightsPage from './pages/DataRightsPage';
 import IncidentTypePage from './pages/IncidentTypePage';
 import IncidentsPage from './pages/IncidentsPage';
-import ComplementaryTaskCategoriesPage from './pages/ComplementaryTaskCategoriesPage'; 
+import ComplementaryTaskCategoriesPage from './pages/ComplementaryTaskCategoriesPage';
+import ComplementaryTasksPage from './pages/ComplementaryTasksPage';
 
 import { OperationPlanPage } from './pages/OperationPlanPage';
 import PlanningResourceAllocationsPage from './pages/PlanningResourceAllocationsPage';
@@ -108,6 +109,7 @@ function App() {
 
                             <Route element={<RoleProtectedRoute allowedRoles={canManagePortOperationsSupervisor} />}>
                                 <Route path="/complementary-task-categories" element={<ComplementaryTaskCategoriesPage />} />
+                                <Route path="/complementary-tasks" element={<ComplementaryTasksPage />} />
                             </Route>
                             
                             {/* --- Vessels List (Admin, Officer, Logistics) --- */}

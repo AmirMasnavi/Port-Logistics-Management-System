@@ -183,7 +183,10 @@ const Sidebar: React.FC<SidebarProps> = ({
                 )}
                 
                 {canManagePortOperationsSupervisor.has(internalRole || '') && (
-                    <NavItem to="/complementary-task-categories" label={t('Complementary Task Categories')} icon={ChartColumnStacked} isExpanded={isExpanded} />
+                    <>
+                        <NavItem to="/complementary-task-categories" label={t('Complementary Task Categories')} icon={ChartColumnStacked} isExpanded={isExpanded} />
+                        <NavItem to="/complementary-tasks" label={t('Complementary Tasks')} icon={ChartColumnStacked} isExpanded={isExpanded} />
+                    </>
                 )}
 
                 {/* Admin Page: Admin only */}
