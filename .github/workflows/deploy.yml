@@ -99,6 +99,14 @@ jobs:
             -BackupPath "E:\Backups"
         shell: powershell
 
+      - name: Cleanup Old Backups
+        run: |
+          # Run the retention policy script
+          .\scripts\cleanup_backups.ps1 `
+            -BackupPath "E:\Backups" `
+            -DbName "${{ secrets.DB_NAME }}"
+        shell: powershell
+
       - name: Upload Backup and Logs to Cloud
         uses: actions/upload-artifact@v4
         with:
