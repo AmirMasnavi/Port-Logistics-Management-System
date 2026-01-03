@@ -50,7 +50,8 @@ describe('Unit Test - IncidentTypeMapper', () => {
 
             expect(dto.id).toBe('1');
             expect(dto.code).toBe('C1');
-            expect(dto.parentName).toBe('PN1');
+            expect(dto.parentId).toBe('P1');
+            expect(dto.description).toBe('D1');
         });
     });
 

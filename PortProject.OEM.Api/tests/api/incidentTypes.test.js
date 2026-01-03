@@ -74,6 +74,7 @@ describe('API Tests - Incident Types', () => {
                 .post('/api/incident-types')
                 .send({
                     name: 'Fire'
+                    // Missing required fields: code, severity, description
                 });
 
             expect(res.status).toBe(400);
@@ -88,7 +89,8 @@ describe('API Tests - Incident Types', () => {
                 .send({
                     code: 'INC-001',
                     name: 'Fire',
-                    severity: 'Critical'
+                    severity: 'Critical',
+                    description: 'Fire incident type'
                 });
             
             expect(createRes.status).toBe(201);

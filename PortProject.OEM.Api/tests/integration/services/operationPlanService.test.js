@@ -38,6 +38,7 @@ describe('US 4.1.2 - Integration Test - OperationPlanService with Mock Repositor
     
     let service;
     let mockRepository;
+    let mockGateway;
 
     beforeEach(() => {
         // 2. Setup Mock Repository
@@ -55,20 +56,23 @@ describe('US 4.1.2 - Integration Test - OperationPlanService with Mock Repositor
         };
 
         // Mock Gateway
-        const mockGateway = {
+        mockGateway = {
             getResourceById: createMockFn(),
             getStaffById: createMockFn(),
             getAllResources: createMockFn(),
             getAllStaff: createMockFn()
         };
 
-        // Initialize service with mocks
-        service = new OperationPlanService(mockRepository, mockGateway);
+        // Initialize service and manually inject mocks
+        service = new OperationPlanService();
+        service.repository = mockRepository;
+        service.masterDataGateway = mockGateway;
     });
 
     afterEach(() => {
         // Reset mocks
         mockRepository = null;
+        mockGateway = null;
     });
 
     describe('createPlan', () => {
@@ -434,7 +438,7 @@ describe('US 4.1.2 - Integration Test - OperationPlanService with Mock Repositor
             };
 
             // Mock Gateway Response
-            service.masterDataGateway.getResourceById.mockResolvedValue({
+            mockGateway.getResourceById.mockResolvedValue({
                 id: 'Crane-2',
                 kind: 'Crane'
             });

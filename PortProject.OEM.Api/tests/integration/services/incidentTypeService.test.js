@@ -44,7 +44,9 @@ describe('Integration Test - IncidentTypeService with Mock Repository', () => {
             delete: createMockFn()
         };
 
-        service = new IncidentTypeService(mockRepository);
+        // Create service instance and manually inject mock
+        service = new IncidentTypeService();
+        service.repository = mockRepository;
     });
 
     describe('createIncidentType', () => {
@@ -53,7 +55,8 @@ describe('Integration Test - IncidentTypeService with Mock Repository', () => {
             const dto = new CreateIncidentTypeDto({
                 code: 'INC-001',
                 name: 'Fire',
-                severity: 'Critical'
+                severity: 'Critical',
+                description: 'Fire incident type'
             });
             
             mockRepository.existsByCode.mockResolvedValue(false);
@@ -75,7 +78,8 @@ describe('Integration Test - IncidentTypeService with Mock Repository', () => {
             const dto = new CreateIncidentTypeDto({
                 code: 'INC-001',
                 name: 'Fire',
-                severity: 'Critical'
+                severity: 'Critical',
+                description: 'Fire incident type'
             });
             
             mockRepository.existsByCode.mockResolvedValue(true);
