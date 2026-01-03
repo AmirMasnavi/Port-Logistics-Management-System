@@ -47,7 +47,10 @@ describe('Integration Test - IncidentService with Mock Repository', () => {
             exists: createMockFn()
         };
 
-        service = new IncidentService(mockRepository, mockTypeRepository);
+        // Create service instance and manually inject mocks
+        service = new IncidentService();
+        service.repository = mockRepository;
+        service.incidentTypeRepository = mockTypeRepository;
     });
 
     describe('createIncident', () => {

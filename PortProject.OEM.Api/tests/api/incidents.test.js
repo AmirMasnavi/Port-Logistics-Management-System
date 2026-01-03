@@ -63,7 +63,8 @@ describe('API Tests - Incidents', () => {
                 .send({
                     code: 'T1',
                     name: 'Type 1',
-                    severity: 'Critical'
+                    severity: 'Critical',
+                    description: 'Test incident type'
                 });
             
             console.log('Type Response:', JSON.stringify(typeRes.body, null, 2));
@@ -103,7 +104,12 @@ describe('API Tests - Incidents', () => {
             // Create type
             const typeRes = await request(app)
                 .post('/api/incident-types')
-                .send({ code: 'T1', name: 'Type 1', severity: 'Critical' });
+                .send({ 
+                    code: 'T1', 
+                    name: 'Type 1', 
+                    severity: 'Critical',
+                    description: 'Test incident type'
+                });
             
             const typeId = typeRes.body.data.id;
 
