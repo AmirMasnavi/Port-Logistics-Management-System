@@ -92,7 +92,7 @@ export class VveResponseDto {
     actualArrivalTime,
     actualBerthTime,
     berthDockId,
-    creatorUserId,
+    creatorEmail,
     status,
     actualDepartureTime,
     notes,
@@ -107,7 +107,7 @@ export class VveResponseDto {
     this.actualArrivalTime = actualArrivalTime;
     this.actualBerthTime = actualBerthTime;
     this.berthDockId = berthDockId;
-    this.creatorUserId = creatorUserId;
+    this.creatorEmail = creatorEmail;
     this.status = status;
     this.actualDepartureTime = actualDepartureTime;
     this.notes = notes;
@@ -122,13 +122,14 @@ export class VveResponseDto {
  * DTO for VVE list item (simplified)
  */
 export class VveListItemDto {
-  constructor({ vveId, vvnId, vesselIdentifier, status, actualArrivalTime, createdAt }) {
+  constructor({ vveId, vvnId, vesselIdentifier, status, actualArrivalTime, createdAt, creatorEmail }) {
     this.vveId = vveId;
     this.vvnId = vvnId;
     this.vesselIdentifier = vesselIdentifier;
     this.status = status;
     this.actualArrivalTime = actualArrivalTime;
     this.createdAt = createdAt;
+    this.creatorEmail = creatorEmail;
   }
 }
 

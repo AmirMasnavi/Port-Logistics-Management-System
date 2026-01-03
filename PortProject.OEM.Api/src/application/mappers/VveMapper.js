@@ -17,11 +17,11 @@ export class VveMapper {
       vvnId: model.vvnId,
       vesselIdentifier: model.vesselIdentifier,
       actualArrivalTime: model.actualArrivalTime,
-      creatorUserId: model.creatorUserId,
-      status: model.status,
-      actualDepartureTime: model.actualDepartureTime,
       actualBerthTime: model.actualBerthTime,
       berthDockId: model.berthDockId,
+      creatorEmail: model.creatorEmail,
+      status: model.status,
+      actualDepartureTime: model.actualDepartureTime,
       notes: model.notes,
       auditLogs: model.auditLogs || [],
       executedOperations: model.executedOperations || [],
@@ -42,6 +42,7 @@ export class VveMapper {
       status: model.status,
       actualArrivalTime: model.actualArrivalTime,
       createdAt: model.createdAt,
+      creatorEmail: model.creatorEmail,
     });
   }
 

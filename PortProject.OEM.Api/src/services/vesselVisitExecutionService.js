@@ -19,10 +19,10 @@ export class VesselVisitExecutionService {
   /**
    * Create a new Vessel Visit Execution
    * @param {CreateVveDto} dto - VVE creation DTO
-   * @param {string} creatorUserId - User creating the VVE
+   * @param {string} creatorEmail - User email creating the VVE
    * @returns {Promise<VveResponseDto>} Created VVE
    */
-  async createVve(dto, creatorUserId) {
+  async createVve(dto, creatorEmail) {
     // 1. Validate DTO
     const validation = dto.validate();
     if (!validation.isValid) {
@@ -57,7 +57,7 @@ export class VesselVisitExecutionService {
       vvnId: dto.vvnId,
       vesselIdentifier: dto.vesselIdentifier,
       actualArrivalTime: new Date(dto.actualArrivalTime),
-      creatorUserId,
+      creatorEmail,
       status: 'In Progress',
       notes: dto.notes || '',
       executedOperations: [], // Initialize empty - Operations are generated Just-In-Time
