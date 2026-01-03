@@ -21,6 +21,7 @@ export default function ResourceAllocationMetricsPage() {
     // Form state
     const [resourceType, setResourceType] = useState<ResourceType>('crane');
     const [resourceId, setResourceId] = useState('');
+    const [resourceName, setResourceName] = useState('');
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
     const [showBreakdown, setShowBreakdown] = useState(false);
@@ -213,7 +214,11 @@ export default function ResourceAllocationMetricsPage() {
                         {getCurrentOptions().length > 0 ? (
                             <select
                                 value={resourceId}
-                                onChange={(e) => setResourceId(e.target.value)}
+                                onChange={(e) => {
+                                    setResourceId(e.target.value);
+                                    const selectedOption = getCurrentOptions().find(opt => opt.id === e.target.value);
+                                    setResourceName(selectedOption?.name || e.target.value);
+                                }}
                                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                 disabled={loadingResources}
                             >
@@ -224,7 +229,7 @@ export default function ResourceAllocationMetricsPage() {
                                 </option>
                                 {getCurrentOptions().map((option) => (
                                     <option key={option.id} value={option.id}>
-                                        {option.name} ({option.id})
+                                        {option.name}
                                     </option>
                                 ))}
                             </select>
@@ -232,7 +237,10 @@ export default function ResourceAllocationMetricsPage() {
                             <input
                                 type="text"
                                 value={resourceId}
-                                onChange={(e) => setResourceId(e.target.value)}
+                                onChange={(e) => {
+                                    setResourceId(e.target.value);
+                                    setResourceName(e.target.value);
+                                }}
                                 placeholder={loadingResources ? 'Loading...' : 'Type resource ID (e.g., CR-01)'}
                                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                 disabled={loadingResources}
@@ -322,7 +330,7 @@ export default function ResourceAllocationMetricsPage() {
                                 No allocation data found
                             </h3>
                             <p className="mt-2 text-gray-500">
-                                The resource <strong>{summary.resourceType}: {summary.resourceId}</strong> has no operations registered in saved Operation Plans for the period <strong>{new Date(summary.period.from).toLocaleDateString()} - {new Date(summary.period.to).toLocaleDateString()}</strong>.
+                                The resource <strong>{summary.resourceType}: {resourceName || summary.resourceId}</strong> has no operations registered in saved Operation Plans for the period <strong>{new Date(summary.period.from).toLocaleDateString()} - {new Date(summary.period.to).toLocaleDateString()}</strong>.
                             </p>
                             <p className="mt-2 text-sm text-gray-400">
                                 This could mean the resource doesn't exist, wasn't used in this period, or there are no confirmed Operation Plans.
@@ -337,7 +345,7 @@ export default function ResourceAllocationMetricsPage() {
                                     Resource
                                 </div>
                                 <div className="text-xl font-bold text-blue-900 mt-1">
-                                    {summary.resourceType.charAt(0).toUpperCase() + summary.resourceType.slice(1)}: {summary.resourceId}
+                                    {summary.resourceType.charAt(0).toUpperCase() + summary.resourceType.slice(1)}: {resourceName || summary.resourceId}
                                 </div>
                             </div>
                             
@@ -400,7 +408,7 @@ export default function ResourceAllocationMetricsPage() {
                                 <tbody className="bg-white divide-y divide-gray-200">
                                     <tr>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                            {summary.resourceType} - {summary.resourceId}
+                                            {summary.resourceType} - {resourceName || summary.resourceId}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                             {new Date(summary.period.from).toLocaleString()}
