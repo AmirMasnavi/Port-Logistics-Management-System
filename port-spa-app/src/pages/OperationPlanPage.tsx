@@ -21,6 +21,7 @@ export const OperationPlanPage: React.FC = () => {
     // State para os Filtros
     const [filterDate, setFilterDate] = useState('');
     const [filterVesselImo, setFilterVesselImo] = useState('');
+    const [sortBy, setSortBy] = useState<string>('');
 
     // State para o Modal de Eliminar
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -55,11 +56,11 @@ export const OperationPlanPage: React.FC = () => {
     // --- ACTIONS ---
 
     // Função de fetch atualizada para receber filtros e usá-los no serviço
-    const fetchHistory = async (date: string = filterDate) => {
+    const fetchHistory = async (date: string = filterDate, sort: string = sortBy) => {
         setLoadingHistory(true);
         try {
-            // Chama o serviço com o objeto de filtros
-            const data = await schedulingService.getOperationPlans({ date });
+            // Chama o serviço com o objeto de filtros incluindo sortBy
+            const data = await schedulingService.getOperationPlans({ date, sortBy: sort });
             setHistory(data);
         } catch (error) {
             console.error("Failed to load history", error);
@@ -84,17 +85,22 @@ export const OperationPlanPage: React.FC = () => {
             );
         }
         
-        // Ordena por data (mais recente primeiro)
-        return filteredPlans.sort((a, b) => {
-            const dateA = new Date(a.date);
-            const dateB = new Date(b.date);
-            return dateB.getTime() - dateA.getTime(); // Ordem decrescente (mais recente primeiro)
-        });
+        // Se sortBy estiver definido, a ordenação já vem do backend
+        // Caso contrário, ordena por data (mais recente primeiro)
+        if (!sortBy) {
+            return filteredPlans.sort((a, b) => {
+                const dateA = new Date(a.date);
+                const dateB = new Date(b.date);
+                return dateB.getTime() - dateA.getTime(); // Ordem decrescente (mais recente primeiro)
+            });
+        }
+        
+        return filteredPlans;
     };
 
     // Função para lidar com a submissão do formulário de filtros/refresh
     const handleApplyFilters = () => {
-        fetchHistory(filterDate);
+        fetchHistory(filterDate, sortBy);
     };
 
     // 1. Abre o Modal
@@ -258,6 +264,25 @@ export const OperationPlanPage: React.FC = () => {
                             />
                         </div>
                     </div>
+                    <div className="flex-1 w-full">
+                        <label htmlFor="sortBy" className="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
+                        <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <SlidersHorizontal className="w-5 h-5 text-gray-400" />
+                            </div>
+                            <select
+                                id="sortBy"
+                                value={sortBy}
+                                onChange={(e) => setSortBy(e.target.value)}
+                                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all appearance-none bg-white cursor-pointer"
+                            >
+                                <option value="">Default</option>
+                                <option value="time">Start Time</option>
+                                <option value="vessel">Vessel Name</option>
+                                <option value="delay">Total Delay</option>
+                            </select>
+                        </div>
+                    </div>
                     
                     <div className="flex gap-2">
                         <button
@@ -271,7 +296,8 @@ export const OperationPlanPage: React.FC = () => {
                             onClick={() => {
                                 setFilterDate('');
                                 setFilterVesselImo('');
-                                fetchHistory('');
+                                setSortBy('');
+                                fetchHistory('', '');
                             }}
                             className="bg-gray-100 text-gray-700 px-5 py-2.5 rounded-lg hover:bg-gray-200 transition-colors font-medium"
                         >

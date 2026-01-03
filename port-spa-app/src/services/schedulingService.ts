@@ -1,4 +1,4 @@
-﻿// Scheduling API Service
+﻿
 import axios from 'axios';
 import type { DailyScheduleRequest, DailyScheduleResponse, SchedulingAlgorithm, GeneticAlgorithmParams, ScheduledTask, MissingPlansResponse } from '../types/scheduling.types';
 import { getAuthToken } from '../firebaseConfig';
@@ -55,6 +55,7 @@ export interface CreateOperationPlanRequest {
 /** Tipos de Filtros Aceitos */
 export interface OperationPlanFilters {
     date?: string;
+    sortBy?: string;
 }
 
 export interface OperationPlan {
@@ -156,8 +157,11 @@ export class SchedulingService {
             // SÓ adiciona o filtro se o valor não for vazio (importante para evitar '?date=')
             if (filters.date) {
                 params.append('date', filters.date);
-            }          
-            // Constrói a URL: /plans ou /plans?date=...&vesselVisitId=...
+            }
+            if (filters.sortBy) {
+                params.append('sortBy', filters.sortBy);
+            }
+            // Constrói a URL: /plans ou /plans?date=...&sortBy=...
             const url = `/plans?${params.toString()}`;
 
             const response = await oemApiClient.get<{ success: boolean, data: OperationPlan[] }>(url);
