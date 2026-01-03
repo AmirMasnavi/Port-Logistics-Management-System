@@ -5,8 +5,8 @@
 import axios from 'axios';
 import { getAuthToken } from '../firebaseConfig';
 
-// OEM API base URL
-const OEM_API_BASE_URL = import.meta.env.VITE_OEM_API_URL || 'http://localhost:3001/api';
+// OEM API base URL - port 5274 is the OEM API default
+const OEM_API_BASE_URL = import.meta.env.VITE_OEM_API_URL || 'http://localhost:5274/api';
 
 const oemApiClient = axios.create({
     baseURL: OEM_API_BASE_URL,
@@ -68,8 +68,11 @@ export async function getResourceAllocationSummary(
 ): Promise<ResourceAllocationSummary> {
     const { resourceType, resourceId, from, to } = request;
     
-    const url = `/oem/metrics/resources/${resourceType}/${encodeURIComponent(resourceId)}`;
+    // URL: /api/oem/metrics/resources/{type}/{id} - base already has /api
+    const url = `oem/metrics/resources/${resourceType}/${encodeURIComponent(resourceId)}`;
     const params = { from, to };
+    
+    console.log('[ResourceMetrics] Calling:', OEM_API_BASE_URL + '/' + url, params);
     
     const response = await oemApiClient.get<{ success: boolean; data: ResourceAllocationSummary }>(url, { params });
     
@@ -88,8 +91,10 @@ export async function getResourceAllocationBreakdown(
 ): Promise<ResourceAllocationBreakdown> {
     const { resourceType, resourceId, from, to } = request;
     
-    const url = `/oem/metrics/resources/${resourceType}/${encodeURIComponent(resourceId)}/breakdown`;
+    const url = `oem/metrics/resources/${resourceType}/${encodeURIComponent(resourceId)}/breakdown`;
     const params = { from, to };
+    
+    console.log('[ResourceMetrics] Calling breakdown:', OEM_API_BASE_URL + '/' + url, params);
     
     const response = await oemApiClient.get<{ success: boolean; data: ResourceAllocationBreakdown }>(url, { params });
     
@@ -107,7 +112,7 @@ export async function postResourceAllocationSummary(
     request: ResourceMetricsRequest
 ): Promise<ResourceAllocationSummary> {
     const response = await oemApiClient.post<{ success: boolean; data: ResourceAllocationSummary }>(
-        '/oem/metrics/resources/summary',
+        'oem/metrics/resources/summary',
         request
     );
     

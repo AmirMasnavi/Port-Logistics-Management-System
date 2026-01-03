@@ -42,19 +42,43 @@ export default function ResourceAllocationMetricsPage() {
                 setLoadingResources(true);
                 const data = await schedulingService.getResourcesAndStaff();
                 
-                // Filter resources by type
+                console.log('[ResourceMetrics] Loaded data:', data);
+                
+                // Filter resources by type (handle different casing and field names)
                 const craneResources = data.resources
-                    .filter((r: any) => r.type?.toLowerCase() === 'crane')
+                    .filter((r: any) => {
+                        const type = (r.type || r.kind || '').toLowerCase();
+                        return type === 'crane' || type.includes('crane');
+                    })
                     .map((r: any) => ({ id: r.id, name: r.name || r.id, type: 'crane' }));
                 
                 const dockResources = data.resources
-                    .filter((r: any) => r.type?.toLowerCase() === 'dock')
+                    .filter((r: any) => {
+                        const type = (r.type || r.kind || '').toLowerCase();
+                        return type === 'dock' || type.includes('dock');
+                    })
                     .map((r: any) => ({ id: r.id, name: r.name || r.id, type: 'dock' }));
                 
                 const staffMembers = data.staff
                     .map((s: any) => ({ id: s.id, name: s.name || s.id, type: 'staff' }));
 
-                setResources(craneResources);
+                console.log('[ResourceMetrics] Cranes:', craneResources);
+                console.log('[ResourceMetrics] Docks:', dockResources);
+                console.log('[ResourceMetrics] Staff:', staffMembers);
+
+                // If no cranes found, use all resources as fallback
+                if (craneResources.length === 0 && data.resources.length > 0) {
+                    console.log('[ResourceMetrics] No cranes found, using all resources');
+                    const allResources = data.resources.map((r: any) => ({ 
+                        id: r.id, 
+                        name: r.name || r.id, 
+                        type: (r.type || r.kind || 'resource').toLowerCase() 
+                    }));
+                    setResources(allResources);
+                } else {
+                    setResources(craneResources);
+                }
+                
                 setDocks(dockResources);
                 setStaff(staffMembers);
                 
@@ -72,11 +96,12 @@ export default function ResourceAllocationMetricsPage() {
     const getCurrentOptions = (): ResourceOption[] => {
         switch (resourceType) {
             case 'crane':
-                return resources;
+                // If no cranes, return all resources as fallback
+                return resources.length > 0 ? resources : [];
             case 'dock':
-                return docks;
+                return docks.length > 0 ? docks : [];
             case 'staff':
-                return staff;
+                return staff.length > 0 ? staff : [];
             default:
                 return [];
         }
@@ -133,7 +158,9 @@ export default function ResourceAllocationMetricsPage() {
             }
         } catch (err: any) {
             console.error('Failed to fetch metrics:', err);
-            setError(err.message || 'Failed to fetch allocation data');
+            console.error('Error details:', err.response?.data || err.message);
+            const errorMessage = err.response?.data?.message || err.message || 'Failed to fetch allocation data';
+            setError(errorMessage);
         } finally {
             setLoading(false);
         }
@@ -183,23 +210,34 @@ export default function ResourceAllocationMetricsPage() {
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                             Resource
                         </label>
-                        <select
-                            value={resourceId}
-                            onChange={(e) => setResourceId(e.target.value)}
-                            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            disabled={loadingResources}
-                        >
-                            <option value="">
-                                {loadingResources 
-                                    ? 'Loading...' 
-                                    : 'Select a resource'}
-                            </option>
-                            {getCurrentOptions().map((option) => (
-                                <option key={option.id} value={option.id}>
-                                    {option.name} ({option.id})
+                        {getCurrentOptions().length > 0 ? (
+                            <select
+                                value={resourceId}
+                                onChange={(e) => setResourceId(e.target.value)}
+                                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                disabled={loadingResources}
+                            >
+                                <option value="">
+                                    {loadingResources 
+                                        ? 'Loading...' 
+                                        : 'Select a resource'}
                                 </option>
-                            ))}
-                        </select>
+                                {getCurrentOptions().map((option) => (
+                                    <option key={option.id} value={option.id}>
+                                        {option.name} ({option.id})
+                                    </option>
+                                ))}
+                            </select>
+                        ) : (
+                            <input
+                                type="text"
+                                value={resourceId}
+                                onChange={(e) => setResourceId(e.target.value)}
+                                placeholder={loadingResources ? 'Loading...' : 'Type resource ID (e.g., CR-01)'}
+                                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                disabled={loadingResources}
+                            />
+                        )}
                     </div>
 
                     {/* Start Date */}
@@ -274,6 +312,23 @@ export default function ResourceAllocationMetricsPage() {
                         </h2>
                     </div>
                     
+                    {/* No data message */}
+                    {summary.numberOfOperations === 0 ? (
+                        <div className="p-8 text-center">
+                            <svg className="mx-auto h-12 w-12 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                            <h3 className="mt-4 text-lg font-medium text-gray-900">
+                                No allocation data found
+                            </h3>
+                            <p className="mt-2 text-gray-500">
+                                The resource <strong>{summary.resourceType}: {summary.resourceId}</strong> has no operations registered in saved Operation Plans for the period <strong>{new Date(summary.period.from).toLocaleDateString()} - {new Date(summary.period.to).toLocaleDateString()}</strong>.
+                            </p>
+                            <p className="mt-2 text-sm text-gray-400">
+                                This could mean the resource doesn't exist, wasn't used in this period, or there are no confirmed Operation Plans.
+                            </p>
+                        </div>
+                    ) : (
                     <div className="p-6">
                         {/* Summary Cards */}
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
@@ -367,11 +422,12 @@ export default function ResourceAllocationMetricsPage() {
                             </table>
                         </div>
                     </div>
+                    )}
                 </div>
             )}
 
-            {/* Daily Breakdown */}
-            {breakdown && breakdown.breakdownByDay && breakdown.breakdownByDay.length > 0 && (
+            {/* Daily Breakdown - only show when there's data */}
+            {breakdown && breakdown.breakdownByDay && breakdown.breakdownByDay.length > 0 && summary && summary.numberOfOperations > 0 && (
                 <div className="bg-white shadow rounded-lg overflow-hidden">
                     <div className="px-6 py-4 border-b bg-gray-50">
                         <h2 className="text-lg font-semibold text-gray-900">
@@ -398,7 +454,9 @@ export default function ResourceAllocationMetricsPage() {
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
-                                {breakdown.breakdownByDay.map((day, index) => (
+                                {breakdown.breakdownByDay
+                                    .filter(day => day.allocatedMinutes > 0 || day.operationCount > 0)
+                                    .map((day, index) => (
                                     <tr key={day.date} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                             {new Date(day.date).toLocaleDateString()}
