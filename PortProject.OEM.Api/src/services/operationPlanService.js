@@ -3,11 +3,11 @@ import { OperationPlanMapper } from '../application/mappers/OperationPlanMapper.
 import { MasterDataGateway } from '../gateways/masterDataGateway.js';
 
 export class OperationPlanService {
-    constructor() {
-        this.repository = new OperationPlanRepository();
+    constructor(repository = new OperationPlanRepository(), masterDataGateway = null) {
+        this.repository = repository;
         // Initialize gateway to Port API
         const portApiUrl = process.env.PORT_API_URL || 'http://localhost:5273';
-        this.masterDataGateway = new MasterDataGateway(portApiUrl);
+        this.masterDataGateway = masterDataGateway || new MasterDataGateway(portApiUrl);
     }
 
     /**
