@@ -153,6 +153,7 @@ const ComplementaryTasksPage: React.FC = () => {
                     status: form.status,
                     suspendsOperations: form.suspendsOperations,
                 };
+                console.log('[Update Task] Payload:', payload);
                 await taskService.updateComplementaryTask(editingItem.taskId, payload);
                 setSuccessMessage('Task updated successfully');
             } else {
@@ -166,6 +167,7 @@ const ComplementaryTasksPage: React.FC = () => {
                     status: form.status,
                     suspendsOperations: form.suspendsOperations ?? false,
                 };
+                console.log('[Create Task] Payload:', payload);
                 await taskService.createComplementaryTask(payload);
                 setSuccessMessage('Task created successfully');
             }
@@ -174,8 +176,9 @@ const ComplementaryTasksPage: React.FC = () => {
             await loadData();
             closeModal();
         } catch (err: any) {
-            const msg = err?.message || 'Error saving task';
-            setError(msg);
+            console.error('[ComplementaryTask Save] Error:', err);
+            const msg = err?.response?.data?.message || err?.message || 'Error saving task';
+            setError(`Failed to save task: ${msg}`);
         } finally {
             setLoading(false);
         }
@@ -488,6 +491,7 @@ const ComplementaryTasksPage: React.FC = () => {
                         return (
                             <div
                                 key={task.taskId}
+                                data-testid="complementary-task-card"
                                 className={`bg-white p-6 rounded-lg shadow-sm border-l-4 hover:shadow-md transition-shadow ${
                                     isImpacting ? 'border-red-500 bg-red-50' : 'border-blue-500'
                                 }`}
@@ -563,6 +567,7 @@ const ComplementaryTasksPage: React.FC = () => {
 
                                     <div className="flex gap-2 ml-4">
                                         <button
+                                            data-testid={`edit-task-${task.taskId}`}
                                             onClick={() => openEditModal(task)}
                                             className="p-2 text-blue-600 hover:bg-blue-50 rounded transition"
                                             title="Edit"
@@ -570,6 +575,7 @@ const ComplementaryTasksPage: React.FC = () => {
                                             <Edit2 className="w-5 h-5" />
                                         </button>
                                         <button
+                                            data-testid={`delete-task-${task.taskId}`}
                                             onClick={() => confirmDelete(task.taskId)}
                                             className="p-2 text-red-600 hover:bg-red-50 rounded transition"
                                             title="Delete"
