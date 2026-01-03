@@ -312,6 +312,23 @@ export default function ResourceAllocationMetricsPage() {
                         </h2>
                     </div>
                     
+                    {/* No data message */}
+                    {summary.numberOfOperations === 0 ? (
+                        <div className="p-8 text-center">
+                            <svg className="mx-auto h-12 w-12 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                            <h3 className="mt-4 text-lg font-medium text-gray-900">
+                                No allocation data found
+                            </h3>
+                            <p className="mt-2 text-gray-500">
+                                The resource <strong>{summary.resourceType}: {summary.resourceId}</strong> has no operations registered in saved Operation Plans for the period <strong>{new Date(summary.period.from).toLocaleDateString()} - {new Date(summary.period.to).toLocaleDateString()}</strong>.
+                            </p>
+                            <p className="mt-2 text-sm text-gray-400">
+                                This could mean the resource doesn't exist, wasn't used in this period, or there are no confirmed Operation Plans.
+                            </p>
+                        </div>
+                    ) : (
                     <div className="p-6">
                         {/* Summary Cards */}
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
@@ -405,11 +422,12 @@ export default function ResourceAllocationMetricsPage() {
                             </table>
                         </div>
                     </div>
+                    )}
                 </div>
             )}
 
-            {/* Daily Breakdown */}
-            {breakdown && breakdown.breakdownByDay && breakdown.breakdownByDay.length > 0 && (
+            {/* Daily Breakdown - only show when there's data */}
+            {breakdown && breakdown.breakdownByDay && breakdown.breakdownByDay.length > 0 && summary && summary.numberOfOperations > 0 && (
                 <div className="bg-white shadow rounded-lg overflow-hidden">
                     <div className="px-6 py-4 border-b bg-gray-50">
                         <h2 className="text-lg font-semibold text-gray-900">
@@ -436,7 +454,9 @@ export default function ResourceAllocationMetricsPage() {
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
-                                {breakdown.breakdownByDay.map((day, index) => (
+                                {breakdown.breakdownByDay
+                                    .filter(day => day.allocatedMinutes > 0 || day.operationCount > 0)
+                                    .map((day, index) => (
                                     <tr key={day.date} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                             {new Date(day.date).toLocaleDateString()}
