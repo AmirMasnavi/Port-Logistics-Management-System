@@ -27,6 +27,7 @@ import ComplementaryTaskCategoriesPage from './pages/ComplementaryTaskCategories
 
 import { OperationPlanPage } from './pages/OperationPlanPage';
 import PlanningResourceAllocationsPage from './pages/PlanningResourceAllocationsPage';
+import ResourceAllocationMetricsPage from './pages/ResourceAllocationMetricsPage';
 
 
 // --- Centralized Permission Sets ---
@@ -128,6 +129,7 @@ function App() {
                                 <Route path="/operation-plans" element={<OperationPlanPage />} />
                                 <Route path="/vessel-visit-executions" element={<VesselVisitsExecutionPage />} />
                                 <Route path="/incidents" element={<IncidentsPage />} />
+                                <Route path="/resource-allocation-metrics" element={<ResourceAllocationMetricsPage />} />
                             </Route>
                             
                             {/* --- Role-Protected Routes for VVN Management (Admin, Agent) --- */}

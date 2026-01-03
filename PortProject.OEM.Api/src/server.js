@@ -1,4 +1,4 @@
-﻿import express from 'express';
+﻿﻿import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import swaggerUi from 'swagger-ui-express';
@@ -13,6 +13,7 @@ import { createOperationPlanRouter } from './controllers/operationPlanController
 import {createIncidentTypeRouter} from "./controllers/incidentTypeController.js";
 import {createIncidentRouter} from "./controllers/incidentController.js";
 import { createComplementaryTaskCategoryRouter } from './controllers/complementaryTaskCategoriesController.js';
+import { createResourceMetricsRouter } from './controllers/resourceMetricsController.js';
 
 // Load environment variables
 dotenv.config();
@@ -86,6 +87,7 @@ app.use('/api/plans', createOperationPlanRouter());
 app.use('/api/incident-type', createIncidentTypeRouter(masterDataGateway));
 app.use('/api/incidents', createIncidentRouter(masterDataGateway));
 app.use('/api/complementary-task-categories', createComplementaryTaskCategoryRouter(masterDataGateway));
+app.use('/api/oem/metrics/resources', createResourceMetricsRouter());
 
 
 // Root endpoint
