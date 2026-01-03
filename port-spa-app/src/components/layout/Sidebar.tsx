@@ -165,6 +165,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                         <NavItem to="/operation-plans" label="Operation Plans" icon={Album} isExpanded={isExpanded} />
                         <NavItem to="/vessel-visit-executions" label="Vessel Executions" icon={Ship} isExpanded={isExpanded} />
                         <NavItem to="/incidents" label="Incidents" icon={CloudSunRain} isExpanded={isExpanded} />
+                        <NavItem to="/resource-allocation-metrics" label="Resource Metrics" icon={ChartColumnStacked} isExpanded={isExpanded} />
                     </>
                 )}
                 {/* Shipping Agents: Admin & Officer */}

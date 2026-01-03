@@ -43,7 +43,16 @@ const mockVerifyFirebaseToken = (req, res, next) => {
 // Create test router (copy of controller logic but with mock auth)
 const createTestRouter = () => {
     const router = Router();
-    const service = new OperationPlanService();
+    
+    // Mock Gateway
+    const mockGateway = {
+        getResourceById: async (id) => ({ id, kind: 'Crane' }), // Always return a dummy resource
+        getStaffById: async (id) => ({ id, name: 'John Doe' }),
+        getAllResources: async () => [],
+        getAllStaff: async () => []
+    };
+
+    const service = new OperationPlanService(undefined, mockGateway);
 
     router.get('/', mockVerifyFirebaseToken, async (req, res) => {
         try {
