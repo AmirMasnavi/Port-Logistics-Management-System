@@ -6,9 +6,9 @@ import { IncidentTypeRepository } from '../infrastructure/repositories/IncidentT
  * Contains business logic for managing incidents
  */
 export class IncidentService {
-    constructor(repository = new IncidentRepository(), incidentTypeRepository = new IncidentTypeRepository()) {
-        this.repository = repository;
-        this.incidentTypeRepository = incidentTypeRepository;
+    constructor() {
+        this.repository = new IncidentRepository();
+        this.incidentTypeRepository = new IncidentTypeRepository();
     }
 
     /**

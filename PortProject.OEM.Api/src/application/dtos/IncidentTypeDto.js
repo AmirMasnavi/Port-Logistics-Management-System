@@ -116,13 +116,12 @@ export class IncidentTypeResponseDto {
  * Lightweight DTO for list views
  */
 export class IncidentTypeListItemDto {
-    constructor({ id, code, name, description, severity, parentId = null, parentName = null, createdAt = null }) {
+    constructor({ id, code, name, description, severity, parentId = null, createdAt = null }) {
         this.id = id;
         this.code = code;
         this.name = name;
         this.severity = severity;
         this.parentId = parentId;
-        this.parentName = parentName;
         this.createdAt = createdAt;
         this.description = description;
     }

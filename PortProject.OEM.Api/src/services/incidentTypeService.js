@@ -9,9 +9,9 @@ import { MasterDataGateway } from '../gateways/masterDataGateway.js';
  * Contains business logic and uses the local MongoDB repository
  */
 export class IncidentTypeService {
-    constructor(repository = new IncidentTypeRepository()) {
+    constructor() {
         // Local MongoDB repository for Incident Types (master data stored in OEM DB)
-        this.repository = repository;
+        this.repository = new IncidentTypeRepository();
 
         // Gateway to external Port System API (used for other master data, e.g. vessels, berths, etc.)
         // Not used for Incident Types — they are local to OEM
