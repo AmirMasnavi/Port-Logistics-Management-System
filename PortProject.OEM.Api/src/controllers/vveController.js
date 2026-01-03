@@ -71,7 +71,7 @@ export const createVveRouter = (masterDataGateway) => {
         }
 
         const { vvnId, vesselIdentifier, actualArrivalTime, notes, generateInitialOperations } = req.body;
-        const creatorUserId = req.user?.uid || req.user?.email || 'unknown';
+        const creatorUserId = req.user?.email || req.user?.uid || 'unknown';
 
         console.log(`[VVE CREATE] Creating VVE for VVN: ${vvnId}, User: ${creatorUserId}, generateInitialOperations: ${generateInitialOperations}`);
 
@@ -226,10 +226,10 @@ export const createVveRouter = (masterDataGateway) => {
           const { status, actualDepartureTime, actualBerthTime, berthDockId, notes } = req.body;
 
           // Passa userId para audit logging
-          const performedBy = req.user?.uid || req.user?.email || 'unknown';
+          const performedBy = req.user?.email || req.user?.uid || 'unknown';
 
 
-          console.log(`[VVE UPDATE] Updating VVE: ${vveId} by user ${req.user?.uid || req.user?.email}`);
+          console.log(`[VVE UPDATE] Updating VVE: ${vveId} by user ${req.user?.email || req.user?.uid}`);
 
         // Create DTO
         const updateDto = new UpdateVveDto({ status, actualDepartureTime, notes, actualBerthTime, berthDockId });
@@ -357,7 +357,7 @@ export const createVveRouter = (masterDataGateway) => {
 
         const { vveId, operationId } = req.params;
         const { status, timestamp, resourceId, notes, name, type } = req.body;
-        const operatorId = req.user?.uid || req.user?.email || 'unknown';
+        const operatorId = req.user?.email || req.user?.uid || 'unknown';
 
         console.log(`[VVE OPERATION UPDATE] Updating operation ${operationId} in VVE ${vveId} to status ${status} by ${operatorId}`);
 

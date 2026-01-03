@@ -108,8 +108,8 @@ const vesselVisitExecutionSchema = new mongoose.Schema({
         index: true,
     },
   
-  // Creator user ID (from Firebase authentication)
-  creatorUserId: {
+  // Creator email (from Firebase authentication)
+  creatorEmail: {
     type: String,
     required: true,
   },

@@ -1,4 +1,4 @@
-﻿// VVE Service - Vessel Visit Execution API
+﻿
 import axios from 'axios';
 import { getAuthToken } from '../firebaseConfig';
 import type { VveOperationsDetailedResponse, UpdateOperationStatusDto } from '../domain/vve/operation-execution.types';
@@ -59,6 +59,7 @@ export interface VveListItem {
     status: 'In Progress' | 'Completed' | 'Cancelled';
     actualArrivalTime: string;
     createdAt: string;
+    creatorEmail?: string;
 }
 
 export interface ExecutedOperation {

@@ -3,6 +3,53 @@ import { verifyFirebaseToken } from '../config/firebase.js';
 import { OperationPlanService } from '../services/operationPlanService.js';
 import { generateSmartOperations } from '../application/utils/SmartOperationGenerator.js';
 
+/**
+ * Helper function to sort plans based on the sortBy parameter
+ * Supported values: 'time', 'vessel', 'delay'
+ */
+const sortPlans = (plans, sortBy) => {
+    const sorted = [...plans];
+    
+    switch (sortBy) {
+        case 'time':
+            // Sort by earliest start time of tasks within each plan
+            return sorted.sort((a, b) => {
+                const aStartTime = a.scheduledTasks.length > 0 
+                    ? Math.min(...a.scheduledTasks.map(t => new Date(t.startTime).getTime()))
+                    : Infinity;
+                const bStartTime = b.scheduledTasks.length > 0 
+                    ? Math.min(...b.scheduledTasks.map(t => new Date(t.startTime).getTime()))
+                    : Infinity;
+                return aStartTime - bStartTime;
+            });
+            
+        case 'vessel':
+            // Sort by vessel name (first task's vessel name)
+            return sorted.sort((a, b) => {
+                const aVessel = a.scheduledTasks.length > 0 
+                    ? (a.scheduledTasks[0].vesselName || '')
+                    : '';
+                const bVessel = b.scheduledTasks.length > 0 
+                    ? (b.scheduledTasks[0].vesselName || '')
+                    : '';
+                return aVessel.localeCompare(bVessel);
+            });
+            
+        case 'delay':
+            // Sort by total delay (descending - highest delay first)
+            return sorted.sort((a, b) => {
+                const aDelay = a.metrics?.totalDelay || 0;
+                const bDelay = b.metrics?.totalDelay || 0;
+                return bDelay - aDelay;
+            });
+            
+        default:
+            // If sortBy is not recognized, return unsorted
+            console.warn(`[OEM] Unknown sortBy parameter: ${sortBy}`);
+            return sorted;
+    }
+};
+
 export const createOperationPlanRouter = () => {
     const router = Router();
     const service = new OperationPlanService();
@@ -14,7 +61,7 @@ export const createOperationPlanRouter = () => {
         try {
             console.log('[OEM] Fetching plan history...');
             // Capture all possible filters from query
-            const { date, vesselVisitId } = req.query;
+            const { date, vesselVisitId, sortBy } = req.query;
 
             const filters = {};
             // Garantimos que filtramos apenas se o valor não for vazio/undefined
@@ -24,13 +71,18 @@ export const createOperationPlanRouter = () => {
             const plans = await service.getAllPlans(filters);
 
             // Enrich tasks with Smart Operations
-            const enrichedPlans = plans.map(plan => ({
+            let enrichedPlans = plans.map(plan => ({
                 ...plan,
                 scheduledTasks: plan.scheduledTasks.map(task => ({
                     ...task,
                     subOperations: generateSmartOperations(task)
                 }))
             }));
+
+            // Apply sorting if requested
+            if (sortBy) {
+                enrichedPlans = sortPlans(enrichedPlans, sortBy);
+            }
 
             res.json({
                 success: true,
