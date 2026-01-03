@@ -12,76 +12,76 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-#      # ---------------- Frontend ----------------
-#      - name: Setup Node.js
-#        uses: actions/setup-node@v3
-#        with:
-#          node-version: '18'
-#
-#      - name: Build React frontend
-#        working-directory: ./port-spa-app
-#        run: |
-#          npm install
-#          npm run build
-#
-#      - name: Deploy frontend to IIS
-#        run: |
-#          Remove-Item "E:\wwwroot\*" -Recurse -Force -ErrorAction SilentlyContinue
-#          Copy-Item ./port-spa-app/dist/* "E:\wwwroot\" -Recurse -Force
-#
-#      # ---------------- Backend ----------------
-#      - name: Setup .NET SDK
-#        run: |
-#          $env:DOTNET_ROOT="C:\Program Files\dotnet"
-#
-#
-#      - name: Build .NET backend
-#        working-directory: ./PortProject.Api
-#        run: |
-#          dotnet publish -c Release -o ./publish
-#
-#      - name: Deploy backend via NSSM
-#        run: |
-#          Stop-Service MyBackendService
-#          Remove-Item "E:\MyBackend\*" -Recurse -Force -ErrorAction SilentlyContinue
-#          Copy-Item ./PortProject.Api/publish/* "E:\MyBackend\" -Recurse -Force
-#          Start-Service MyBackendService
-#
-#      # ---------------- Planning API ----------------
-#      - name: Build Planning API
-#        working-directory: ./PortProject.Planning.Api
-#        run: |
-#          dotnet publish -c Release -o ./publish
-#
-#      - name: Deploy Planning API via NSSM
-#        run: |
-#          Stop-Service PlanningApiService -ErrorAction SilentlyContinue
-#          Remove-Item "E:\PlanningApi\*" -Recurse -Force -ErrorAction SilentlyContinue
-#          Copy-Item ./PortProject.Planning.Api/publish/* "E:\PlanningApi\" -Recurse -Force
-#          Start-Service PlanningApiService
-#
-#      # ---------------- OEM API (Node.js) ----------------
-#      - name: Install OEM API Dependencies
-#        working-directory: ./PortProject.OEM.Api
-#        run: |
-#          npm install --omit=dev
-#        env:
-#          NODE_ENV: production
-#
-#      - name: Copy OEM API .env.production
-#        run: |
-#          Copy-Item ./PortProject.OEM.Api/.env.production -Destination ./PortProject.OEM.Api/.env -Force
-#
-#      - name: Deploy OEM API via NSSM
-#        run: |
-#          Stop-Service OemApiService -ErrorAction SilentlyContinue
-#          Remove-Item "E:\OemApi\*" -Recurse -Force -ErrorAction SilentlyContinue
-#          New-Item -ItemType Directory -Force -Path "E:\OemApi"
-#          Copy-Item ./PortProject.OEM.Api/src -Destination "E:\OemApi\" -Recurse -Force
-#          Copy-Item ./PortProject.OEM.Api/package.json -Destination "E:\OemApi\" -Force
-#          Copy-Item ./PortProject.OEM.Api/.env -Destination "E:\OemApi\" -Force
-#          Copy-Item ./PortProject.OEM.Api/node_modules -Destination "E:\OemApi\" -Recurse -Force
-#          Start-Service OemApiService
+      # ---------------- Frontend ----------------
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Build React frontend
+        working-directory: ./port-spa-app
+        run: |
+          npm install
+          npm run build
+
+      - name: Deploy frontend to IIS
+        run: |
+          Remove-Item "E:\wwwroot\*" -Recurse -Force -ErrorAction SilentlyContinue
+          Copy-Item ./port-spa-app/dist/* "E:\wwwroot\" -Recurse -Force
+
+      # ---------------- Backend ----------------
+      - name: Setup .NET SDK
+        run: |
+          $env:DOTNET_ROOT="C:\Program Files\dotnet"
+
+
+      - name: Build .NET backend
+        working-directory: ./PortProject.Api
+        run: |
+          dotnet publish -c Release -o ./publish
+
+      - name: Deploy backend via NSSM
+        run: |
+          Stop-Service MyBackendService
+          Remove-Item "E:\MyBackend\*" -Recurse -Force -ErrorAction SilentlyContinue
+          Copy-Item ./PortProject.Api/publish/* "E:\MyBackend\" -Recurse -Force
+          Start-Service MyBackendService
+
+      # ---------------- Planning API ----------------
+      - name: Build Planning API
+        working-directory: ./PortProject.Planning.Api
+        run: |
+          dotnet publish -c Release -o ./publish
+
+      - name: Deploy Planning API via NSSM
+        run: |
+          Stop-Service PlanningApiService -ErrorAction SilentlyContinue
+          Remove-Item "E:\PlanningApi\*" -Recurse -Force -ErrorAction SilentlyContinue
+          Copy-Item ./PortProject.Planning.Api/publish/* "E:\PlanningApi\" -Recurse -Force
+          Start-Service PlanningApiService
+
+      # ---------------- OEM API (Node.js) ----------------
+      - name: Install OEM API Dependencies
+        working-directory: ./PortProject.OEM.Api
+        run: |
+          npm install --omit=dev
+        env:
+          NODE_ENV: production
+
+      - name: Copy OEM API .env.production
+        run: |
+          Copy-Item ./PortProject.OEM.Api/.env.production -Destination ./PortProject.OEM.Api/.env -Force
+
+      - name: Deploy OEM API via NSSM
+        run: |
+          Stop-Service OemApiService -ErrorAction SilentlyContinue
+          Remove-Item "E:\OemApi\*" -Recurse -Force -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Force -Path "E:\OemApi"
+          Copy-Item ./PortProject.OEM.Api/src -Destination "E:\OemApi\" -Recurse -Force
+          Copy-Item ./PortProject.OEM.Api/package.json -Destination "E:\OemApi\" -Force
+          Copy-Item ./PortProject.OEM.Api/.env -Destination "E:\OemApi\" -Force
+          Copy-Item ./PortProject.OEM.Api/node_modules -Destination "E:\OemApi\" -Recurse -Force
+          Start-Service OemApiService
           
 
       # ---------------- Database Backup ----------------
