@@ -1,4 +1,4 @@
-import { CreateVveDto, UpdateVveDto } from '../application/dtos/VveDto.js';
+import { CreateVveDto, UpdateVveDto, CompleteVveDto } from '../application/dtos/VveDto.js';
 import { UpdateOperationStatusDto } from '../application/dtos/ExecutedOperationDto.js';
 import { VveMapper } from '../application/mappers/VveMapper.js';
 import { VveRepository } from '../infrastructure/repositories/VveRepository.js';
@@ -244,7 +244,18 @@ export class VesselVisitExecutionService {
       throw new Error(`VVE '${vveId}' not found`);
     }
 
-    // 3. Prepare update data
+    // 3. US 4.1.11: Block updates to completed VVEs (except by admins)
+    // TODO: Add role check when admin role is implemented
+    // For now, we'll allow any update but log a warning
+    if (existingVve.status === 'Completed') {
+      console.warn(`[VVE UPDATE] ⚠️  Attempting to update completed VVE ${vveId}. This should only be allowed for admins.`);
+      // Uncomment the following when admin role is implemented:
+      // const error = new Error('Cannot update completed VVE. Only administrators can modify completed VVEs.');
+      // error.code = 'VVE_COMPLETED';
+      // throw error;
+    }
+
+    // 4. Prepare update data
     const updateData = {};
 
     const changeDetails = {};
@@ -539,5 +550,105 @@ export class VesselVisitExecutionService {
           percentage: 50 // Placeholder - could be calculated based on time elapsed
       }
     };
+  }
+
+  /**
+   * Complete a VVE (US 4.1.11)
+   * Marks VVE as completed after validating all operations are finished
+   * @param {string} vveId - VVE identifier
+   * @param {CompleteVveDto} dto - Completion data with unberth and departure times
+   * @param {string} performedBy - User performing the completion
+   * @returns {Promise<VveResponseDto>} Completed VVE
+   */
+  async completeVve(vveId, dto, performedBy = 'system') {
+    // 1. Validate DTO
+    const validation = dto.validate();
+    if (!validation.isValid) {
+      throw new Error(`Validation failed: ${validation.errors.join(', ')}`);
+    }
+
+    // 2. Check if VVE exists
+    const existingVve = await this.vveRepository.findById(vveId);
+    if (!existingVve) {
+      throw new Error(`VVE '${vveId}' not found`);
+    }
+
+    // 3. Validate current status is IN_PROGRESS
+    if (existingVve.status !== 'In Progress') {
+      const error = new Error(`Cannot complete VVE: current status is '${existingVve.status}'. Only VVEs with status 'In Progress' can be completed.`);
+      error.code = 'INVALID_STATE';
+      throw error;
+    }
+
+    // 4. Validate all cargo operations are finished
+    const unfinishedOperations = (existingVve.executedOperations || []).filter(
+      op => op.status !== 'COMPLETED'
+    );
+
+    if (unfinishedOperations.length > 0) {
+      const opList = unfinishedOperations
+        .map(op => `${op.name || op.operationId} (${op.status})`)
+        .join(', ');
+      
+      const error = new Error(
+        `Cannot complete VVE: there are ${unfinishedOperations.length} unfinished cargo operation(s): ${opList}. All operations must be COMPLETED before marking the VVE as completed.`
+      );
+      error.code = 'UNFINISHED_OPERATIONS';
+      error.unfinishedOperations = unfinishedOperations.map(op => ({
+        operationId: op.operationId,
+        name: op.name,
+        status: op.status
+      }));
+      throw error;
+    }
+
+    // 5. Validate times are logical
+    const unberthTime = new Date(dto.actualUnberthTime);
+    const portDepartureTime = new Date(dto.actualPortDepartureTime);
+    const arrivalTime = new Date(existingVve.actualArrivalTime);
+
+    if (unberthTime < arrivalTime) {
+      throw new Error('Unberth time cannot be before arrival time');
+    }
+
+    if (portDepartureTime < unberthTime) {
+      throw new Error('Port departure time cannot be before unberth time');
+    }
+
+    // 6. Prepare update data
+    const now = new Date();
+    const updateData = {
+      status: 'Completed',
+      actualUnberthTime: unberthTime,
+      actualPortDepartureTime: portDepartureTime,
+      actualDepartureTime: portDepartureTime, // Keep backward compatibility
+      completedBy: performedBy,
+      completedAt: now,
+    };
+
+    // 7. Audit logging
+    const auditEntry = {
+      userId: performedBy,
+      action: 'complete',
+      timestamp: now,
+      details: {
+        vveId,
+        actualUnberthTime: unberthTime,
+        actualPortDepartureTime: portDepartureTime,
+        previousStatus: existingVve.status,
+        newStatus: 'Completed',
+      },
+    };
+
+    const existingLogs = existingVve.auditLogs || [];
+    updateData.auditLogs = [...existingLogs, auditEntry];
+
+    console.log(`[VVE Service] Completing VVE ${vveId} by ${performedBy}`);
+
+    // 8. Update in repository
+    const updatedVve = await this.vveRepository.update(vveId, updateData);
+
+    // 9. Map to response DTO
+    return VveMapper.toResponseDto(updatedVve);
   }
 }

@@ -13,7 +13,8 @@ import {
     Minus,
     PlusCircle,
     FileText,
-    Edit
+    Edit,
+    CheckCircle2
 } from 'lucide-react';
 import { vveService, type VveFilters, type VveWithMetrics } from '../services/vveService';
 import StatCard from '../components/common/StatCard';
@@ -23,6 +24,7 @@ import type { VesselVisitNotification } from '../domain/vvn/vvn.model';
 import { useAuth } from '../auth/AuthProvider';
 import { useVveController } from '../controllers/vve/useVveController';
 import { OperationExecutionTable } from '../components/vve/OperationExecutionTable';
+import CompleteVveModal from '../components/vve/CompleteVveModal';
 
 const VesselVisitsExecutionPage: React.FC = () => {
     const { internalRole } = useAuth();
@@ -38,6 +40,11 @@ const VesselVisitsExecutionPage: React.FC = () => {
     const [updateActualBerthTime, setUpdateActualBerthTime] = useState<string>('');
     const [updateBerthDockId, setUpdateBerthDockId] = useState<string>('');
     const [updateNotes, setUpdateNotes] = useState<string>('');
+
+    // US 4.1.11: Complete VVE modal states
+    const [showCompleteModal, setShowCompleteModal] = useState(false);
+    const [vveToComplete, setVveToComplete] = useState<VveWithMetrics | null>(null);
+    const [unfinishedOps, setUnfinishedOps] = useState<Array<{ operationId: string; name: string; status: string }>>([]);
 
     // Filter states
     const [statusFilter, setStatusFilter] = useState<'In Progress' | 'Completed' | 'Cancelled' | ''>('');
@@ -298,6 +305,43 @@ const VesselVisitsExecutionPage: React.FC = () => {
 
         } catch (err: any) {
             console.error('Update VVE failed', err);
+        }
+    };
+
+    // US 4.1.11: Handle Complete VVE
+    const handleCompleteVve = async (data: { actualUnberthTime: string; actualPortDepartureTime: string }) => {
+        if (!vveToComplete) return;
+
+        try {
+            await vveService.completeVve(vveToComplete.vveId, data);
+            
+            // Success - refresh the list and close modal
+            setShowCompleteModal(false);
+            setVveToComplete(null);
+            setUnfinishedOps([]);
+            await handleSearch();
+        } catch (err: any) {
+            console.error('Complete VVE failed:', err);
+            
+            // If the error is about unfinished operations, extract them from the error
+            if (err.message.includes('unfinished')) {
+                // Try to fetch the VVE details to get operations
+                try {
+                    const vveDetails = await vveService.getVveById(vveToComplete.vveId);
+                    const unfinished = (vveDetails.executedOperations || [])
+                        .filter(op => op.status !== 'COMPLETED')
+                        .map(op => ({
+                            operationId: op.operationId,
+                            name: op.name || op.operationId,
+                            status: op.status
+                        }));
+                    setUnfinishedOps(unfinished);
+                } catch {
+                    // If we can't fetch details, just show the error message
+                }
+            }
+            
+            throw err; // Re-throw to let modal handle it
         }
     };
 
@@ -1187,12 +1231,44 @@ const VesselVisitsExecutionPage: React.FC = () => {
                                 Tracking operations for {selectedVve.vesselIdentifier} - {selectedVve.vveId}
                             </p>
                         </div>
-                        <button
-                            onClick={() => setSelectedVve(null)}
-                            className="px-4 py-2 text-sm bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                        >
-                            Close Tracking
-                        </button>
+                        <div className="flex gap-2">
+                            {/* US 4.1.8: Update Berth Info Button */}
+                            <button
+                                onClick={() => {
+                                    setShowUpdateModal(true);
+                                }}
+                                className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                            >
+                                <Edit className="w-4 h-4" />
+                                Update Berth Info
+                            </button>
+                            
+                            {/* US 4.1.11: Mark as Completed Button */}
+                            <button
+                                onClick={() => {
+                                    setVveToComplete(selectedVve);
+                                    setUnfinishedOps([]);
+                                    setShowCompleteModal(true);
+                                }}
+                                disabled={!selectedVve.executedOperations || selectedVve.executedOperations.length === 0}
+                                title={
+                                    !selectedVve.executedOperations || selectedVve.executedOperations.length === 0
+                                        ? 'Cannot complete VVE: no cargo operations recorded. Please create and complete at least one operation.'
+                                        : 'Mark this VVE as completed'
+                                }
+                                className="px-4 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                            >
+                                <CheckCircle2 className="w-4 h-4" />
+                                Mark as Completed
+                            </button>
+                            
+                            <button
+                                onClick={() => setSelectedVve(null)}
+                                className="px-4 py-2 text-sm bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                            >
+                                Close Tracking
+                            </button>
+                        </div>
                     </div>
                     <OperationExecutionTable vveId={selectedVve.vveId} />
                 </div>
@@ -1232,6 +1308,19 @@ const VesselVisitsExecutionPage: React.FC = () => {
                     </div>
                 </div>
             )}
+
+            {/* US 4.1.11: Complete VVE Modal */}
+            <CompleteVveModal
+                vve={vveToComplete}
+                isOpen={showCompleteModal}
+                onClose={() => {
+                    setShowCompleteModal(false);
+                    setVveToComplete(null);
+                    setUnfinishedOps([]);
+                }}
+                onConfirm={handleCompleteVve}
+                unfinishedOperations={unfinishedOps}
+            />
         </div>
     );
 };

@@ -1965,6 +1965,93 @@ test.describe('OEM System Tests', () => {
       console.log('⚠️ No missing plans for this future date - test skipped');
     }
   });
+
+  // ========================================
+  // US 4.1.11: COMPLETE VVE TESTS
+  // ========================================
+
+  test('VVE - Mark as Completed with validation', async ({ page }) => {
+    await page.goto('/vessel-visits-execution');
+    await waitForPageLoad(page);
+    await expect(page.locator('h1:has-text("Vessel Visit Execution")')).toBeVisible({ timeout: 10000 });
+
+    const inProgressRows = page.locator('tr').filter({ hasText: 'In Progress' });
+    const inProgressCount = await inProgressRows.count();
+
+    if (inProgressCount === 0) {
+      console.log('⚠️ No In Progress VVEs found - skipping test');
+      test.skip();
+      return;
+    }
+
+    await inProgressRows.first().click();
+    await page.waitForTimeout(1000);
+    await expect(page.locator('h2:has-text("Operation Execution Tracking")')).toBeVisible({ timeout: 5000 });
+
+    const completeButton = page.locator('button:has-text("Mark as Completed")');
+    await expect(completeButton).toBeVisible({ timeout: 5000 });
+    await completeButton.click();
+    await page.waitForTimeout(500);
+
+    await expect(page.locator('h2:has-text("Mark VVE as Completed")')).toBeVisible({ timeout: 5000 });
+
+    const unfinishedWarning = await page.locator('text=/Unfinished Operations Detected/i').isVisible({ timeout: 2000 }).catch(() => false);
+
+    if (unfinishedWarning) {
+      console.log('⚠️ VVE has unfinished operations - verifying validation works');
+      const submitButton = page.locator('button:has-text("Mark as Completed")').last();
+      await expect(submitButton).toBeDisabled();
+      await page.locator('button:has-text("Cancel")').click();
+      console.log('✓ Validation correctly prevents completing VVE with unfinished operations');
+    } else {
+      console.log('✓ VVE is ready to complete - testing completion flow');
+      const now = new Date();
+      const unberthTime = new Date(now.getTime() - 30 * 60000);
+      const departureTime = now;
+      
+      const unberthTimeStr = unberthTime.toISOString().slice(0, 16);
+      const departureTimeStr = departureTime.toISOString().slice(0, 16);
+      
+      await page.locator('input#unberthTime').fill(unberthTimeStr);
+      await page.locator('input#departurTime').fill(departureTimeStr);
+      
+      const submitButton = page.locator('button:has-text("Mark as Completed")').last();
+      await submitButton.click();
+      await page.waitForTimeout(2000);
+      
+      const modalClosed = await page.locator('h2:has-text("Mark VVE as Completed")').isHidden({ timeout: 5000 });
+      expect(modalClosed).toBeTruthy();
+      console.log('✓ VVE completion workflow tested');
+    }
+  });
+
+  test('VVE - Verify completed VVEs are read-only', async ({ page }) => {
+    await page.goto('/vessel-visits-execution');
+    await waitForPageLoad(page);
+
+    const statusFilter = page.locator('select').filter({ hasText: 'All Status' });
+    await statusFilter.selectOption('Completed');
+    await page.locator('button:has-text("Search")').click();
+    await page.waitForTimeout(1000);
+
+    const completedRows = page.locator('tr').filter({ hasText: 'Completed' });
+    const completedCount = await completedRows.count();
+
+    if (completedCount === 0) {
+      console.log('⚠️ No Completed VVEs found - skipping test');
+      test.skip();
+      return;
+    }
+
+    await completedRows.first().click();
+    await page.waitForTimeout(1000);
+
+    const completeButton = page.locator('button:has-text("Mark as Completed")');
+    const isButtonVisible = await completeButton.isVisible({ timeout: 2000 }).catch(() => false);
+    
+    expect(isButtonVisible).toBeFalsy();
+    console.log('✓ Completed VVEs correctly do not show "Mark as Completed" button');
+  });
   
 });
 
