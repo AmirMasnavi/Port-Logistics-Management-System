@@ -13,7 +13,8 @@ import {
     Minus,
     PlusCircle,
     FileText,
-    Edit
+    Edit,
+    CheckCircle2
 } from 'lucide-react';
 import { vveService, type VveFilters, type VveWithMetrics } from '../services/vveService';
 import StatCard from '../components/common/StatCard';
@@ -23,6 +24,8 @@ import type { VesselVisitNotification } from '../domain/vvn/vvn.model';
 import { useAuth } from '../auth/AuthProvider';
 import { useVveController } from '../controllers/vve/useVveController';
 import { OperationExecutionTable } from '../components/vve/OperationExecutionTable';
+import CompleteVveModal from '../components/vve/CompleteVveModal';
+import Toast, { type ToastType } from '../components/common/Toast';
 
 const VesselVisitsExecutionPage: React.FC = () => {
     const { internalRole } = useAuth();
@@ -38,6 +41,15 @@ const VesselVisitsExecutionPage: React.FC = () => {
     const [updateActualBerthTime, setUpdateActualBerthTime] = useState<string>('');
     const [updateBerthDockId, setUpdateBerthDockId] = useState<string>('');
     const [updateNotes, setUpdateNotes] = useState<string>('');
+
+    // US 4.1.11: Complete VVE modal states
+    const [showCompleteModal, setShowCompleteModal] = useState(false);
+    const [vveToComplete, setVveToComplete] = useState<VveWithMetrics | null>(null);
+    const [unfinishedOps, setUnfinishedOps] = useState<Array<{ operationId: string; name: string; status: string }>>([]);
+
+    // Toast notifications
+    const [toastMessage, setToastMessage] = useState<string | null>(null);
+    const [toastType, setToastType] = useState<ToastType>('info');
 
     // Filter states
     const [statusFilter, setStatusFilter] = useState<'In Progress' | 'Completed' | 'Cancelled' | ''>('');
@@ -298,6 +310,59 @@ const VesselVisitsExecutionPage: React.FC = () => {
 
         } catch (err: any) {
             console.error('Update VVE failed', err);
+        }
+    };
+
+    // US 4.1.11: Handle Complete VVE
+    const handleCompleteVve = async (data: { actualUnberthTime: string; actualPortDepartureTime: string }) => {
+        if (!vveToComplete) return;
+
+        try {
+            const result = await vveService.completeVve(vveToComplete.vveId, data);
+            
+            // Success - show toast with completion details
+            const completedAt = new Date(result.completedAt || new Date()).toLocaleString('en-GB', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            
+            setToastMessage(`✅ VVE ${vveToComplete.vveId} successfully marked as completed at ${completedAt}`);
+            setToastType('success');
+            
+            // Close modal and refresh
+            setShowCompleteModal(false);
+            setVveToComplete(null);
+            setUnfinishedOps([]);
+            await handleSearch();
+        } catch (err: any) {
+            console.error('Complete VVE failed:', err);
+            
+            // Show error toast
+            setToastMessage(`❌ Failed to complete VVE: ${err.message}`);
+            setToastType('error');
+            
+            // If the error is about unfinished operations, extract them from the error
+            if (err.message.includes('unfinished')) {
+                // Try to fetch the VVE details to get operations
+                try {
+                    const vveDetails = await vveService.getVveById(vveToComplete.vveId);
+                    const unfinished = (vveDetails.executedOperations || [])
+                        .filter(op => op.status !== 'COMPLETED')
+                        .map(op => ({
+                            operationId: op.operationId,
+                            name: op.name || op.operationId,
+                            status: op.status
+                        }));
+                    setUnfinishedOps(unfinished);
+                } catch {
+                    // If we can't fetch details, just show the error message
+                }
+            }
+            
+            throw err; // Re-throw to let modal handle it
         }
     };
 
@@ -1187,12 +1252,44 @@ const VesselVisitsExecutionPage: React.FC = () => {
                                 Tracking operations for {selectedVve.vesselIdentifier} - {selectedVve.vveId}
                             </p>
                         </div>
-                        <button
-                            onClick={() => setSelectedVve(null)}
-                            className="px-4 py-2 text-sm bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                        >
-                            Close Tracking
-                        </button>
+                        <div className="flex gap-2">
+                            {/* US 4.1.8: Update Berth Info Button */}
+                            <button
+                                onClick={() => {
+                                    setShowUpdateModal(true);
+                                }}
+                                className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                            >
+                                <Edit className="w-4 h-4" />
+                                Update Berth Info
+                            </button>
+                            
+                            {/* US 4.1.11: Mark as Completed Button */}
+                            <button
+                                onClick={() => {
+                                    setVveToComplete(selectedVve);
+                                    setUnfinishedOps([]);
+                                    setShowCompleteModal(true);
+                                }}
+                                disabled={!selectedVve.executedOperations || selectedVve.executedOperations.length === 0}
+                                title={
+                                    !selectedVve.executedOperations || selectedVve.executedOperations.length === 0
+                                        ? 'Cannot complete VVE: no cargo operations recorded. Please create and complete at least one operation.'
+                                        : 'Mark this VVE as completed'
+                                }
+                                className="px-4 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                            >
+                                <CheckCircle2 className="w-4 h-4" />
+                                Mark as Completed
+                            </button>
+                            
+                            <button
+                                onClick={() => setSelectedVve(null)}
+                                className="px-4 py-2 text-sm bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                            >
+                                Close Tracking
+                            </button>
+                        </div>
                     </div>
                     <OperationExecutionTable vveId={selectedVve.vveId} />
                 </div>
@@ -1200,17 +1297,63 @@ const VesselVisitsExecutionPage: React.FC = () => {
 
             {/* Helper message when VVE is selected but not In Progress */}
             {selectedVve && selectedVve.status !== 'In Progress' && (
-                <div className="mt-6 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg">
-                    <div className="flex">
-                        <AlertCircle className="h-5 w-5 text-yellow-400 mr-3" />
-                        <div>
-                            <h3 className="text-sm font-medium text-yellow-800">
-                                Operation Tracking Not Available
-                            </h3>
-                            <p className="text-sm text-yellow-700 mt-1">
-                                Operation tracking is only available for "In Progress" VVEs. 
-                                The selected VVE ({selectedVve.vveId}) has status: {selectedVve.status}
-                            </p>
+                <div className="mt-6 bg-gray-50 border-l-4 border-gray-400 p-4 rounded-lg">
+                    <div className="flex items-start gap-3">
+                        <AlertCircle className="h-5 w-5 text-gray-400 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                                <h3 className="text-sm font-medium text-gray-800">
+                                    VVE is {selectedVve.status}
+                                </h3>
+                                {selectedVve.status === 'Completed' && (
+                                    <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded-full">
+                                        🔒 Read-Only
+                                    </span>
+                                )}
+                            </div>
+                            {selectedVve.status === 'Completed' && (
+                                <div className="text-sm text-gray-700 space-y-1">
+                                    <p>
+                                        This VVE was completed and is now read-only. 
+                                        Only administrators can make corrections.
+                                    </p>
+                                    {selectedVve.completedBy && (
+                                        <p className="text-xs text-gray-600">
+                                            <strong>Completed by:</strong> {selectedVve.completedBy}
+                                            {selectedVve.completedAt && (
+                                                <> on {new Date(selectedVve.completedAt).toLocaleString('en-GB', {
+                                                    day: '2-digit',
+                                                    month: 'short',
+                                                    year: 'numeric',
+                                                    hour: '2-digit',
+                                                    minute: '2-digit'
+                                                })}</>
+                                            )}
+                                        </p>
+                                    )}
+                                    {selectedVve.actualUnberthTime && selectedVve.actualPortDepartureTime && (
+                                        <p className="text-xs text-gray-600">
+                                            <strong>Unberth:</strong> {new Date(selectedVve.actualUnberthTime).toLocaleString('en-GB', {
+                                                day: '2-digit',
+                                                month: 'short',
+                                                hour: '2-digit',
+                                                minute: '2-digit'
+                                            })} | 
+                                            <strong> Port Departure:</strong> {new Date(selectedVve.actualPortDepartureTime).toLocaleString('en-GB', {
+                                                day: '2-digit',
+                                                month: 'short',
+                                                hour: '2-digit',
+                                                minute: '2-digit'
+                                            })}
+                                        </p>
+                                    )}
+                                </div>
+                            )}
+                            {selectedVve.status === 'Cancelled' && (
+                                <p className="text-sm text-gray-700 mt-1">
+                                    This VVE was cancelled and cannot be modified.
+                                </p>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -1231,6 +1374,29 @@ const VesselVisitsExecutionPage: React.FC = () => {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {/* US 4.1.11: Complete VVE Modal */}
+            <CompleteVveModal
+                vve={vveToComplete}
+                isOpen={showCompleteModal}
+                onClose={() => {
+                    setShowCompleteModal(false);
+                    setVveToComplete(null);
+                    setUnfinishedOps([]);
+                }}
+                onConfirm={handleCompleteVve}
+                unfinishedOperations={unfinishedOps}
+            />
+
+            {/* Toast Notifications */}
+            {toastMessage && (
+                <Toast
+                    message={toastMessage}
+                    type={toastType}
+                    onClose={() => setToastMessage(null)}
+                    duration={5000}
+                />
             )}
         </div>
     );

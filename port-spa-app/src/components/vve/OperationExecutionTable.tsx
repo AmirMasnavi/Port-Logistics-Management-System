@@ -168,14 +168,19 @@ import type { Resource } from '../../domain/resource/resource.model';
             
             setEditResourceId(operation.actualResource || operation.plannedResource || '');
             setEditNotes(operation.notes || '');
-            setEditName(operation.name || extractOperationName(operation.operationId));
+            
+            // Set name - prefer actual name, fallback to extracting from ID
+            const opName = operation.name && operation.name.trim() !== '' && operation.name !== 'Operation' 
+                ? operation.name 
+                : extractOperationName(operation.operationId);
+            setEditName(opName);
             
             // Ensure we only set valid type values
             const validTypes: Array<'WAITING' | 'UNLOADING' | 'LOADING' | 'Other'> = 
                 ['WAITING', 'UNLOADING', 'LOADING', 'Other'];
             const opType = operation.type && validTypes.includes(operation.type as any) 
                 ? operation.type 
-                : 'Other';
+                : extractOperationType(operation.operationId);
             setEditType(opType as any);
             
             setShowEditModal(true);
@@ -198,6 +203,7 @@ import type { Resource } from '../../domain/resource/resource.model';
                 // Prepare update data
                 const updateData: any = {
                     status: editStatus,
+                    operatorId: user.email || user.uid, // Garantir que operatorId está sempre presente
                 };
                 
                 // Add timestamp based on status
@@ -270,11 +276,14 @@ import type { Resource } from '../../domain/resource/resource.model';
             // Auto-generate ID if not provided (though we removed the input, so it will be empty)
             const opId = newOperationId.trim() || `OP-${Date.now()}`;
             
+            console.log('[Add Operation] Starting...', { opId, newName, newType, newStatus });
+            
             try {
                 setUpdatingOp(opId);
                 
                 const addData: any = {
                     status: newStatus,
+                    operatorId: user.email || user.uid, // IMPORTANTE: Adicionar operatorId
                 };
                 
                 // Add timestamp based on status
@@ -292,6 +301,8 @@ import type { Resource } from '../../domain/resource/resource.model';
                 
                 if (newName && newName.trim() !== '') {
                     addData.name = newName;
+                } else {
+                    addData.name = 'Manual Operation'; // Nome padrão
                 }
                 
                 if (newType) {
@@ -302,14 +313,35 @@ import type { Resource } from '../../domain/resource/resource.model';
                     addData.notes = newNotes;
                 }
                 
+                console.log('[Add Operation] Sending data:', addData);
+                
                 await vveService.updateOperationStatus(vveId, opId, addData);
                 
-                // Close modal and refresh
+                console.log('[Add Operation] Success! Closing modal and refreshing...');
+                
+                // Close modal first
                 setShowAddModal(false);
+                
+                // Reset form
+                setNewOperationId('');
+                setNewStatus('PENDING');
+                setNewStartTime('');
+                setNewEndTime('');
+                setNewResourceId('');
+                setNewNotes('');
+                setNewName('');
+                setNewType('LOADING');
+                
+                // Then refresh data
                 await loadData();
-            } catch (err) {
-                console.error('Error adding operation:', err);
-                alert('Failed to add operation. Please try again.');
+                
+                console.log('[Add Operation] Complete!');
+            } catch (err: any) {
+                console.error('[Add Operation] Error:', err);
+                console.error('[Add Operation] Error response:', err.response?.data);
+                
+                const errorMsg = err.response?.data?.message || err.message || 'Unknown error';
+                alert(`Failed to add operation:\n\n${errorMsg}`);
             } finally {
                 setUpdatingOp(null);
             }
@@ -327,20 +359,38 @@ import type { Resource } from '../../domain/resource/resource.model';
             const type = operation?.type || extractOperationType(opId);
             const name = operation?.name || extractOperationName(opId);
 
+            console.log('[Operation Update] Attempting to update:', {
+                vveId,
+                opId,
+                newStatus,
+                type,
+                name,
+                user: user.email || user.uid
+            });
+
             try {
                 setUpdatingOp(opId);
                 await vveService.updateOperationStatus(vveId, opId, {
                     status: newStatus,
                     timestamp: new Date().toISOString(),
                     type: type as any,
-                    name: name
+                    name: name,
+                    operatorId: user.email || user.uid // Adicionar operatorId
                 });
 
+                console.log('[Operation Update] Success! Refreshing data...');
                 // Refresh data to show updated status
                 await loadData();
-            } catch (err) {
-                console.error('Error updating status:', err);
-                alert('Failed to update operation status. Please try again.');
+            } catch (err: any) {
+                console.error('[Operation Update] Error:', err);
+                console.error('[Operation Update] Error details:', {
+                    message: err.message,
+                    response: err.response?.data,
+                    status: err.response?.status
+                });
+                
+                const errorMessage = err.response?.data?.message || err.message || 'Unknown error';
+                alert(`Failed to update operation status:\n\n${errorMessage}\n\nVVE: ${vveId}\nOperation: ${opId}`);
             } finally {
                 setUpdatingOp(null);
             }
@@ -719,14 +769,14 @@ import type { Resource } from '../../domain/resource/resource.model';
                             {/* Current Status Info */}
                             <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
                                 <h3 className="text-sm font-semibold text-blue-900 mb-2">Current Information</h3>
-                                <div className="grid grid-cols-2 gap-2 text-sm">
+                                <div className="grid grid-cols-2 gap-4 text-sm">
                                     <div>
                                         <span className="text-gray-600">Planned Resource:</span>{' '}
                                         <span className="font-medium">{editingOperation.plannedResource || 'N/A'}</span>
                                     </div>
                                     <div>
                                         <span className="text-gray-600">Current Status:</span>{' '}
-                                        <span className="font-medium">{editingOperation.computedStatus}</span>
+                                        <span className="font-medium">{editingOperation.executedStatus || editingOperation.computedStatus || 'Not started'}</span>
                                     </div>
                                     {editingOperation.delayMinutes != null && editingOperation.delayMinutes > 0 && (
                                         <div className="col-span-2">

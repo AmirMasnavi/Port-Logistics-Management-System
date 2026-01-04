@@ -128,6 +128,29 @@ const vesselVisitExecutionSchema = new mongoose.Schema({
     default: null,
   },
   
+  // US 4.1.11: Actual unberth time (when vessel leaves the berth)
+  actualUnberthTime: {
+    type: Date,
+    default: null,
+  },
+  
+  // US 4.1.11: Actual port departure time (when vessel exits the port)
+  actualPortDepartureTime: {
+    type: Date,
+    default: null,
+  },
+  
+  // US 4.1.11: Track who completed the VVE and when
+  completedBy: {
+    type: String,
+    default: null,
+  },
+  
+  completedAt: {
+    type: Date,
+    default: null,
+  },
+  
   // Optional: Additional notes or comments
   notes: {
     type: String,
