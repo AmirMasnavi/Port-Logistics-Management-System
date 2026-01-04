@@ -245,14 +245,24 @@ export class VesselVisitExecutionService {
     }
 
     // 3. US 4.1.11: Block updates to completed VVEs (except by admins)
-    // TODO: Add role check when admin role is implemented
-    // For now, we'll allow any update but log a warning
     if (existingVve.status === 'Completed') {
-      console.warn(`[VVE UPDATE] ⚠️  Attempting to update completed VVE ${vveId}. This should only be allowed for admins.`);
-      // Uncomment the following when admin role is implemented:
-      // const error = new Error('Cannot update completed VVE. Only administrators can modify completed VVEs.');
-      // error.code = 'VVE_COMPLETED';
-      // throw error;
+      console.warn(`[VVE UPDATE] ⚠️  Attempting to update completed VVE ${vveId} by ${performedBy}`);
+      
+      // Check if user is admin (based on email domain or role claim)
+      // For now, we check if email contains 'admin' or ends with specific domain
+      // TODO: Replace with proper role-based access control when Firebase claims are implemented
+      const isAdmin = performedBy && (
+        performedBy.toLowerCase().includes('admin') || 
+        performedBy.toLowerCase() === 'system'
+      );
+      
+      if (!isAdmin) {
+        const error = new Error('Cannot update completed VVE. Only administrators can modify completed VVEs.');
+        error.code = 'VVE_COMPLETED';
+        throw error;
+      }
+      
+      console.log(`[VVE UPDATE] ✓ Admin override allowed for ${performedBy}`);
     }
 
     // 4. Prepare update data

@@ -241,13 +241,29 @@ export class VveService {
      */
     async updateOperationStatus(vveId: string, operationId: string, dto: UpdateOperationStatusDto): Promise<void> {
         try {
+            console.log('[VveService] Updating operation status:', {
+                url: `/${vveId}/operations/${operationId}/status`,
+                dto
+            });
+            
             await vveApiClient.put(
                 `/${vveId}/operations/${operationId}/status`,
                 dto
             );
+            
+            console.log('[VveService] Operation status updated successfully');
         } catch (error: any) {
-            console.error('Failed to update operation status:', error);
-            throw new Error(error.response?.data?.message || 'Failed to update operation status.');
+            console.error('[VveService] Failed to update operation status:', error);
+            console.error('[VveService] Error response:', error.response?.data);
+            console.error('[VveService] Error status:', error.response?.status);
+            
+            // Throw with detailed error message
+            const errorMsg = error.response?.data?.message 
+                || error.response?.data?.error
+                || error.message 
+                || 'Failed to update operation status.';
+                
+            throw new Error(errorMsg);
         }
     }
 
