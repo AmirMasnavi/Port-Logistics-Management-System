@@ -301,6 +301,16 @@ export class SchedulingService {
             return { resources: [], staff: [] };
         }
     }
+
+    async getRebalancingAuditLogs(): Promise<any[]> {
+        try {
+            const response = await planningApiClient.get<any[]>('/api/Scheduling/rebalance/audit');
+            return response.data;
+        } catch (error: any) {
+            console.error('Failed to fetch rebalancing audit logs:', error);
+            return [];
+        }
+    }
 }
 
 export const schedulingService = new SchedulingService();

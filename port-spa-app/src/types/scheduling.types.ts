@@ -110,5 +110,7 @@ export interface RebalancingProposal {
 export interface RebalancingConfirmRequest {
     proposalId: string;
     officerId: string;
+    officerName?: string;
+    planId?: string;
     comments?: string;
 }
