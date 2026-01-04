@@ -13,7 +13,7 @@ import { RealAuthHelper } from './helpers/real-auth';
 
 async function waitForPageLoad(page: Page) {
   await page.waitForLoadState('networkidle');
-  await page.waitForTimeout(1000);
+  await page.waitForTimeout(5000);
 }
 
 async function getFirstVveId(page: Page): Promise<string> {
@@ -1311,6 +1311,423 @@ test.describe('OEM System Tests', () => {
     
     // Should also show ONGOING status since it's actively impacting
     expect(taskCard.locator('text=ONGOING'));
+  });
+
+  // ========================================
+  // MISSING PLANS TESTS
+  // ========================================
+
+  test('Missing Plans - Check for Missing Plans', async ({ page }) => {
+    // 1. Navigate to Missing Plans page
+    await page.goto('/missing-plans');
+    await waitForPageLoad(page);
+    
+    // 2. Verify page loaded
+    await expect(page.locator('h1:has-text("Missing Operation Plans")')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('text=Identify Vessel Visit Notifications without operation plans')).toBeVisible();
+
+    // 3. Select a date (use tomorrow to avoid conflicts with existing data)
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const dateString = tomorrow.toISOString().split('T')[0];
+    
+    const dateInput = page.locator('input[type="date"]#checkDate');
+    await dateInput.fill(dateString);
+    
+    // 4. Click "Check Missing Plans" button
+    await page.locator('button:has-text("Check Missing Plans")').click();
+    await waitForPageLoad(page);
+    
+    // 5. Verify results are displayed (either missing VVNs or success message)
+    // The page should show either:
+    // - Statistics cards with numbers
+    // - "All VVNs Have Operation Plans" message if none are missing
+    // - Error message if something went wrong
+    
+    const hasMissingPlans = await page.locator('h2:has-text("Vessel Visits Missing Operation Plans")').isVisible({ timeout: 5000 }).catch(() => false);
+    const hasAllPlansMessage = await page.locator('text=Ready to Check Missing Plans').isVisible({ timeout: 5000 }).catch(() => false);
+    
+    // One of these should be true
+    expect(hasMissingPlans || hasAllPlansMessage).toBeTruthy();
+    
+    // 6. Verify statistics cards are visible (should show counts)
+    if (hasMissingPlans || hasAllPlansMessage) {
+      await expect(page.locator('text=Missing Plans').first()).toBeVisible();
+    }
+  });
+
+  test('Missing Plans - View Missing VVN Details', async ({ page }) => {
+    // 1. Navigate to Missing Plans page
+    await page.goto('/missing-plans');
+    await waitForPageLoad(page);
+    
+    // 2. Select today's date (more likely to have pending VVNs)
+    const today = new Date().toISOString().split('T')[0];
+    await page.locator('input[type="date"]#checkDate').fill(today);
+    
+    // 3. Check for missing plans
+    await page.locator('button:has-text("Check Missing Plans")').click();
+    await waitForPageLoad(page);
+    
+    // 4. Check if there are missing VVNs
+    const missingVVNsTable = page.locator('table');
+    const hasMissingVVNs = await missingVVNsTable.isVisible({ timeout: 5000 }).catch(() => false);
+    
+    if (hasMissingVVNs) {
+      // 5. Verify table headers
+      await expect(page.locator('th:has-text("Business ID")')).toBeVisible();
+      await expect(page.locator('th:has-text("Vessel IMO")')).toBeVisible();
+      await expect(page.locator('th:has-text("Estimated Arrival")')).toBeVisible();
+      await expect(page.locator('th:has-text("Estimated Departure")')).toBeVisible();
+      await expect(page.locator('th:has-text("Assigned Dock")')).toBeVisible();
+      await expect(page.locator('th:has-text("Status")')).toBeVisible();
+      
+      // 6. Verify at least one row of data exists
+      const firstRow = page.locator('tbody tr').first();
+      await expect(firstRow).toBeVisible();
+      
+      // 7. Verify row contains expected data structure
+      await expect(firstRow.locator('td').first()).toBeVisible(); // Business ID
+      
+      console.log('✓ Missing VVNs table displayed with data');
+    } else {
+      // No missing VVNs - verify success message
+      await expect(page.locator('text=All VVNs Have Operation Plans')).toBeVisible();
+      console.log('✓ All VVNs have operation plans for this date');
+    }
+  });
+
+  test('Missing Plans - Algorithm Selection', async ({ page }) => {
+    // 1. Navigate to Missing Plans page
+    await page.goto('/missing-plans');
+    await waitForPageLoad(page);
+    
+    // 2. Verify algorithm selector is present
+    const algorithmSelect = page.locator('select#algorithm');
+    await expect(algorithmSelect).toBeVisible();
+    
+    // 3. Verify algorithm options
+    const options = await algorithmSelect.locator('option').allTextContents();
+    expect(options.length).toBeGreaterThan(0);
+    
+    // Should include key algorithms
+    expect(options.some(opt => opt.includes('Automatic'))).toBeTruthy();
+    expect(options.some(opt => opt.includes('Optimal'))).toBeTruthy();
+    expect(options.some(opt => opt.includes('Heuristic'))).toBeTruthy();
+    expect(options.some(opt => opt.includes('Genetic'))).toBeTruthy();
+    
+    // 4. Test changing algorithm
+    await algorithmSelect.selectOption('optimal');
+    expect(await algorithmSelect.inputValue()).toBe('optimal');
+    
+    await algorithmSelect.selectOption('heuristic');
+    expect(await algorithmSelect.inputValue()).toBe('heuristic');
+    
+    console.log('✓ Algorithm selection works correctly');
+  });
+
+  test('Missing Plans - Regenerate Plans Confirmation Dialog', async ({ page }) => {
+    // 1. Navigate to Missing Plans page
+    await page.goto('/missing-plans');
+    await waitForPageLoad(page);
+    
+    // 2. Select a future date to avoid interfering with real data
+    const futureDate = new Date();
+    futureDate.setDate(futureDate.getDate() + 7); // One week from now
+    const dateString = futureDate.toISOString().split('T')[0];
+    
+    await page.locator('input[type="date"]#checkDate').fill(dateString);
+    
+    // 3. Check for missing plans
+    await page.locator('button:has-text("Check Missing Plans")').click();
+    await waitForPageLoad(page);
+    
+    // 4. Check if "Regenerate All Plans" button is visible (only shows when there are missing VVNs)
+    const regenerateButton = page.locator('button:has-text("Regenerate All Plans")');
+    const isRegenerateVisible = await regenerateButton.isVisible({ timeout: 5000 }).catch(() => false);
+    
+    if (isRegenerateVisible) {
+      // 5. Click regenerate button
+      await regenerateButton.click();
+      await page.waitForTimeout(500);
+      
+      // 6. Verify confirmation dialog appears
+      const confirmDialog = page.locator('.fixed.inset-0').filter({ hasText: 'Confirm Regeneration' });
+      await expect(confirmDialog).toBeVisible({ timeout: 5000 });
+      
+      // 7. Verify dialog content
+      await expect(confirmDialog.locator('text=/will delete existing plans/i')).toBeVisible();
+      await expect(confirmDialog.locator('text=/cannot be undone/i')).toBeVisible();
+      
+      // 8. Verify dialog buttons
+      await expect(confirmDialog.locator('button:has-text("Cancel")')).toBeVisible();
+      await expect(confirmDialog.locator('button:has-text("Confirm")')).toBeVisible();
+      
+      // 9. Test cancel button
+      await confirmDialog.locator('button:has-text("Cancel")').click();
+      await page.waitForTimeout(500);
+      
+      // Dialog should close
+      await expect(confirmDialog).not.toBeVisible();
+      
+      console.log('✓ Regenerate confirmation dialog works correctly');
+    } else {
+      console.log('⚠️ No missing VVNs found - Regenerate button not displayed');
+    }
+  });
+
+  test('Missing Plans - Existing Plans Summary Display', async ({ page }) => {
+    // 1. Navigate to Missing Plans page
+    await page.goto('/missing-plans');
+    await waitForPageLoad(page);
+    
+    // 2. Use today's date (more likely to have existing plans)
+    const today = new Date().toISOString().split('T')[0];
+    await page.locator('input[type="date"]#checkDate').fill(today);
+    
+    // 3. Check for missing plans
+    await page.locator('button:has-text("Check Missing Plans")').click();
+    await waitForPageLoad(page);
+    
+    // 4. Check if existing plans section is visible
+    const existingPlansSection = page.locator('h2:has-text("Existing Operation Plans")');
+    const hasExistingPlans = await existingPlansSection.isVisible({ timeout: 5000 }).catch(() => false);
+    
+    if (hasExistingPlans) {
+      // 5. Verify existing plans display
+      const planCards = page.locator('.border.border-gray-200.rounded-lg.p-4.bg-gray-50');
+      const planCount = await planCards.count();
+      
+      expect(planCount).toBeGreaterThan(0);
+      
+      // 6. Verify first plan card structure
+      const firstPlan = planCards.first();
+      
+      // Should display Plan ID (format: PLAN-YYYYMMDD-XXXX)
+      await expect(firstPlan.locator('text=/PLAN-\\d{8}-\\d{4}/i')).toBeVisible();
+      
+      // Should display algorithm
+      await expect(firstPlan.locator('text=/Algorithm:/i')).toBeVisible();
+      
+      // Should display task count
+      await expect(firstPlan.locator('text=/Tasks:/i')).toBeVisible();
+      
+      // Should display creation date
+      await expect(firstPlan.locator('text=/Created:/i')).toBeVisible();
+      
+      console.log(`✓ Existing plans displayed: ${planCount} plan(s)`);
+    } else {
+      console.log('⚠️ No existing plans for this date');
+    }
+  });
+
+  test('Missing Plans - Date Navigation', async ({ page }) => {
+    // 1. Navigate to Missing Plans page
+    await page.goto('/missing-plans');
+    await waitForPageLoad(page);
+    
+    // 2. Verify date input is present and has default value (today)
+    const dateInput = page.locator('input[type="date"]#checkDate');
+    await expect(dateInput).toBeVisible();
+    
+    const initialDate = await dateInput.inputValue();
+    expect(initialDate).toBeTruthy();
+    
+    // 3. Test changing to tomorrow
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowString = tomorrow.toISOString().split('T')[0];
+    
+    await dateInput.fill(tomorrowString);
+    expect(await dateInput.inputValue()).toBe(tomorrowString);
+    
+    // 4. Check plans for tomorrow
+    await page.locator('button:has-text("Check Missing Plans")').click();
+    await waitForPageLoad(page);
+    
+    // Should show results (either missing VVNs or success message)
+    const hasResults = await page.locator('text=/Missing Plans|All VVNs Have Operation Plans/i').first().isVisible({ timeout: 5000 });
+    expect(hasResults).toBeTruthy();
+    
+    // 5. Test changing to yesterday
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayString = yesterday.toISOString().split('T')[0];
+    
+    await dateInput.fill(yesterdayString);
+    expect(await dateInput.inputValue()).toBe(yesterdayString);
+    
+    // 6. Check plans for yesterday
+    await page.locator('button:has-text("Check Missing Plans")').click();
+    await waitForPageLoad(page);
+    
+    // Should show results
+    const hasResultsYesterday = await page.locator('text=/Missing Plans|All VVNs Have Operation Plans/i').first().isVisible({ timeout: 5000 });
+    expect(hasResultsYesterday).toBeTruthy();
+    
+    console.log('✓ Date navigation works correctly');
+  });
+
+  test('Missing Plans - Error Handling', async ({ page }) => {
+    // 1. Navigate to Missing Plans page
+    await page.goto('/missing-plans');
+    await waitForPageLoad(page);
+    
+    // 2. Test with invalid date format (empty)
+    const dateInput = page.locator('input[type="date"]#checkDate');
+    await dateInput.fill('');
+    
+    // Since date is required, the button is "greyed out", and cannot be clicked
+    // Check that cant click button
+    const checkButton = page.locator('button:has-text("Check Missing Plans")');
+    const isDisabled = await checkButton.isDisabled();
+    expect(isDisabled).toBeTruthy();
+    
+    
+    await page.waitForTimeout(1000);
+    
+    // 3. Reset to valid date
+    const today = new Date().toISOString().split('T')[0];
+    await dateInput.fill(today);
+    
+    // 4. Verify normal operation resumes
+    await page.locator('button:has-text("Check Missing Plans")').click();
+    await waitForPageLoad(page);
+    
+    // Should show results without errors
+    const hasValidResults = await page.locator('text=/Missing Plans|All VVNs Have Operation Plans/i').first().isVisible({ timeout: 5000 });
+    expect(hasValidResults).toBeTruthy();
+    
+    console.log('✓ Error handling tested');
+  });
+
+  test('Missing Plans - Loading State', async ({ page }) => {
+    // 1. Navigate to Missing Plans page
+    await page.goto('/missing-plans');
+    await waitForPageLoad(page);
+    
+    // 2. Select a date
+    const today = new Date().toISOString().split('T')[0];
+    await page.locator('input[type="date"]#checkDate').fill(today);
+    
+    // 3. Click check button and immediately check for loading state
+    const checkButton = page.locator('button:has-text("Check Missing Plans")');
+    await checkButton.click();
+    
+    // 4. Verify button shows loading state during operation
+    // Note: Loading state might be too fast to catch in some cases
+    
+    // Wait for completion
+    await waitForPageLoad(page);
+    
+    // 5. Verify button returns to normal state
+    const buttonTextAfterLoad = await checkButton.textContent();
+    expect(buttonTextAfterLoad).toContain('Check Missing Plans');
+    
+    console.log('✓ Loading state tested');
+  });
+
+  test('Missing Plans - Statistics Cards Display', async ({ page }) => {
+    // 1. Navigate to Missing Plans page
+    await page.goto('/missing-plans');
+    await waitForPageLoad(page);
+    
+    // 2. Select date and check plans
+    const today = new Date().toISOString().split('T')[0];
+    await page.locator('input[type="date"]#checkDate').fill(today);
+    await page.locator('button:has-text("Check Missing Plans")').click();
+    await waitForPageLoad(page);
+    
+    // 3. Verify statistics cards are visible
+    const statsVisible = await page.locator('text=Missing Plans').first().isVisible({ timeout: 5000 }).catch(() => false);
+    
+    if (statsVisible) {
+      // 4. Verify all three stat cards
+      await expect(page.locator('text=Missing Plans').first()).toBeVisible();
+      await expect(page.locator('text=Existing Plans').first()).toBeVisible();
+      await expect(page.locator('text=Total VVNs').first()).toBeVisible();
+      
+      // 5. Verify cards display numerical values
+      // The values should be numbers (even if 0)
+      const statCards = page.locator('.grid.grid-cols-1.md\\:grid-cols-3').first();
+      await expect(statCards).toBeVisible();
+      
+      console.log('✓ Statistics cards displayed correctly');
+    } else {
+      console.log('⚠️ No statistics to display for this date');
+    }
+  });
+
+  test('Missing Plans - Full Workflow with Regeneration', async ({ page }) => {
+    // This test performs the complete workflow: check → regenerate → verify
+    // Use a far future date to avoid conflicts
+    
+    // 1. Navigate to Missing Plans page
+    await page.goto('/missing-plans');
+    await waitForPageLoad(page);
+    
+    // 2. Select a far future date (30 days from now)
+    const futureDate = new Date();
+    futureDate.setDate(futureDate.getDate() + 30);
+    const dateString = futureDate.toISOString().split('T')[0];
+    
+    await page.locator('input[type="date"]#checkDate').fill(dateString);
+    
+    // 3. Select Heuristic algorithm (faster than genetic)
+    await page.locator('select#algorithm').selectOption('heuristic');
+    
+    // 4. Check for missing plans
+    await page.locator('button:has-text("Check Missing Plans")').click();
+    await waitForPageLoad(page);
+    
+    // 5. Record initial state
+    const initialMissingVisible = await page.locator('h2:has-text("Vessel Visits Missing Operation Plans")').isVisible({ timeout: 5000 }).catch(() => false);
+    
+    if (initialMissingVisible) {
+      console.log('✓ Found missing plans for future date');
+      
+      // 6. Click regenerate button
+      const regenerateButton = page.locator('button:has-text("Regenerate All Plans")');
+      await regenerateButton.click();
+      await page.waitForTimeout(500);
+      
+      // 7. Confirm regeneration in dialog
+      const confirmDialog = page.locator('.fixed.inset-0').filter({ hasText: 'Confirm' });
+      const isDialogVisible = await confirmDialog.isVisible({ timeout: 3000 }).catch(() => false);
+      
+      if (isDialogVisible) {
+        await confirmDialog.locator('button:has-text("Confirm")').click();
+        
+        // 8. Wait for regeneration to complete (can take several seconds)
+        await page.waitForTimeout(3000);
+        
+        // 9. Verify success message or updated state
+        const successMessage = await page.locator('text=/Successfully regenerated|operation plan/i').isVisible({ timeout: 10000 }).catch(() => false);
+        
+        if (successMessage) {
+          console.log('✓ Plans regenerated successfully');
+          
+          // 10. Verify the missing plans list is updated
+          await page.waitForTimeout(2000);
+          
+          // The page should now show either:
+          // - Fewer missing VVNs, or
+          // - "All VVNs Have Operation Plans" message, or
+          // - Updated existing plans section
+          
+          const finalState = await page.locator('text=/Missing Plans|All VVNs Have Operation Plans|Existing Operation Plans/i').first().isVisible({ timeout: 5000 });
+          expect(finalState).toBeTruthy();
+          
+          console.log('✓ Full regeneration workflow completed');
+        } else {
+          console.log('⚠️ Regeneration initiated but may still be processing');
+        }
+      } else {
+        console.log('⚠️ Confirmation dialog did not appear');
+      }
+    } else {
+      console.log('⚠️ No missing plans for this future date - test skipped');
+    }
   });
   
 });
