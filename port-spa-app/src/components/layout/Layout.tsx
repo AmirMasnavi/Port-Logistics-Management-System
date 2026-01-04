@@ -4,12 +4,13 @@ import Header from './Header';
 import Sidebar from './Sidebar';
 import Footer from './Footer';
 import { useAuth } from '../../auth/AuthProvider';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { isAuthenticated, isLoading, isInternalLoading, internalRole } = useAuth();
     const location = useLocation();
+    const navigate = useNavigate();
     // Use a lightweight cast to avoid deep generic instantiation from react-i18next types
     const { t } = (useTranslation as unknown as () => { t: (key: string) => string })();
 
@@ -28,10 +29,12 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     }
 
     const renderContent = () => {
-        // (This function is unchanged)
-        if (location.pathname === '/activate') {
+        // Allow public access to certain routes even when not authenticated
+        const publicRoutes = ['/activate', '/privacy-policy', '/data-rights'];
+        if (publicRoutes.includes(location.pathname)) {
             return children;
         }
+        
         if (isAuthenticated) {
             if (internalRole) {
                 return children;
@@ -46,7 +49,24 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 </div>
             );
         }
-        return <div className="text-center text-xl">{t('layout.loginPrompt')}</div>;
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6">
+                <div className="text-center">
+                    <h2 className="text-3xl font-bold text-gray-800 mb-2">
+                        {t('layout.loginPrompt')}
+                    </h2>
+                    <p className="text-gray-600 text-lg">
+                        Please log in to access the port management system
+                    </p>
+                </div>
+                <button
+                    onClick={() => navigate('/privacy-policy')}
+                    className="px-8 py-4 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                >
+                    How to Request Access
+                </button>
+            </div>
+        );
     };
 
     return (
