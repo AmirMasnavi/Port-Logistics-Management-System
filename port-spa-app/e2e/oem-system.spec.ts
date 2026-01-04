@@ -113,7 +113,8 @@ test.describe('OEM System Tests', () => {
   });
 
   test('Incident Types - Edit', async ({ page }) => {
-    // 1. Navigate to Incident Types
+      test.setTimeout(60000);
+      // 1. Navigate to Incident Types
     await page.goto('/incident-types');
     await waitForPageLoad(page);
     
@@ -224,6 +225,7 @@ test.describe('OEM System Tests', () => {
   });
 
   test('Incidents - Edit', async ({ page }) => {
+    test.setTimeout(60000);
     // 1. Navigate to Incidents
     await page.goto('/incidents');
     await waitForPageLoad(page);

@@ -13,6 +13,12 @@ public class RebalancingConfirmRequestDto
     [JsonPropertyName("officerId")]
     public string OfficerId { get; set; } = string.Empty;
 
+    [JsonPropertyName("officerName")]
+    public string? OfficerName { get; set; }
+
+    [JsonPropertyName("planId")]
+    public string? PlanId { get; set; }
+
     [JsonPropertyName("comments")]
     public string? Comments { get; set; }
 }

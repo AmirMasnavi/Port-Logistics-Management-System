@@ -53,6 +53,9 @@ export const OperationPlanPage: React.FC = () => {
     const [availableStaff, setAvailableStaff] = useState<any[]>([]);
     const [loadingSelectionData, setLoadingSelectionData] = useState(false);
 
+    // State for Rebalancing Audit Logs
+    const [auditLogs, setAuditLogs] = useState<any[]>([]);
+
     // --- ACTIONS ---
 
     // Função de fetch atualizada para receber filtros e usá-los no serviço
@@ -203,9 +206,21 @@ export const OperationPlanPage: React.FC = () => {
         }
     };
 
+    // New function to fetch audit logs
+    const fetchAuditLogs = async () => {
+        try {
+            const logs = await schedulingService.getRebalancingAuditLogs();
+            setAuditLogs(logs);
+        } catch (error) {
+            console.error("Failed to load audit logs", error);
+            // Don't show error feedback for logs to avoid cluttering UI if just logs fail
+        }
+    };
+
     // --- EFFECTS ---
     useEffect(() => {
         fetchHistory();
+        fetchAuditLogs();
     }, []);
 
     // --- RENDER ---
@@ -306,6 +321,7 @@ export const OperationPlanPage: React.FC = () => {
                     </div>
                 </div>
             </div>
+
 
             {/* PLANS LIST */}
             <div className="flex justify-between items-center mb-4">
@@ -420,19 +436,26 @@ export const OperationPlanPage: React.FC = () => {
                                                     </h3>
                                                     
                                                     {/* Toggle Logs Button */}
-                                                    {(plan as any).changeLogs && (plan as any).changeLogs.length > 0 && (
-                                                        <button
-                                                            onClick={() => setVisibleLogsPlanId(visibleLogsPlanId === plan.planId ? null : plan.planId)}
-                                                            className={`text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors flex items-center gap-1.5 ${
-                                                                visibleLogsPlanId === plan.planId
-                                                                ? 'bg-blue-50 text-blue-700 border-blue-200'
-                                                                : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
-                                                            }`}
-                                                        >
-                                                            <History className="w-3.5 h-3.5" />
-                                                            {visibleLogsPlanId === plan.planId ? 'Hide Logs' : 'Show Logs'}
-                                                        </button>
-                                                    )}
+                                                    {(() => {
+                                                        const hasChangeLogs = (plan as any).changeLogs && (plan as any).changeLogs.length > 0;
+                                                        const hasRebalancingLogs = auditLogs.some(log => log.PlanId === plan.planId);
+                                                        
+                                                        if (!hasChangeLogs && !hasRebalancingLogs) return null;
+
+                                                        return (
+                                                            <button
+                                                                onClick={() => setVisibleLogsPlanId(visibleLogsPlanId === plan.planId ? null : plan.planId)}
+                                                                className={`text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors flex items-center gap-1.5 ${
+                                                                    visibleLogsPlanId === plan.planId
+                                                                    ? 'bg-blue-50 text-blue-700 border-blue-200'
+                                                                    : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                                                                }`}
+                                                            >
+                                                                <History className="w-3.5 h-3.5" />
+                                                                {visibleLogsPlanId === plan.planId ? 'Hide Logs' : 'Show Logs'}
+                                                            </button>
+                                                        );
+                                                    })()}
                                                 </div>
                                                 
                                                 <div className="grid grid-cols-1 gap-4">
@@ -543,9 +566,57 @@ export const OperationPlanPage: React.FC = () => {
                                                 </div>
 
                                                 {/* CHANGE LOGS SECTION - Controlled by state */}
-                                                {visibleLogsPlanId === plan.planId && (plan as any).changeLogs && (plan as any).changeLogs.length > 0 && (
-                                                    <div className="animate-fade-in">
-                                                        <ChangeLogList logs={(plan as any).changeLogs} />
+                                                {visibleLogsPlanId === plan.planId && (
+                                                    <div className="space-y-6 animate-fade-in">
+                                                        {/* 1. Standard Change Logs (Task Updates) */}
+                                                        {(plan as any).changeLogs && (plan as any).changeLogs.length > 0 && (
+                                                            <ChangeLogList logs={(plan as any).changeLogs} />
+                                                        )}
+
+                                                        {/* 2. Rebalancing Audit Logs (US 4.3.3) */}
+                                                        {(() => {
+                                                            const planLogs = auditLogs.filter(log => log.PlanId === plan.planId);
+                                                            if (planLogs.length === 0) return null;
+
+                                                            return (
+                                                                <div className="bg-white rounded-lg border border-purple-100 overflow-hidden">
+                                                                    <div className="bg-purple-50 px-4 py-3 border-b border-purple-100 flex items-center gap-2">
+                                                                        <History className="w-4 h-4 text-purple-600" />
+                                                                        <h4 className="text-sm font-semibold text-purple-900">Rebalancing History</h4>
+                                                                    </div>
+                                                                    <table className="min-w-full divide-y divide-gray-100">
+                                                                        <thead className="bg-gray-50">
+                                                                            <tr>
+                                                                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Time</th>
+                                                                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Officer</th>
+                                                                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Delay Change</th>
+                                                                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Comments</th>
+                                                                            </tr>
+                                                                        </thead>
+                                                                        <tbody className="divide-y divide-gray-100">
+                                                                            {planLogs.map((log, idx) => (
+                                                                                <tr key={idx} className="hover:bg-gray-50">
+                                                                                    <td className="px-4 py-2 whitespace-nowrap text-xs text-gray-600">
+                                                                                        {new Date(log.Timestamp).toLocaleString()}
+                                                                                    </td>
+                                                                                    <td className="px-4 py-2 whitespace-nowrap text-xs text-gray-700 font-medium">
+                                                                                        {log.OfficerName || log.OfficerId}
+                                                                                    </td>
+                                                                                    <td className="px-4 py-2 whitespace-nowrap text-xs">
+                                                                                        <span className="text-gray-500">{log.OriginalTotalDelay.toFixed(2)}h</span>
+                                                                                        <span className="mx-1 text-gray-300">→</span>
+                                                                                        <span className="text-green-600 font-bold">{log.NewTotalDelay.toFixed(2)}h</span>
+                                                                                    </td>
+                                                                                    <td className="px-4 py-2 text-xs text-gray-500 italic">
+                                                                                        {log.Comments}
+                                                                                    </td>
+                                                                                </tr>
+                                                                            ))}
+                                                                        </tbody>
+                                                                    </table>
+                                                                </div>
+                                                            );
+                                                        })()}
                                                     </div>
                                                 )}
                                             </div>

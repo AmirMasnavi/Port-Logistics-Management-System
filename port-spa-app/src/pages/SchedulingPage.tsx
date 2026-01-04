@@ -41,7 +41,6 @@ const SchedulingPage: React.FC = () => {
     });
     const [proposal, setProposal] = useState<RebalancingProposal | null>(null);
     const [confirming, setConfirming] = useState(false);
-
     const handleGenerateSchedule = async () => {
         setLoading(true);
         setError(null);
@@ -157,17 +156,65 @@ const SchedulingPage: React.FC = () => {
         if (!proposal) return;
         setConfirming(true);
         try {
+            // 1. Save the plan first (as requested: "Confirm Rebalancing should also add the new thing in plan and work as save plan")
+            // We construct the plan request from the proposal data
+            const planRequest: CreateOperationPlanRequest = {
+                date: selectedDate,
+                algorithm: 'rebalancing',
+                rebalancingParams: rebalanceParams,
+                totalDelay: proposal.totalDelayProposed,
+                executionTimeMs: 0, // Not available in proposal, but acceptable
+                scheduledTasks: proposal.proposedTasks.map(t => ({
+                    vesselVisitId: t.vesselVisitId,
+                    vesselImo: t.vesselImo,
+                    vesselVisitBusinessId: t.vesselVisitBusinessId,
+                    dockName: t.dockName,
+                    resourceKind: t.resourceKind,
+                    resourceId: t.resourceId,
+                    staffShortName: t.staffShortName,
+                    staffId: t.staffId,
+                    startTime: t.startTime,
+                    endTime: t.endTime,
+                    loadingTime: t.loadingTime,
+                    unloadingTime: t.unloadingTime
+                }))
+            };
+
+            const savedPlan = await schedulingService.saveOperationPlan(planRequest);
+            setPlanSaved(true);
+            setSaveStatus('success');
+
+            // 2. Confirm rebalancing with the plan ID and officer name
             await schedulingService.confirmRebalancing({
                 proposalId: proposal.proposalId,
                 officerId: 'OFFICER-001',
+                officerName: 'John Doe (Officer)', // Hardcoded for now as per context, or could be fetched from auth
+                planId: savedPlan.planId,
                 comments: 'Confirmed via SchedulingPage'
             });
-            // Refresh schedule using rebalancing to apply changes
-            const refreshed = await schedulingService.generateRebalancingDaily(selectedDate, rebalanceParams);
-            setScheduleData(refreshed);
+            
+            // Instead of re-fetching (which gets old data because Main API isn't updated),
+            // we construct the schedule response from the proposal itself.
+            const confirmedSchedule: DailyScheduleResponse = {
+                date: selectedDate,
+                algorithmUsed: 'rebalancing',
+                executionTimeMs: 0, 
+                totalDelay: proposal.totalDelayProposed,
+                warnings: proposal.warnings || [],
+                scheduledTasks: proposal.proposedTasks.map(t => ({
+                    ...t,
+                }))
+            };
+            
+            setScheduleData(confirmedSchedule);
+            setProposal(null); // Clear proposal view
+            setShowRebalanceParams(false); // Collapse params
+            
+            
         } catch (err: any) {
             console.error('Failed to confirm rebalancing:', err);
             setError(err.message || 'Failed to confirm rebalancing.');
+            setSaveStatus('error');
         } finally {
             setConfirming(false);
         }
@@ -319,7 +366,7 @@ const SchedulingPage: React.FC = () => {
                             <option value="heuristic">Heuristic (Fast Approximation)</option>
                             <option value="multicrane">Multi-Crane (Advanced)</option>
                             <option value="genetic">Genetic Algorithm (AI-Based)</option>
-                            <option value="rebalancing">Rebalancing (US 4.3.3)</option>
+                            <option value="rebalancing">Rebalancing </option>
                         </select>
                     </div>
 
@@ -578,36 +625,102 @@ const SchedulingPage: React.FC = () => {
                         {proposal && (
                             <div className="mt-6 bg-white rounded-lg shadow p-4">
                                 <h4 className="text-lg font-semibold mb-2">Rebalancing Proposal</h4>
-                                <p className="text-sm text-gray-600 mb-4">Improvement: {proposal.improvementMinutes ?? Math.max(0, (proposal.totalDelayBaseline - proposal.totalDelayProposed) * 60).toFixed(0)} minutes. Total Delay: baseline {proposal.totalDelayBaseline.toFixed(2)}h → proposed {proposal.totalDelayProposed.toFixed(2)}h</p>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <h5 className="font-medium mb-2">Baseline Allocation</h5>
-                                        {proposal.baselineTasks.length === 0 ? (
-                                            <p className="text-gray-500">No baseline tasks.</p>
-                                        ) : (
-                                            <ul className="space-y-2">
-                                                {proposal.baselineTasks.map((t, idx) => (
-                                                    <li key={`b-${idx}`} className="border rounded p-2 text-sm">
-                                                        <span className="font-mono">{t.vesselVisitBusinessId}</span> at {t.dockName} {formatDateAndTime(t.startTime)} → {formatDateAndTime(t.endTime)}
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        )}
+                                <div className="flex items-center gap-4 mb-4 text-sm">
+                                    <div className="bg-blue-50 px-3 py-2 rounded border border-blue-100">
+                                        <span className="font-semibold text-blue-800">Improvement:</span>{' '}
+                                        <span className="text-blue-700">
+                                            {proposal.improvementMinutes ?? Math.max(0, (proposal.totalDelayBaseline - proposal.totalDelayProposed) * 60).toFixed(0)} min
+                                        </span>
                                     </div>
-                                    <div>
-                                        <h5 className="font-medium mb-2">Proposed Allocation</h5>
-                                        {proposal.proposedTasks.length === 0 ? (
-                                            <p className="text-gray-500">No proposed tasks.</p>
-                                        ) : (
-                                            <ul className="space-y-2">
-                                                {proposal.proposedTasks.map((t, idx) => (
-                                                    <li key={`p-${idx}`} className="border rounded p-2 text-sm">
-                                                        <span className="font-mono">{t.vesselVisitBusinessId}</span> at {t.dockName} {formatDateAndTime(t.startTime)} → {formatDateAndTime(t.endTime)}
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        )}
+                                    <div className="bg-gray-50 px-3 py-2 rounded border border-gray-200">
+                                        <span className="font-semibold text-gray-700">Total Delay:</span>{' '}
+                                        <span className="text-gray-600">
+                                            {proposal.totalDelayBaseline.toFixed(2)}h → {proposal.totalDelayProposed.toFixed(2)}h
+                                        </span>
                                     </div>
+                                </div>
+
+                                <div className="overflow-x-auto border rounded-lg">
+                                    <table className="min-w-full divide-y divide-gray-200">
+                                        <thead className="bg-gray-50">
+                                            <tr>
+                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vessel</th>
+                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Original Dock</th>
+                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">New Dock</th>
+                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
+                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="bg-white divide-y divide-gray-200">
+                                            {(() => {
+                                                // Create a map of baseline tasks for easy lookup
+                                                const baselineMap = new Map(proposal.baselineTasks.map(t => [t.vesselVisitBusinessId, t]));
+                                                
+                                                // Get all unique vessel IDs from both lists
+                                                const allVessels = Array.from(new Set([
+                                                    ...proposal.baselineTasks.map(t => t.vesselVisitBusinessId),
+                                                    ...proposal.proposedTasks.map(t => t.vesselVisitBusinessId)
+                                                ]));
+
+                                                return allVessels.map(vesselId => {
+                                                    const baseline = baselineMap.get(vesselId);
+                                                    const proposed = proposal.proposedTasks.find(t => t.vesselVisitBusinessId === vesselId);
+                                                    
+                                                    const originalDock = baseline?.dockName || 'Unassigned';
+                                                    const newDock = proposed?.dockName || 'Unassigned';
+                                                    const isChanged = originalDock !== newDock;
+                                                    
+                                                    // Use proposed time if available, else baseline
+                                                    const task = proposed || baseline;
+                                                    
+                                                    const formatTimeDetail = (dt: string) => {
+                                                        const d = new Date(dt);
+                                                        return d.toLocaleString('en-US', {
+                                                            month: 'short', day: 'numeric',
+                                                            hour: 'numeric', minute: '2-digit', hour12: true
+                                                        });
+                                                    };
+
+                                                    const timeStr = task ? (
+                                                        <div className="flex flex-col text-xs">
+                                                            <span>{formatTimeDetail(task.startTime)}</span>
+                                                            <span className="text-gray-400 text-[10px] text-center">↓</span>
+                                                            <span>{formatTimeDetail(task.endTime)}</span>
+                                                        </div>
+                                                    ) : '-';
+                                                    
+                                                    return (
+                                                        <tr key={vesselId} className={isChanged ? 'bg-yellow-50' : ''}>
+                                                            <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
+                                                                {vesselId}
+                                                                {baseline?.vesselImo && <span className="text-gray-500 font-normal ml-2">({baseline.vesselImo})</span>}
+                                                            </td>
+                                                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                                                                {originalDock}
+                                                            </td>
+                                                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 font-medium">
+                                                                {newDock}
+                                                            </td>
+                                                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                                                                {timeStr}
+                                                            </td>
+                                                            <td className="px-4 py-3 whitespace-nowrap text-sm">
+                                                                {isChanged ? (
+                                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                                                        Reassigned
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                                                        Unchanged
+                                                                    </span>
+                                                                )}
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                });
+                                            })()}
+                                        </tbody>
+                                    </table>
                                 </div>
                             </div>
                         )}

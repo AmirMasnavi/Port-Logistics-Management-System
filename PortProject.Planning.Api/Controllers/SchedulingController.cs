@@ -157,6 +157,8 @@ public class SchedulingController : ControllerBase
                 await _schedulingService.ConfirmRebalancing(
                     request.ProposalId,
                     request.OfficerId,
+                    request.OfficerName,
+                    request.PlanId,
                     request.Comments);
                 _logger.LogInformation("[US 4.3.3] Rebalancing proposal {ProposalId} confirmed successfully", request.ProposalId);
             
@@ -164,6 +166,8 @@ public class SchedulingController : ControllerBase
                 {
                     proposalId = request.ProposalId,
                     officerId = request.OfficerId,
+                    officerName = request.OfficerName,
+                    planId = request.PlanId,
                     timestamp = DateTime.UtcNow,
                     comments = request.Comments
                 });
@@ -179,4 +183,30 @@ public class SchedulingController : ControllerBase
                 });
             }
         }
+
+        /// <summary>
+    /// US 4.3.3: Retrieves rebalancing audit logs
+    /// </summary>
+    [HttpGet("rebalance/audit")]
+    [Produces("application/json")]
+    [ProducesResponseType(typeof(IEnumerable<object>), 200)]
+    [ProducesResponseType(typeof(ProblemDetails), 500)]
+    public async Task<IActionResult> GetRebalancingAuditLogs()
+    {
+        try
+        {
+            var logs = await _schedulingService.GetRebalancingAuditLogs();
+            return Ok(logs);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[US 4.3.3] Error retrieving audit logs");
+            return StatusCode(500, new ProblemDetails
+            {
+                Status = 500,
+                Title = "Error retrieving audit logs",
+                Detail = ex.Message
+            });
+        }
+    }
 }

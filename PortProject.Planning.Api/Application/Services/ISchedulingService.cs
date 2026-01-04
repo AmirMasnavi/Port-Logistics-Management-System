@@ -21,5 +21,9 @@ public interface ISchedulingService
     Task ConfirmRebalancing(
         string proposalId,
         string officerId,
+        string? officerName = null,
+        string? planId = null,
         string? comments = null);
+        
+    Task<IEnumerable<object>> GetRebalancingAuditLogs();
 }

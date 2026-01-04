@@ -27,6 +27,9 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
     });
 
+// --- Register Memory Cache ---
+builder.Services.AddMemoryCache();
+
 // --- Register Swagger for API Documentation (AC 5) ---
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
