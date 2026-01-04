@@ -298,45 +298,42 @@ handle_schedule_rebalance(Request) :-
     cors_enable(Request, [methods([post])]),
     http_read_json(Request, JSON_Data, [json_object(list)]),
     
-    % Extração robusta dos dados (vessels e docks)
+    % When JSON is {"vessels": [...], "docks": [...]}, Prolog parses it as json([vessels=..., docks=...])
+    % So we need to extract from the json(...) wrapper first
     (   JSON_Data = json(DataList) -> true ; DataList = JSON_Data ),
     
+    % The request must contain both 'vessels' and 'docks' lists
     (   member(vessels=VesselsJSON, DataList),
         member(docks=DocksJSON, DataList) ->
         
-        % 1. Limpeza e Carga de Dados
-        retractall(vessel(_, _, _, _, _)),
-        retractall(vessel_info(_, _, _)),
-        retractall(dock_info(_, _, _)),
-        
+        % 1. Load dynamic facts into memory
         process_vessels_rebalance(VesselsJSON),
         process_docks_rebalance(DocksJSON),
         
-        % 2. Execução do Algoritmo
+        % 2. Run the rebalancing algorithm
         get_time(Ti),
-        % obtain_rebalancing_schedule deve retornar o Mapping e o Delay
-        % Nota: Se o seu algoritmo retornar (Vessel, Dock, Start, End), use o format abaixo
         obtain_rebalancing_schedule(BestMapping, BestDelay),
         get_time(Tf),
-        Tempo is Tf - Ti,
+        ExecutionTime is Tf - Ti,
         
-        % 3. Formatação 
-        format_rebalance_json(BestMapping, ScheduleJSON),
+        % 3. Format the result back to JSON
+        format_rebalance_json(BestMapping, MappingJSON),
         
-        % 4. Cleanup Final
+        % 4. Cleanup memory to avoid interference in next requests
         retractall(vessel(_, _, _, _, _)),
         retractall(vessel_info(_, _, _)),
         retractall(dock_info(_, _, _)),
         
         reply_json(json{
-            schedule: ScheduleJSON,
-            delay: BestDelay,            % Nome da chave igual ao Genetic
-            execution_time: Tempo,       % Nome da chave igual ao Genetic
+            schedule: MappingJSON,
+            totalDelay: BestDelay,
+            executionTime: ExecutionTime,
             type: "rebalancing"
         })
     ;   
+        % Error handling if JSON structure is wrong
         reply_json(json{error: "Missing vessels or docks in request body"}, [status(400)])
-    ).
+    ).    
     
 
 % --- HELPERS ---
