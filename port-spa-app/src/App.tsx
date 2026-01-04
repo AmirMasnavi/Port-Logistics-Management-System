@@ -27,7 +27,6 @@ import ComplementaryTaskCategoriesPage from './pages/ComplementaryTaskCategories
 import ComplementaryTasksPage from './pages/ComplementaryTasksPage';
 
 import { OperationPlanPage } from './pages/OperationPlanPage';
-import PlanningResourceAllocationsPage from './pages/PlanningResourceAllocationsPage';
 import ResourceAllocationMetricsPage from './pages/ResourceAllocationMetricsPage';
 
 
@@ -102,9 +101,6 @@ function App() {
                                 <Route path="/port-facilities" element={<PortFacilitiesPage />} />
                                 {/* Assuming Docks fall under the same planning permissions */}
                                 <Route path="/docks" element={<DockPage />} /> 
-                                {/* Resource allocation summary */}
-                                <Route path="/planning/resource-allocations" element={<PlanningResourceAllocationsPage />} />
-                                
                             </Route>
 
                             <Route element={<RoleProtectedRoute allowedRoles={canManagePortOperationsSupervisor} />}>
