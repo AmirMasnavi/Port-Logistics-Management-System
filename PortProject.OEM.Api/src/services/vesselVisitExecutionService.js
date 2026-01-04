@@ -526,7 +526,10 @@ export class VesselVisitExecutionService {
       // If no plan exists, just return executed operations (if any)
       detailedOperations = (vve.executedOperations || []).map(eo => ({
         operationId: eo.operationId,
-        status: eo.status,
+        name: eo.name || 'Manual Operation',
+        type: eo.type || 'Other',
+        executedStatus: eo.status,
+        computedStatus: eo.status,
         actualStartTime: eo.startTime,
         actualEndTime: eo.endTime,
         startedBy: eo.startedBy,

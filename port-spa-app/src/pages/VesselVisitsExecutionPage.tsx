@@ -939,20 +939,6 @@ const VesselVisitsExecutionPage: React.FC = () => {
                                 />
                             </div>
 
-                            {/* Berth Filter*/}
-                            <div>
-                                <label htmlFor="berth" className="block text-sm font-medium text-gray-700 mb-2">
-                                    Berth Dock
-                                </label>
-                                <input
-                                    id="berth"
-                                    type="text"
-                                    placeholder="Search berth/dock..."
-                                    value={berthFilter}
-                                    onChange={(e) => setBerthFilter(e.target.value)}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                />
-                            </div>
                         </div>
 
                         {/* Search Button */}
