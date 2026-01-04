@@ -208,7 +208,11 @@ export const createComplementaryTaskRouter = () => {
             body('vveId').notEmpty().isString().withMessage('VVE ID is required'),
             body('responsibleTeam').notEmpty().isString().withMessage('Responsible team is required'),
             body('startTime').notEmpty().isISO8601().withMessage('Valid start time is required'),
-            body('endTime').optional().isISO8601().withMessage('End time must be a valid date'),
+            body('endTime').optional({ nullable: true, checkFalsy: false }).custom((value) => {
+                if (value === null || value === undefined || value === '') return true;
+                if (!isNaN(Date.parse(value))) return true;
+                throw new Error('End time must be a valid date');
+            }),
             body('description').optional().isString(),
             body('status').optional().isIn(['PENDING', 'ONGOING', 'COMPLETED', 'CANCELLED']),
             body('suspendsOperations').optional().isBoolean(),
@@ -216,17 +220,22 @@ export const createComplementaryTaskRouter = () => {
         async (req, res) => {
             const errors = validationResult(req);
             if (!errors.isEmpty()) {
+                console.error('[ComplementaryTask CREATE] Validation errors:', errors.array());
                 return res.status(400).json({ success: false, errors: errors.array() });
             }
 
             try {
+                console.log('[ComplementaryTask CREATE] Request body:', JSON.stringify(req.body, null, 2));
                 const dto = new CreateComplementaryTaskDto(req.body);
+                console.log('[ComplementaryTask CREATE] DTO created:', JSON.stringify(dto, null, 2));
                 const created = await taskService.createTask(dto, req.user?.uid || 'system');
                 const data = ComplementaryTaskMapper.toDto(created);
                 
+                console.log('[ComplementaryTask CREATE] Success! Task ID:', data.taskId);
                 return res.status(201).json({ success: true, data });
             } catch (error) {
                 console.error('[ComplementaryTask CREATE] Error:', error);
+                console.error('[ComplementaryTask CREATE] Error stack:', error.stack);
                 return res.status(500).json({ 
                     success: false, 
                     error: 'Internal server error', 
@@ -349,7 +358,11 @@ export const createComplementaryTaskRouter = () => {
             body('categoryId').optional().isString(),
             body('responsibleTeam').optional().isString(),
             body('startTime').optional().isISO8601().withMessage('Start time must be a valid date'),
-            body('endTime').optional().isISO8601().withMessage('End time must be a valid date'),
+            body('endTime').optional({ nullable: true, checkFalsy: false }).custom((value) => {
+                if (value === null || value === undefined || value === '') return true;
+                if (!isNaN(Date.parse(value))) return true;
+                throw new Error('End time must be a valid date');
+            }),
             body('description').optional().isString(),
             body('status').optional().isIn(['PENDING', 'ONGOING', 'COMPLETED', 'CANCELLED']),
             body('suspendsOperations').optional().isBoolean(),

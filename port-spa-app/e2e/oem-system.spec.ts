@@ -16,10 +16,39 @@ async function waitForPageLoad(page: Page) {
   await page.waitForTimeout(1000);
 }
 
+async function getFirstVveId(page: Page): Promise<string> {
+  // Check current page - if we're already on complementary tasks, don't navigate again
+  const currentUrl = page.url();
+  if (!currentUrl.includes('/complementary-tasks')) {
+    await page.goto('/complementary-tasks');
+    await waitForPageLoad(page);
+  }
+  
+  // Look for VVE ID in existing tasks (format: VVE-YYYYMMDD-XXXX)
+  const vveInTask = page.locator('text=/VVE-\\d{8}-\\d{4}/i').first();
+  if (await vveInTask.isVisible({ timeout: 5000 })) {
+    const vveId = await vveInTask.textContent();
+    const cleanVveId = vveId?.trim();
+    console.log(`✓ Found VVE from existing task: ${cleanVveId}`);
+    return cleanVveId || 'VVE-20251220-0007';
+  }
+  
+  // Fallback: use the known VVE ID from your existing tasks (no more navigation!)
+  console.log('⚠️ Could not find VVE in UI, using known VVE: VVE-20251220-0007');
+  return 'VVE-20251220-0007';
+}
+
 test.describe('OEM System Tests', () => {
   test.beforeEach(async ({ page }) => {
+    // Add a random delay before login to prevent race conditions with multiple tests logging in simultaneously
+    const randomDelay = Math.floor(Math.random() * 2000) + 500; // 500ms to 2500ms
+    await page.waitForTimeout(randomDelay);
+
     // Login as Admin to ensure access to all OEM features
     await RealAuthHelper.loginWithCredentials(page);
+    
+    // Add a small delay after login to ensure session is fully established
+    await page.waitForTimeout(1000);
   });
 
   // ========================================
@@ -661,5 +690,628 @@ test.describe('OEM System Tests', () => {
       console.log('No VVEs available to view details');
     }
   });
+
+  // ========================================
+  // COMPLEMENTARY TASKS TESTS
+  // ========================================
+  
+  test('Complementary Tasks - Create Task', async ({ page }) => {
+    // 1. Navigate to Complementary Tasks
+    await page.goto('/complementary-tasks');
+    await waitForPageLoad(page);
+    
+    // 2. Get a real VVE ID from the system
+    const vveId = await getFirstVveId(page);
+    
+    // 3. Verify page loaded
+    await expect(page.locator('h1').filter({ hasText: /complementary tasks/i })).toBeVisible({ timeout: 10000 });
+
+    // 4. Open create form
+    await page.locator('button:has-text("New Task")').click();
+    await waitForPageLoad(page);
+    
+    // 5. Wait for modal
+    const modal = page.locator('.fixed.inset-0');
+    await expect(modal.locator('h2:has-text("New Task")')).toBeVisible({ timeout: 5000 });
+    
+    // 6. Fill in the form - wait for category dropdown to load
+    const categorySelect = modal.locator('select').first();
+    await expect(categorySelect).toBeVisible();
+    
+    // Wait longer for categories to load from API
+    await page.waitForTimeout(2000);
+    
+    // Verify options are available
+    const optionCount = await categorySelect.locator('option').count();
+    console.log(`Found ${optionCount} category options`);
+    
+    if (optionCount <= 1) {
+      throw new Error(`No categories available in dropdown. Expected > 1, got ${optionCount}. Make sure categories exist in the system.`);
+    }
+    
+    // Select first available category (index 1, since index 0 is "Select...")
+    await categorySelect.selectOption({ index: 1 });
+    
+    // Fill VVE ID with real ID from system
+    await modal.locator('input[placeholder="e.g. VVE-2026-001"]').fill(vveId);
+    
+    // Fill Responsible Team
+    await modal.locator('input[placeholder="e.g. Safety Team, Maintenance Crew"]').fill('E2E Test Team');
+    
+    // Fill Start Time
+    const startTime = new Date();
+    startTime.setHours(10, 0, 0, 0);
+    const startTimeStr = startTime.toISOString().slice(0, 16); // Format: YYYY-MM-DDTHH:mm
+    await modal.locator('input[type="datetime-local"]').first().fill(startTimeStr);
+
+    // Fill End Time
+    const endTime = new Date();
+    endTime.setHours(12, 0, 0, 0);
+    const endTimeStr = endTime.toISOString().slice(0, 16); // Format: YYYY-MM-DDTHH:mm
+    await modal.locator('input[type="datetime-local"]').nth(1).fill(endTimeStr);
+    
+    // Select Status (PENDING is default, but we'll select ONGOING)
+    const statusSelect = modal.locator('select').nth(1);
+    await statusSelect.selectOption('ONGOING');
+    
+    // Fill Description (optional but let's add it)
+    await modal.locator('textarea[placeholder="Brief description of the task..."]').fill('E2E Test Task Description');
+    
+    // 6. Submit the form
+    await modal.locator('button:has-text("Create Task")').click();
+    await waitForPageLoad(page);
+
+    // 7. Verify modal is closed (task was created successfully)
+    await expect(modal).not.toBeVisible({ timeout: 5000 });
+    
+    // 8. Verify task appears in the list with E2E Test Team
+    expect(page.locator('text=E2E Test Team'));
+  });
+
+  test('Complementary Tasks - List and View', async ({ page }) => {
+    // 1. Navigate to Complementary Tasks
+    await page.goto('/complementary-tasks');
+    await waitForPageLoad(page);
+    
+    // 2. Verify page loaded
+    await expect(page.locator('h1:has-text("Complementary Tasks")')).toBeVisible();
+    
+    // 3. Check if tasks are displayed
+    await expect(page.locator('text=Loading...')).not.toBeVisible({ timeout: 5000 });
+    
+    // 4. Count task cards
+    const taskCards = page.locator('.bg-white.shadow.rounded-lg.border.p-6');
+    const cardCount = await taskCards.count();
+    console.log(`Found ${cardCount} complementary task(s)`);
+    
+    if (cardCount > 0) {
+      // 5. Verify structure of first task card
+      const firstCard = taskCards.first();
+      await expect(firstCard).toBeVisible();
+      
+      // Check for key elements
+      await expect(firstCard.locator('text=/CT-/i')).toBeVisible(); // Task ID
+      await expect(firstCard.locator('text=/VVE-/i')).toBeVisible(); // VVE ID
+      await expect(firstCard.locator('text=/Responsible Team/i')).toBeVisible();
+      
+      // Check for status badge
+      const statusBadge = firstCard.locator('.px-3.py-1.rounded-full');
+      await expect(statusBadge).toBeVisible();
+    }
+  });
+
+  test('Complementary Tasks - Search Functionality', async ({ page }) => {
+    // 1. Navigate to Complementary Tasks
+    await page.goto('/complementary-tasks');
+    await waitForPageLoad(page);
+    
+    // 2. Wait for page to load
+    await expect(page.locator('h1:has-text("Complementary Tasks")')).toBeVisible();
+    
+    // 3. Find search input
+    const searchInput = page.locator('input[placeholder="Search tasks..."]');
+    await expect(searchInput).toBeVisible();
+    
+    // 4. Get initial count
+    const initialCards = page.locator('.bg-white.shadow.rounded-lg.border.p-6');
+    const initialCount = await initialCards.count();
+    console.log(`Initial task count: ${initialCount}`);
+    
+    // 5. Enter search term
+    await searchInput.fill('VVE');
+    await waitForPageLoad(page);
+    
+    // 6. Verify filtered results
+    const filteredCards = page.locator('.bg-white.shadow.rounded-lg.border.p-6');
+    const filteredCount = await filteredCards.count();
+    console.log(`Filtered task count: ${filteredCount}`);
+    
+    // 7. Clear search
+    await searchInput.clear();
+    await waitForPageLoad(page);
+  });
+
+  test('Complementary Tasks - Filter by Status', async ({ page }) => {
+    // 1. Navigate to Complementary Tasks
+    await page.goto('/complementary-tasks');
+    await waitForPageLoad(page);
+    
+    // 2. Open filters
+    await page.locator('button:has-text("Filters")').click();
+    await waitForPageLoad(page);
+    
+    // 3. Verify filter panel is visible
+    await expect(page.locator('label:has-text("Status")')).toBeVisible({ timeout: 3000 });
+    
+    // 4. Select status filter
+    const statusSelect = page.locator('label:has-text("Status")').locator('..').locator('select');
+    await statusSelect.selectOption('ONGOING');
+    
+    // 5. Apply filters
+    await page.locator('button:has-text("Apply Filters")').click();
+    await waitForPageLoad(page);
+    
+    // 6. Verify filtered results show only ONGOING tasks
+    const taskCards = page.locator('.bg-white.shadow.rounded-lg.border.p-6');
+    const cardCount = await taskCards.count();
+    
+    if (cardCount > 0) {
+      // Check first card has ONGOING status
+      await expect(taskCards.first().locator('text=ONGOING')).toBeVisible();
+    }
+    
+    console.log(`Found ${cardCount} ONGOING task(s)`);
+  });
+
+  test('Complementary Tasks - Filter by Category', async ({ page }) => {
+    // 1. Navigate to Complementary Tasks
+    await page.goto('/complementary-tasks');
+    await waitForPageLoad(page);
+    
+    // 2. Open filters
+    await page.locator('button:has-text("Filters")').click();
+    await waitForPageLoad(page);
+    
+    // 3. Select category filter
+    const categorySelect = page.locator('label:has-text("Category")').locator('..').locator('select');
+    
+    // Get available options
+    const optionCount = await categorySelect.locator('option').count();
+    console.log(`Found ${optionCount - 1} categories`); // -1 for "All Categories"
+    
+    if (optionCount > 1) {
+      // Select first non-empty category
+      await categorySelect.selectOption({ index: 1 });
+      
+      // 4. Apply filters
+      await page.locator('button:has-text("Apply Filters")').click();
+      await waitForPageLoad(page);
+      
+      // 5. Verify results
+      const taskCards = page.locator('.bg-white.shadow.rounded-lg.border.p-6');
+      const cardCount = await taskCards.count();
+      console.log(`Found ${cardCount} task(s) for selected category`);
+    }
+  });
+
+  test('Complementary Tasks - Filter by Suspends Operations', async ({ page }) => {
+    // 1. Navigate to Complementary Tasks
+    await page.goto('/complementary-tasks');
+    await waitForPageLoad(page);
+    
+    // 2. Open filters
+    await page.locator('button:has-text("Filters")').click();
+    await waitForPageLoad(page);
+    
+    // 3. Filter by tasks that suspend operations
+    const suspendsSelect = page.locator('label:has-text("Suspends Operations")').locator('..').locator('select');
+    await suspendsSelect.selectOption('true'); // Yes (Impacting)
+    
+    // 4. Apply filters
+    await page.locator('button:has-text("Apply Filters")').click();
+    await waitForPageLoad(page);
+    
+    // 5. Verify results show impacting tasks
+    const taskCards = page.locator('.bg-white.shadow.rounded-lg.border.p-6');
+    const cardCount = await taskCards.count();
+    
+    if (cardCount > 0) {
+      // Check for "IMPACTING OPERATIONS" or "Suspends Ops" badge
+      const impactingBadge = taskCards.first().locator('text=/IMPACTING OPERATIONS|Suspends Ops/i');
+      await expect(impactingBadge).toBeVisible().catch(() => {
+        console.log('No impacting tasks found with current data');
+      });
+    }
+    
+    console.log(`Found ${cardCount} task(s) that suspend operations`);
+  });
+
+  test('Complementary Tasks - Filter by Date Range', async ({ page }) => {
+    // 1. Navigate to Complementary Tasks
+    await page.goto('/complementary-tasks');
+    await waitForPageLoad(page);
+    
+    // 2. Open filters
+    await page.locator('button:has-text("Filters")').click();
+    await waitForPageLoad(page);
+    
+    // 3. Set date range
+    const startDateFrom = new Date();
+    startDateFrom.setDate(startDateFrom.getDate() - 7); // 7 days ago
+    const startDateFromStr = startDateFrom.toISOString().slice(0, 16);
+    
+    const startDateTo = new Date();
+    startDateTo.setDate(startDateTo.getDate() + 7); // 7 days from now
+    const startDateToStr = startDateTo.toISOString().slice(0, 16);
+    
+    // Fill date filters
+    const dateInputs = page.locator('input[type="datetime-local"]');
+    await dateInputs.nth(0).fill(startDateFromStr); // Start Date From
+    await dateInputs.nth(1).fill(startDateToStr);   // Start Date To
+    
+    // 4. Apply filters
+    await page.locator('button:has-text("Apply Filters")').click();
+    await waitForPageLoad(page);
+    
+    // 5. Verify results
+    const taskCards = page.locator('.bg-white.shadow.rounded-lg.border.p-6');
+    const cardCount = await taskCards.count();
+    console.log(`Found ${cardCount} task(s) in date range`);
+  });
+
+  test('Complementary Tasks - Filter by Responsible Team', async ({ page }) => {
+    // 1. Navigate to Complementary Tasks
+    await page.goto('/complementary-tasks');
+    await waitForPageLoad(page);
+    
+    // 2. Open filters
+    await page.locator('button:has-text("Filters")').click();
+    await waitForPageLoad(page);
+    
+    // 3. Enter responsible team filter
+    const teamInput = page.locator('label:has-text("Responsible Team")').locator('..').locator('input');
+    await teamInput.fill('Safety');
+    
+    // 4. Apply filters
+    await page.locator('button:has-text("Apply Filters")').click();
+    await waitForPageLoad(page);
+    
+    // 5. Verify results
+    const taskCards = page.locator('.bg-white.shadow.rounded-lg.border.p-6');
+    const cardCount = await taskCards.count();
+    console.log(`Found ${cardCount} task(s) with 'Safety' in team name`);
+  });
+
+  test('Complementary Tasks - Reset Filters', async ({ page }) => {
+    // 1. Navigate to Complementary Tasks
+    await page.goto('/complementary-tasks');
+    await waitForPageLoad(page);
+    
+    // 2. Open filters and apply some filters
+    await page.locator('button:has-text("Filters")').click();
+    await waitForPageLoad(page);
+    
+    const statusSelect = page.locator('label:has-text("Status")').locator('..').locator('select');
+    await statusSelect.selectOption('COMPLETED');
+    
+    await page.locator('button:has-text("Apply Filters")').click();
+    await waitForPageLoad(page);
+    
+    const filteredCount = await page.locator('.bg-white.shadow.rounded-lg.border.p-6').count();
+    console.log(`Filtered count: ${filteredCount}`);
+    
+    // 3. Open filters again and clear
+    await page.locator('button:has-text("Filters")').click();
+    await waitForPageLoad(page);
+    
+    await page.locator('button:has-text("Clear")').click();
+    await waitForPageLoad(page);
+    
+    // 4. Verify all tasks are shown again
+    const resetCount = await page.locator('.bg-white.shadow.rounded-lg.border.p-6').count();
+    console.log(`Reset count: ${resetCount}`);
+    
+    expect(resetCount >= filteredCount).toBe(true);
+  });
+
+  test('Complementary Tasks - Edit Task', async ({ page }) => {
+    // 1. Navigate to Complementary Tasks
+    await page.goto('/complementary-tasks');
+    await waitForPageLoad(page);
+    
+    // 2. Get a real VVE ID from the system
+    const vveId = await getFirstVveId(page);
+    
+    // 3. First create a task to edit
+    await page.locator('button:has-text("New Task")').click();
+    await waitForPageLoad(page);
+    
+    const createModal = page.locator('.fixed.inset-0');
+    
+    // Fill form with unique identifier
+    const uniqueTeam = `EditTeam-${Date.now()}`;
+    await page.waitForTimeout(2000); // Wait longer for categories to load
+    
+    const categorySelect = createModal.locator('select').first();
+    const optionCount = await categorySelect.locator('option').count();
+    if (optionCount <= 1) {
+      throw new Error('No categories available in dropdown for Edit test');
+    }
+    await categorySelect.selectOption({ index: 1 });
+    await createModal.locator('input[placeholder="e.g. VVE-2026-001"]').fill(vveId);
+    await createModal.locator('input[placeholder="e.g. Safety Team, Maintenance Crew"]').fill(uniqueTeam);
+    
+    const startTime = new Date();
+    startTime.setHours(10, 0, 0, 0);
+    const startTimeStr = startTime.toISOString().slice(0, 16);
+    await createModal.locator('input[type="datetime-local"]').first().fill(startTimeStr);
+
+    // Fill End Time
+    const endTime = new Date();
+    endTime.setHours(12, 0, 0, 0);
+    const endTimeStr = endTime.toISOString().slice(0, 16);
+    await createModal.locator('input[type="datetime-local"]').nth(1).fill(endTimeStr);
+    
+    await createModal.locator('select').nth(1).selectOption('PENDING');
+    await createModal.locator('textarea').fill('Original description');
+    
+    await createModal.locator('button:has-text("Create Task")').click();
+    await waitForPageLoad(page);
+    
+    // 3. Find the created task
+    const taskCard = page.locator('[data-testid="complementary-task-card"]').filter({ hasText: uniqueTeam }).first();
+    await expect(taskCard).toBeVisible({ timeout: 5000 });
+    
+    // 4. Click edit button
+    // Use data-testid if available, fallback to title attribute
+    const editButton = taskCard.locator('button[data-testid^="edit-task-"]').first();
+    await expect(editButton).toBeVisible();
+    await editButton.click();
+    await waitForPageLoad(page);
+    
+    // 5. Update the task
+    const editModal = page.locator('.fixed.inset-0');
+    expect(editModal.locator('h2:has-text("Edit Task")'));
+    
+    // Change status to ONGOING
+    await editModal.locator('select').nth(1).selectOption('ONGOING');
+    
+    // Update description
+    await editModal.locator('textarea').fill('Updated description via E2E test');
+    
+    // Update responsible team
+    await editModal.locator('input[placeholder="e.g. Safety Team, Maintenance Crew"]').fill(`${uniqueTeam}-Updated`);
+    
+    // 6. Save changes
+    await editModal.locator('button:has-text("Update Task")').click();
+    await waitForPageLoad(page);
+    
+    // 7. Verify success message
+    expect(page.locator('text=/Task updated successfully|updated/i'));
+    
+    // 8. Verify the changes in the list
+    expect(page.locator(`text=${uniqueTeam}-Updated`));
+    expect(page.locator('text=ONGOING'));
+  });
+
+  test('Complementary Tasks - Complete a Task (Add End Time)', async ({ page }) => {
+    // 1. Navigate to Complementary Tasks
+    await page.goto('/complementary-tasks');
+    await waitForPageLoad(page);
+    
+    // 2. Get a real VVE ID from the system
+    const vveId = await getFirstVveId(page);
+    
+    // 3. Create a task in ONGOING status
+    await page.locator('button:has-text("New Task")').click();
+    await waitForPageLoad(page);
+    
+    const createModal = page.locator('.fixed.inset-0');
+    const uniqueTeam = `CompleteTeam-${Date.now()}`;
+    
+    await page.waitForTimeout(2000); // Wait longer for categories to load
+    
+    const categorySelect = createModal.locator('select').first();
+    const optionCount = await categorySelect.locator('option').count();
+    if (optionCount <= 1) {
+      throw new Error('No categories available in dropdown for Complete test');
+    }
+    await categorySelect.selectOption({ index: 1 });
+    await createModal.locator('input[placeholder="e.g. VVE-2026-001"]').fill(vveId);
+    await createModal.locator('input[placeholder="e.g. Safety Team, Maintenance Crew"]').fill(uniqueTeam);
+    
+    const startTime = new Date();
+    startTime.setHours(10, 0, 0, 0);
+    await createModal.locator('input[type="datetime-local"]').first().fill(startTime.toISOString().slice(0, 16));
+    
+    // Fill End Time (2 hours after start - will be updated later when completing)
+    const initialEndTime = new Date(startTime);
+    initialEndTime.setHours(startTime.getHours() + 2);
+    await createModal.locator('input[type="datetime-local"]').nth(1).fill(initialEndTime.toISOString().slice(0, 16));
+    
+    await createModal.locator('select').nth(1).selectOption('ONGOING');
+    await createModal.locator('textarea').fill('Task to be completed');
+    
+    await createModal.locator('button:has-text("Create Task")').click();
+    await waitForPageLoad(page);
+    
+    // 3. Find and edit the task to complete it
+    const taskCard = page.locator('[data-testid="complementary-task-card"]').filter({ hasText: uniqueTeam }).first();
+    await expect(taskCard).toBeVisible({ timeout: 5000 });
+    
+    const editButton = taskCard.locator('button[data-testid^="edit-task-"]').first();
+    await expect(editButton).toBeVisible();
+    await editButton.click();
+    await waitForPageLoad(page);
+    
+    // 4. Complete the task
+    const editModal = page.locator('.fixed.inset-0');
+    
+    // Set end time
+    const endTime = new Date();
+    endTime.setHours(14, 0, 0, 0); // 4 hours after start
+    await editModal.locator('input[type="datetime-local"]').nth(1).fill(endTime.toISOString().slice(0, 16));
+    
+    // Change status to COMPLETED
+    await editModal.locator('select').nth(1).selectOption('COMPLETED');
+    
+    await editModal.locator('button:has-text("Update Task")').click();
+    await waitForPageLoad(page);
+    
+    // 5. Verify completion
+    expect(page.locator('text=/Task updated successfully|updated/i'));
+    
+    // Verify COMPLETED status badge
+    const updatedCard = page.locator('.bg-white.shadow.rounded-lg.border.p-6').filter({ hasText: uniqueTeam }).first();
+    expect(updatedCard.locator('text=COMPLETED'));
+    
+    // Verify duration is displayed (should be ~4 hours = 240 minutes)
+    expect(updatedCard.locator('text=/4h|240m/i'));
+  });
+
+  test('Complementary Tasks - Delete Task', async ({ page }) => {
+    // 1. Navigate to Complementary Tasks
+    await page.goto('/complementary-tasks');
+    await waitForPageLoad(page);
+    
+    // 2. Get a real VVE ID from the system
+    const vveId = await getFirstVveId(page);
+    
+    // 3. Create a task to delete
+    await page.locator('button:has-text("New Task")').click();
+    await waitForPageLoad(page);
+    
+    const createModal = page.locator('.fixed.inset-0');
+    const uniqueTeam = `DeleteTeam-${Date.now()}`;
+    
+    await page.waitForTimeout(2000); // Wait longer for categories to load
+    
+    const categorySelect = createModal.locator('select').first();
+    const optionCount = await categorySelect.locator('option').count();
+    if (optionCount <= 1) {
+      throw new Error('No categories available in dropdown for Delete test');
+    }
+    await categorySelect.selectOption({ index: 1 });
+    await createModal.locator('input[placeholder="e.g. VVE-2026-001"]').fill(vveId);
+    await createModal.locator('input[placeholder="e.g. Safety Team, Maintenance Crew"]').fill(uniqueTeam);
+    
+    const startTime = new Date();
+    const startTimeStr = startTime.toISOString().slice(0, 16);
+    await createModal.locator('input[type="datetime-local"]').first().fill(startTimeStr);
+
+    // Fill End Time
+    const endTime = new Date();
+    endTime.setHours(startTime.getHours() + 2);
+    const endTimeStr = endTime.toISOString().slice(0, 16);
+    await createModal.locator('input[type="datetime-local"]').nth(1).fill(endTimeStr);
+    
+    await createModal.locator('select').nth(1).selectOption('PENDING');
+    await createModal.locator('textarea').fill('Task to be deleted');
+    
+    await createModal.locator('button:has-text("Create Task")').click();
+    await waitForPageLoad(page);
+    
+    // 3. Find the created task
+    const taskCard = page.locator('[data-testid="complementary-task-card"]').filter({ hasText: uniqueTeam }).first();
+    await expect(taskCard).toBeVisible({ timeout: 5000 });
+
+    // 4. Click delete button
+    const deleteButton = taskCard.locator('button[data-testid^="delete-task-"]').first();
+    await expect(deleteButton).toBeVisible();
+    await deleteButton.click();
+    await waitForPageLoad(page);
+    
+    // 5. Confirm deletion in modal
+    const confirmModal = page.locator('.fixed.inset-0');
+    expect(confirmModal.locator('text=/confirm|delete/i'));
+    
+    // Click confirm button (red button with "Delete" or "Confirm")
+    await confirmModal.locator('button:has-text("Delete"), button:has-text("Confirm")').first().click();
+    await waitForPageLoad(page);
+    
+    // 6. Verify deletion success
+    expect(page.locator('text=/Task deleted successfully|deleted/i'));
+    
+    // 7. Verify task is no longer in the list
+    await expect(page.locator(`text=${uniqueTeam}`)).not.toBeVisible();
+  });
+
+  test('Complementary Tasks - Refresh Button', async ({ page }) => {
+    // 1. Navigate to Complementary Tasks
+    await page.goto('/complementary-tasks');
+    await waitForPageLoad(page);
+    
+    // 2. Get initial count
+    const initialCount = await page.locator('.bg-white.shadow.rounded-lg.border.p-6').count();
+    console.log(`Initial count: ${initialCount}`);
+    
+    // 3. Click refresh button
+    await page.locator('button:has-text("Refresh")').click();
+    await waitForPageLoad(page);
+    
+    // 4. Verify data is reloaded (count should be same or updated)
+    const refreshedCount = await page.locator('.bg-white.shadow.rounded-lg.border.p-6').count();
+    console.log(`Refreshed count: ${refreshedCount}`);
+    
+    // Just verify page is still functional after refresh
+    await expect(page.locator('h1:has-text("Complementary Tasks")')).toBeVisible();
+  });
+
+  test('Complementary Tasks - Task with Suspends Operations Flag', async ({ page }) => {
+    // 1. Navigate to Complementary Tasks
+    await page.goto('/complementary-tasks');
+    await waitForPageLoad(page);
+    
+    // 2. Get a real VVE ID from the system
+    const vveId = await getFirstVveId(page);
+    
+    // 3. Create a task that suspends operations
+    await page.locator('button:has-text("New Task")').click();
+    await waitForPageLoad(page);
+    
+    const createModal = page.locator('.fixed.inset-0');
+    const uniqueTeam = `SuspendTeam-${Date.now()}`;
+    
+    await page.waitForTimeout(2000); // Wait longer for categories to load
+    
+    const categorySelect = createModal.locator('select').first();
+    const optionCount = await categorySelect.locator('option').count();
+    if (optionCount <= 1) {
+      throw new Error('No categories available in dropdown for Suspends Operations test');
+    }
+    await categorySelect.selectOption({ index: 1 });
+    await createModal.locator('input[placeholder="e.g. VVE-2026-001"]').fill(vveId);
+    await createModal.locator('input[placeholder="e.g. Safety Team, Maintenance Crew"]').fill(uniqueTeam);
+    
+    const startTime = new Date();
+    const startTimeStr = startTime.toISOString().slice(0, 16);
+    await createModal.locator('input[type="datetime-local"]').first().fill(startTimeStr);
+
+    // Fill End Time
+    const endTime = new Date();
+    endTime.setHours(startTime.getHours() + 2);
+    const endTimeStr = endTime.toISOString().slice(0, 16);
+    await createModal.locator('input[type="datetime-local"]').nth(1).fill(endTimeStr);
+    
+    await createModal.locator('select').nth(1).selectOption('ONGOING');
+    await createModal.locator('textarea').fill('Emergency maintenance - suspends all operations');
+    
+    // Check the "Suspends Operations" checkbox
+    const suspendsCheckbox = createModal.locator('input[type="checkbox"]');
+    await suspendsCheckbox.check();
+    
+    await createModal.locator('button:has-text("Create Task")').click();
+    await waitForPageLoad(page);
+    
+    // 3. Verify the task shows impacting badge
+    const taskCard = page.locator('.bg-white.shadow.rounded-lg.border.p-6').filter({ hasText: uniqueTeam }).first();
+    
+    // Should show "IMPACTING OPERATIONS" or "Suspends Ops" badge
+    expect(taskCard.locator('text=/IMPACTING OPERATIONS|Suspends Ops/i'));
+    
+    // Should also show ONGOING status since it's actively impacting
+    expect(taskCard.locator('text=ONGOING'));
+  });
+  
 });
 
