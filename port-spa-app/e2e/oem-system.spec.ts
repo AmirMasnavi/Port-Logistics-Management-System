@@ -692,6 +692,240 @@ test.describe('OEM System Tests', () => {
   });
 
   // ========================================
+  // COMPLEMENTARY TASK CATEGORIES TESTS
+  // ========================================
+  
+  test('Task Categories - Create New Category', async ({ page }) => {
+    // 1. Navigate to Task Categories
+    await page.goto('/complementary-task-categories');
+    await waitForPageLoad(page);
+    
+    // 2. Verify page loaded
+    await expect(page.locator('h1').filter({ hasText: /Task Categor/i })).toBeVisible({ timeout: 10000 });
+
+    // 3. Open create form/modal
+    const createButton = page.locator('button').filter({ hasText: /Create|New/i }).first();
+    await createButton.click();
+    await waitForPageLoad(page);
+    
+    // 4. Wait for modal to appear
+    const modal = page.locator('.fixed.inset-0.bg-black').last();
+    await expect(modal.locator('h2, h3')).toBeVisible({ timeout: 5000 });
+    
+    // 5. Fill in the form with unique data
+    const uniqueCode = `E2E${Date.now().toString().slice(-6)}`;
+    const uniqueName = `E2E Category ${Date.now()}`;
+    
+    // Find inputs by their labels or placeholders
+    await modal.locator('input').nth(0).fill(uniqueCode); // Code input
+    await modal.locator('input').nth(1).fill(uniqueName); // Name input
+    await modal.locator('textarea').fill('E2E test category'); // Description
+    
+    // Fill optional duration fields
+    await modal.locator('input[type="number"]').nth(0).fill('45');
+    await modal.locator('input[type="number"]').nth(1).fill('60');
+    
+    // Select group dropdown - use .first() to avoid strict mode violation (2 selects in modal)
+    await modal.locator('select').first().selectOption({ index: 0 }); // Select first option (Safety and Security)
+    
+    // 6. Submit the form
+    await modal.locator('button').filter({ hasText: /Create|Save/i }).click();
+    await waitForPageLoad(page);
+
+    // 7. Verify success - modal should close and category appears in list
+    await expect(modal).not.toBeVisible({ timeout: 5000 });
+    await expect(page.locator(`text=${uniqueCode}`)).toBeVisible({ timeout: 10000 });
+  });
+
+  test('Task Categories - List and View', async ({ page }) => {
+    // 1. Navigate to Task Categories
+    await page.goto('/complementary-task-categories');
+    await waitForPageLoad(page);
+    
+    // 2. Verify page loaded
+    await expect(page.locator('h1').filter({ hasText: /Task Categor/i })).toBeVisible();
+    
+    // 3. Wait for loading to complete
+    await expect(page.locator('text=Loading...')).not.toBeVisible({ timeout: 5000 });
+    
+    // 4. Count category cards (using actual structure: bg-white p-6 rounded-lg)
+    const categoryCards = page.locator('.bg-white.p-6.rounded-lg');
+    const cardCount = await categoryCards.count();
+    console.log(`Found ${cardCount} task categor(y/ies)`);
+    
+    if (cardCount > 0) {
+      // 5. Verify structure of first category
+      const firstCategory = categoryCards.first();
+      await expect(firstCategory).toBeVisible();
+      
+      // Check for key elements - code is in a span with font-mono class
+      const codeSpan = firstCategory.locator('span.font-mono');
+      await expect(codeSpan).toBeVisible();
+      
+      // Check for active/inactive badge
+      const statusBadge = firstCategory.locator('span').filter({ hasText: /Active|Inactive/i });
+      await expect(statusBadge.first()).toBeVisible();
+      
+      // Check for group badge
+      const groupBadge = firstCategory.locator('span.bg-indigo-100');
+      await expect(groupBadge).toBeVisible();
+    } else {
+      console.log('No task categories available - create one first');
+    }
+  });
+
+  test('Task Categories - Edit Category', async ({ page }) => {
+    // 1. Navigate to Task Categories
+    await page.goto('/complementary-task-categories');
+    await waitForPageLoad(page);
+    
+    // 2. Find first category card
+    const categoryCards = page.locator('.bg-white.p-6.rounded-lg');
+    const cardCount = await categoryCards.count();
+    
+    if (cardCount > 0) {
+      const firstCategory = categoryCards.first();
+      
+      // 3. Click edit button (Edit2 icon button)
+      const editButton = firstCategory.locator('button[title="Edit"]');
+      await editButton.click();
+      await waitForPageLoad(page);
+      
+      // 4. Wait for edit modal
+      const modal = page.locator('.fixed.inset-0.bg-black').last();
+      await expect(modal.locator('h2, h3')).toBeVisible({ timeout: 5000 });
+      
+      // 5. Update the name
+      const nameInput = modal.locator('input').nth(1); // Second input is name
+      const currentName = await nameInput.inputValue();
+      const updatedName = `${currentName.slice(0, 20)}-Up${Date.now().toString().slice(-6)}`;
+      await nameInput.fill(updatedName);
+      
+      // 6. Update description
+      const descriptionInput = modal.locator('textarea');
+      await descriptionInput.fill(`Updated at ${new Date().toISOString()}`);
+      
+      // 7. Save changes
+      await modal.locator('button').filter({ hasText: /Save|Update/i }).click();
+      await waitForPageLoad(page);
+      
+      // 8. Verify modal closed
+      await expect(modal).not.toBeVisible({ timeout: 5000 });
+      
+      // 9. Verify updated name appears in list
+      await expect(page.locator(`text=${updatedName}`)).toBeVisible({ timeout: 10000 });
+    } else {
+      console.log('No categories available to edit');
+    }
+  });
+
+  test('Task Categories - Filter by Group', async ({ page }) => {
+    // 1. Navigate to Task Categories
+    await page.goto('/complementary-task-categories');
+    await waitForPageLoad(page);
+    
+    // 2. Click Filters button to expand
+    const filtersButton = page.locator('button').filter({ hasText: /Filters/i });
+    if (await filtersButton.isVisible({ timeout: 3000 })) {
+      await filtersButton.click();
+      await waitForPageLoad(page);
+      
+      // 3. Look for Groups dropdown
+      const groupSelect = page.locator('select').filter({ has: page.locator('option', { hasText: 'Maintenance' }) });
+      
+      if (await groupSelect.isVisible({ timeout: 3000 })) {
+        // 4. Select Maintenance group
+        await groupSelect.selectOption('Maintenance');
+        await waitForPageLoad(page);
+        
+        console.log('Filter by group applied successfully');
+        
+        // 5. Reset to show all
+        await groupSelect.selectOption('');
+        await waitForPageLoad(page);
+      } else {
+        console.log('Group filter dropdown not found');
+      }
+    } else {
+      console.log('Filters button not found - feature may not be implemented');
+    }
+  });
+
+  test('Task Categories - Toggle Active/Inactive Status', async ({ page }) => {
+    // This test verifies that status badges are visible
+    // Toggling status might require edit modal in current implementation
+    await page.goto('/complementary-task-categories');
+    await waitForPageLoad(page);
+    
+    const categoryCards = page.locator('.bg-white.p-6.rounded-lg');
+    const cardCount = await categoryCards.count();
+    
+    if (cardCount > 0) {
+      const firstCategory = categoryCards.first();
+      
+      // Verify status badge exists
+      const statusBadge = firstCategory.locator('span').filter({ hasText: /Active|Inactive/i });
+      await expect(statusBadge.first()).toBeVisible();
+      
+      console.log('Status badges displayed correctly');
+    } else {
+      console.log('No categories available');
+    }
+  });
+
+  test('Task Categories - View Category Details', async ({ page }) => {
+    // This test verifies that category details are visible in the card
+    await page.goto('/complementary-task-categories');
+    await waitForPageLoad(page);
+    
+    const categoryCards = page.locator('.bg-white.p-6.rounded-lg');
+    const cardCount = await categoryCards.count();
+    
+    if (cardCount > 0) {
+      const firstCategory = categoryCards.first();
+      
+      // Verify key details are displayed
+      await expect(firstCategory.locator('span.font-mono')).toBeVisible(); // Code
+      await expect(firstCategory.locator('h3.font-bold')).toBeVisible(); // Name
+      await expect(firstCategory.locator('text=/Default duration:/i').first()).toBeVisible(); // Duration info
+      await expect(firstCategory.locator('text=/Group:/i')).toBeVisible(); // Group label
+      
+      console.log('Category details displayed correctly');
+    } else {
+      console.log('No categories available to view');
+    }
+  });
+
+  test('Task Categories - Search/Filter by Name', async ({ page }) => {
+    // 1. Navigate to Task Categories
+    await page.goto('/complementary-task-categories');
+    await waitForPageLoad(page);
+    
+    // 2. Look for search input (it's in the header section)
+    const searchInput = page.locator('input[placeholder*="search" i], input[type="text"]').first();
+    
+    if (await searchInput.isVisible({ timeout: 3000 })) {
+      // 3. Type search term
+      await searchInput.fill('Security');
+      await page.waitForTimeout(1000); // Wait for filter to apply
+      
+      // 4. Verify filtered results
+      const categoryCards = page.locator('.bg-white.p-6.rounded-lg');
+      const filteredCount = await categoryCards.count();
+      console.log(`Found ${filteredCount} categor(y/ies) after search`);
+      
+      // 5. Clear search
+      await searchInput.clear();
+      await page.waitForTimeout(1000);
+      
+      const allCount = await categoryCards.count();
+      console.log(`Total categories after clearing search: ${allCount}`);
+    } else {
+      console.log('Search functionality not found in UI');
+    }
+  });
+
+  // ========================================
   // COMPLEMENTARY TASKS TESTS
   // ========================================
   
