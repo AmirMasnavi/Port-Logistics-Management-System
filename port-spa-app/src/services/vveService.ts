@@ -1,4 +1,3 @@
-﻿
 import axios from 'axios';
 import { getAuthToken } from '../firebaseConfig';
 import type { VveOperationsDetailedResponse, UpdateOperationStatusDto } from '../domain/vve/operation-execution.types';
@@ -79,6 +78,10 @@ export interface VveWithMetrics extends VveListItem {
     actualDepartureTime?: string;
     actualBerthTime?: string;
     berthDockId?: string;
+    actualUnberthTime?: string;
+    actualPortDepartureTime?: string;
+    completedBy?: string;
+    completedAt?: string;
     notes: string;
     creatorUserId: string;
     updatedAt: string;
@@ -238,13 +241,56 @@ export class VveService {
      */
     async updateOperationStatus(vveId: string, operationId: string, dto: UpdateOperationStatusDto): Promise<void> {
         try {
+            console.log('[VveService] Updating operation status:', {
+                url: `/${vveId}/operations/${operationId}/status`,
+                dto
+            });
+            
             await vveApiClient.put(
                 `/${vveId}/operations/${operationId}/status`,
                 dto
             );
+            
+            console.log('[VveService] Operation status updated successfully');
         } catch (error: any) {
-            console.error('Failed to update operation status:', error);
-            throw new Error(error.response?.data?.message || 'Failed to update operation status.');
+            console.error('[VveService] Failed to update operation status:', error);
+            console.error('[VveService] Error response:', error.response?.data);
+            console.error('[VveService] Error status:', error.response?.status);
+            
+            // Throw with detailed error message
+            const errorMsg = error.response?.data?.message 
+                || error.response?.data?.error
+                || error.message 
+                || 'Failed to update operation status.';
+                
+            throw new Error(errorMsg);
+        }
+    }
+
+    /**
+     * Complete VVE (US 4.1.11)
+     * Mark a VVE as completed with unberth and port departure times
+     */
+    async completeVve(vveId: string, data: {
+        actualUnberthTime: string;
+        actualPortDepartureTime: string;
+    }): Promise<VveWithMetrics> {
+        try {
+            const response = await vveApiClient.post<{ success: boolean; data: VveWithMetrics }>(
+                `/${vveId}/complete`,
+                data
+            );
+            
+            return response.data.data;
+        } catch (error: any) {
+            console.error('Failed to complete VVE:', error);
+            
+            // Return more specific error messages
+            if (error.response?.status === 409) {
+                throw new Error(error.response?.data?.message || 'Cannot complete VVE: there are unfinished operations.');
+            }
+            
+            throw new Error(error.response?.data?.message || 'Failed to complete vessel visit execution.');
         }
     }
 }

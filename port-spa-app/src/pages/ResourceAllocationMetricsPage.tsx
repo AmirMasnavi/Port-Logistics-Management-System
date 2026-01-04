@@ -241,7 +241,7 @@ export default function ResourceAllocationMetricsPage() {
                                     setResourceId(e.target.value);
                                     setResourceName(e.target.value);
                                 }}
-                                placeholder={loadingResources ? 'Loading...' : 'Type resource ID (e.g., CR-01)'}
+                                placeholder={loadingResources ? 'Loading...' : 'Type resource ID'}
                                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                 disabled={loadingResources}
                             />

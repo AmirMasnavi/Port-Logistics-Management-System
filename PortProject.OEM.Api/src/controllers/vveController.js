@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { body, validationResult } from 'express-validator';
 import { verifyFirebaseToken } from '../config/firebase.js';
 import { VesselVisitExecutionService } from '../services/vesselVisitExecutionService.js';
-import { CreateVveDto, UpdateVveDto } from '../application/dtos/VveDto.js';
+import { CreateVveDto, UpdateVveDto, CompleteVveDto } from '../application/dtos/VveDto.js';
 import { UpdateOperationStatusDto } from '../application/dtos/ExecutedOperationDto.js';
 
 /**
@@ -443,6 +443,87 @@ export const createVveRouter = (masterDataGateway) => {
       });
     }
   });
+
+  /**
+   * Complete VVE (US 4.1.11)
+   * POST /:vveId/complete
+   * Marks a VVE as completed after validating all operations are finished
+   */
+  router.post(
+    '/:vveId/complete',
+    verifyFirebaseToken,
+    [
+      body('actualUnberthTime').isISO8601().withMessage('Valid unberth time is required'),
+      body('actualPortDepartureTime').isISO8601().withMessage('Valid port departure time is required'),
+    ],
+    async (req, res) => {
+      try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+          return res.status(400).json({
+            success: false,
+            errors: errors.array(),
+          });
+        }
+
+        const { vveId } = req.params;
+        const { actualUnberthTime, actualPortDepartureTime } = req.body;
+        const performedBy = req.user?.email || req.user?.uid || 'unknown';
+
+        console.log(`[VVE COMPLETE] Completing VVE: ${vveId} by user ${performedBy}`);
+
+        // Create DTO
+        const completeDto = new CompleteVveDto({
+          actualUnberthTime,
+          actualPortDepartureTime,
+        });
+
+        // Execute business logic
+        const vveResponse = await vveService.completeVve(vveId, completeDto, performedBy);
+
+        res.json({
+          success: true,
+          message: 'VVE marked as completed successfully',
+          data: vveResponse,
+        });
+      } catch (error) {
+        console.error('[VVE COMPLETE] Error:', error);
+
+        if (error.message.includes('not found')) {
+          return res.status(404).json({
+            success: false,
+            error: 'Not found',
+            message: error.message,
+          });
+        }
+
+        // Handle validation errors or invalid state
+        if (error.code === 'INVALID_STATE' || error.message.includes('Validation failed')) {
+          return res.status(400).json({
+            success: false,
+            error: 'Bad Request',
+            message: error.message,
+          });
+        }
+
+        // Handle unfinished operations error
+        if (error.code === 'UNFINISHED_OPERATIONS') {
+          return res.status(409).json({
+            success: false,
+            error: 'Conflict',
+            message: error.message,
+            unfinishedOperations: error.unfinishedOperations,
+          });
+        }
+
+        res.status(500).json({
+          success: false,
+          error: 'Internal server error',
+          message: error.message,
+        });
+      }
+    }
+  );
 
   return router;
 };

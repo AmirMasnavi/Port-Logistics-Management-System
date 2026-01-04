@@ -95,6 +95,10 @@ export class VveResponseDto {
     creatorEmail,
     status,
     actualDepartureTime,
+    actualUnberthTime,
+    actualPortDepartureTime,
+    completedBy,
+    completedAt,
     notes,
     createdAt,
     updatedAt,
@@ -110,6 +114,10 @@ export class VveResponseDto {
     this.creatorEmail = creatorEmail;
     this.status = status;
     this.actualDepartureTime = actualDepartureTime;
+    this.actualUnberthTime = actualUnberthTime;
+    this.actualPortDepartureTime = actualPortDepartureTime;
+    this.completedBy = completedBy;
+    this.completedAt = completedAt;
     this.notes = notes;
     this.createdAt = createdAt;
     this.updatedAt = updatedAt;
@@ -142,6 +150,55 @@ export class VveStatisticsDto {
     this.inProgress = inProgress;
     this.completed = completed;
     this.cancelled = cancelled;
+  }
+}
+
+/**
+ * DTO for completing a VVE (US 4.1.11)
+ */
+export class CompleteVveDto {
+  constructor({ actualUnberthTime, actualPortDepartureTime }) {
+    this.actualUnberthTime = actualUnberthTime;
+    this.actualPortDepartureTime = actualPortDepartureTime;
+  }
+
+  validate() {
+    const errors = [];
+
+    if (!this.actualUnberthTime) {
+      errors.push('Actual unberth time is required');
+    } else {
+      const date = new Date(this.actualUnberthTime);
+      if (isNaN(date.getTime())) {
+        errors.push('Invalid unberth time format');
+      }
+    }
+
+    if (!this.actualPortDepartureTime) {
+      errors.push('Actual port departure time is required');
+    } else {
+      const date = new Date(this.actualPortDepartureTime);
+      if (isNaN(date.getTime())) {
+        errors.push('Invalid port departure time format');
+      }
+    }
+
+    // Validate that port departure is after unberth
+    if (this.actualUnberthTime && this.actualPortDepartureTime) {
+      const unberthDate = new Date(this.actualUnberthTime);
+      const departureDate = new Date(this.actualPortDepartureTime);
+      
+      if (!isNaN(unberthDate.getTime()) && !isNaN(departureDate.getTime())) {
+        if (departureDate < unberthDate) {
+          errors.push('Port departure time must be after unberth time');
+        }
+      }
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors,
+    };
   }
 }
 
