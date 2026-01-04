@@ -13,6 +13,9 @@ import { OperationPlanMapper } from '../../src/application/mappers/OperationPlan
 import { ComplementaryTaskService } from '../../src/services/complementaryTaskService.js';
 import { CreateComplementaryTaskDto, UpdateComplementaryTaskDto } from '../../src/application/dtos/ComplementaryTaskDto.js';
 import { ComplementaryTaskMapper } from '../../src/application/mappers/ComplementaryTaskMapper.js';
+import { ComplementaryTaskCategoryService } from '../../src/services/complementaryTaskCategoriesService.js';
+import { CreateComplementaryTaskCategoryDto, UpdateComplementaryTaskCategoryDto } from '../../src/application/dtos/ComplementaryTaskCategoriesDto.js';
+import { ComplementaryTaskCategoryMapper } from '../../src/application/mappers/ComplementaryTaskCategoriesMapper.js';
 
 // Mock Firebase middleware for testing
 const mockVerifyFirebaseToken = (req, res, next) => {
@@ -289,6 +292,162 @@ const createComplementaryTaskTestRouter = () => {
     return router;
 };
 
+// Create test router for complementary task categories
+const createComplementaryTaskCategoryTestRouter = () => {
+    const router = Router();
+    const service = new ComplementaryTaskCategoryService();
+
+    // GET all categories
+    router.get('/', mockVerifyFirebaseToken, async (req, res) => {
+        try {
+            const filters = {
+                code: req.query.code,
+                nameContains: req.query.nameContains,
+                active: req.query.active !== undefined ? req.query.active === 'true' : undefined,
+                defaultDurationMinutes: req.query.defaultDurationMinutes !== undefined 
+                    ? parseInt(req.query.defaultDurationMinutes, 10) 
+                    : undefined,
+                expectedImpactMinutes: req.query.expectedImpactMinutes !== undefined 
+                    ? parseInt(req.query.expectedImpactMinutes, 10) 
+                    : undefined,
+                group: req.query.group,
+            };
+
+            // Validate numeric filters
+            if (req.query.defaultDurationMinutes !== undefined && isNaN(filters.defaultDurationMinutes)) {
+                return res.status(400).json({ 
+                    success: false, 
+                    errors: [{ msg: 'Invalid defaultDurationMinutes parameter' }] 
+                });
+            }
+            if (req.query.expectedImpactMinutes !== undefined && isNaN(filters.expectedImpactMinutes)) {
+                return res.status(400).json({ 
+                    success: false, 
+                    errors: [{ msg: 'Invalid expectedImpactMinutes parameter' }] 
+                });
+            }
+
+            const categories = await service.searchCategories(filters);
+            const dtos = ComplementaryTaskCategoryMapper.toListDto(categories);
+            res.json({ success: true, count: dtos.length, data: dtos });
+        } catch (error) {
+            res.status(500).json({ success: false, error: 'Internal server error', message: error.message });
+        }
+    });
+
+    // POST create category
+    router.post('/', mockVerifyFirebaseToken, async (req, res) => {
+        try {
+            // Basic validation
+            const { code, name, defaultDurationMinutes, expectedImpactMinutes } = req.body;
+            
+            if (!code || !name) {
+                return res.status(400).json({ 
+                    success: false, 
+                    errors: [{ msg: 'Missing required fields: code and name are required' }] 
+                });
+            }
+
+            // Validate numeric fields
+            if (defaultDurationMinutes !== undefined && defaultDurationMinutes !== null && defaultDurationMinutes < 0) {
+                return res.status(400).json({ 
+                    success: false, 
+                    errors: [{ msg: 'defaultDurationMinutes must be non-negative' }] 
+                });
+            }
+            if (expectedImpactMinutes !== undefined && expectedImpactMinutes !== null && expectedImpactMinutes < 0) {
+                return res.status(400).json({ 
+                    success: false, 
+                    errors: [{ msg: 'expectedImpactMinutes must be non-negative' }] 
+                });
+            }
+            
+            const dto = new CreateComplementaryTaskCategoryDto(req.body);
+            const created = await service.createCategory(dto, req.user?.uid || 'system');
+            const data = ComplementaryTaskCategoryMapper.toDto(created);
+            res.status(201).json({ success: true, data });
+        } catch (error) {
+            if (String(error.message || '').toLowerCase().includes('already exists')) {
+                return res.status(409).json({ success: false, error: 'Conflict', message: error.message });
+            }
+            res.status(500).json({ success: false, error: 'Internal server error', message: error.message });
+        }
+    });
+
+    // GET by ID
+    router.get('/:id', mockVerifyFirebaseToken, async (req, res) => {
+        try {
+            const category = await service.getCategoryById(req.params.id);
+            const data = ComplementaryTaskCategoryMapper.toDto(category);
+            res.json({ success: true, data });
+        } catch (error) {
+            if (error.message.includes('not found')) {
+                return res.status(404).json({ success: false, error: 'Not found', message: error.message });
+            }
+            res.status(500).json({ success: false, error: 'Internal server error', message: error.message });
+        }
+    });
+
+    // PATCH update category
+    router.patch('/:id', mockVerifyFirebaseToken, async (req, res) => {
+        try {
+            // Validate numeric fields if provided
+            if (req.body.defaultDurationMinutes !== undefined && req.body.defaultDurationMinutes !== null && req.body.defaultDurationMinutes < 0) {
+                return res.status(400).json({ 
+                    success: false, 
+                    errors: [{ msg: 'defaultDurationMinutes must be non-negative' }] 
+                });
+            }
+            if (req.body.expectedImpactMinutes !== undefined && req.body.expectedImpactMinutes !== null && req.body.expectedImpactMinutes < 0) {
+                return res.status(400).json({ 
+                    success: false, 
+                    errors: [{ msg: 'expectedImpactMinutes must be non-negative' }] 
+                });
+            }
+            
+            const dto = new UpdateComplementaryTaskCategoryDto(req.body);
+            const updated = await service.updateCategory(req.params.id, dto, req.user?.uid || 'system');
+            const data = ComplementaryTaskCategoryMapper.toDto(updated);
+            res.json({ success: true, data });
+        } catch (error) {
+            if (error.message.includes('not found')) {
+                return res.status(404).json({ success: false, error: 'Not found', message: error.message });
+            }
+            res.status(500).json({ success: false, error: 'Internal server error', message: error.message });
+        }
+    });
+
+    // PUT update category
+    router.put('/:id', mockVerifyFirebaseToken, async (req, res) => {
+        try {
+            const dto = new UpdateComplementaryTaskCategoryDto(req.body);
+            const updated = await service.updateCategory(req.params.id, dto, req.user?.uid || 'system');
+            const data = ComplementaryTaskCategoryMapper.toDto(updated);
+            res.json({ success: true, data });
+        } catch (error) {
+            if (error.message.includes('not found')) {
+                return res.status(404).json({ success: false, error: 'Not found', message: error.message });
+            }
+            res.status(500).json({ success: false, error: 'Internal server error', message: error.message });
+        }
+    });
+
+    // DELETE category
+    router.delete('/:id', mockVerifyFirebaseToken, async (req, res) => {
+        try {
+            await service.deleteCategory(req.params.id, req.user?.uid || 'system');
+            res.status(204).send();
+        } catch (error) {
+            if (error.message.includes('not found')) {
+                return res.status(404).json({ success: false, error: 'Not found', message: error.message });
+            }
+            res.status(500).json({ success: false, error: 'Internal server error', message: error.message });
+        }
+    });
+
+    return router;
+};
+
 /**
  * Creates a minimal Express app for testing
  * without starting the server or connecting to external services
@@ -305,6 +464,7 @@ export const createTestApp = () => {
   // Routes with test auth
   app.use('/api/plans', createTestRouter());
   app.use('/api/complementary-tasks', createComplementaryTaskTestRouter());
+  app.use('/api/complementary-task-categories', createComplementaryTaskCategoryTestRouter());
 
   // Health check
   app.get('/health', (req, res) => {
