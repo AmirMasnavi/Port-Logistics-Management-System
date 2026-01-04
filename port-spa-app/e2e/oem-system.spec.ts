@@ -2666,7 +2666,7 @@ test.describe('OEM System Tests', () => {
     }
   });
   
-  test('Complementary Tasks - Edit Task', async ({ page }) => {
+  test('Complementary Tasks - Edit Task 2', async ({ page }) => {
     test.setTimeout(60000);
     await page.goto('/complementary-tasks');
     await waitForPageLoad(page);
@@ -2704,7 +2704,7 @@ test.describe('OEM System Tests', () => {
     }
   });
 
-  test('Complementary Tasks - Delete Task', async ({ page }) => {
+  test('Complementary Tasks - Delete Task 2', async ({ page }) => {
     test.setTimeout(60000);
     await page.goto('/complementary-tasks');
     await waitForPageLoad(page);
