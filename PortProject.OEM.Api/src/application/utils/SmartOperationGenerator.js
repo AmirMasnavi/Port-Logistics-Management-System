@@ -50,6 +50,8 @@ export const generateSmartOperations = (task, actualStartTime = null) => {
             resourceId: task.resourceId,
             plannedStartTime: opStart.toISOString(),
             plannedEndTime: opEnd.toISOString(),
+            actualStartTime: opStart.toISOString(),  // Initialize with planned time
+            actualEndTime: opEnd.toISOString(),      // Initialize with planned time
             status: "PENDING"
         });
         
