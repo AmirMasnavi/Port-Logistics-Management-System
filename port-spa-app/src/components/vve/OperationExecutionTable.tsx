@@ -374,8 +374,7 @@ import type { Resource } from '../../domain/resource/resource.model';
                     status: newStatus,
                     timestamp: new Date().toISOString(),
                     type: type as any,
-                    name: name,
-                    operatorId: user.email || user.uid // Adicionar operatorId
+                    name: name
                 });
 
                 console.log('[Operation Update] Success! Refreshing data...');
