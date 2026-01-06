@@ -9,7 +9,6 @@ yarn-error.log*
 .env
 .env.local
 .env.*.local
-.env.production
 # Firebase Admin SDK credentials (if using service account file)
 firebase-adminsdk-*.json
 serviceAccountKey.json
