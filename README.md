@@ -2,12 +2,15 @@
 
 [![.NET](https://img.shields.io/badge/.NET_9-512BD4?style=flat-square&logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
 [![C#](https://img.shields.io/badge/C%23-239120?style=flat-square&logo=csharp&logoColor=white)](https://learn.microsoft.com/dotnet/csharp/)
+[![Node.js](https://img.shields.io/badge/Node.js-339933?style=flat-square&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
+[![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=flat-square&logo=javascript&logoColor=black)](https://developer.mozilla.org/docs/Web/JavaScript)
 [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![EF Core](https://img.shields.io/badge/EF_Core-512BD4?style=flat-square&logo=dotnet&logoColor=white)](https://learn.microsoft.com/ef/core/)
+[![React](https://img.shields.io/badge/React-20232A?style=flat-square&logo=react&logoColor=61DAFB)](https://react.dev/)
+[![Three.js](https://img.shields.io/badge/Three.js-000000?style=flat-square&logo=threedotjs&logoColor=white)](https://threejs.org/)
 [![Prolog](https://img.shields.io/badge/Prolog-EF3D3D?style=flat-square&logo=swift&logoColor=white)](https://www.swi-prolog.org/)
-[![DDD](https://img.shields.io/badge/Domain--Driven_Design-2C3E50?style=flat-square)]()
+[![Microservices](https://img.shields.io/badge/Microservices-2C3E50?style=flat-square)]()
 
-> **Context:** Academic group project for the **Integrative Project (PI)** and **Artificial Intelligence (IARTI)** courses at **ISEP**, 2025/26. A full-stack maritime port management platform combining a Domain-Driven .NET backend, a role-based TypeScript SPA with real-time 3D visualization, and an AI-based scheduler.
+> **Context:** Academic group project for the **Integrative Project (PI)** and **Artificial Intelligence (IARTI)** courses at **ISEP**, 2025/26. A full-stack, microservice-based maritime port management platform combining Domain-Driven .NET services, a Node.js service, a role-based React/TypeScript SPA with real-time 3D visualization, and an AI-based scheduler.
 
 ![Administrator dashboard](docs/images/port-dashboard.jpeg)
 
@@ -27,13 +30,17 @@ It pairs a well-structured enterprise backend with an **AI optimization layer** 
 
 ## 🛠️ Tech Stack
 
+The platform is built as **multiple backend services** (microservices) behind a single SPA:
+
 | Layer | Technology |
 | :--- | :--- |
-| **REST API** | C# / **.NET 9** (ASP.NET Core) — Domain-Driven Design (aggregates, value objects, repositories) |
+| **Core API** | C# / **.NET 9** (ASP.NET Core) — Domain-Driven Design (aggregates, value objects, repositories) |
+| **Planning service** | C# / **.NET 9** (ASP.NET Core) — separate service for port operations planning |
+| **OEM service** | **Node.js / JavaScript** — separate service, tested with Jest |
 | **Persistence** | **Entity Framework Core** + SQLite (code-first migrations) |
-| **Frontend** | **TypeScript** SPA — role-based UI, 3D visualization, i18n |
+| **Frontend** | **React** + **Vite** + **TypeScript** — role-based UI, **Three.js** 3D visualization (React Three Fiber), **Auth0** authentication, **i18next** internationalization |
 | **AI / Optimization** | **Prolog** — genetic-algorithm scheduler + rebalancing, served via a Prolog scheduling server |
-| **Quality** | Unit, integration, and system test projects (`dotnet test`) |
+| **Quality** | .NET unit/integration/system tests (`dotnet test`), **Jest** (Node), **Vitest** + **Playwright** (frontend) |
 | **API Docs** | Swagger / OpenAPI |
 
 ### 🧩 Domain (DDD)
