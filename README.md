@@ -1,148 +1,85 @@
-# Port Project API
+# Port Logistics Management System ⚓🚢
 
-## 1. Project Overview
+[![.NET](https://img.shields.io/badge/.NET_9-512BD4?style=flat-square&logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
+[![C#](https://img.shields.io/badge/C%23-239120?style=flat-square&logo=csharp&logoColor=white)](https://learn.microsoft.com/dotnet/csharp/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![EF Core](https://img.shields.io/badge/EF_Core-512BD4?style=flat-square&logo=dotnet&logoColor=white)](https://learn.microsoft.com/ef/core/)
+[![Prolog](https://img.shields.io/badge/Prolog-EF3D3D?style=flat-square&logo=swift&logoColor=white)](https://www.swi-prolog.org/)
+[![DDD](https://img.shields.io/badge/Domain--Driven_Design-2C3E50?style=flat-square)]()
 
-Port Project API is a RESTful web API for port operations management. It models core port back-office responsibilities such as staff and qualifications management, operational resources, docks and storage areas, vessel and vessel type management, shipping agents and representatives, and vessel visit notifications (including cargo, crew and decision logs).
+> **Context:** Academic group project for the **Integrative Project (PI)** and **Artificial Intelligence (IARTI)** courses at **ISEP**, 2025/26. A full-stack maritime port management platform combining a Domain-Driven .NET backend, a role-based TypeScript SPA with real-time 3D visualization, and an AI-based scheduler.
 
-This repository implements domain-driven design (aggregates and value objects) and uses Entity Framework Core with SQLite for persistence. The API aims to provide a pragmatic, well-structured backend for integration tests, demos and further development.
+![Administrator dashboard](docs/images/port-dashboard.jpeg)
 
-Key domain aggregates:
-- StaffMember
-- Qualification
-- Resource
-- Dock
-- StorageArea
-- VesselType
-- Vessel
-- ShippingAgentOrganization
-- ShippingAgentRepresentative
-- VesselVisitNotification
+## 📖 Project Overview
 
-Main API controllers (examples):
-- `StaffMembersController`
-- `QualificationsController`
-- `ResourceController`
-- `StorageAreaController`
-- `DockController`
-- `VesselTypeController`
-- `VesselController`
-- `ShippingAgentOrganizationsController`
-- `ShippingAgentRepresentativesController`
-- `VesselVisitNotificationController`
+**Port Logistics Management System** manages the back-office of a maritime port: staff and qualifications, operational resources, docks and storage areas, vessels and vessel types, shipping agents, and vessel-visit notifications (cargo, crew, and decision logs).
 
+It pairs a well-structured enterprise backend with an **AI optimization layer** that schedules port operations, and a frontend that gives each user role its own scoped workspace — including an interactive **3D view of the port**.
 
-## 2. Technologies
+## ✨ Key Features
 
-- .NET 9 (ASP.NET Core Web API)
-- Entity Framework Core (EF Core)
-- SQLite (file-based database)
-- Swagger / Postman / OpenAPI (development only)
+* **🔐 Role-Based Access:** Four distinct roles — Port Officer, Logistics Operator, Shipping Agent, and Administrator — each with its own scoped dashboard and actions.
+* **🚢 Port Operations:** Manage vessel visits, vessel types, vessels, docks, port facilities, storage areas, resources, and shipping agents.
+* **🌐 Real-Time 3D Visualization:** An interactive 3D scene of the port (vessels, cranes, containers, docks) with selectable layouts.
+* **🧠 AI Scheduling:** Port-operations scheduling solved with a **genetic algorithm** implemented in Prolog.
+* **🌍 Internationalization:** Multi-language user interface.
 
+## 🛠️ Tech Stack
 
-## 3. Requirements
+| Layer | Technology |
+| :--- | :--- |
+| **REST API** | C# / **.NET 9** (ASP.NET Core) — Domain-Driven Design (aggregates, value objects, repositories) |
+| **Persistence** | **Entity Framework Core** + SQLite (code-first migrations) |
+| **Frontend** | **TypeScript** SPA — role-based UI, 3D visualization, i18n |
+| **AI / Optimization** | **Prolog** — genetic-algorithm scheduler + rebalancing, served via a Prolog scheduling server |
+| **Quality** | Unit, integration, and system test projects (`dotnet test`) |
+| **API Docs** | Swagger / OpenAPI |
 
-- .NET SDK 9 or later
-- (Optional) `dotnet-ef` tool for migrations
+### 🧩 Domain (DDD)
+Aggregates, each with its own REST controller and repository: `StaffMember`, `Qualification`, `Resource`, `Dock`, `StorageArea`, `VesselType`, `Vessel`, `ShippingAgentOrganization`, `ShippingAgentRepresentative`, `VesselVisitNotification`.
 
+### 🧠 AI Scheduling
+The scheduling problem (assigning port operations to resources and time slots) is solved in Prolog with a **genetic algorithm** (`ga_scheduling.pl`) plus a rebalancing strategy (`rebalancing_scheduling.pl`), exposed to the .NET application through a Prolog scheduling server (`scheduling_server.pl`).
 
-## 4. Build
+### 🌐 3D Visualization
+![Port 3D visualization](docs/images/port-3d.jpeg)
 
-From the repository root:
+## 🙋 My Contribution
+<!-- TODO Amir: replace with 2–4 specific, honest bullets. On a 5-person team this is the most important
+     section for a recruiter — say exactly what YOU built. Examples:
+     * Designed the `Vessel` and `VesselVisitNotification` aggregates and their REST controllers.
+     * Implemented the EF Core repositories and database migrations.
+     * Built the Prolog genetic-algorithm scheduler / the 3D visualization / the role-based access.
+     * Wrote the integration tests for X. -->
 
-```powershell
-# Restore and build (Windows PowerShell / cmd)
+## 🚀 Getting Started
+
+**Backend (API):**
+```bash
 dotnet restore
-dotnet build
+dotnet run --project PortProject.Api    # Swagger UI at https://localhost:{PORT}/swagger (Development)
+dotnet test                              # run unit, integration, and system tests
 ```
 
-
-## 5. Run
-
-Run the API from the solution or the `PortProject.Api` project folder:
-
-```powershell
-# Run using dotnet run
-dotnet run --project PortProject.Api
+**Frontend (SPA):**
+```bash
+cd port-spa-app
+npm install
+npm run dev
 ```
 
-By default the app uses SQLite and a file named `portproject.db` in the working directory (configured in `PortProjectContext`).
-
-When running in the Development environment the project exposes Swagger UI at `https://localhost:{PORT}/swagger`.
-
-
-## 6. Database & Migrations
-
-Install the EF Core CLI if you plan to manage migrations:
-
-```powershell
-dotnet tool install --global dotnet-ef
-```
-
-Create a migration and update the database (example):
-
-```powershell
-# From repository root
-dotnet ef migrations add InitialCreate --project PortProject.Api --startup-project PortProject.Api
+Default persistence is a local SQLite file (`portproject.db`); see `appsettings.json` to change the connection string. Manage the schema with EF Core migrations:
+```bash
 dotnet ef database update --project PortProject.Api --startup-project PortProject.Api
 ```
 
-The project is configured to use a SQLite file by default. If you change the connection string, update `appsettings.json` or your environment variables accordingly.
+## 👥 Team
+Pedro Santos · Amir Masnavi · Leonor Marinho · Inês Oliveira · Mariana Sarmento
 
+## 📬 Contact
+* **LinkedIn:** [Amir Masnavi](https://www.linkedin.com/in/amir-masnavi-b1ab61293/)
+* **Portfolio:** [AmirMasnavi.github.io](https://amirmasnavi.github.io/)
 
-## 7. API Endpoints (overview)
-
-Base URL: `/api`
-
-Common endpoints include (not exhaustive):
-- `GET /api/StaffMembers` — list staff
-- `POST /api/StaffMembers` — create staff member
-- `GET /api/VesselTypes` — list vessel types
-- `POST /api/VesselVisitNotification` — submit a vessel visit notification
-- `GET /api/StorageArea` — manage storage areas
-- `GET /api/Dock` — manage docks
-- `GET /api/Resource` — manage resources
-
-Refer to the Swagger UI for a complete list of endpoints, request/response schemas and example payloads.
-
-
-## 8. Project Structure
-
-Top-level folders of interest:
-- `PortProject.Api/Controllers` — HTTP controllers
-- `PortProject.Api/Domain` — domain model (aggregates, value objects, interfaces)
-- `PortProject.Api/Application` — application services and DTOs
-- `PortProject.Api/Infrastructure` — EF Core repositories and persistence
-- `PortProject.Api/Models` — `AplicationContext` (EF Core DbContext)
-- `*.Tests`, `*.System_Tests` and `*.IntegrationTests` — test projects
-
-
-## 9. Tests
-
-There are several test projects in the repository (unit, system tests, and integration tests). Run tests with:
-
-```powershell
-dotnet test
-```
-
-
-## 10. Troubleshooting
-
-- Swagger not available: ensure `ASPNETCORE_ENVIRONMENT` is set to `Development`.
-- Database errors after model changes: regenerate migrations and apply them, or delete `portproject.db` and run migrations to recreate the schema.
-- Connection string: check `appsettings.json` for `DefaultConnection` or rely on the default SQLite config in `PortProjectContext`.
-
-## 11. Contribution & Notes
-
-- Coding follows DDD principles: aggregates, value objects and explicit repositories.
-- Prefer adding migrations when modifying the domain model.
-- Keep enum serialization stable (the project configures Newtonsoft.Json to serialize enums as strings).
-
-
-## 12. Authors
-
-Student team: Pedro Santos, Amir Masnavi, Leonor Marinho, Inês Oliveira, Mariana Sarmento.
-
-
-## 13. License
-
-This project is provided for academic purposes. Please consult the repository owner for any licensing or reuse policies.
+## 📄 License
+Academic project. Please contact the repository owner regarding any reuse.
